@@ -17,29 +17,27 @@ class Component:
         self.running_state = ComponentState.IDLE
 
     @abstractmethod    
-    def __algorithm(self): #the algorithm of the component
+    def algorithm(self): #the algorithm of the component
         pass
     
-    def __pre_algorithm(self):
+    def pre_algorithm(self):
         self.running_state = ComponentState.RUNNING
         
-    def __pos_algorithm(self):
+    def pos_algorithm(self):
         self.running_state = ComponentState.OVER 
     
     def execute(self): #the universal execution flow for all components
          
         try:
-            self.__pre_algorithm()
-            self.__algorithm()
-            self.__pos_algorithm()
+            self.pre_algorithm()
+            self.algorithm()
+            self.pos_algorithm()
             return self.getOutput()
         
         except Exception as e:
             self.running_state = ComponentState.ERROR
             self.onException(e)
-        
-        
-        
+
     
     def getOutput(self): #return output
         return None
@@ -57,13 +55,17 @@ class IOComponent(Component): # a component that received and verifies input
     # the actual input values will be saved in self.input
     input_signature = {} 
     
-    def __pre_algorithm(self):
-        super().__pre_algorithm()
-        self.__passInput() #before the algorithm starts running, we define the input
+    def pre_algorithm(self):
+        super().pre_algorithm()
+        self.output = {} #output will be a dictionary
+
+    def getOutput(self): #return output
+        return self.output
     
     def execute(self, input : dict):
-
-        return super().execute(input)
+        
+        self.__passInput(input) #before the algorithm starts running, we define the input    
+        return super().execute()
 
     def __passInput(self, input: dict): #pass and verify the input to this component, to the self.input dict
         
