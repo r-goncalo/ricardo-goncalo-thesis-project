@@ -47,7 +47,7 @@ class Component:
         
     
     
-class IOComponent(Component): # a component that received and verifies input 
+class IOComponent(Component): # a component that receives and verifies input 
     
     # a dictionary with { "input_name" : (default_value, [possible_type*]) }
     # if default_value is None, an exception error is raised when input is missing
@@ -79,23 +79,10 @@ class IOComponent(Component): # a component that received and verifies input
             if input_key in passed_keys: #if this value was in input
                 
                 input_value = input[input_key]
-                
-                is_a_correct_type = False
-                
-                if not isinstance(possible_types, list): #if the possible types is only one not defined in a list
-                    is_a_correct_type = isinstance(input_value, possible_types)
                     
-                else: #(else) if the possible types is a list with the possible types in it
-                
-                    for possible_type in possible_types: 
-                        if isinstance(input_value, possible_type):
-                            is_a_correct_type = True
-                            break
-                    
-                if not is_a_correct_type:
+                if not verify_if_correct_type(input_value, possible_types):
                     raise Exception(f"Input with key '{input_key}' with type {type(input_value)} is not of any of the available types {possible_types}")
                     
-                
                 self.input[input_key] = input_value #the value used will be the one passed in the input
                 
             else:
@@ -105,3 +92,20 @@ class IOComponent(Component): # a component that received and verifies input
                 
                 else:
                     self.input[input_key] = default_value  #the value used will be the default value
+                    
+
+def verify_if_correct_type(input_value, possible_types):
+    
+    is_a_correct_type = False
+    
+    if not isinstance(possible_types, list): #if the possible types is only one not defined in a list
+        is_a_correct_type = isinstance(input_value, possible_types)
+        
+    else: #(else) if the possible types is a list with the possible types in it
+    
+        for possible_type in possible_types: 
+            if isinstance(input_value, possible_type):
+                is_a_correct_type = True
+                break
+            
+    return is_a_correct_type

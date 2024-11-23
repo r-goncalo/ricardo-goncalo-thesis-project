@@ -4,7 +4,8 @@ import types
 
 class WhileFunDoFunComponent(IOComponent):
 
-    input_signature = {**IOComponent.input_signature, 
+    #The inputs this component receives
+    input_signature = {**IOComponent.input_signature, #the inputs of the parent 
                        "execution" : (None, [ types.FunctionType]), #have no default values (None) and are functions
                        "condition" : (None, [ types.FunctionType]),
                        "pre_execution" : (None, [ types.FunctionType]),
