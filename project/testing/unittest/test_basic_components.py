@@ -28,10 +28,42 @@ class TestWhileComponent(unittest.TestCase):
                 "post_execution" : post_execution
             }
         )
-        
-        print(output)
-        
+                
         assert output["result"] == 10
+        
+
+class TestDoNTimesComponent(unittest.TestCase):
+    
+    def test_correct_default(self):
+        
+        do_n_times_component = loop_components.DoNTimesComponent()
+        
+        output = do_n_times_component.execute(
+            {
+                "execution": execution,
+                "pre_execution": pre_execution,
+                "post_execution" : post_execution
+            }
+        )
+        
+        assert output["result"] == loop_components.DoNTimesComponent.DEFAULT_TIMES_TO_DO
+        
+    def test_correct_non_default(self):
+        
+        do_n_times_component = loop_components.DoNTimesComponent()
+        
+        custom_times_to_do = 20
+        
+        output = do_n_times_component.execute(
+            {
+                "execution": execution,
+                "pre_execution": pre_execution,
+                "post_execution" : post_execution,
+                "times_to_do" : custom_times_to_do 
+            }
+        )
+        
+        assert output["result"] == custom_times_to_do
         
 
         
