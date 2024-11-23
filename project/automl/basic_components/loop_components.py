@@ -1,11 +1,11 @@
 
-from ..component import IOComponent, Component
+from ..component import ExecComponent
 import types
 
-class WhileFunDoFunComponent(IOComponent):
+class WhileFunDoFunComponent(ExecComponent):
 
     #The inputs this component receives
-    input_signature = {**IOComponent.input_signature, #the inputs of the parent 
+    input_signature = {**ExecComponent.input_signature, #the inputs of the parent 
                        "execution" : (None, [ types.FunctionType]), #have no default values (None) and are functions
                        "condition" : (None, [ types.FunctionType]),
                        "pre_execution" : (None, [ types.FunctionType]),
@@ -26,15 +26,15 @@ class WhileFunDoFunComponent(IOComponent):
         post_execution(self)
         
     
-class DoNTimesComponent(IOComponent):
+class DoNTimesComponent(ExecComponent):
     
     DEFAULT_TIMES_TO_DO = 10
         
-    input_signature = {**IOComponent.input_signature, 
+    input_signature = {**ExecComponent.input_signature, 
                        "execution" : (None, [ types.FunctionType]),
                        "pre_execution" : (None, [ types.FunctionType]),
                        "post_execution" : (None, [types.FunctionType]),
-                       "times_to_do" : (DEFAULT_TIMES_TO_DO, int)}
+                       "times_to_do" : (DEFAULT_TIMES_TO_DO, [int])}
     
     def algorithm(self):
                 

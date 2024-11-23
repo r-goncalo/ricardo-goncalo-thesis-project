@@ -20,7 +20,7 @@ class TestWhileComponent(unittest.TestCase):
         
         while_component = loop_components.WhileFunDoFunComponent()
         
-        output = while_component.execute(
+        output = while_component.pass_input_and_exec(
             {
                 "condition": condition,
                 "execution": execution,
@@ -38,7 +38,7 @@ class TestDoNTimesComponent(unittest.TestCase):
         
         do_n_times_component = loop_components.DoNTimesComponent()
         
-        output = do_n_times_component.execute(
+        output = do_n_times_component.pass_input_and_exec(
             {
                 "execution": execution,
                 "pre_execution": pre_execution,
@@ -54,7 +54,7 @@ class TestDoNTimesComponent(unittest.TestCase):
         
         custom_times_to_do = 20
         
-        output = do_n_times_component.execute(
+        output = do_n_times_component.pass_input_and_exec(
             {
                 "execution": execution,
                 "pre_execution": pre_execution,
