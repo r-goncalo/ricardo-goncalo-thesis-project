@@ -6,10 +6,10 @@ class WhileFunDoFunComponent(ExecComponent):
 
     #The inputs this component receives
     input_signature = {**ExecComponent.input_signature, #the inputs of the parent 
-                       "execution" : (None, [ types.FunctionType]), #have no default values (None) and are functions
-                       "condition" : (None, [ types.FunctionType]),
-                       "pre_execution" : (None, [ types.FunctionType]),
-                       "post_execution" : (None, [types.FunctionType])}
+                       "execution" : (None, lambda x : isinstance(x, types.FunctionType)), #have no default values (None) and are functions
+                       "condition" : (None, lambda x : isinstance(x, types.FunctionType)),
+                       "pre_execution" : (None, lambda x : isinstance(x, types.FunctionType)),
+                       "post_execution" : (None, lambda x : isinstance(x, types.FunctionType))}
     
     def algorithm(self):
                 
@@ -31,10 +31,10 @@ class DoNTimesComponent(ExecComponent):
     DEFAULT_TIMES_TO_DO = 10
         
     input_signature = {**ExecComponent.input_signature, 
-                       "execution" : (None, [ types.FunctionType]),
-                       "pre_execution" : (None, [ types.FunctionType]),
-                       "post_execution" : (None, [types.FunctionType]),
-                       "times_to_do" : (DEFAULT_TIMES_TO_DO, [int])}
+                       "execution" : (None, lambda x : isinstance(x, types.FunctionType)),
+                       "pre_execution" : (None, lambda x : isinstance(x, types.FunctionType)),
+                       "post_execution" : (None, lambda x : isinstance(x, types.FunctionType)),
+                       "times_to_do" : (DEFAULT_TIMES_TO_DO, lambda x : isinstance(x, int))}
     
     def algorithm(self):
                 

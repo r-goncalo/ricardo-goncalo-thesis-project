@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 
 class Component: # a component that receives and verifies input 
     
-    # a dictionary with { "input_name" : (default_value, [possible_type*]) }
+    # a dictionary with { "input_name" : (default_value, validity verification) }
     # if default_value is None, an exception error is raised when input is missing
-    # if the list of [possible_type*] is empty, no type verification will be done
+    # if validity verification function is not none, it will be applied to the input value
     # the actual input values will be saved in self.input
     input_signature = {}
     
@@ -52,26 +52,15 @@ class Component: # a component that receives and verifies input
                     self.input[input_key] = default_value  #the value used will be the default value
                     
 
-#TODO: The verification of the types of the inputs should be more agile, allowing for example for a field to pass based on its method signature (like an interface)
-def verify_if_correct_type(input_key, input_value, possible_types):
+def verify_if_correct_type(input_key, input_value, validity_verification):
     
-    if possible_types == None: #if there was no specified possible_types
+    if validity_verification == None: #if there was no specified validity_verification
         return True 
     
-    elif not isinstance(possible_types, list): #if the possible types is only one and not defined in a list (this should never be the case, for the sake of consistency)
-        raise Exception(f"'Possible types' for key '{input_key}' is not a list (this should not be the case, even if there is only one type)")
+    is_a_correct_type = validity_verification(input_value)
     
-    elif len(possible_types) == 0:
-        raise Exception(f"'Possible types' for key '{input_key}' is an empty list (possible types should be a list with the possible types in it)")
-        
-    else: #(else) if the possible types is a list with the possible types in it
-        
-        is_a_correct_type = False
-    
-        for possible_type in possible_types: 
-            if isinstance(input_value, possible_type):
-                is_a_correct_type = True
-                break
+    if not isinstance(is_a_correct_type, bool): #validity_verification must return bool
+        raise Exception(f"Validity verification on key '{input_key}' returned a type other than bool") 
             
     return is_a_correct_type
             

@@ -31,6 +31,33 @@ class TestWhileComponent(unittest.TestCase):
                 
         assert output["result"] == 10
         
+    def test_wrong_type(self):
+        
+        while_component = loop_components.WhileFunDoFunComponent()
+        
+        try:
+            
+            print("Trying to run while component with wrong condition type")
+        
+            output = while_component.pass_input_and_exec(
+                {
+                    "condition": 5,
+                    "execution": execution,
+                    "pre_execution": pre_execution,
+                    "post_execution" : post_execution
+                }
+            )
+            
+            assert False
+        
+        except:
+            print("Success in caugthing an exception")
+            assert True
+                
+        
+
+
+        
 
 class TestDoNTimesComponent(unittest.TestCase):
     
