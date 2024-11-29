@@ -12,8 +12,18 @@ class Component: # a component that receives and verifies input
     # the actual input values will be saved in self.input
     input_signature = {}
     
-    def __init__(self):
-        self.input = {} #the input will be a dictionary
+    def __init__(self, input=None): #we can immediatly receive the input
+        
+        if input == None:
+            self.input = {} #the input will be a dictionary
+        
+        elif isinstance(input, dict):
+            self.input = input
+            
+        else:
+            raise Exception("Input should be a dictionary")
+        
+        
         self.output = {} #output, if any, will be a dictionary
 
     def get_output(self): #return output
