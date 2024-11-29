@@ -14,14 +14,10 @@ class Component: # a component that receives and verifies input
     
     def __init__(self, input=None): #we can immediatly receive the input
         
-        if input == None:
-            self.input = {} #the input will be a dictionary
+        self.input = {} #the input will be a dictionary    
         
-        elif isinstance(input, dict):
-            self.input = input
-            
-        else:
-            raise Exception("Input should be a dictionary")
+        if input != None:
+            self.pass_and_proccess_input(input)
         
         
         self.output = {} #output, if any, will be a dictionary

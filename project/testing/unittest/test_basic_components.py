@@ -92,6 +92,41 @@ class TestDoNTimesComponent(unittest.TestCase):
         
         assert output["result"] == custom_times_to_do
         
+    def test_correct_non_default_input_in_init(self):
+        
+        custom_times_to_do = 30
+        
+        do_n_times_component = loop_components.DoNTimesComponent( #pass input in initialization
+            {
+                "execution": execution,
+                "pre_execution": pre_execution,
+                "post_execution" : post_execution,
+                "times_to_do" : custom_times_to_do 
+            })
+        
+        
+        output = do_n_times_component.execute()
+        
+        assert output["result"] == custom_times_to_do
+        
+    def test_correct_non_default_input_in_between(self):
+        
+        custom_times_to_do = 30
+        
+        do_n_times_component = loop_components.DoNTimesComponent()
+        
+        do_n_times_component.pass_and_proccess_input(  # pass input in between initialization and execution
+            {
+                "execution": execution,
+                "pre_execution": pre_execution,
+                "post_execution" : post_execution,
+                "times_to_do" : custom_times_to_do 
+            })
+        
+        
+        output = do_n_times_component.execute()
+        
+        assert output["result"] == custom_times_to_do
 
         
 
