@@ -84,6 +84,9 @@ def verify_validity(input_key, input_value, possible_types, validity_verificator
 
 def verify_one_of_types(input_key, input_value, possible_types):
         
+        if len(possible_types) == 0:
+            return #if there were no possible_types defined, there is no need to check the type
+        
         for possible_type in possible_types:
             
             if isinstance(input_value, possible_type):
