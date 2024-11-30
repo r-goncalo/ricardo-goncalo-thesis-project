@@ -1,6 +1,6 @@
 
 from enum import Enum
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 #Every component may receieve input and return output
 
@@ -40,7 +40,7 @@ class Component: # a component that receives and verifies input
         
         for input_key in self.input_signature.keys():
             
-            (default_value, possible_types, validity_verificator) = self.input_signature[input_key]
+            (default_value, generator, possible_types, validity_verificator) = self.input_signature[input_key]
                         
             if input_key in passed_keys: #if this value was in input
                 
@@ -48,21 +48,25 @@ class Component: # a component that receives and verifies input
                     
                 verify_validity(input_key, input_value, possible_types, validity_verificator) #raises exceptions if input is not valid
                                     
-            else:
-                                
-                if default_value == None:
-                    raise Exception(f"Did not set input for value {input_key} and has no default value")
+            else: #if there was no specified value for this attribute in the input
                 
-                else:
+                if not default_value == None:
                     self.input[input_key] = default_value  #the value used will be the default value
+                    
+                elif not generator == None:
+                    self.input[input_key] = generator()
+                    
+                else:
+                    raise Exception(f"Did not set input for value {input_key} and has no default value nor generator")
+                
           
 
 # Validy verification -----------------------------          
                     
 #a function that generates a single input signature
-def input_signature(default_value=None, validity_verificator=None, possible_types : list = []):
+def input_signature(default_value=None, generator=None, validity_verificator=None, possible_types : list = []):
 
-    return  (default_value, possible_types, validity_verificator)
+    return  (default_value, generator, possible_types, validity_verificator)
 
 
 
@@ -94,6 +98,9 @@ def verify_one_of_types(input_key, input_value, possible_types):
             
         #if we reach the end of the function, then the value is of none of the types
         raise Exception(f"No validity verificator specified for key '{input_key}' and its type is of none of the possible types: {possible_types}")
+
+
+
 
 #Executable components --------------------------
 
