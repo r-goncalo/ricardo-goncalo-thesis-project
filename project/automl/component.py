@@ -40,14 +40,13 @@ class Component: # a component that receives and verifies input
         
         for input_key in self.input_signature.keys():
             
-            (default_value, possible_types) = self.input_signature[input_key]
+            (default_value, possible_types, validity_verificator) = self.input_signature[input_key]
                         
             if input_key in passed_keys: #if this value was in input
                 
                 input_value = self.input[input_key] #get the value passed
                     
-                if not verify_if_correct_type(input_key, input_value, possible_types):
-                    raise Exception(f"Input with key '{input_key}' with type {type(input_value)} is not of any of the available types {possible_types}")
+                verify_validity(input_key, input_value, possible_types, validity_verificator) #raises exceptions if input is not valid
                                     
             else:
                                 
@@ -56,24 +55,44 @@ class Component: # a component that receives and verifies input
                 
                 else:
                     self.input[input_key] = default_value  #the value used will be the default value
-                    
+          
 
-def verify_if_correct_type(input_key, input_value, validity_verification):
+# Validy verification -----------------------------          
+                    
+#a function that generates a single input signature
+def input_signature(default_value=None, validity_verificator=None, possible_types : list = []):
+
+    return  (default_value, possible_types, validity_verificator)
+
+
+
+def verify_validity(input_key, input_value, possible_types, validity_verificator):
     
-    if validity_verification == None: #if there was no specified validity_verification
-        return True 
+    if validity_verificator == None: #if there was no specified validity_verification, we check the available types
+        return verify_one_of_types(input_key, input_value, possible_types) 
     
-    is_a_correct_type = validity_verification(input_value)
+    is_a_correct_type = validity_verificator(input_value) #use the verificator the Component has specified in its input signature
     
     if not isinstance(is_a_correct_type, bool): #validity_verification must return bool
-        raise Exception(f"Validity verification on key '{input_key}' returned a type other than bool") 
-            
-    return is_a_correct_type
-            
+        raise Exception(f"Validity verification on key '{input_key}' returned a type other than bool")
     
+    elif is_a_correct_type == False:
+        raise Exception(f"Value with key '{input_key}' did not pass Component specified validity verificator") 
 
 
-#Some components are executables
+
+
+def verify_one_of_types(input_key, input_value, possible_types):
+        
+        for possible_type in possible_types:
+            
+            if isinstance(input_value, possible_type):
+                return #break the loop and the functon, value is of one of the possible types
+            
+        #if we reach the end of the function, then the value is of none of the types
+        raise Exception(f"No validity verificator specified for key '{input_key}' and its type is of none of the possible types: {possible_types}")
+
+#Executable components --------------------------
 
 class ExecComponent(Component):
     
