@@ -38,7 +38,7 @@ class AdamOptimizer(OptimizerComponent):
         
         super().proccess_input()
         
-        self.torch_adam_opt = optim.Adam(params=input["torch_params"],lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
+        self.torch_adam_opt = optim.AdamW(params=self.input["torch_params"],lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
 
     
     # EXPOSED METHODS --------------------------------------------------------------------------
