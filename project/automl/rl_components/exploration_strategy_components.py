@@ -16,8 +16,14 @@ class ExplorationStrategyComponent(Component):
     def select_action(self, agent, state, training : dict):
         
         '''
-            state is the current state as readable by the agent
-            training is a dict with all the info the agent may need (for example, totalSteps)
+            Selects an action based on the agent's state (using things like its policy) and this exploration strategy
+            
+            Args:
+                state is the current state as readable by the agent
+                training is a dict with all the info the agent may need (for example, totalSteps)
+                
+            Returns:
+                The index of the action selected
         '''
         
         pass
