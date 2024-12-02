@@ -70,7 +70,7 @@ class ConvModelComponent(ModelComponent):
     
     # UTIL -----------------------------------------------------
     
-    def __clone__(self):
+    def clone(self):
         
         toReturn =  ConvModelComponent(input=self.input)
         
