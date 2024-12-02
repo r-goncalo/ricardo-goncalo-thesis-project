@@ -56,9 +56,9 @@ class AgentComponent(Component):
                        "discount_factor" : input_signature(default_value=0.95),
                        "target_update_rate" : input_signature(default_value=0.05),
                        "learning_rate" : input_signature(default_value=0.01),
-                       "exploration_strategy" : input_signature(generator=EpsilonGreedyStrategy),
-                       "policy_model" : input_signature(generator=ConvModelComponent), #this generates an epsilon greddy strategy object at runtime if it is not specified
-                       
+                       "exploration_strategy" : input_signature(generator=EpsilonGreedyStrategy), #this generates an epsilon greddy strategy object at runtime if it is not specified
+                       "policy_model" : input_signature(), 
+                       "optimizer" : input_signature(),
                        "replay_memory_size" : input_signature(default_value=DEFAULT_MEMORY_SIZE)}
 
         
@@ -103,7 +103,7 @@ class AgentComponent(Component):
         #our target network will be used to evaluate states
         #it is essentially a delayed copy of the policy network
         #it substitutes a Q table (a table that would store, for each state and each action, a value regarding how good that action is)
-        self.target_net = self.policy_net.clone()
+        self.target_net = self.policy_model.clone()
         
     def initialize_optimizer(self):
           self.optimizer = self.input["optimizer"]   
@@ -164,18 +164,9 @@ class AgentComponent(Component):
             
         # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
         expected_state_action_values = (next_state_values * self.GAMMA) + reward_batch
-    
-        # Compute Huber loss
-        criterion = nn.SmoothL1Loss()
-        loss = criterion(predicted_actions_values, expected_state_action_values)
-    
-        # Optimize the model
-        self.optimizer.zero_grad()
-        loss.backward()
         
-        # In-place gradient clipping
-        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
-        self.optimizer.step()
+        #Optimizes the model given the optimizer defined
+        self.optimizer.optimize_model(self, predicted_actions_values, expected_state_action_values)
                 
     def update_target_model(self):
         
