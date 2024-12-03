@@ -4,76 +4,97 @@ from abc import abstractmethod
 
 #Every component may receieve input and return output
 
-class Component: # a component that receives and verifies input 
+class Component: # a component that receives and verifies input
     
     # a dictionary with { "input_name" : (default_value, validity verification) }
     # if default_value is None, an exception error is raised when input is missing
     # if validity verification function is not none, it will be applied to the input value
     # the actual input values will be saved in self.input
-    input_signature = {
-        "parent_component" : input_signature(default_value=None, verify_validity=lambda x : isinstance(x, Component)) #every component may have a parent component
-        }
+    input_signature = {}
     
     #A dictionary { "value_name" -> initial_value }
     #it tells other components what are the values exposed by this component
+    #this does not need to be stored in the component, the only reason it is is to standardize this kind of exposure
     exposed_values = {}
     
-    def __init__(self, input=None): #we can immediatly receive the input
-        
+    def __init__(self, input : dict): #we can immediatly receive the input
+                
         self.input = {} #the input will be a dictionary
-        self.values = self.exposed_values.clone() #this is where the exposed values will be stored
+        self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         
-        if input != None:
-            self.pass_and_proccess_input(input)
+        self.pass_and_proccess_input(input)
         
         self.output = {} #output, if any, will be a dictionary
         
 
     def get_output(self): #return output
         return self.output
-    
-    def get_value(self, key):
-        
-        try:
-            return self.values[key] #if we have the value, pass it
-        
-        except KeyError:
-            if self.parent_component != None:
-                try:
-                    return self.parent_component.get_value(key) #look for value in parent component if it does not exist
-                
-                except KeyError:
-                    raise KeyError(f"Component has no value with key '{key}' and its parents also don't have it")
-            
-            else:
-                raise KeyError(f"Component has no value with key '{key}'")
             
     
     def pass_and_proccess_input(self, input : dict):
-        self.pass_input(input)
+        
+        self.pass_input(input) #note that this does not make input already passed disappear
+        self.add_default_values()
         self.proccess_input()
-    
+
     
     def pass_input(self, input: dict): # pass input to this component
         for passed_key in input.keys():
             self.input[passed_key] = input[passed_key]
 
 
-    def initialize(self):
-        '''After verifying the input, do any threatment that is essential before runnning other functions'''
-        
-        self.parent_component = input["parent_component"] #try to define parent component
-        
-        
-        
-
     def proccess_input(self): #verify the input to this component and add default values, to the self.input dict
+        self.verify_input_of_class_and_super(type(self))
+    
         
-        passed_keys = self.input.keys()
+    def add_default_values(self):
+        self.add_default_values_of_class_and_super(type(self))
         
-        for input_key in self.input_signature.keys():
+    
+    def add_default_values_of_class_and_super(self, class_component):    
+                
+        self.add_default_values_of_class(class_component)
+        
+        if len(class_component.__mro__) > 2:
+            self.add_default_values_of_class_and_super(class_component.__mro__[1]) # adds second the default values of the super component if any
+        
             
-            (default_value, generator, possible_types, validity_verificator) = self.input_signature[input_key]
+    def add_default_values_of_class(self, class_component):
+        
+        input_signature = class_component.input_signature  #the input signature specified in this class          
+        passed_keys = self.input.keys() #note that default values of child classes are already here
+                
+        for input_key in input_signature.keys():
+            
+            (default_value, generator, _, _) = input_signature[input_key]
+             
+            #if this values was not already defined
+            if not input_key in passed_keys: 
+                                                   
+                if not default_value == None:
+                    self.input[input_key] = default_value  #the value used will be the default value
+
+                elif not generator == None:
+                    self.input[input_key] = generator()
+
+        
+        
+    def verify_input_of_class_and_super(self, class_component):
+
+        if len(class_component.__mro__) > 2: #if this class has a super class that is not the object class
+            self.verify_input_of_class_and_super(class_component.__mro__[1]) # verifies first the input according to the super class
+                
+        self.verify_input_specific_of_class(class_component)
+        
+            
+    def verify_input_specific_of_class(self, class_component): #verify the input to this component and add default values, to the self.input dict
+
+        input_signature = class_component.input_signature  #the input signature specified in this class          
+        passed_keys = self.input.keys() #note that default values and verifications of super values could already be done
+                
+        for input_key in input_signature.keys():
+            
+            (_, _, possible_types, validity_verificator) = input_signature[input_key]
                         
             if input_key in passed_keys: #if this value was in input
                 
@@ -81,18 +102,9 @@ class Component: # a component that receives and verifies input
                     
                 verify_validity(input_key, input_value, possible_types, validity_verificator) #raises exceptions if input is not valid
                                     
-            else: #if there was no specified value for this attribute in the input
-                
-                if not default_value == None:
-                    self.input[input_key] = default_value  #the value used will be the default value
-                    
-                elif not generator == None:
-                    self.input[input_key] = generator()
-                    
-                else:
-                    raise Exception(f"Did not set input for value  with key '{input_key}' and has no default value nor generator")
-                
-                
+            else: #if there was no specified value for this attribute in the input and had no default value
+            
+                raise Exception(f"Did not set input for value  with key '{input_key}' and has no default value nor generator")                        
                 
           
 
@@ -157,7 +169,7 @@ class ExecComponent(Component):
     def pos_algorithm(self): # a component may extend this for certain behaviours
         self.running_state = ExecComponent.State.OVER 
     
-    def pass_input_and_exec(self, input : dict): #
+    def pass_input_and_exec(self, input : dict):
         
         self.pass_and_proccess_input(input) #before the algorithm starts running, we define the input    
         return self.execute()

@@ -18,35 +18,33 @@ class TestWhileComponent(unittest.TestCase):
     
     def test_correct(self):
         
-        while_component = loop_components.WhileFunDoFunComponent()
-        
-        output = while_component.pass_input_and_exec(
-            {
+        while_component = loop_components.WhileFunDoFunComponent({
                 "condition": condition,
                 "execution": execution,
                 "pre_execution": pre_execution,
                 "post_execution" : post_execution
-            }
-        )
+            })
+        
+        output = while_component.execute()
                 
         assert output["result"] == 10
         
     def test_wrong_type(self):
         
-        while_component = loop_components.WhileFunDoFunComponent()
+
         
         try:
             
             print("Trying to run while component with wrong condition type")
-        
-            output = while_component.pass_input_and_exec(
-                {
+            
+            while_component = loop_components.WhileFunDoFunComponent(                {
                     "condition": 5,
                     "execution": execution,
                     "pre_execution": pre_execution,
                     "post_execution" : post_execution
-                }
-            )
+                })
+        
+            output = while_component.execute()
             
             assert False
         
@@ -63,32 +61,31 @@ class TestDoNTimesComponent(unittest.TestCase):
     
     def test_correct_default(self):
         
-        do_n_times_component = loop_components.DoNTimesComponent()
-        
-        output = do_n_times_component.pass_input_and_exec(
-            {
+        do_n_times_component = loop_components.DoNTimesComponent(            {
                 "execution": execution,
                 "pre_execution": pre_execution,
                 "post_execution" : post_execution
-            }
-        )
+            })
+        
+        output = do_n_times_component.execute()
         
         assert output["result"] == loop_components.DoNTimesComponent.DEFAULT_TIMES_TO_DO
         
     def test_correct_non_default(self):
         
-        do_n_times_component = loop_components.DoNTimesComponent()
-        
         custom_times_to_do = 20
+
         
-        output = do_n_times_component.pass_input_and_exec(
-            {
+        do_n_times_component = loop_components.DoNTimesComponent(
+                        {
                 "execution": execution,
                 "pre_execution": pre_execution,
                 "post_execution" : post_execution,
                 "times_to_do" : custom_times_to_do 
             }
         )
+        
+        output = do_n_times_component.execute()
         
         assert output["result"] == custom_times_to_do
         
@@ -113,15 +110,14 @@ class TestDoNTimesComponent(unittest.TestCase):
         
         custom_times_to_do = 30
         
-        do_n_times_component = loop_components.DoNTimesComponent()
-        
-        do_n_times_component.pass_and_proccess_input(  # pass input in between initialization and execution
-            {
+        do_n_times_component = loop_components.DoNTimesComponent(
+                        {
                 "execution": execution,
                 "pre_execution": pre_execution,
                 "post_execution" : post_execution,
                 "times_to_do" : custom_times_to_do 
-            })
+            }
+        )
         
         
         output = do_n_times_component.execute()
