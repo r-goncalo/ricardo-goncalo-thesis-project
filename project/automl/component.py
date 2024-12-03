@@ -10,29 +10,62 @@ class Component: # a component that receives and verifies input
     # if default_value is None, an exception error is raised when input is missing
     # if validity verification function is not none, it will be applied to the input value
     # the actual input values will be saved in self.input
-    input_signature = {}
+    input_signature = {
+        "parent_component" : input_signature(default_value=None, verify_validity=lambda x : isinstance(x, Component)) #every component may have a parent component
+        }
+    
+    #A dictionary { "value_name" -> initial_value }
+    #it tells other components what are the values exposed by this component
+    exposed_values = {}
     
     def __init__(self, input=None): #we can immediatly receive the input
         
-        self.input = {} #the input will be a dictionary    
+        self.input = {} #the input will be a dictionary
+        self.values = self.exposed_values.clone() #this is where the exposed values will be stored
         
         if input != None:
             self.pass_and_proccess_input(input)
         
-        
         self.output = {} #output, if any, will be a dictionary
+        
 
     def get_output(self): #return output
         return self.output
+    
+    def get_value(self, key):
+        
+        try:
+            return self.values[key] #if we have the value, pass it
+        
+        except KeyError:
+            if self.parent_component != None:
+                try:
+                    return self.parent_component.get_value(key) #look for value in parent component if it does not exist
+                
+                except KeyError:
+                    raise KeyError(f"Component has no value with key '{key}' and its parents also don't have it")
+            
+            else:
+                raise KeyError(f"Component has no value with key '{key}'")
+            
     
     def pass_and_proccess_input(self, input : dict):
         self.pass_input(input)
         self.proccess_input()
     
+    
     def pass_input(self, input: dict): # pass input to this component
         for passed_key in input.keys():
             self.input[passed_key] = input[passed_key]
 
+
+    def initialize(self):
+        '''After verifying the input, do any threatment that is essential before runnning other functions'''
+        
+        self.parent_component = input["parent_component"] #try to define parent component
+        
+        
+        
 
     def proccess_input(self): #verify the input to this component and add default values, to the self.input dict
         
@@ -57,7 +90,9 @@ class Component: # a component that receives and verifies input
                     self.input[input_key] = generator()
                     
                 else:
-                    raise Exception(f"Did not set input for value {input_key} and has no default value nor generator")
+                    raise Exception(f"Did not set input for value  with key '{input_key}' and has no default value nor generator")
+                
+                
                 
           
 
