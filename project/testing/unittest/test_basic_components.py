@@ -25,6 +25,8 @@ class TestWhileComponent(unittest.TestCase):
                 "post_execution" : post_execution
             })
         
+        while_component.proccess_input()
+        
         output = while_component.execute()
                 
         assert output["result"] == 10
@@ -43,6 +45,8 @@ class TestWhileComponent(unittest.TestCase):
                     "pre_execution": pre_execution,
                     "post_execution" : post_execution
                 })
+            
+            while_component.proccess_input()
         
             output = while_component.execute()
             
@@ -67,6 +71,8 @@ class TestDoNTimesComponent(unittest.TestCase):
                 "post_execution" : post_execution
             })
         
+        do_n_times_component.proccess_input()
+        
         output = do_n_times_component.execute()
         
         assert output["result"] == loop_components.DoNTimesComponent.DEFAULT_TIMES_TO_DO
@@ -84,6 +90,8 @@ class TestDoNTimesComponent(unittest.TestCase):
                 "times_to_do" : custom_times_to_do 
             }
         )
+        
+        do_n_times_component.proccess_input()
         
         output = do_n_times_component.execute()
         

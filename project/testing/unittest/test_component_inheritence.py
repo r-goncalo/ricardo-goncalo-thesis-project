@@ -28,6 +28,8 @@ class TestDefaultOverlap(unittest.TestCase):
     def test_default_in_super(self):
                 
         simple_extended_component = SimpleExtendendComponent(input={})
+        
+        simple_extended_component.proccess_input()
             
         assert simple_extended_component.input["number"] == 10
         
@@ -35,6 +37,7 @@ class TestDefaultOverlap(unittest.TestCase):
         
         
         simple_extended_component_2 = SimpleExtendendComponent_2(input={})
+        simple_extended_component_2.proccess_input()
         assert simple_extended_component_2.input["number"] == 10
               
         

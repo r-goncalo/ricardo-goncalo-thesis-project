@@ -17,77 +17,60 @@ class Component: # a component that receives and verifies input
     #this does not need to be stored in the component, the only reason it is is to standardize this kind of exposure
     exposed_values = {}
     
-    def __init__(self, input : dict): #we can immediatly receive the input
+    
+    # INITIALIZATION -------------------------------------------------------------------------
+    
+    def __init__(self, input : dict = {}): #we can immediatly receive the input
                 
         self.input = {} #the input will be a dictionary
+        self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         
-        self.pass_and_proccess_input(input)
+        self.pass_input(input) #passes the input but note that it does not proccess it
         
         self.output = {} #output, if any, will be a dictionary
-        
-
-    def get_output(self): #return output
-        return self.output
             
-    
-    def pass_and_proccess_input(self, input : dict):
-        
-        self.pass_input(input) #note that this does not make input already passed disappear
-        self.add_default_values()
-        self.proccess_input()
-
     
     def pass_input(self, input: dict): # pass input to this component
         for passed_key in input.keys():
             self.input[passed_key] = input[passed_key]
 
+    def proccess_input(self): #verify the input to this component
+        '''Verify validity of input and add default values''' 
+        self.__add_default_values_of_class_and_super(type(self))
+        self.__proccess_input_of_class_and_super(type(self))
 
-    def proccess_input(self): #verify the input to this component and add default values, to the self.input dict
-        self.verify_input_of_class_and_super(type(self))
+
+    # OUTPUT -------------------------
     
-        
-    def add_default_values(self):
-        self.add_default_values_of_class_and_super(type(self))
-        
+    def get_output(self): #return output
+        return self.output
+
+
+    # EXPOSED VALUES -------------------------------------------
     
-    def add_default_values_of_class_and_super(self, class_component):    
+    def __set_exposed_values_with_super(self, class_component):
+        
+        '''Updates the exposed values with super classes'''
                 
-        self.add_default_values_of_class(class_component)
-        
         if len(class_component.__mro__) > 2:
-            self.add_default_values_of_class_and_super(class_component.__mro__[1]) # adds second the default values of the super component if any
+            self.__set_exposed_values_with_super(class_component.__mro__[1]) # adds the exposed values of the super component if any
         
             
-    def add_default_values_of_class(self, class_component):
-        
-        input_signature = class_component.input_signature  #the input signature specified in this class          
-        passed_keys = self.input.keys() #note that default values of child classes are already here
-                
-        for input_key in input_signature.keys():
-            
-            (default_value, generator, _, _) = input_signature[input_key]
-             
-            #if this values was not already defined
-            if not input_key in passed_keys: 
-                                                   
-                if not default_value == None:
-                    self.input[input_key] = default_value  #the value used will be the default value
+        self.exposed_values =  {**class_component.exposed_values, **self.exposed_values}
 
-                elif not generator == None:
-                    self.input[input_key] = generator()
 
-        
-        
-    def verify_input_of_class_and_super(self, class_component):
+    # INPUT PROCCESSING ---------------------------------------------   
+     
+    def __proccess_input_of_class_and_super(self, class_component):
 
         if len(class_component.__mro__) > 2: #if this class has a super class that is not the object class
-            self.verify_input_of_class_and_super(class_component.__mro__[1]) # verifies first the input according to the super class
+            self.__proccess_input_of_class_and_super(class_component.__mro__[1]) # verifies first the input according to the super class
                 
-        self.verify_input_specific_of_class(class_component)
+        self.__proccess_input_specific_of_class(class_component)
         
             
-    def verify_input_specific_of_class(self, class_component): #verify the input to this component and add default values, to the self.input dict
+    def __proccess_input_specific_of_class(self, class_component): #verify the input to this component and add default values, to the self.input dict
 
         input_signature = class_component.input_signature  #the input signature specified in this class          
         passed_keys = self.input.keys() #note that default values and verifications of super values could already be done
@@ -102,13 +85,41 @@ class Component: # a component that receives and verifies input
                     
                 verify_validity(input_key, input_value, possible_types, validity_verificator) #raises exceptions if input is not valid
                                     
-            else: #if there was no specified value for this attribute in the input and had no default value
+            else: #if there was no specified value for this attribute in the input
+                
+                raise Exception(f"Did not set input for value  with key '{input_key}' and has no default value nor generator")     
+                
+    # DEFAULT VALUES -------------------------------------------------
+    
+    def __add_default_values_of_class_and_super(self, class_component):    
+                
+        self.__add_default_values_of_class(class_component) #adds first the default values of child classe(s)
+        
+        if len(class_component.__mro__) > 2:
+            self.__add_default_values_of_class_and_super(class_component.__mro__[1]) # adds second the default values of the super component if any
+        
             
-                raise Exception(f"Did not set input for value  with key '{input_key}' and has no default value nor generator")                        
+    def __add_default_values_of_class(self, class_component):
+        
+        input_signature = class_component.input_signature  #the input signature specified in this class          
+        passed_keys = self.input.keys() #note that default values of child classes are already here
+                
+        for input_key in input_signature.keys():
+             
+            #if this values was not already defined
+            if not input_key in passed_keys: 
+                
+                (default_value, generator, _, _) = input_signature[input_key]
+                                                   
+                if not default_value == None:
+                    self.input[input_key] = default_value  #the value used will be the default value
+
+                elif not generator == None:
+                    self.input[input_key] = generator()              
                 
           
 
-# Validy verification -----------------------------          
+# VALIDITY VERIFICATION (static methods for validating input) -----------------------------          
                     
 #a function that generates a single input signature
 def input_signature(default_value=None, generator=None, validity_verificator=None, possible_types : list = []):
@@ -149,7 +160,7 @@ def verify_one_of_types(input_key, input_value, possible_types):
 
 
 
-#Executable components --------------------------
+# EXECUTABLE COMPONENT --------------------------
 
 class ExecComponent(Component):
     
