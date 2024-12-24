@@ -1,15 +1,11 @@
-from ..component import Component
-from ..component import input_signature
+from ..component import Component, input_signature, requires_input_proccess
 import torch.optim as optim
-import torch.nn
-import numpy as nn
+import torch.nn as nn
 
 from abc import abstractmethod
 
 class OptimizerComponent(Component):
-    
-    input_signature = {**Component.input_signature}
-    
+        
     @abstractmethod
     def optimize_model(self, predicted, correct) -> None:
         
@@ -28,8 +24,7 @@ class AdamOptimizer(OptimizerComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {**OptimizerComponent.input_signature, 
-                       "torch_params" : input_signature(),
+    input_signature = {"model_params" : input_signature(),
                        "learning_rate" : input_signature(),
                        "amsgrad" : input_signature(default_value=True)}    
     
@@ -38,23 +33,26 @@ class AdamOptimizer(OptimizerComponent):
         
         super().proccess_input()
         
-        self.torch_adam_opt = optim.AdamW(params=self.input["torch_params"],lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
+        self.params = self.input["model_params"]
+                
+        self.torch_adam_opt = optim.AdamW(params=self.params,lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
 
     
     # EXPOSED METHODS --------------------------------------------------------------------------
     
+    @requires_input_proccess
     def optimize_model(self, predicted, correct) -> None:
         
-        super().optimize_model(self, predicted, correct)
+        super().optimize_model(predicted, correct)
         
         # Compute Huber loss TODO : The loss should not be hard calculated like this
         criterion = nn.SmoothL1Loss()
         loss = criterion(predicted, correct)
         
         #Optimize the model
-        self.optimizer.zero_grad() #clears previous accumulated gradients in the optimizer
+        self.torch_adam_opt.zero_grad() #clears previous accumulated gradients in the optimizer
         loss.backward()
         
         # In-place gradient clipping
-        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100) #clips gradients to prevent them from reaching values over 100, trying to resolve explosive gradients problem
-        self.optimizer.step()
+        nn.utils.clip_grad_value_(self.params, 100) #clips gradients to prevent them from reaching values over 100, trying to resolve explosive gradients problem
+        self.torch_adam_opt.step()

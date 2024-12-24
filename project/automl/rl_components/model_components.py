@@ -1,5 +1,4 @@
-from ..component import Component
-from ..component import input_signature
+from ..component import Component, input_signature, requires_input_proccess
 import torch
 import random
 import math
@@ -11,7 +10,10 @@ class ModelComponent(Component):
     
     @abstractmethod
     def predict(self, state):
-        
+        pass
+    
+    @abstractmethod
+    def random_prediction(self):
         pass
     
     
@@ -48,11 +50,11 @@ class ConvModelComponent(ModelComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {**Component.input_signature, 
-                       "board_x" : input_signature(),
+    input_signature = {"board_x" : input_signature(),
                        "board_y" : input_signature(),
                        "board_z" : input_signature(),
-                       "output_size" : input_signature()}    
+                       "output_size" : input_signature(),
+                       "device" : input_signature(default_value="")}    
     
     
     
@@ -67,15 +69,66 @@ class ConvModelComponent(ModelComponent):
         
         self.model = ConvModelComponent.DQN(boardX=self.board_x, boardY=self.board_y, boardZ=self.board_z, n_actions=self.output_size)
         
+        if self.input["device"] != "":
+            self.model.to(self.input["device"])
+            
+        print("Initializing model with input" + str(self.input))
+                
+    # EXPOSED METHODS --------------------------------------------
+    
+    @requires_input_proccess
+    def get_model_params(self):
+        '''returns a list of model parameters'''
+        return list(self.model.parameters()) #the reason we use list is because parameters() returns an iterator (that is exaustable when iterated, not intended behaviour)
+    
+    @requires_input_proccess
+    def predict(self, state):
+        super().predict(state)
+        toReturn = self.model(state)
+        return toReturn
+    
+    
+    @requires_input_proccess
+    def random_prediction(self):
+        super().random_prediction()
+        
+        return random.randrange(self.output_size) 
+    
+    
+    @requires_input_proccess            
+    def update_model_with_target(self, target_model, target_model_weight):
+        
+        '''
+        Updates the weights of this model with the weights of the target model
+        
+        @param target_model_weight is the relevance of the target model, 1 will mean a total copy, 0 will do nothing, 0.5 will be an average between the models
+        '''
+        
+        with torch.no_grad():
+        
+            # Soft update of the target network's weights
+            # θ′ ← τ θ + (1 −τ )θ′
+            this_model_state_dict = self.model.state_dict()
+            target_model_state_dict = target_model.model.state_dict()
+
+            #the two models have the same shape and do
+            for key in target_model_state_dict:
+                this_model_state_dict[key] = target_model_state_dict[key] * target_model_weight + this_model_state_dict[key] * ( 1 - target_model_weight)
+
+            self.model.load_state_dict(this_model_state_dict)
     
     # UTIL -----------------------------------------------------
     
+    @requires_input_proccess
     def clone(self):
         
-        toReturn =  ConvModelComponent(input=self.input)
+        print("Cloning model")
         
+        toReturn = ConvModelComponent(input=self.input)
+        toReturn.proccess_input()
         toReturn.model.load_state_dict(self.model.state_dict()) #copies current values into new model
         
+        return toReturn
             
     
 

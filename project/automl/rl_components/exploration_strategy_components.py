@@ -1,5 +1,4 @@
-from ..component import Component
-from ..component import input_signature
+from ..component import Component, input_signature, requires_input_proccess
 import torch
 import random
 import math
@@ -12,15 +11,20 @@ from abc import abstractmethod
 
 class ExplorationStrategyComponent(Component):
     
+    input_signature =  {
+        "training_context" : input_signature(possible_types=[dict])
+        } 
+
+    
     @abstractmethod
-    def select_action(self, agent, state, training : dict):
+    @requires_input_proccess
+    def select_action(self, agent, state):
         
         '''
             Selects an action based on the agent's state (using things like its policy) and this exploration strategy
             
             Args:
                 state is the current state as readable by the agent
-                training is a dict with all the info the agent may need (for example, totalSteps)
                 
             Returns:
                 The index of the action selected
@@ -38,10 +42,10 @@ class EpsilonGreedyStrategy(ExplorationStrategyComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {**Component.input_signature, 
-                       "epsilon_end" : input_signature(default_value=0.025),
+    input_signature = { "epsilon_end" : input_signature(default_value=0.025),
                        "epsilon_start" : input_signature(default_value=1.0),
-                       "epsilon_decay" : input_signature(default_value=0.01)}    
+                       "epsilon_decay" : input_signature(default_value=0.01),
+                       "training_context" : input_signature(validity_verificator= lambda ctx : all(key in ctx.keys() for key in ["total_steps"]))} #training context is a dictionary where we'll be able to get outside data   
     
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
@@ -51,31 +55,32 @@ class EpsilonGreedyStrategy(ExplorationStrategyComponent):
         self.EPS_END = self.input["epsilon_end"]                
         self.EPS_START = self.input["epsilon_start"]
         self.EPS_DECAY = self.input["epsilon_decay"]
+        self.training_context = self.input["training_context"]
     
 
     
     # EXPOSED METHOD --------------------------------------------------------------------------
     
-    def select_action(self, agent,  state, training):
-        
-        super().select_action(state, training)
-        
+    def select_action(self, agent,  state):
+                
+        super().select_action(agent, state)
+                
         sample = random.random()
         
-        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * training.totalSteps / self.EPS_DECAY)
-            
+        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.training_context["total_steps"] / self.EPS_DECAY)
+        
         #in the case we use our policy net to predict our next action    
         if sample > eps_threshold:
             
             with torch.no_grad(): #we do not need to track de gradients because we won't do back propagation
-                
-                valuesForActions = agent.policy_predict(torch.tensor(state).to(device=self.device, dtype=torch.float32))
+                                
+                valuesForActions = agent.policy_predict(state)
                 max_value, max_index = valuesForActions.max(dim=0) 
-                return torch.tensor([max_index], device=self.device).item()
+                return max_index.item()
         
         #in the case we choose a random action
         else:
-            return torch.tensor([random.randrange(self.values["output_size"])], device=self.device, dtype=torch.long).item() 
+            return agent.policy_random_predict() 
         
         
         
@@ -86,8 +91,7 @@ class UpperConfidenceBoundStrategy(ExplorationStrategyComponent):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {**Component.input_signature, 
-                       "n_action" : input_signature(),
+    input_signature = {"n_action" : input_signature(),
                        "exploration_param" : input_signature(default_value=0.01)}    
     
     
@@ -105,9 +109,9 @@ class UpperConfidenceBoundStrategy(ExplorationStrategyComponent):
         
         
         
-    def select_action(self, agent, state, training):
+    def select_action(self, agent, state):
         
-        super().select_action(state, training)
+        super().select_action(state)
         
         with torch.no_grad():
             
@@ -120,7 +124,7 @@ class UpperConfidenceBoundStrategy(ExplorationStrategyComponent):
             else:
             
                 #the value we choose is based on the predicted and
-                ucb_values = q_values + self.exploration_param * torch.sqrt(math.log(training.totalSteps) / (self.counts))        
+                ucb_values = q_values + self.exploration_param * torch.sqrt(math.log(self.training_context["total_steps"]) / (self.counts))        
                 action = torch.argmax(ucb_values)
             
             self.counts[action] += 1
