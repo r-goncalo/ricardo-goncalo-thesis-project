@@ -7,6 +7,7 @@ import pandas as pd
 logTextFile = "log.txt"
 
 
+
 class LogClass:
         
     def __init__(self, logDir: str):
@@ -28,6 +29,7 @@ class LogClass:
         self.logDir = logDir
                 
     def writeLine(self, string='', file=logTextFile, toPrint = True): #writes a line of text in a log file
+
     
         if(toPrint):
             print(string)
@@ -77,8 +79,52 @@ class LogClass:
     
     def openChildLog(self, logName):
         return openLog(logDir=self.logDir, logName=logName)
+    
+    def createProfile(self, name):
+        return LoggerProfile(self, name)
 
 
+class LoggerProfile(LogClass):
+    
+    def __init__(self, lg: LogClass, name : str):
+        self.lg = lg
+        self.name = name
+        
+
+    def writeLine(self, string='', **params): #writes a line of text in a log file
+            
+        params["string"] = f'{self.name}: {string}'
+            
+        self.lg.writeLine(**params)
+        
+    def saveFile(self, **params): #saves a file using the directory of this log object as a point of reference
+        
+        return self.lg.saveFile(**params)
+    
+    def saveDataframe(self, **params): #saves a dataframe using this log object as a reference
+        
+        return self.lg.saveDataFrame(**params)
+        
+    def loadDataframe(self, **params):
+        
+        return self.lg.loadDataframe(dir,** params)
+  
+    
+    def createDirIfNotExistent(self, **params): #creates a dir if it does no exist
+        return self.lg.createDirIfNotExistent(**params)
+            
+        
+    def openFile(self, **params): #reads and returns a file
+        return self.lg.openFile(**params)
+    
+    
+    def openChildLog(self, **params):
+        return self.lg.openChildLog(**params)
+
+    def createProfile(self, **params):
+        return self.lg.createProfile(params)
+     
+     
 def createNewLogDirIfExistent(logDir):
     
     newLogDir = logDir
