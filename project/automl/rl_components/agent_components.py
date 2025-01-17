@@ -28,14 +28,14 @@ class ReplayMemory(object):
 # DEFAULT COMPONENTS -------------------------------------
 
 from .exploration_strategy_components import EpsilonGreedyStrategy
-from .optimizer_components import OptimizerComponent
+from .optimizer_components import OptimizerComponent, AdamOptimizer
 
 from .model_components import ConvModelComponent
 
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from ..component import Component, input_signature, requires_input_proccess
+from ..component import Component, InputSignature, requires_input_proccess
 import torch
 import random
 import math
@@ -48,20 +48,23 @@ class AgentComponent(Component):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = { "name" : input_signature(),
-                       "device" : input_signature(),
-                       "logger" : input_signature(),
-                       "batch_size" : input_signature(default_value=64),
-                       "discount_factor" : input_signature(default_value=0.95),
-                       "target_update_rate" : input_signature(default_value=0.05),
-                       "learning_rate" : input_signature(default_value=0.01),
-                       "training_context" : input_signature(),
+    input_signature = { "name" : InputSignature(),
+                       "device" : InputSignature(),
+                       "logger" : InputSignature(),
+                       "batch_size" : InputSignature(default_value=64),
+                       "discount_factor" : InputSignature(default_value=0.95),
+                       "target_update_rate" : InputSignature(default_value=0.05),
+                       "training_context" : InputSignature(),
                        
-                       "exploration_strategy" : input_signature( generator=lambda _ : EpsilonGreedyStrategy()), #this generates an epsilon greddy strategy object at runtime if it is not specified
+                       "exploration_strategy" : InputSignature( generator=lambda _ : EpsilonGreedyStrategy()), #this generates an epsilon greddy strategy object at runtime if it is not specified
                        
-                       "policy_model" : input_signature(), 
-                       "optimizer" : input_signature(),
-                       "replay_memory_size" : input_signature(default_value=DEFAULT_MEMORY_SIZE)}
+                       "policy_model" : InputSignature(default_value=''),
+                       "model_input_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
+                       "model_output_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
+                       
+                        
+                       "optimizer" : InputSignature(generator= lambda x : AdamOptimizer()),
+                       "replay_memory_size" : InputSignature(default_value=DEFAULT_MEMORY_SIZE)}
 
         
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
@@ -71,6 +74,7 @@ class AgentComponent(Component):
         self.name = self.input["name"]                
         self.device = self.input["device"]
         self.lg = self.input["logger"]
+        self.lg_profile = self.lg.createProfile(self.name)
     
         self.initialize_learning_strategy()
         self.initialize_models()
@@ -84,10 +88,8 @@ class AgentComponent(Component):
         self.GAMMA = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
         
         self.TAU = self.input["target_update_rate"] #the update rate of the target network
-        
-        self.LR = self.input["learning_rate"] #the learning rate of the optimizer  
-        
-        self.lg.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA} Tau: {self.TAU} Learning rate: {self.LR}")
+                
+        self.lg_profile.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA} Tau: {self.TAU}")
         
         
         self.exploration_strategy = self.input["exploration_strategy"]
@@ -97,19 +99,44 @@ class AgentComponent(Component):
         
     def initialize_models(self):
         
-        self.lg.writeLine("Initializing policy model...")
+        self.lg_profile.writeLine("Initializing policy model...")
+
+        passed_policy_model = self.input["policy_model"]
+        
+        if passed_policy_model == '':
+            passed_policy_model = self.create_policy_model()
+            
 
         #our policy network will transform input frames to output acions (what should we do given the current frame?)
-        self.policy_model : ConvModelComponent = self.input["policy_model"]
+        self.policy_model : ConvModelComponent = passed_policy_model
         self.policy_model.pass_input({"device" : self.device}) #we have to guarantee that the device in our model is the same as the agent's
 
-        self.lg.writeLine("Initializing target model...")
+        self.lg_profile.writeLine("Initializing target model...")
 
         #our target network will be used to evaluate states
         #it is essentially a delayed copy of the policy network
         #it substitutes a Q table (a table that would store, for each state and each action, a value regarding how good that action is)
         self.target_net = self.policy_model.clone()
+
+
+    #creates a policy model, only meant to be called if no policy model was passed
+    def create_policy_model(self):        
+                
+        model_input_shape = self.input["model_input_shape"]
+        model_output_shape = self.input["model_output_shape"]
         
+        if model_input_shape != '' and model_output_shape != '':
+            
+            self.lg_profile.writeLine("Creating policy model using default values and passed shape...")
+            
+            #this makes some strong assumptions about the shape of the model and the input being received
+            return ConvModelComponent(input={"board_x" : model_input_shape[0], "board_y" : model_input_shape[1], "board_z" : model_input_shape[2], "output_size" : model_output_shape})
+            
+            
+        else:
+            
+            raise Exception('Undefined policy model for agent and undefined model input shape and output shape, used to create a default model')            
+                            
                 
     def initialize_optimizer(self):
         self.optimizer : OptimizerComponent = self.input["optimizer"]
@@ -121,7 +148,7 @@ class AgentComponent(Component):
             
         replayMemorySize = self.input["replay_memory_size"]
         
-        self.lg.writeLine("Instantiating an empty memory with size " + str(replayMemorySize))
+        self.lg_profile.writeLine("Instantiating an empty memory with size " + str(replayMemorySize))
         self.memory = ReplayMemory(replayMemorySize) #where we'll save the transitions we did    
 
     
@@ -194,8 +221,8 @@ class AgentComponent(Component):
     @requires_input_proccess
     def saveModels(self):
         
-        self.lg.saveFile(self.policy_model, 'model', 'policy_net')
-        self.lg.saveFile(self.target_net, 'model', 'target_net') 
+        self.lg_profile.saveFile(self.policy_model, 'model', 'policy_net')
+        self.lg_profile.saveFile(self.target_net, 'model', 'target_net') 
         
 
 

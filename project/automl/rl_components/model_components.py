@@ -1,4 +1,4 @@
-from ..component import Component, input_signature, requires_input_proccess
+from ..component import Component, InputSignature, requires_input_proccess
 import torch
 import random
 import math
@@ -50,11 +50,11 @@ class ConvModelComponent(ModelComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {"board_x" : input_signature(),
-                       "board_y" : input_signature(),
-                       "board_z" : input_signature(),
-                       "output_size" : input_signature(),
-                       "device" : input_signature(default_value="")}    
+    input_signature = {"board_x" : InputSignature(),
+                       "board_y" : InputSignature(),
+                       "board_z" : InputSignature(),
+                       "output_size" : InputSignature(),
+                       "device" : InputSignature(default_value="")}    
     
     
     

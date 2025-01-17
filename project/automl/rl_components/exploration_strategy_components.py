@@ -1,4 +1,4 @@
-from ..component import Component, input_signature, requires_input_proccess
+from ..component import Component, InputSignature, requires_input_proccess
 import torch
 import random
 import math
@@ -12,7 +12,7 @@ from abc import abstractmethod
 class ExplorationStrategyComponent(Component):
     
     input_signature =  {
-        "training_context" : input_signature(possible_types=[dict])
+        "training_context" : InputSignature(possible_types=[dict])
         } 
 
     
@@ -42,10 +42,10 @@ class EpsilonGreedyStrategy(ExplorationStrategyComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = { "epsilon_end" : input_signature(default_value=0.025),
-                       "epsilon_start" : input_signature(default_value=1.0),
-                       "epsilon_decay" : input_signature(default_value=0.01),
-                       "training_context" : input_signature(validity_verificator= lambda ctx : all(key in ctx.keys() for key in ["total_steps"]))} #training context is a dictionary where we'll be able to get outside data   
+    input_signature = { "epsilon_end" : InputSignature(default_value=0.025),
+                       "epsilon_start" : InputSignature(default_value=1.0),
+                       "epsilon_decay" : InputSignature(default_value=0.01),
+                       "training_context" : InputSignature(validity_verificator= lambda ctx : all(key in ctx.keys() for key in ["total_steps"]))} #training context is a dictionary where we'll be able to get outside data   
     
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
@@ -91,8 +91,8 @@ class UpperConfidenceBoundStrategy(ExplorationStrategyComponent):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {"n_action" : input_signature(),
-                       "exploration_param" : input_signature(default_value=0.01)}    
+    input_signature = {"n_action" : InputSignature(),
+                       "exploration_param" : InputSignature(default_value=0.01)}    
     
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined

@@ -1,16 +1,16 @@
 
 from ..component import ExecComponent
-from ..component import input_signature
+from ..component import InputSignature
 import types
 
 class WhileFunDoFunComponent(ExecComponent):
 
     #The inputs this component receives
-    input_signature = {**ExecComponent.input_signature, #the inputs of the parent 
-                       "execution" : input_signature(validity_verificator= lambda x : isinstance(x, types.FunctionType)), #have no default values (None) and are functions
-                       "condition" : input_signature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
-                       "pre_execution" : input_signature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
-                       "post_execution" : input_signature(validity_verificator= lambda x : isinstance(x, types.FunctionType))}
+    input_signature = { 
+                       "execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)), #have no default values (None) and are functions
+                       "condition" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
+                       "pre_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
+                       "post_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType))}
     
     def algorithm(self):
                 
@@ -31,11 +31,10 @@ class DoNTimesComponent(ExecComponent):
     
     DEFAULT_TIMES_TO_DO = 10
         
-    input_signature = {**ExecComponent.input_signature, 
-                       "execution" : input_signature(possible_types=[types.FunctionType]),
-                       "pre_execution" : input_signature(possible_types=[types.FunctionType]),
-                       "post_execution" : input_signature(possible_types=[types.FunctionType]),
-                       "times_to_do" : input_signature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))}
+    input_signature = {"execution" : InputSignature(possible_types=[types.FunctionType]),
+                       "pre_execution" : InputSignature(possible_types=[types.FunctionType]),
+                       "post_execution" : InputSignature(possible_types=[types.FunctionType]),
+                       "times_to_do" : InputSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))}
     
     def algorithm(self):
                 

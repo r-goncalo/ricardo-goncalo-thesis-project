@@ -1,4 +1,4 @@
-from ..component import Component, input_signature, requires_input_proccess
+from ..component import Component, InputSignature, requires_input_proccess
 import torch.optim as optim
 import torch.nn as nn
 
@@ -24,9 +24,9 @@ class AdamOptimizer(OptimizerComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {"model_params" : input_signature(),
-                       "learning_rate" : input_signature(),
-                       "amsgrad" : input_signature(default_value=True)}    
+    input_signature = {"model_params" : InputSignature(),
+                       "learning_rate" : InputSignature(default_value=0.001),
+                       "amsgrad" : InputSignature(default_value=True)}    
     
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined

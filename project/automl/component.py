@@ -2,7 +2,8 @@
 from enum import Enum
 from abc import abstractmethod
 
-#Every component may receieve input and return output
+
+# Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
 
 class Component: # a component that receives and verifies input
     
@@ -16,7 +17,7 @@ class Component: # a component that receives and verifies input
     input_signature = {}
     
     #A dictionary { "value_name" -> initial_value }
-    #it tells other components what are the values exposed by this component
+    #it tells other components what are the values exposed by this component, useful when checking the validity of the program before running it
     #this does not need to be stored in the component, the only reason it is is to standardize this kind of exposure
     exposed_values = {}
     
@@ -34,17 +35,23 @@ class Component: # a component that receives and verifies input
         self.output = {} #output, if any, will be a dictionary
         
         self._input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
+        
+        self.name = str(type(self).__name__) #defines the initial component name
             
     
     def pass_input(self, input: dict): # pass input to this component
         '''Pass input to this component
            It is supposed to be called only before proccess_input and, if not, it mean proccess_input may be called a multitude of times
            '''
-        
         self._input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
         
         for passed_key in input.keys():
-            self.input[passed_key] = input[passed_key]
+            
+            if self.in_input_signature(passed_key):
+                self.input[passed_key] = input[passed_key]
+                
+            else:
+                print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
 
     def proccess_input(self): #verify the input to this component
         '''Verify validity of input and add default values''' 
@@ -73,7 +80,24 @@ class Component: # a component that receives and verifies input
         self.exposed_values =  {**class_component.exposed_values, **self.exposed_values}
 
 
-    # INPUT PROCCESSING ---------------------------------------------   
+    # INPUT PROCCESSING ---------------------------------------------  
+    
+    def __in_input_signature(self, key, class_component): #checks if the key is in the input signature of this class, if not, checks in super classes
+        
+        if key in class_component.input_signature.keys():
+            return True
+        
+        elif len(class_component.__mro__) > 2:
+            return self.__in_input_signature(self, key, class_component.__mro__[1])
+        
+        else:
+            return False
+    
+    def in_input_signature(self, key): #checks if the key is in input signature of component or its parents components
+        
+        return self.__in_input_signature(key, type(self))
+    
+    
      
     def __proccess_input_of_class_and_super(self, class_component):
 
@@ -90,17 +114,17 @@ class Component: # a component that receives and verifies input
                 
         for input_key in input_signature.keys():
             
-            (_, _, possible_types, validity_verificator) = input_signature[input_key]
+            single_input_signature : InputSignature = input_signature[input_key]
                         
             if input_key in passed_keys: #if this value was in input
                 
                 input_value = self.input[input_key] #get the value passed
                     
-                self.verify_validity(input_key, input_value, possible_types, validity_verificator) #raises exceptions if input is not valid
+                self.verify_validity(input_key, input_value, single_input_signature.possible_types, single_input_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             else: #if there was no specified value for this attribute in the input
                 
-                raise Exception(f"In component of type {type(self)}: Did not set input for value  with key '{input_key}' and has no default value nor generator")     
+                raise Exception(f"In component of type {type(self)}, when cheking for the inputs required by class {class_component}: Did not set input for value  with key '{input_key}' and has no default value nor generator")     
                 
     # DEFAULT VALUES -------------------------------------------------
     
@@ -122,13 +146,13 @@ class Component: # a component that receives and verifies input
             #if this values was not already defined
             if not input_key in passed_keys: 
                 
-                (default_value, generator, _, _) = input_signature[input_key]
+                single_input_signature : InputSignature = input_signature[input_key]
                                                    
-                if not default_value == None:
-                    self.input[input_key] = default_value  #the value used will be the default value
+                if not single_input_signature.default_value == None:
+                    self.input[input_key] = single_input_signature.default_value  #the value used will be the default value
 
-                elif not generator == None:
-                    self.input[input_key] = generator(self) #generators have access to the instance              
+                elif not single_input_signature.generator == None:
+                    self.input[input_key] = single_input_signature.generator(self) #generators have access to the instance              
                 
 
     def verify_validity(self, input_key, input_value, possible_types, validity_verificator):
@@ -171,20 +195,24 @@ def requires_input_proccess(func):
         return func(self, *args, **kwargs)
     return wrapper
 
-                    
-#a function that generates a single input signature
-def input_signature(default_value=None, generator=None, validity_verificator=None, possible_types : list = []):
 
-    return  (default_value, generator, possible_types, validity_verificator)
-
-
+class InputSignature():
+    
+    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description=''):
+        
+        self.default_value = default_value
+        self.generator = generator
+        self.validity_verificator = validity_verificator
+        self.possible_types = possible_types
+        self.description = description
+        
 
 
 # EXECUTABLE COMPONENT --------------------------
 
 class ExecComponent(Component):
     
-    class State(Enum):
+    class State(Enum): #an enumerator to track state of executable component
         IDLE = 0
         RUNNING = 1
         OVER = 2
