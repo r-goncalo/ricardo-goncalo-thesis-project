@@ -1,30 +1,4 @@
 
-
-# UTIL --------------------------------
-
-from collections import namedtuple
-from collections import deque
-
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
-
-class ReplayMemory(object):
-
-    def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity)
-
-    #save a transition
-    def push(self, *args):
-        self.memory.append(Transition(*args))
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
-
-
-
 # DEFAULT COMPONENTS -------------------------------------
 
 from .exploration_strategy_components import EpsilonGreedyStrategy
@@ -32,6 +6,7 @@ from .optimizer_components import OptimizerComponent, AdamOptimizer
 
 from .model_components import ConvModelComponent
 
+from .memory_components import MemoryComponent
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
@@ -61,10 +36,10 @@ class AgentComponent(Component):
                        "policy_model" : InputSignature(default_value=''),
                        "model_input_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
                        "model_output_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
-                       
                         
                        "optimizer" : InputSignature(generator= lambda x : AdamOptimizer()),
-                       "replay_memory_size" : InputSignature(default_value=DEFAULT_MEMORY_SIZE)}
+                       "memory" : InputSignature(generator = lambda x :  MemoryComponent(input={"capacity" : DEFAULT_MEMORY_SIZE}))
+                    }
 
         
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
@@ -132,7 +107,6 @@ class AgentComponent(Component):
             #this makes some strong assumptions about the shape of the model and the input being received
             return ConvModelComponent(input={"board_x" : model_input_shape[0], "board_y" : model_input_shape[1], "board_z" : model_input_shape[2], "output_size" : model_output_shape})
             
-            
         else:
             
             raise Exception('Undefined policy model for agent and undefined model input shape and output shape, used to create a default model')            
@@ -145,11 +119,7 @@ class AgentComponent(Component):
     
     def initialize_memory(self):
         
-            
-        replayMemorySize = self.input["replay_memory_size"]
-        
-        self.lg_profile.writeLine("Instantiating an empty memory with size " + str(replayMemorySize))
-        self.memory = ReplayMemory(replayMemorySize) #where we'll save the transitions we did    
+        self.memory = self.input["memory"] #where we'll save the transitions we did    
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
@@ -178,7 +148,7 @@ class AgentComponent(Component):
         
         # Transpose the batch
         #[ (all states), (all actions), (all next states), (all rewards) ]
-        batch = Transition(*zip(*transitions))
+        batch = self.memory.Transition(*zip(*transitions))
                 
         state_batch = torch.stack(batch.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
         reward_batch = torch.tensor(batch.reward, device=self.device)
@@ -204,9 +174,7 @@ class AgentComponent(Component):
             
         # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
         expected_state_action_values = (next_state_values * self.GAMMA) + reward_batch
-        
-        print("Gradients of predicted: " + str(predicted_actions_values.grad_fn))
-        
+                
         #Optimizes the model given the optimizer defined
         self.optimizer.optimize_model(predicted_actions_values, expected_state_action_values)
              
