@@ -3,6 +3,7 @@
 
 from .exploration_strategy_components import EpsilonGreedyStrategy
 from .optimizer_components import OptimizerComponent, AdamOptimizer
+from .learner_component import DeepQLearnerComponent
 
 from .model_components import ConvModelComponent
 
@@ -28,7 +29,6 @@ class AgentComponent(Component):
                        "logger" : InputSignature(),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
-                       "target_update_rate" : InputSignature(default_value=0.05),
                        "training_context" : InputSignature(),
                        
                        "exploration_strategy" : InputSignature( generator=lambda _ : EpsilonGreedyStrategy()), #this generates an epsilon greddy strategy object at runtime if it is not specified
@@ -37,8 +37,9 @@ class AgentComponent(Component):
                        "model_input_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
                        "model_output_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
                         
-                       "optimizer" : InputSignature(generator= lambda x : AdamOptimizer()),
-                       "memory" : InputSignature(generator = lambda x :  MemoryComponent(input={"capacity" : DEFAULT_MEMORY_SIZE}))
+                       "memory" : InputSignature(generator = lambda x :  MemoryComponent(input={"capacity" : DEFAULT_MEMORY_SIZE})),
+                       
+                       "learner" : InputSignature(generator= lambda x : DeepQLearnerComponent())
                     }
 
         
@@ -51,20 +52,18 @@ class AgentComponent(Component):
         self.lg = self.input["logger"]
         self.lg_profile = self.lg.createProfile(self.name)
     
-        self.initialize_learning_strategy()
+        self.initialize_exploration_strategy()
         self.initialize_models()
-        self.initialize_optimizer()
+        self.initialize_learner()
         self.initialize_memory()    
             
 
-    def initialize_learning_strategy(self):
+    def initialize_exploration_strategy(self):
                 
         self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
         self.GAMMA = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
-        
-        self.TAU = self.input["target_update_rate"] #the update rate of the target network
                 
-        self.lg_profile.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA} Tau: {self.TAU}")
+        self.lg_profile.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA}")
         
         
         self.exploration_strategy = self.input["exploration_strategy"]
@@ -110,11 +109,12 @@ class AgentComponent(Component):
         else:
             
             raise Exception('Undefined policy model for agent and undefined model input shape and output shape, used to create a default model')            
-                            
-                
-    def initialize_optimizer(self):
-        self.optimizer : OptimizerComponent = self.input["optimizer"]
-        self.optimizer.pass_input({"model_params" : self.policy_model.get_model_params()})   
+
+    def initialize_learner(self):
+        
+        self.learner = self.input["learner"]
+        
+        self.learner.pass_input({"device" : self.device, "agent" : self})
       
     
     def initialize_memory(self):
@@ -123,6 +123,9 @@ class AgentComponent(Component):
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
+    
+    def get_policy(self):
+        return self.policy_model
     
     @requires_input_proccess
     def policy_predict(self, state):
@@ -150,38 +153,7 @@ class AgentComponent(Component):
         #[ (all states), (all actions), (all next states), (all rewards) ]
         batch = self.memory.Transition(*zip(*transitions))
                 
-        state_batch = torch.stack(batch.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
-        reward_batch = torch.tensor(batch.reward, device=self.device)
-        
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                              batch.next_state)), dtype=torch.bool)
-        
-        non_final_next_states = torch.stack([s for s in batch.next_state
-                                                        if s is not None], dim=0)
-                
-        
-        #predict the action we would take given the current state
-        predicted_actions_values = self.policy_model.predict(state_batch)
-        predicted_actions_values, predicted_actions = predicted_actions_values.max(1)
-        
-        #compute the q values our target net predicts for the next_state (perceived reward)
-        #if there is no next_state, we can use 0
-        next_state_values = torch.zeros(self.BATCH_SIZE, device=self.device)
-        with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net.predict(non_final_next_states).max(1).values
-            
-        # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
-        expected_state_action_values = (next_state_values * self.GAMMA) + reward_batch
-                
-        #Optimizes the model given the optimizer defined
-        self.optimizer.optimize_model(predicted_actions_values, expected_state_action_values)
-             
-    @requires_input_proccess            
-    def update_target_model(self):
-        
-        self.target_net.update_model_with_target(self.policy_model, self.TAU)
+        self.learner.learn(batch, self.GAMMA)
         
     
     # UTIL ----------------------------------------------------------------------------------------

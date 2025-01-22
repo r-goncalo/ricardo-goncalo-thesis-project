@@ -154,6 +154,5 @@ class RLTrainerComponent(Component):
             timeBeforeOptimizing = time.time()
                                 
             agentInTraining.optimize_policy_model() # TODO : Take attention to this, the agents optimization strategy is too strict
-            agentInTraining.update_target_model()
             
             self.lg_profile.writeLine("Optimization took " + str(time.time() - timeBeforeOptimizing) + " seconds")
