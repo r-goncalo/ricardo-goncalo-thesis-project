@@ -149,7 +149,7 @@ class RLTrainerComponent(Component):
         
         for agentInTraining in  self.agents.values():
             
-            self.lg_profile.writeLine("Optimizing agent " + str(agentInTraining))
+            self.lg_profile.writeLine("Optimizing agent " + str(agentInTraining.name))
             
             timeBeforeOptimizing = time.time()
                                 
