@@ -2,36 +2,44 @@
 from enum import Enum
 from abc import abstractmethod
 
+import json      
+
+
 import json
 
-# Connector -------------------------------
+class ComponentEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Component):
+            # Serialize a Component as its name, input, and child components
+            return {
+                "__type__": "Component",
+                "name": obj.name,
+                "input": obj.input,
+                "child_components": obj.child_components,
+            }
+        elif isinstance(obj, ComponentLocalizer):
+            # Serialize a ComponentLocalizer by its full localization
+            return {
+                "__type__": "ComponentLocalizer",
+                "localization": obj.full_localization,
+            }
+        return super().default(obj)  # Let the base class raise a TypeError
 
-class ComponentConnector():
-    '''Is a wrapper for a component used in another, when the user is not the owner of the component'''
-    
-    def __init__(self, target):
-        
-        self.target = target
-        
-    def __getattr__(self, name):
-        """
-        Intercepts access to attributes and methods of the `target` object.
-        """
-        return getattr(self.target, name)
-    
 
-class ComponentLocalization():
+class ComponentLocalizer():
     
-    '''Represents the localization of a component on a System, a connection of components, using the input'''
-    
-    def __init__(self, parent_localization=None, parent_component=None, key_of_this_component : str = ''):
+    def __init__(self, component):
         
-        self.parent_localization = parent_localization
-        self.parent_component = parent_component
-        self.key_of_this_component = key_of_this_component        
+        current_component = component
         
-    
-    
+        self.full_localization = [] # where we'll store the full localization of the component
+                        
+        while current_component != None:
+            
+            self.full_localization.insert(0, current_component.name)
+            current_component = current_component.parent_component
+        
+                
 
 # Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
 
@@ -59,8 +67,9 @@ class Component: # a component that receives and verifies input
         self.input = {} #the input will be a dictionary
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
-        self.component_localization = ComponentLocalization()
-        
+        self.child_components = []
+        self.parent_component = None
+
         self.pass_input(input) #passes the input but note that it does not proccess it
         
         self.output = {} #output, if any, will be a dictionary
@@ -80,9 +89,6 @@ class Component: # a component that receives and verifies input
             
             if self.in_input_signature(passed_key):
                 
-                if isinstance(input[passed_key], Component): #if the input was a component, the input becomes wrapped in a connector
-                    self.input[passed_key] = ComponentConnector(input[passed_key]) 
-                
                 self.input[passed_key] = input[passed_key]
                 
             else:
@@ -100,24 +106,22 @@ class Component: # a component that receives and verifies input
     def get_output(self): #return output
         return self.output
     
+    # CHILD AND PARENT COMPONENTS ---------------------------------
     
-    # SAVE AND LOAD -----------------------------------------
+    def initialize_component(self, component_type, *args, **kwargs):
+        
+        '''Explicitly initializes a component of a certain type as a child component of this one'''
+        
+        toReturn = component_type(args, kwargs)
+        
+        self.child_components.append(toReturn)
+        
+        toReturn.parent_component = self
+        
+        return toReturn
     
-    def generate_localizations(self, parent_component = None, key_of_this_component=None):
-        '''Generates component localizations for this component and their child components'''
-        
-        parent_localization = None
-        
-        if parent_component != None:
-            parent_localization = parent_component.component_localization
-        
-        self.component_localization = ComponentLocalization(parent_localization=parent_localization, parent_component=parent_component, key_of_this_component=key_of_this_component)
-        
-        for key in self.input.keys():
-            
-            if isinstance(input[key], Component):
-                input[key].generate_localizations(self, key)
-            
+    
+    # SAVE AND LOAD -----------------------------------------            
         
     
     def get_design_dict(self, dic): 
@@ -152,38 +156,32 @@ class Component: # a component that receives and verifies input
     
     def get_design_element(self, element):
         
-            if isinstance(element, Component):
-                                
-                return element.get_design()
-                
-            elif isinstance(element, ComponentConnector):
-                 
-                component_localization = element.target.component_localization
-                
-                full_localization = [] #where we'll store the full localization of the component
-                
-                current_localization : ComponentLocalization = component_localization
-                
-                while current_localization != None:
-                    
-                    full_localization.insert(0, current_localization.key_of_this_component)
-                    current_localization = current_localization.parent_component
-                    
-                return full_localization
-                
-            elif isinstance(element, list):
-                
-                return self.get_design_array(element)
+        if isinstance(element, Component):                     
+             
+            current_component = element
             
-            elif isinstance(element, dict):
+            full_localization = [] # where we'll store the full localization of the component
+                            
+            while current_component != None:
                 
-                return self.get_design_dict(element)        
+                full_localization.insert(0, current_component.name)
+                current_component = current_component.parent_component
                 
-            else:
-                                
-                if isinstance(element, int) or isinstance(element, float) or isinstance(element, str):
-                                        
-                    return element
+            return full_localization
+            
+        elif isinstance(element, list):
+            
+            return self.get_design_array(element)
+        
+        elif isinstance(element, dict):
+            
+            return self.get_design_dict(element)        
+            
+        else:
+                            
+            if isinstance(element, int) or isinstance(element, float) or isinstance(element, str):
+                                    
+                return element
     
     
     

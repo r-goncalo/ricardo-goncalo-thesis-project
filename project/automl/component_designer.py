@@ -62,9 +62,52 @@ def recursive_design(component_design):
     return component
 
 
+def print_dict_in_design(dict, ident_level):
+
+    space_before = ''
+    for i in range(0, ident_level):
+        space_before += '    '
+            
+    print(space_before + '{', end='')
+    
+    if len(dict) > 0:
+        
+        print()
+        for key in dict.keys():
+            
+            if isinstance(dict[key], (int, float)):  
+            
+                print(f'{space_before}  "{key}" : {dict[key]}')
+                
+            elif isinstance(dict[key], str):
+                print(f'{space_before}  "{key}" : "{dict[key]}"')
+                
+            else:
+                print(f'{space_before}  "{key}" : ')
+                
+        
+    print(space_before + '}')
+
+def print_element_in_design(element, ident_level):
+    
+    space_before = ''
+    for i in range(0, ident_level):
+        space_before += '    '
+
+    if isinstance(element, (int, float)):  
+    
+        print(f'{space_before}{element}')
+        
+    elif isinstance(element, str):
+        print(f'{space_before}"{element}"')
+        
+    elif isinstance(element, dict):
+        print_dict_in_design(element, ident_level + 1)
+
+
 def print_design(component_design, ident_level=0):
     
-    (component_type, non_component_input, component_input, connectors) = component_design
+    (component_type, input) = component_design
     
     space_before = ''
     for i in range(0, ident_level):
