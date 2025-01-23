@@ -2,6 +2,36 @@
 from enum import Enum
 from abc import abstractmethod
 
+import json
+
+# Connector -------------------------------
+
+class ComponentConnector():
+    '''Is a wrapper for a component used in another, when the user is not the owner of the component'''
+    
+    def __init__(self, target):
+        
+        self.target = target
+        
+    def __getattr__(self, name):
+        """
+        Intercepts access to attributes and methods of the `target` object.
+        """
+        return getattr(self.target, name)
+    
+
+class ComponentLocalization():
+    
+    '''Represents the localization of a component on a System, a connection of components, using the input'''
+    
+    def __init__(self, parent_localization=None, parent_component=None, key_of_this_component : str = ''):
+        
+        self.parent_localization = parent_localization
+        self.parent_component = parent_component
+        self.key_of_this_component = key_of_this_component        
+        
+    
+    
 
 # Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
 
@@ -29,6 +59,7 @@ class Component: # a component that receives and verifies input
         self.input = {} #the input will be a dictionary
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
+        self.component_localization = ComponentLocalization()
         
         self.pass_input(input) #passes the input but note that it does not proccess it
         
@@ -48,6 +79,10 @@ class Component: # a component that receives and verifies input
         for passed_key in input.keys():
             
             if self.in_input_signature(passed_key):
+                
+                if isinstance(input[passed_key], Component): #if the input was a component, the input becomes wrapped in a connector
+                    self.input[passed_key] = ComponentConnector(input[passed_key]) 
+                
                 self.input[passed_key] = input[passed_key]
                 
             else:
@@ -64,7 +99,98 @@ class Component: # a component that receives and verifies input
     
     def get_output(self): #return output
         return self.output
+    
+    
+    # SAVE AND LOAD -----------------------------------------
+    
+    def generate_localizations(self, parent_component = None, key_of_this_component=None):
+        '''Generates component localizations for this component and their child components'''
+        
+        parent_localization = None
+        
+        if parent_component != None:
+            parent_localization = parent_component.component_localization
+        
+        self.component_localization = ComponentLocalization(parent_localization=parent_localization, parent_component=parent_component, key_of_this_component=key_of_this_component)
+        
+        for key in self.input.keys():
+            
+            if isinstance(input[key], Component):
+                input[key].generate_localizations(self, key)
+            
+        
+    
+    def get_design_dict(self, dic): 
+          
+        dict_to_return = {}
+                
+        for key in dic.keys():
+                        
+            current_input = dic[key]
+            
+            element = self.get_design_element(current_input)
+            
+            if element != None:
+                dict_to_return[key] = element
+            
+        return dict_to_return          
+          
+          
+    def get_design_array(self, array):
+        
+        array_to_return = {}
+        
+        for value in array:
 
+            element = self.get_design_element(value)
+            
+            if element != None:
+                array_to_return.append(value)
+                
+        return array_to_return
+                
+    
+    def get_design_element(self, element):
+        
+            if isinstance(element, Component):
+                                
+                return element.get_design()
+                
+            elif isinstance(element, ComponentConnector):
+                 
+                component_localization = element.target.component_localization
+                
+                full_localization = [] #where we'll store the full localization of the component
+                
+                current_localization : ComponentLocalization = component_localization
+                
+                while current_localization != None:
+                    
+                    full_localization.insert(0, current_localization.key_of_this_component)
+                    current_localization = current_localization.parent_component
+                    
+                return full_localization
+                
+            elif isinstance(element, list):
+                
+                return self.get_design_array(element)
+            
+            elif isinstance(element, dict):
+                
+                return self.get_design_dict(element)        
+                
+            else:
+                                
+                if isinstance(element, int) or isinstance(element, float) or isinstance(element, str):
+                                        
+                    return element
+    
+    
+    
+    def get_design(self):
+                    
+        return (type(self), self.get_design_dict(self.input))
+    
 
     # EXPOSED VALUES -------------------------------------------
     
@@ -206,47 +332,8 @@ class InputSignature():
         self.possible_types = possible_types
         self.description = description
         
+        
 
 
-# EXECUTABLE COMPONENT --------------------------
 
-class ExecComponent(Component):
-    
-    class State(Enum): #an enumerator to track state of executable component
-        IDLE = 0
-        RUNNING = 1
-        OVER = 2
-        ERROR = 4
 
-    @abstractmethod
-    def algorithm(self): #the algorithm of the component
-        pass
-    
-    def pre_algorithm(self): # a component may extend this for certain behaviours
-        self.running_state = ExecComponent.State.RUNNING
-        
-    def pos_algorithm(self): # a component may extend this for certain behaviours
-        self.running_state = ExecComponent.State.OVER 
-    
-    def pass_input_and_exec(self, input : dict):
-        
-        self.pass_and_proccess_input(input) #before the algorithm starts running, we define the input    
-        return self.execute()
-    
-    def execute(self): #the universal execution flow for all components
-         
-        try:
-            self.pre_algorithm()
-            self.algorithm()
-            self.pos_algorithm()
-            return self.get_output()
-        
-        except Exception as e:
-            self.running_state = ExecComponent.State.ERROR
-            self.onException(e)
-    
-    def onException(self, exception):
-        raise exception
-        
-    
-    
