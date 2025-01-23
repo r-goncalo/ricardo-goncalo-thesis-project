@@ -2,45 +2,51 @@
 from enum import Enum
 from abc import abstractmethod
 
-import json      
+import json  
 
+class ComponentInputEncoder(json.JSONEncoder):
+    
+    def default(self, obj):
+        
+        if isinstance(obj, Component):
 
-import json
+            return {
+                "__type__": type(obj).__name__,
+                "name": obj.name,
+                "localization" : obj.get_localization()
+            }
+            
+        elif isinstance(obj, (int, float, str, dict, list)):
+            return obj
+            
+        return None
 
 class ComponentEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Component):
-            # Serialize a Component as its name, input, and child components
-            return {
-                "__type__": "Component",
-                "name": obj.name,
-                "input": obj.input,
-                "child_components": obj.child_components,
-            }
-        elif isinstance(obj, ComponentLocalizer):
-            # Serialize a ComponentLocalizer by its full localization
-            return {
-                "__type__": "ComponentLocalizer",
-                "localization": obj.full_localization,
-            }
-        return super().default(obj)  # Let the base class raise a TypeError
-
-
-class ComponentLocalizer():
     
-    def __init__(self, component):
+    def default(self, obj):
         
-        current_component = component
-        
-        self.full_localization = [] # where we'll store the full localization of the component
-                        
-        while current_component != None:
+        if isinstance(obj, Component):
             
-            self.full_localization.insert(0, current_component.name)
-            current_component = current_component.parent_component
-        
+            toReturn = {
+                "__type__": type(obj).__name__,
+                "name": obj.name,
+                "input": json.loads(json.dumps(obj.input, cls=ComponentInputEncoder))
+                }
+            
+            if len(obj.child_components) > 0:
                 
+                toReturn["child_components"] = self.default(obj.child_components)
+                        
+            return toReturn
+            
+        elif isinstance(obj, (int, float, str, dict, list)):
+            return obj
+            
+        return None
 
+        
+
+                
 # Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
 
 class Component: # a component that receives and verifies input
@@ -108,86 +114,28 @@ class Component: # a component that receives and verifies input
     
     # CHILD AND PARENT COMPONENTS ---------------------------------
     
-    def initialize_component(self, component_type, *args, **kwargs):
+    def initialize_child_component(self, component_type, input={}):
         
         '''Explicitly initializes a component of a certain type as a child component of this one'''
         
-        toReturn = component_type(args, kwargs)
+        initialized_component = component_type(input)
         
-        self.child_components.append(toReturn)
+        self.child_components.append(initialized_component)
         
-        toReturn.parent_component = self
+        initialized_component.parent_component = self
         
-        return toReturn
+        return initialized_component
     
-    
-    # SAVE AND LOAD -----------------------------------------            
+    def get_localization(self):
         
-    
-    def get_design_dict(self, dic): 
-          
-        dict_to_return = {}
-                
-        for key in dic.keys():
+        current_component = self
+        
+        self.full_localization = [] # where we'll store the full localization of the component
                         
-            current_input = dic[key]
+        while current_component != None:
             
-            element = self.get_design_element(current_input)
-            
-            if element != None:
-                dict_to_return[key] = element
-            
-        return dict_to_return          
-          
-          
-    def get_design_array(self, array):
-        
-        array_to_return = {}
-        
-        for value in array:
-
-            element = self.get_design_element(value)
-            
-            if element != None:
-                array_to_return.append(value)
-                
-        return array_to_return
-                
-    
-    def get_design_element(self, element):
-        
-        if isinstance(element, Component):                     
-             
-            current_component = element
-            
-            full_localization = [] # where we'll store the full localization of the component
-                            
-            while current_component != None:
-                
-                full_localization.insert(0, current_component.name)
-                current_component = current_component.parent_component
-                
-            return full_localization
-            
-        elif isinstance(element, list):
-            
-            return self.get_design_array(element)
-        
-        elif isinstance(element, dict):
-            
-            return self.get_design_dict(element)        
-            
-        else:
-                            
-            if isinstance(element, int) or isinstance(element, float) or isinstance(element, str):
-                                    
-                return element
-    
-    
-    
-    def get_design(self):
-                    
-        return (type(self), self.get_design_dict(self.input))
+            self.full_localization.insert(0, current_component.name)
+            current_component = current_component.parent_component
     
 
     # EXPOSED VALUES -------------------------------------------
@@ -247,7 +195,6 @@ class Component: # a component that receives and verifies input
                 self.verify_validity(input_key, input_value, single_input_signature.possible_types, single_input_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             else: #if there was no specified value for this attribute in the input
-                
                 raise Exception(f"In component of type {type(self)}, when cheking for the inputs required by class {class_component}: Did not set input for value  with key '{input_key}' and has no default value nor generator")     
                 
     # DEFAULT VALUES -------------------------------------------------

@@ -93,7 +93,7 @@ class RLPipelineComponent(Component):
         self.lg_profile.writeLine("Initializing trainer")
         
         rl_trainer_input = {
-            "device" : "gpu",
+            "device" : self.device,
             "logger" : self.lg,
             "num_episodes" : self.num_episodes,
             "state_memory_size" : self.state_memory_size,
@@ -103,7 +103,7 @@ class RLPipelineComponent(Component):
             "agents" : self.agents
         }
 
-        self.rl_trainer = RLTrainerComponent(input=rl_trainer_input)        
+        self.rl_trainer = self.initialize_child_component(RLTrainerComponent, input=rl_trainer_input)        
 
     def initialize_agents_components(self):
 
@@ -144,7 +144,7 @@ class RLPipelineComponent(Component):
             
             agent_input["device"] = self.device       
 
-            agents[agent] = AgentComponent(input=agent_input)
+            agents[agent] = self.initialize_child_component(AgentComponent, input=agent_input)
 
             self.lg_profile.writeLine("Created agent in training " + agent_name)
 

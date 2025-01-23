@@ -31,15 +31,15 @@ class AgentComponent(Component):
                        "discount_factor" : InputSignature(default_value=0.95),
                        "training_context" : InputSignature(),
                        
-                       "exploration_strategy" : InputSignature( generator=lambda _ : EpsilonGreedyStrategy()), #this generates an epsilon greddy strategy object at runtime if it is not specified
+                       "exploration_strategy" : InputSignature( generator=lambda self : self.initialize_child_component(EpsilonGreedyStrategy)), #this generates an epsilon greddy strategy object at runtime if it is not specified
                        
                        "policy_model" : InputSignature(default_value=''),
                        "model_input_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
                        "model_output_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
                         
-                       "memory" : InputSignature(generator = lambda x :  MemoryComponent(input={"capacity" : DEFAULT_MEMORY_SIZE})),
+                       "memory" : InputSignature(generator = lambda self :  self.initialize_child_component(MemoryComponent, input={"capacity" : DEFAULT_MEMORY_SIZE})),
                        
-                       "learner" : InputSignature(generator= lambda x : DeepQLearnerComponent())
+                       "learner" : InputSignature(generator= lambda self : self.initialize_child_component(DeepQLearnerComponent))
                     }
 
         
@@ -104,7 +104,7 @@ class AgentComponent(Component):
             self.lg_profile.writeLine("Creating policy model using default values and passed shape...")
             
             #this makes some strong assumptions about the shape of the model and the input being received
-            return ConvModelComponent(input={"board_x" : model_input_shape[0], "board_y" : model_input_shape[1], "board_z" : model_input_shape[2], "output_size" : model_output_shape})
+            return self.initialize_child_component(ConvModelComponent, input={"board_x" : model_input_shape[0], "board_y" : model_input_shape[1], "board_z" : model_input_shape[2], "output_size" : model_output_shape})
             
         else:
             
