@@ -4,10 +4,10 @@ from abc import abstractmethod
 
 import json  
 
-class ComponentInputEncoder(json.JSONEncoder):
+class ComponentInputElementsEncoder(json.JSONEncoder):
     
     def default(self, obj):
-        
+                        
         if isinstance(obj, Component):
 
             return {
@@ -21,6 +21,33 @@ class ComponentInputEncoder(json.JSONEncoder):
             
         return None
 
+class ComponentInputEncoder(json.JSONEncoder):
+    
+    '''Used with component to encode its input (not the input itself)'''
+    
+    def default(self, obj):
+        
+        if isinstance(obj, Component):
+            
+            input = obj.input
+            
+            toReturn = {}
+            
+            for key in input.keys():
+                                  
+                input_signature : InputSignature = obj.get_input_signature(key)
+                                
+                if not input_signature.ignore_at_serialization:
+                    
+                    toReturn[key] = json.loads(json.dumps(input[key], cls=ComponentInputElementsEncoder)) #for each value in input, loads
+                    
+            return toReturn
+                
+        
+        else:
+            raise Exception('Was expecting an object of type Component')
+            
+
 class ComponentEncoder(json.JSONEncoder):
     
     def default(self, obj):
@@ -30,7 +57,7 @@ class ComponentEncoder(json.JSONEncoder):
             toReturn = {
                 "__type__": type(obj).__name__,
                 "name": obj.name,
-                "input": json.loads(json.dumps(obj.input, cls=ComponentInputEncoder))
+                "input": json.loads(json.dumps(obj, cls=ComponentInputEncoder))
                 }
             
             if len(obj.child_components) > 0:
@@ -130,12 +157,14 @@ class Component: # a component that receives and verifies input
         
         current_component = self
         
-        self.full_localization = [] # where we'll store the full localization of the component
+        full_localization = [] # where we'll store the full localization of the component
                         
         while current_component != None:
             
-            self.full_localization.insert(0, current_component.name)
+            full_localization.insert(0, current_component.name)
             current_component = current_component.parent_component
+            
+        return full_localization 
     
 
     # EXPOSED VALUES -------------------------------------------
@@ -153,6 +182,24 @@ class Component: # a component that receives and verifies input
 
 
     # INPUT PROCCESSING ---------------------------------------------  
+    
+    def __get_input_signature(self, key, class_component):
+        
+        if key in class_component.input_signature.keys():
+            return class_component.input_signature[key]
+          
+        elif len(class_component.__mro__) > 2:
+            return self.__get_input_signature(self, key, class_component.__mro__[1])
+        
+        else:
+            return None
+    
+    
+    
+    def get_input_signature(self, key):
+        return self.__get_input_signature(key, type(self))   
+    
+    
     
     def __in_input_signature(self, key, class_component): #checks if the key is in the input signature of this class, if not, checks in super classes
         
@@ -269,13 +316,14 @@ def requires_input_proccess(func):
 
 class InputSignature():
     
-    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description=''):
+    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description='', ignore_at_serialization=False):
         
         self.default_value = default_value
         self.generator = generator
         self.validity_verificator = validity_verificator
         self.possible_types = possible_types
         self.description = description
+        self.ignore_at_serialization = ignore_at_serialization
         
         
 

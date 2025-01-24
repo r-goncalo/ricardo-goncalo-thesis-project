@@ -26,7 +26,7 @@ class AgentComponent(Component):
 
     input_signature = { "name" : InputSignature(),
                        "device" : InputSignature(),
-                       "logger" : InputSignature(),
+                       "logger" : InputSignature(ignore_at_serialization=True),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
                        "training_context" : InputSignature(),

@@ -13,7 +13,7 @@ class RLPipelineComponent(Component):
     TRAIN_LOG = 'train.txt'
     
     input_signature = {"device" : InputSignature(default_value="cpu"),
-                       "logger" : InputSignature(),
+                       "logger" : InputSignature(ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
                        "state_memory_size" : InputSignature(),
@@ -152,7 +152,8 @@ class RLPipelineComponent(Component):
 
         self.lg_profile.writeLine("Initialized " + str(agents) + " agents")
 
-        self.agents = agents    
+        self.agents = agents  
+        self.input["agents"] = agents #this is done because we want to save these agents in the configuration
         
         
     # TRAINING_PROCCESS ----------------------

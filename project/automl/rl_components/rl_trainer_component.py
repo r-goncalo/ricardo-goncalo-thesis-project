@@ -12,7 +12,7 @@ class RLTrainerComponent(Component):
     TRAIN_LOG = 'train.txt'
     
     input_signature = {"device" : InputSignature(),
-                       "logger" : InputSignature(),
+                       "logger" : InputSignature(ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
                        "state_memory_size" : InputSignature(),
