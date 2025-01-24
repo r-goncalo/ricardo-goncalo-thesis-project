@@ -2,145 +2,8 @@
 from enum import Enum
 from abc import abstractmethod
 
-import json  
+import json
 
-class ComponentInputElementsEncoder(json.JSONEncoder):
-    
-    def default(self, obj):
-                        
-        if isinstance(obj, Component):
-
-            return {
-                "__type__": type(obj).__name__,
-                "name" : obj.name,
-                "localization" : obj.get_localization()
-            }
-            
-        elif isinstance(obj, (int, float, str, dict, list)):
-            return obj
-            
-        return None
-
-class ComponentInputEncoder(json.JSONEncoder):
-    
-    '''Used with component to encode its input (not the input itself)'''
-    
-    def default(self, obj):
-        
-        if isinstance(obj, Component):
-            
-            input = obj.input
-            
-            toReturn = {}
-            
-            for key in input.keys():
-                                  
-                input_signature : InputSignature = obj.get_input_signature(key)
-                                
-                if not input_signature.ignore_at_serialization:
-                    
-                    toReturn[key] = json.loads(json.dumps(input[key], cls=ComponentInputElementsEncoder)) #for each value in input, loads
-                    
-            return toReturn
-                
-        
-        else:
-            raise Exception('Was expecting an object of type Component')
-            
-
-class ComponentEncoder(json.JSONEncoder):
-    
-    def default(self, obj):
-        
-        if isinstance(obj, Component):
-            
-            toReturn = {
-                "__type__": type(obj).__name__,
-                "name": obj.name,
-                "input": json.loads(json.dumps(obj, cls=ComponentInputEncoder))
-                }
-            
-            if len(obj.child_components) > 0:
-                
-                toReturn["child_components"] = self.default(obj.child_components)
-                        
-            return toReturn
-            
-        elif isinstance(obj, (int, float, str, dict, list)):
-            return obj
-            
-        return None
-
-
-
-def get_component_from_source(source_component, localization):
-    
-    current_component : Component = source_component
-    
-    for index in localization:
-        current_component = current_component.child_components[index]
-        
-    return current_component
-    
-
-class ComponentInputDecoder(json.JSONDecoder):    
-    
-    def __init__(self, *args, source_component, **kwargs):
-        super().__init__(object_hook=self.object_hook, *args, **kwargs)
-        self.source_component = source_component
-        
-    def object_hook(self, obj):
-            
-        if "__type__" in obj and "name" in obj and "localization" in obj:  #if it is a localization for a component
-            
-            localization = obj["localization"] #the array that is the localization of the object
-            
-            return get_component_from_source(self.source_component, localization)
-        
-        return obj
-        
-    
-
-class ComponentDecoder(json.JSONDecoder):
-    '''Decoder for reconstructing Component objects.'''
-
-    def __init__(self, *args, source_component=None, **kwargs):
-        super().__init__(object_hook=self.object_hook, *args, **kwargs)
-        self.source_component = source_component
-
-
-    def object_hook(self, obj):
-            
-        if "__type__" in obj:    
-            
-            component_type = globals().get(obj["__type__"])
-        
-            component : Component = component_type()
-            component.name = obj["name"]
-        
-            if "child_components" in obj:
-                
-                json_child_components = obj["child_components"]
-                
-                for child in json_child_components:
-            
-                    component.child_components.append(
-                        json.loads(json.dumps(child), cls=ComponentDecoder, 
-                                   source_component = component if self.source_component == None else self.source_component)
-                    )
-                
-                
-            if "input" in obj:
-                component.input = obj["input"]
-                
-            return component
-                
-        return obj
-            
-
-       
-
-                
 # Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
 
 class Component: # a component that receives and verifies input
@@ -243,12 +106,6 @@ class Component: # a component that receives and verifies input
             
         return full_localization 
     
-    # SAVE AND LOAD --------------------------------------------
-    
-    def gen_config_json_string(self):
-        return json.dumps(self, cls=ComponentEncoder, indent=4)
-    
-
     # EXPOSED VALUES -------------------------------------------
     
     # TODO : maybe this should happen at the end of class definition for all classes that extend Component, statically? Instead of happening multiple times per class redundantly
