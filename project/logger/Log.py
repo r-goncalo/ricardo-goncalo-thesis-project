@@ -27,6 +27,16 @@ class LogClass:
             os.makedirs(logDir)
             
         self.logDir = logDir
+        
+    
+    def writeToFile(self, string='', file=logTextFile, toPrint = False):
+
+        if(toPrint):
+            print(string)
+        
+        fd = open(self.logDir + '\\' + file, 'a') 
+        fd.write(string)
+        fd.close()        
                 
     def writeLine(self, string='', file=logTextFile, toPrint = True): #writes a line of text in a log file
 
@@ -80,22 +90,44 @@ class LogClass:
     def openChildLog(self, logName):
         return openLog(logDir=self.logDir, logName=logName)
     
-    def createProfile(self, name):
-        return LoggerProfile(self, name)
+    def createProfile(self, name : str = '', object_with_name = None):
+        print("Type of object with name: " + str(type(object_with_name)) + " and name passed: " + name)
+        return LoggerProfile(self, name, object_with_name)
 
 
 class LoggerProfile(LogClass):
     
-    def __init__(self, lg: LogClass, name : str):
-        self.lg = lg
-        self.name = name
+    class NamedObject:
+        def __init__(self, name):
+            self.name = name
+    
+    def __init__(self, lg: LogClass, name : str = '', object_with_name=None):
         
-
+        '''Initialized a profile, that is a simple wrapper for a logger with a name
+        
+        Args:
+            lg: The original log object
+            name: The name of the object
+            object_with_name: If we are to ignore the name parameter, and instead reference a logic with the .name attribute'''
+        
+        self.lg = lg
+        
+        if object_with_name == None:
+            self.object_with_name = LoggerProfile.NamedObject(name)
+            
+        else:
+            self.object_with_name = object_with_name
+        
+        
     def writeLine(self, string='', **params): #writes a line of text in a log file
             
-        params["string"] = f'{self.name}: {string}'
+        params["string"] = f'{self.object_with_name.name}: {string}'
             
         self.lg.writeLine(**params)
+        
+    def writeToFile(self, **params):
+
+        return self.lg.writeToFile(**params)   
         
     def saveFile(self, **params): #saves a file using the directory of this log object as a point of reference
         
@@ -122,7 +154,8 @@ class LoggerProfile(LogClass):
         return self.lg.openChildLog(**params)
 
     def createProfile(self, **params):
-        return self.lg.createProfile(params)
+        
+        return self.lg.createProfile(**params)
      
      
 def createNewLogDirIfExistent(logDir):

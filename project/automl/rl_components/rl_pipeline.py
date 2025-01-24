@@ -4,18 +4,19 @@ from .optimizer_components import AdamOptimizer
 from .exploration_strategy_components import EpsilonGreedyStrategy
 from .model_components import ConvModelComponent
 from .rl_trainer_component import RLTrainerComponent
+from .environment_components import PettingZooEnvironmentLoader
+from ..logger_component import LoggerComponent
 
 import torch
 import time
 
-class RLPipelineComponent(Component):
+class RLPipelineComponent(LoggerComponent):
 
     TRAIN_LOG = 'train.txt'
     
     input_signature = {"device" : InputSignature(default_value="cpu"),
-                       "logger" : InputSignature(ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
-                       "environment" : InputSignature(),
+                       "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
                        "state_memory_size" : InputSignature(),
                        "agents" : InputSignature(default_value={}),
                        "limit_steps" : InputSignature(),
@@ -36,8 +37,6 @@ class RLPipelineComponent(Component):
         super().proccess_input()
         
         self.device = self.input["device"]
-        self.lg = self.input["logger"]
-        self.lg_profile = self.lg.createProfile(self.name)
     
         self.limit_steps = self.input["limit_steps"]
         self.num_episodes =self.input["num_episodes"]  
@@ -63,7 +62,7 @@ class RLPipelineComponent(Component):
         
         self.configure_device(self.device)
 
-        self.env.set_device(self.device)
+        self.env.pass_input({"device" : self.device})
         
         self.initialize_agents_components()
             
@@ -78,19 +77,19 @@ class RLPipelineComponent(Component):
         
         try:
 
-            self.lg_profile.writeLine("Trying to use cuda...")
+            self.lg.writeLine("Trying to use cuda...")
             self.device = torch.device(str_device_str)
     
         except Exception as e:
             self.device = torch.device("cpu")
-            self.lg_profile.writeLine(f"There was an error trying to setup the device in '{str_device_str}': {str(e)}")
+            self.lg.writeLine(f"There was an error trying to setup the device in '{str_device_str}': {str(e)}")
 
-        self.lg_profile.writeLine("The model will trained and evaluated on: " + str(self.device))
+        self.lg.writeLine("The model will trained and evaluated on: " + str(self.device))
             
 
     def initialize_trainer(self):
         
-        self.lg_profile.writeLine("Initializing trainer")
+        self.lg.writeLine("Initializing trainer")
         
         rl_trainer_input = {
             "device" : self.device,
@@ -113,7 +112,7 @@ class RLPipelineComponent(Component):
 
     def create_agents(self):
 
-        self.lg_profile.writeLine("Creating agents")
+        self.lg.writeLine("Creating agents")
 
         agents = {}
 
@@ -126,11 +125,11 @@ class RLPipelineComponent(Component):
             agent_name = "agent_" + str(agentId)
             agent_input["name"] = agent_name
 
-            agent_logger = self.lg_profile.openChildLog(logName=agent_name)
+            agent_logger = self.lg.openChildLog(logName=agent_name)
             agent_input["logger"] = agent_logger
 
             state = self.env.observe(agent)
-            self.lg_profile.writeLine("State for agent " + agent_name + " has shape: Z: " + str(len(state)) + " Y: " + str(len(state[0])) + " X: " + str(len(state[0][0])))
+            self.lg.writeLine("State for agent " + agent_name + " has shape: Z: " + str(len(state)) + " Y: " + str(len(state[0])) + " X: " + str(len(state[0][0])))
 
             z_input_size = len(state) * self.state_memory_size
             y_input_size = len(state[0])
@@ -146,11 +145,11 @@ class RLPipelineComponent(Component):
 
             agents[agent] = self.initialize_child_component(AgentComponent, input=agent_input)
 
-            self.lg_profile.writeLine("Created agent in training " + agent_name)
+            self.lg.writeLine("Created agent in training " + agent_name)
 
             agentId += 1
 
-        self.lg_profile.writeLine("Initialized " + str(agents) + " agents")
+        self.lg.writeLine("Initialized " + str(agents) + " agents")
 
         self.agents = agents  
         self.input["agents"] = agents #this is done because we want to save these agents in the configuration

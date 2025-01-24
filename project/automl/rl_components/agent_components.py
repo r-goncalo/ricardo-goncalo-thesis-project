@@ -12,6 +12,7 @@ from .memory_components import MemoryComponent
 # ACTUAL AGENT COMPONENT ---------------------------
 
 from ..component import Component, InputSignature, requires_input_proccess
+from ..logger_component import LoggerComponent
 import torch
 import random
 import math
@@ -19,14 +20,13 @@ import numpy as nn
 
 DEFAULT_MEMORY_SIZE = 200
 
-class AgentComponent(Component):
+class AgentComponent(LoggerComponent):
 
 
     # INITIALIZATION --------------------------------------------------------------------------
 
     input_signature = { "name" : InputSignature(),
                        "device" : InputSignature(),
-                       "logger" : InputSignature(ignore_at_serialization=True),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
                        "training_context" : InputSignature(),
@@ -49,8 +49,6 @@ class AgentComponent(Component):
         
         self.name = self.input["name"]                
         self.device = self.input["device"]
-        self.lg = self.input["logger"]
-        self.lg_profile = self.lg.createProfile(self.name)
     
         self.initialize_exploration_strategy()
         self.initialize_models()
@@ -63,7 +61,7 @@ class AgentComponent(Component):
         self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
         self.GAMMA = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
                 
-        self.lg_profile.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA}")
+        self.lg.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA}")
         
         
         self.exploration_strategy = self.input["exploration_strategy"]
@@ -73,7 +71,7 @@ class AgentComponent(Component):
         
     def initialize_models(self):
         
-        self.lg_profile.writeLine("Initializing policy model...")
+        self.lg.writeLine("Initializing policy model...")
 
         passed_policy_model = self.input["policy_model"]
         
@@ -85,7 +83,7 @@ class AgentComponent(Component):
         self.policy_model : ConvModelComponent = passed_policy_model
         self.policy_model.pass_input({"device" : self.device}) #we have to guarantee that the device in our model is the same as the agent's
 
-        self.lg_profile.writeLine("Initializing target model...")
+        self.lg.writeLine("Initializing target model...")
 
         #our target network will be used to evaluate states
         #it is essentially a delayed copy of the policy network
@@ -101,7 +99,7 @@ class AgentComponent(Component):
         
         if model_input_shape != '' and model_output_shape != '':
             
-            self.lg_profile.writeLine("Creating policy model using default values and passed shape...")
+            self.lg.writeLine("Creating policy model using default values and passed shape...")
             
             #this makes some strong assumptions about the shape of the model and the input being received
             return self.initialize_child_component(ConvModelComponent, input={"board_x" : model_input_shape[0], "board_y" : model_input_shape[1], "board_z" : model_input_shape[2], "output_size" : model_output_shape})
@@ -161,8 +159,8 @@ class AgentComponent(Component):
     @requires_input_proccess
     def saveModels(self):
         
-        self.lg_profile.saveFile(self.policy_model, 'model', 'policy_net')
-        self.lg_profile.saveFile(self.target_net, 'model', 'target_net') 
+        self.lg.saveFile(self.policy_model, 'model', 'policy_net')
+        self.lg.saveFile(self.target_net, 'model', 'target_net') 
         
 
 

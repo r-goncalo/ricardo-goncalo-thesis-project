@@ -95,7 +95,7 @@ class Component: # a component that receives and verifies input
     
     # INITIALIZATION -------------------------------------------------------------------------
     
-    def __init__(self, input : dict = {}): #we can immediatly receive the input
+    def __init__(self, input : dict[str, any] = {}): #we can immediatly receive the input
                 
         self.input = {} #the input will be a dictionary
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
@@ -166,6 +166,11 @@ class Component: # a component that receives and verifies input
             
         return full_localization 
     
+    # SAVE AND LOAD --------------------------------------------
+    
+    def gen_config_json_string(self):
+        return json.dumps(self, cls=ComponentEncoder, indent=4)
+    
 
     # EXPOSED VALUES -------------------------------------------
     
@@ -189,7 +194,7 @@ class Component: # a component that receives and verifies input
             return class_component.input_signature[key]
           
         elif len(class_component.__mro__) > 2:
-            return self.__get_input_signature(self, key, class_component.__mro__[1])
+            return self.__get_input_signature(key, class_component.__mro__[1])
         
         else:
             return None
@@ -207,7 +212,7 @@ class Component: # a component that receives and verifies input
             return True
         
         elif len(class_component.__mro__) > 2:
-            return self.__in_input_signature(self, key, class_component.__mro__[1])
+            return self.__in_input_signature(key, class_component.__mro__[1])
         
         else:
             return False

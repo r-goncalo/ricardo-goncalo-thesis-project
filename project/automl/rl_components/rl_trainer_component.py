@@ -4,15 +4,16 @@
 
 
 from ..component import InputSignature, Component, requires_input_proccess
+from ..logger_component import LoggerComponent
+
 import torch
 import time
 
-class RLTrainerComponent(Component):
+class RLTrainerComponent(LoggerComponent):
 
     TRAIN_LOG = 'train.txt'
     
     input_signature = {"device" : InputSignature(),
-                       "logger" : InputSignature(ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
                        "state_memory_size" : InputSignature(),
@@ -28,8 +29,6 @@ class RLTrainerComponent(Component):
         super().proccess_input()
         
         self.device = self.input["device"]
-        self.lg = self.input["logger"]
-        self.lg_profile = self.lg.createProfile(self.name)
     
         self.limit_steps = self.input["limit_steps"]
         self.num_episodes =self.input["num_episodes"]  
@@ -54,14 +53,14 @@ class RLTrainerComponent(Component):
     @requires_input_proccess
     def run_episodes(self):
         
-        self.lg_profile.writeLine("Starting to run episodes of training")
+        self.lg.writeLine("Starting to run episodes of training")
     
         timeBeforeTraining =  time.time()
         
         #each episode is an instance of playing the game
         for i_episode in range(self.num_episodes):
             
-            self.lg_profile.writeLine(f"Starting to run episode {i_episode}")
+            self.lg.writeLine(f"Starting to run episode {i_episode}")
             
             timeBeforeEpisode = time.time()
             
@@ -112,7 +111,7 @@ class RLTrainerComponent(Component):
                 
                 if self.values["total_steps"] % self.optimization_interval == 0:
                     
-                    self.lg_profile.writeLine(f"In episode {i_episode}, optimizing at step {t} that is the total step {self.values['total_steps']}")
+                    self.lg.writeLine(f"In episode {i_episode}, optimizing at step {t} that is the total step {self.values['total_steps']}")
                     self.optimizeAgents()
                     
 
@@ -125,7 +124,7 @@ class RLTrainerComponent(Component):
 
 
                 if self.limit_steps >= 1 and t >= self.limit_steps:
-                    self.lg_profile.writeLine("In episode " + str(i_episode) + ", reached step " + str(t) + " that is beyond the current limit, " + str(self.limit_steps))
+                    self.lg.writeLine("In episode " + str(i_episode) + ", reached step " + str(t) + " that is beyond the current limit, " + str(self.limit_steps))
                     self.episode_durations.append(t)
                     break
                
@@ -133,26 +132,26 @@ class RLTrainerComponent(Component):
             
             self.episode_time_per_step_durations.append(timeDurationOfEpisode / t) 
                 
-            self.lg_profile.writeLine("Ended episode: " + str(i_episode) + " with duration: " + str(t) + ", total reward: " + str(self.total_score[len(self.episode_durations) - 1]) + " and real time duration of " + str(timeDurationOfEpisode) + " seconds", file=self.TRAIN_LOG)                
+            self.lg.writeLine("Ended episode: " + str(i_episode) + " with duration: " + str(t) + ", total reward: " + str(self.total_score[len(self.episode_durations) - 1]) + " and real time duration of " + str(timeDurationOfEpisode) + " seconds", file=self.TRAIN_LOG)                
                 
                 
             #if we reached a point where it is supposed to save
             if(i_episode > 0 and i_episode < self.num_episodes - 1 and i_episode % self.save_interval == 0):
-                self.lg_profile.writeLine("Doing intermedian saving of results during training...", file=self.TRAIN_LOG)
+                self.lg.writeLine("Doing intermedian saving of results during training...", file=self.TRAIN_LOG)
                 self.saveData()
         
         timeTrainingTook = time.time() - timeBeforeTraining
-        self.lg_profile.writeLine("\nTraining took " + str(timeTrainingTook) + " seconds, " + str(timeTrainingTook / self.values['total_steps']) + " per step (" + str(self.values['total_steps']) + ")")     
+        self.lg.writeLine("\nTraining took " + str(timeTrainingTook) + " seconds, " + str(timeTrainingTook / self.values['total_steps']) + " per step (" + str(self.values['total_steps']) + ")")     
 
 
     def optimizeAgents(self):
         
         for agentInTraining in  self.agents.values():
             
-            self.lg_profile.writeLine("Optimizing agent " + str(agentInTraining.name))
+            self.lg.writeLine("Optimizing agent " + str(agentInTraining.name))
             
             timeBeforeOptimizing = time.time()
                                 
             agentInTraining.optimize_policy_model() # TODO : Take attention to this, the agents optimization strategy is too strict
             
-            self.lg_profile.writeLine("Optimization took " + str(time.time() - timeBeforeOptimizing) + " seconds")
+            self.lg.writeLine("Optimization took " + str(time.time() - timeBeforeOptimizing) + " seconds")
