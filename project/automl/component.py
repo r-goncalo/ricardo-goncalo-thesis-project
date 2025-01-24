@@ -12,7 +12,7 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
 
             return {
                 "__type__": type(obj).__name__,
-                "name": obj.name,
+                "name" : obj.name,
                 "localization" : obj.get_localization()
             }
             
@@ -71,7 +71,74 @@ class ComponentEncoder(json.JSONEncoder):
             
         return None
 
+
+
+def get_component_from_source(source_component, localization):
+    
+    current_component : Component = source_component
+    
+    for index in localization:
+        current_component = current_component.child_components[index]
         
+    return current_component
+    
+
+class ComponentInputDecoder(json.JSONDecoder):    
+    
+    def __init__(self, *args, source_component, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+        self.source_component = source_component
+        
+    def object_hook(self, obj):
+            
+        if "__type__" in obj and "name" in obj and "localization" in obj:  #if it is a localization for a component
+            
+            localization = obj["localization"] #the array that is the localization of the object
+            
+            return get_component_from_source(self.source_component, localization)
+        
+        return obj
+        
+    
+
+class ComponentDecoder(json.JSONDecoder):
+    '''Decoder for reconstructing Component objects.'''
+
+    def __init__(self, *args, source_component=None, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+        self.source_component = source_component
+
+
+    def object_hook(self, obj):
+            
+        if "__type__" in obj:    
+            
+            component_type = globals().get(obj["__type__"])
+        
+            component : Component = component_type()
+            component.name = obj["name"]
+        
+            if "child_components" in obj:
+                
+                json_child_components = obj["child_components"]
+                
+                for child in json_child_components:
+            
+                    component.child_components.append(
+                        json.loads(json.dumps(child), cls=ComponentDecoder, 
+                                   source_component = component if self.source_component == None else self.source_component)
+                    )
+                
+                
+            if "input" in obj:
+                component.input = obj["input"]
+                
+            return component
+                
+        return obj
+            
+
+       
 
                 
 # Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
@@ -159,10 +226,20 @@ class Component: # a component that receives and verifies input
         
         full_localization = [] # where we'll store the full localization of the component
                         
-        while current_component != None:
+        while True: #while we have not reached the source component
+                        
+            if current_component.parent_component != None:
+                
+                child_components_of_parent : list = current_component.parent_component.child_components
             
-            full_localization.insert(0, current_component.name)
-            current_component = current_component.parent_component
+                index_of_this_in_parent = child_components_of_parent.index(current_component)
+            
+                full_localization.insert(0, index_of_this_in_parent)
+            
+                current_component = current_component.parent_component
+                
+            else:
+                break #we reached the source component
             
         return full_localization 
     

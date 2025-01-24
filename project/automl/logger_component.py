@@ -26,9 +26,9 @@ class LoggerComponent(Component):
             self.lg = self.lg.createProfile(object_with_name=self)
             
         
-    def save_configuration(self):
+    def save_configuration(self, toPrint=False):
         
         json_string = self.gen_config_json_string()
         
-        self.lg.writeToFile(string=json_string, file='configuration.json')
+        self.lg.writeToFile(string=json_string, file='configuration.json', toPrint=toPrint)
     
