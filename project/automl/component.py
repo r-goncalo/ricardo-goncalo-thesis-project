@@ -31,7 +31,7 @@ class Component: # a component that receives and verifies input
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         self.child_components = []
-        self.parent_component = None
+        self.parent_component : Component = None
 
         self.pass_input(input) #passes the input but note that it does not proccess it
         
@@ -42,7 +42,7 @@ class Component: # a component that receives and verifies input
         self.name = str(type(self).__name__) #defines the initial component name
             
     
-    def pass_input(self, input: dict): # pass input to this component
+    def pass_input(self, input: dict): # pass input to this component, may need verification of input
         '''Pass input to this component
            It is supposed to be called only before proccess_input and, if not, it mean proccess_input may be called a multitude of times
            '''
@@ -50,17 +50,41 @@ class Component: # a component that receives and verifies input
         
         for passed_key in input.keys():
             
-            if self.in_input_signature(passed_key):
+            single_input_signature = self.get_input_signature(passed_key)
+            
+            if single_input_signature != None:
                 
-                self.input[passed_key] = input[passed_key]
+                self.__verified_pass_input(passed_key, input[passed_key], single_input_signature)
                 
             else:
                 print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
 
+                
+                
+    def __verified_pass_input(self, key, value, single_input_signature): #for logic of passing the input, already verified
+        
+        self.input[key] = value
+        
+        if single_input_signature.on_pass != None: #if there is verification of logic for when the input is passed
+            
+            single_input_signature.on_pass(self)
+
+
+
     def proccess_input(self): #verify the input to this component
         '''Verify validity of input and add default values''' 
-        self.__add_default_values_of_class_and_super(type(self))
-        self.__proccess_input_of_class_and_super(type(self))
+        
+        #get input signature priorities specified, sorted
+        #and the input signatures organized by priorities
+        input_signature_priorities, organized_input_signatures = self.__get_organized_input_signatures()
+        
+        passed_keys = self.input.keys()
+        
+        for priority in input_signature_priorities:
+                        
+            self.__add_default_values_of_class_input(passed_keys, organized_input_signatures[priority])
+            self.__verify_input(passed_keys, organized_input_signatures[priority])
+            
         self._input_was_proccessed = True
 
 
@@ -82,6 +106,19 @@ class Component: # a component that receives and verifies input
         initialized_component.parent_component = self
         
         return initialized_component
+    
+    def get_attr_from_parent(self, attr_name : str):
+        '''Gets an attribute from a parent component, None if non existent'''
+                
+        if self.parent_component == None:
+            return None
+        
+        else:
+            if hasattr(self.parent_component, attr_name):
+                return getattr(self.parent_component, attr_name)
+            else:
+                return self.parent_component.get_attr_from_parent(attr_name)
+            
     
     def get_localization(self):
         
@@ -156,24 +193,60 @@ class Component: # a component that receives and verifies input
         return self.__in_input_signature(key, type(self))
     
     
-     
-    def __proccess_input_of_class_and_super(self, class_component):
-
-        if len(class_component.__mro__) > 2: #if this class has a super class that is not the object class
-            self.__proccess_input_of_class_and_super(class_component.__mro__[1]) # verifies first the input according to the super class
+    
+    def __get_organized_input_signatures(self):
+        
+        current_class_component = self.__class__
+        
+        input_signature_priorities = []
+        organized_input_signatures = {}
+        
+        while True: #for each component class
+            
+            current_input_signature = current_class_component.input_signature #get its input signature 
+            
+            for key, single_input_signature in current_input_signature.items():
                 
-        self.__proccess_input_specific_of_class(class_component)
+                priority = single_input_signature.priority
+                
+                if not priority in input_signature_priorities:
+                    input_signature_priorities.append(priority)
+                    organized_input_signatures[priority] = []
+                    
+                organized_input_signatures[priority].append((key, single_input_signature)) #put its key, single_input_signature pair in the list of respective priority                
+            
+            if current_class_component == Component: #if this was the Component class, we reached the end
+                break
+            
+            current_class_component = current_class_component.__bases__[0] #gets the super class
+
+        input_signature_priorities.sort()
+        
+        return input_signature_priorities, organized_input_signatures
         
             
-    def __proccess_input_specific_of_class(self, class_component): #verify the input to this component and add default values, to the self.input dict
-
-        input_signature = class_component.input_signature  #the input signature specified in this class          
-        passed_keys = self.input.keys() #note that default values and verifications of super values could already be done
-                
-        for input_key in input_signature.keys():
+    # DEFAULT VALUES -------------------------------------------------
             
-            single_input_signature : InputSignature = input_signature[input_key]
-                        
+    def __add_default_values_of_class_input(self, passed_keys, list_of_signatures):
+        
+        for (input_key, single_input_signature) in list_of_signatures:
+                             
+            #if this values was not already defined
+            if not input_key in passed_keys: 
+                                                                   
+                if not single_input_signature.default_value == None:
+                    self.input[input_key] = single_input_signature.default_value  #the value used will be the default value
+
+                elif not single_input_signature.generator == None:
+                    self.input[input_key] = single_input_signature.generator(self) #generators have access to the instance              
+                
+
+    # VALIDITY VERIFICATION ---------------------------------------------
+
+    def __verify_input(self, passed_keys, list_of_signatures): #verify the input to this component and add default values, to the self.input dict
+
+        for (input_key, single_input_signature) in list_of_signatures:
+                                    
             if input_key in passed_keys: #if this value was in input
                 
                 input_value = self.input[input_key] #get the value passed
@@ -181,36 +254,9 @@ class Component: # a component that receives and verifies input
                 self.verify_validity(input_key, input_value, single_input_signature.possible_types, single_input_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             else: #if there was no specified value for this attribute in the input
-                raise Exception(f"In component of type {type(self)}, when cheking for the inputs required by class {class_component}: Did not set input for value  with key '{input_key}' and has no default value nor generator")     
+                raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for value  with key '{input_key}' and has no default value nor generator")     
                 
-    # DEFAULT VALUES -------------------------------------------------
-    
-    def __add_default_values_of_class_and_super(self, class_component):    
-                
-        self.__add_default_values_of_class(class_component) #adds first the default values of child classe(s)
-        
-        if len(class_component.__mro__) > 2:
-            self.__add_default_values_of_class_and_super(class_component.__mro__[1]) # adds second the default values of the super component if any
-        
-            
-    def __add_default_values_of_class(self, class_component):
-        
-        input_signature = class_component.input_signature  #the input signature specified in this class          
-        passed_keys = self.input.keys() #note that default values of child classes are already here
-                
-        for input_key in input_signature.keys():
-             
-            #if this values was not already defined
-            if not input_key in passed_keys: 
-                
-                single_input_signature : InputSignature = input_signature[input_key]
-                                                   
-                if not single_input_signature.default_value == None:
-                    self.input[input_key] = single_input_signature.default_value  #the value used will be the default value
 
-                elif not single_input_signature.generator == None:
-                    self.input[input_key] = single_input_signature.generator(self) #generators have access to the instance              
-                
 
     def verify_validity(self, input_key, input_value, possible_types, validity_verificator):
 
@@ -239,7 +285,7 @@ class Component: # a component that receives and verifies input
                     return #break the loop and the functon, value is of one of the possible types
 
             #if we reach the end of the function, then the value is of none of the types
-            raise Exception(f"No validity verificator specified for key '{input_key}' and its type is of none of the possible types: {possible_types}")
+            raise Exception(f"No validity verificator specified for key '{input_key}' and its type ({type(input_key)}) is of none of the possible types: {possible_types}")
           
 
 # VALIDITY VERIFICATION (static methods for validating input) -----------------------------          
@@ -252,10 +298,26 @@ def requires_input_proccess(func):
         return func(self, *args, **kwargs)
     return wrapper
 
+def uses_component_exception(func):
+    '''A wrapper for functions so its errors have more information regarding the component they appeared in'''
+
+    def wrapper(self : Component, *args, **kwargs):
+        
+        try:
+            return func(self, *args, **kwargs)
+        
+        except Exception as e:
+            original_args = e.args #arguments of an error
+            e.args = (f"On Component {self.name} of type {type(self).__name__}:\n {original_args[0]}", *original_args[1:])
+            raise e
+            
+    return wrapper
+        
 
 class InputSignature():
     
-    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description='', ignore_at_serialization=False):
+    
+    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description='', ignore_at_serialization=False, priority=1, on_pass=None):
         
         self.default_value = default_value
         self.generator = generator
@@ -263,6 +325,8 @@ class InputSignature():
         self.possible_types = possible_types
         self.description = description
         self.ignore_at_serialization = ignore_at_serialization
+        self.priority = priority
+        self.on_pass = on_pass
         
         
 

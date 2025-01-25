@@ -54,7 +54,7 @@ class ConvModelComponent(ModelComponent):
                        "board_y" : InputSignature(),
                        "board_z" : InputSignature(),
                        "output_size" : InputSignature(),
-                       "device" : InputSignature(default_value="")}    
+                       "device" : InputSignature(default_value="", ignore_at_serialization=True)}    
     
     
     
@@ -62,10 +62,10 @@ class ConvModelComponent(ModelComponent):
         
         super().proccess_input()
         
-        self.board_x = self.input["board_x"]                
-        self.board_y = self.input["board_y"]
-        self.board_z = self.input["board_z"]
-        self.output_size = self.input["output_size"]
+        self.board_x : int = self.input["board_x"]                
+        self.board_y : int = self.input["board_y"]
+        self.board_z : int = self.input["board_z"]
+        self.output_size : int = self.input["output_size"]
         
         self.model = ConvModelComponent.DQN(boardX=self.board_x, boardY=self.board_y, boardZ=self.board_z, n_actions=self.output_size)
         

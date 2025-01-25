@@ -11,7 +11,7 @@ from .memory_components import MemoryComponent
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from ..component import Component, InputSignature, requires_input_proccess
+from ..component import Component, InputSignature, requires_input_proccess, uses_component_exception
 from ..logger_component import LoggerComponent
 import torch
 import random
@@ -26,14 +26,14 @@ class AgentComponent(LoggerComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     input_signature = { "name" : InputSignature(),
-                       "device" : InputSignature(),
+                       "device" : InputSignature(generator= lambda self : self.get_attr_from_parent("device"), ignore_at_serialization=True),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
                        "training_context" : InputSignature(),
                        
                        "exploration_strategy" : InputSignature( generator=lambda self : self.initialize_child_component(EpsilonGreedyStrategy)), #this generates an epsilon greddy strategy object at runtime if it is not specified
                        
-                       "policy_model" : InputSignature(default_value=''),
+                       "policy_model" : InputSignature(priority=2, generator= lambda self : self.create_policy_model()),
                        "model_input_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
                        "model_output_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
                         
@@ -75,20 +75,9 @@ class AgentComponent(LoggerComponent):
 
         passed_policy_model = self.input["policy_model"]
         
-        if passed_policy_model == '':
-            passed_policy_model = self.create_policy_model()
-            
-
         #our policy network will transform input frames to output acions (what should we do given the current frame?)
         self.policy_model : ConvModelComponent = passed_policy_model
         self.policy_model.pass_input({"device" : self.device}) #we have to guarantee that the device in our model is the same as the agent's
-
-        self.lg.writeLine("Initializing target model...")
-
-        #our target network will be used to evaluate states
-        #it is essentially a delayed copy of the policy network
-        #it substitutes a Q table (a table that would store, for each state and each action, a value regarding how good that action is)
-        self.target_net = self.policy_model.clone()
 
 
     #creates a policy model, only meant to be called if no policy model was passed
@@ -99,10 +88,15 @@ class AgentComponent(LoggerComponent):
         
         if model_input_shape != '' and model_output_shape != '':
             
-            self.lg.writeLine("Creating policy model using default values and passed shape...")
+            print(type(model_input_shape[0]))
+            print(type(model_output_shape))
+            
+            model_input = {"board_x" : int(model_input_shape[0]), "board_y" : int(model_input_shape[1]), "board_z" : int(model_input_shape[2]), "output_size" : int(model_output_shape)}
+            
+            self.lg.writeLine("Creating policy model using default values and passed shape... Model input: " + str(model_input))
             
             #this makes some strong assumptions about the shape of the model and the input being received
-            return self.initialize_child_component(ConvModelComponent, input={"board_x" : model_input_shape[0], "board_y" : model_input_shape[1], "board_z" : model_input_shape[2], "output_size" : model_output_shape})
+            return self.initialize_child_component(ConvModelComponent, input=model_input)
             
         else:
             
@@ -126,19 +120,23 @@ class AgentComponent(LoggerComponent):
         return self.policy_model
     
     @requires_input_proccess
+    @uses_component_exception
     def policy_predict(self, state):
         return self.policy_model.predict(state)
     
     @requires_input_proccess
+    @uses_component_exception
     def policy_random_predict(self):
         return self.policy_model.random_prediction()
     
     @requires_input_proccess
+    @uses_component_exception
     #selects action using policy prediction
     def select_action(self, state):
         return self.exploration_strategy.select_action(self, state) #uses the exploration strategy defined, with the state, the agent and training information, to choose an action
     
-    @requires_input_proccess        
+    @requires_input_proccess
+    @uses_component_exception        
     def optimize_policy_model(self):
         
         if len(self.memory) < self.BATCH_SIZE:
@@ -157,10 +155,10 @@ class AgentComponent(LoggerComponent):
     # UTIL ----------------------------------------------------------------------------------------
     
     @requires_input_proccess
+    @uses_component_exception
     def saveModels(self):
         
         self.lg.saveFile(self.policy_model, 'model', 'policy_net')
-        self.lg.saveFile(self.target_net, 'model', 'target_net') 
         
 
 

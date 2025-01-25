@@ -22,8 +22,14 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
             
         elif isinstance(obj, (int, float, str, dict, list)):
             return obj
+        
+        try:    
+            return super().default(obj)
+        
+        except:
             
-        return None
+            return None
+        
 
 class ComponentInputEncoder(json.JSONEncoder):
     
@@ -43,7 +49,10 @@ class ComponentInputEncoder(json.JSONEncoder):
                                 
                 if not input_signature.ignore_at_serialization:
                     
-                    toReturn[key] = json.loads(json.dumps(input[key], cls=ComponentInputElementsEncoder)) #for each value in input, loads
+                    serialized_value = json.dumps(input[key], cls=ComponentInputElementsEncoder) #for each value in input, loads
+                    
+                    if serialized_value != 'null':
+                        toReturn[key]  = json.loads(serialized_value)
                     
             return toReturn
                 
@@ -143,9 +152,7 @@ def decode_components_from_dict(dict : dict):
     
     component_type_name = dict["__type__"]
     component_name = dict["name"]
-    
-    print(f"Decoding component of type {component_type_name} and name {component_name}")
-    
+        
     component_type = get_class_from_string(component_type_name)
     
     component : Component = component_type()

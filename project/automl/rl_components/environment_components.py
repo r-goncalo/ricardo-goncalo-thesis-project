@@ -20,7 +20,7 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     input_signature = { "petting_zoo_environment" : InputSignature(default_value="cooperative_pong"),
-                       "device" : InputSignature()
+                       "device" : InputSignature(ignore_at_serialization=True)
                        }    
     
     def state_translator(state, device):

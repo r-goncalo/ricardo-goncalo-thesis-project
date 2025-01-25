@@ -32,7 +32,7 @@ class DeepQLearnerComponent(LearnerComponent):
                        "agent" : InputSignature(),
                        "target_update_rate" : InputSignature(default_value=0.05),
                         "update_target_at_optimization" : InputSignature(default_value=True),
-                        "device" : InputSignature(),
+                        "device" : InputSignature(ignore_at_serialization=True),
                         "optimizer" : InputSignature(generator= lambda x : AdamOptimizer()),
 
                         }    

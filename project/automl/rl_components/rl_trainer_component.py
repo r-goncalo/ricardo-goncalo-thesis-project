@@ -13,7 +13,7 @@ class RLTrainerComponent(LoggerComponent):
 
     TRAIN_LOG = 'train.txt'
     
-    input_signature = {"device" : InputSignature(),
+    input_signature = {"device" : InputSignature(ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
                        "state_memory_size" : InputSignature(),
@@ -31,7 +31,7 @@ class RLTrainerComponent(LoggerComponent):
         self.device = self.input["device"]
     
         self.limit_steps = self.input["limit_steps"]
-        self.num_episodes =self.input["num_episodes"]  
+        self.num_episodes = self.input["num_episodes"]  
         
         self.env = self.input["environment"]
         

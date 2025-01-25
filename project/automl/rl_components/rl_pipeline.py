@@ -1,4 +1,4 @@
-from ..component import InputSignature, Component, requires_input_proccess
+from ..component import InputSignature, Component, requires_input_proccess, uses_component_exception
 from .agent_components import AgentComponent
 from .optimizer_components import AdamOptimizer
 from .exploration_strategy_components import EpsilonGreedyStrategy
@@ -14,7 +14,7 @@ class RLPipelineComponent(LoggerComponent):
 
     TRAIN_LOG = 'train.txt'
     
-    input_signature = {"device" : InputSignature(default_value="cpu"),
+    input_signature = {"device" : InputSignature(default_value="cpu", ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
                        "state_memory_size" : InputSignature(),
@@ -157,6 +157,7 @@ class RLPipelineComponent(LoggerComponent):
         
     # TRAINING_PROCCESS ----------------------
     
+    @uses_component_exception
     @requires_input_proccess
     def train(self):
         self.rl_trainer.run_episodes()
