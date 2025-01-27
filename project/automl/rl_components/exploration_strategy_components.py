@@ -12,7 +12,7 @@ from abc import abstractmethod
 class ExplorationStrategyComponent(Component):
     
     input_signature =  {
-        "training_context" : InputSignature(possible_types=[dict])
+        "training_context" : InputSignature(possible_types=[dict]) # TODO: This should be substituted for a Component reference
         } 
 
     

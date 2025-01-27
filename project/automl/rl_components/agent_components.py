@@ -156,7 +156,7 @@ class AgentComponent(LoggerComponent):
     
     @requires_input_proccess
     @uses_component_exception
-    def saveModels(self):
+    def save_policy(self):
         
         self.lg.saveFile(self.policy_model, 'model', 'policy_net')
         

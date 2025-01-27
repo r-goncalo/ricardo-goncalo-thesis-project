@@ -51,6 +51,7 @@ class RLTrainerComponent(LoggerComponent):
 
 
     @requires_input_proccess
+    # TODO: The short memory of previous states is wrong, as it is shared among agents
     def run_episodes(self):
         
         self.lg.writeLine("Starting to run episodes of training")

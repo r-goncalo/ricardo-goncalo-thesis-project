@@ -194,7 +194,8 @@ class Component: # a component that receives and verifies input
     
     
     
-    def __get_organized_input_signatures(self):
+    # TODO: This is missing the capability of a Schematic re-writing the InputSignature of its super
+    def __get_organized_input_signatures(self): 
         
         current_class_component = self.__class__
         

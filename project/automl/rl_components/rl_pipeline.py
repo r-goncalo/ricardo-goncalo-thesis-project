@@ -10,6 +10,7 @@ from ..logger_component import LoggerComponent
 import torch
 import time
 
+# TODO this is missing the evaluation component on a RLPipeline
 class RLPipelineComponent(LoggerComponent):
 
     TRAIN_LOG = 'train.txt'
