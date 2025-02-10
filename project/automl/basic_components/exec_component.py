@@ -1,10 +1,10 @@
-from ..component import InputSignature, Component
+from ..component import InputSignature, Schema
 
 import 
 
 # EXECUTABLE COMPONENT --------------------------
 
-class ExecComponent(Component):
+class ExecComponent(Schema):
     
     class State(Enum): #an enumerator to track state of executable component
         IDLE = 0

@@ -1,6 +1,6 @@
 import json
 
-from .component import Component, InputSignature
+from .component import Schema, InputSignature
 
 
 
@@ -12,7 +12,7 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
     
     def default(self, obj):
                         
-        if isinstance(obj, Component):
+        if isinstance(obj, Schema):
 
             return {
                 "__type__": type(obj).__name__,
@@ -37,7 +37,7 @@ class ComponentInputEncoder(json.JSONEncoder):
     
     def default(self, obj):
         
-        if isinstance(obj, Component):
+        if isinstance(obj, Schema):
             
             input = obj.input
             
@@ -65,7 +65,7 @@ class ComponentEncoder(json.JSONEncoder):
     
     def default(self, obj):
         
-        if isinstance(obj, Component):
+        if isinstance(obj, Schema):
             
             toReturn = {
                 "__type__": str(type(obj)),
@@ -92,7 +92,7 @@ def json_string_of_component(component):
 
 def get_component_from_source(source_component, localization):
     
-    current_component : Component = source_component
+    current_component : Schema = source_component
     
     for index in localization:
         current_component = current_component.child_components[index]
@@ -100,7 +100,7 @@ def get_component_from_source(source_component, localization):
     return current_component
     
 
-def decode_components_input_element(source_component : Component, element):
+def decode_components_input_element(source_component : Schema, element):
     
     if isinstance(element, dict):
         keys = element.keys()
@@ -129,7 +129,7 @@ def decode_components_input_element(source_component : Component, element):
     
 
 
-def decode_components_input(component : Component, source_component : Component, component_dict : dict):
+def decode_components_input(component : Schema, source_component : Schema, component_dict : dict):
     
     input_to_pass = {}
     
@@ -155,7 +155,7 @@ def decode_components_from_dict(dict : dict):
         
     component_type = get_class_from_string(component_type_name)
     
-    component : Component = component_type()
+    component : Schema = component_type()
     component.name = component_name
     
     child_components = dict.get("child_components") 

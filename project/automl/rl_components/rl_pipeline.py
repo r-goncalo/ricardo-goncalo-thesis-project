@@ -1,17 +1,17 @@
-from ..component import InputSignature, Component, requires_input_proccess, uses_component_exception
-from .agent_components import AgentComponent
+from ..component import InputSignature, Schema, requires_input_proccess, uses_component_exception
+from .agent_components import AgentSchema
 from .optimizer_components import AdamOptimizer
 from .exploration_strategy_components import EpsilonGreedyStrategy
-from .model_components import ConvModelComponent
+from .model_components import ConvModelSchema
 from .rl_trainer_component import RLTrainerComponent
 from .environment.environment_components import PettingZooEnvironmentLoader
-from ..logger_component import LoggerComponent
+from ..logger_component import LoggerSchema
 
 import torch
 import time
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(LoggerComponent):
+class RLPipelineComponent(LoggerSchema):
 
     TRAIN_LOG = 'train.txt'
     
@@ -46,7 +46,7 @@ class RLPipelineComponent(LoggerComponent):
         
         self.state_memory_size = self.input["state_memory_size"]
                 
-        self.agents = self.input["agents"] #this is a dictionary with {agentName -> agentComponent}, the environment must be able to return the agent name
+        self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
         
         
         self.rl_trainer = self.input["rl_trainer"]
@@ -144,7 +144,7 @@ class RLPipelineComponent(LoggerComponent):
             
             agent_input["device"] = self.device       
 
-            agents[agent] = self.initialize_child_component(AgentComponent, input=agent_input)
+            agents[agent] = self.initialize_child_component(AgentSchema, input=agent_input)
 
             self.lg.writeLine("Created agent in training " + agent_name)
 

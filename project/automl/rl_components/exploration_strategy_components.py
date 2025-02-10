@@ -1,4 +1,4 @@
-from ..component import Component, InputSignature, requires_input_proccess
+from ..component import Schema, InputSignature, requires_input_proccess
 import torch
 import random
 import math
@@ -9,7 +9,7 @@ from abc import abstractmethod
 
 
 
-class ExplorationStrategyComponent(Component):
+class ExplorationStrategySchema(Schema):
     
     parameters_signature =  {
         "training_context" : InputSignature(possible_types=[dict]) # TODO: This should be substituted for a Component reference
@@ -37,7 +37,7 @@ class ExplorationStrategyComponent(Component):
     
     
 
-class EpsilonGreedyStrategy(ExplorationStrategyComponent):
+class EpsilonGreedyStrategy(ExplorationStrategySchema):
     
 
     # INITIALIZATION --------------------------------------------------------------------------
@@ -87,7 +87,7 @@ class EpsilonGreedyStrategy(ExplorationStrategyComponent):
         
         
         
-class UpperConfidenceBoundStrategy(ExplorationStrategyComponent):
+class UpperConfidenceBoundStrategy(ExplorationStrategySchema):
     
     # INITIALIZATION --------------------------------------------------------------------------
 

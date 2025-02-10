@@ -1,14 +1,14 @@
-from ..component import InputSignature, Component, requires_input_proccess
-from .agent_components import AgentComponent
+from ..component import InputSignature, Schema, requires_input_proccess
+from .agent_components import AgentSchema
 from .optimizer_components import AdamOptimizer
 from .exploration_strategy_components import EpsilonGreedyStrategy
-from .model_components import ConvModelComponent
+from .model_components import ConvModelSchema
 from .rl_trainer_component import RLTrainerComponent
 
 import torch
 import time
 
-class RLSquaredTrainerComponent(Component):
+class RLSquaredTrainerComponent(Schema):
 
     TRAIN_LOG = 'train.txt'
     

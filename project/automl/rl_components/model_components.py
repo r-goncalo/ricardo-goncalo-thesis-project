@@ -1,4 +1,4 @@
-from ..component import Component, InputSignature, requires_input_proccess
+from ..component import Schema, InputSignature, requires_input_proccess
 import torch
 import random
 import math
@@ -6,7 +6,7 @@ import numpy as nn
 
 from abc import abstractmethod
 
-class ModelComponent(Component):
+class ModelComponent(Schema):
     
     @abstractmethod
     def predict(self, state):
@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F    
 
-class ConvModelComponent(ModelComponent):
+class ConvModelSchema(ModelComponent):
     
     
     #The actual model architecture
@@ -31,7 +31,7 @@ class ConvModelComponent(ModelComponent):
         
         def __init__(self, boardX, boardY, boardZ, n_actions):
         
-            super(ConvModelComponent.DQN, self).__init__()
+            super(ConvModelSchema.DQN, self).__init__()
             self.conv1 = nn.Conv2d(boardZ, 32, kernel_size=3, stride=1, padding=1)
             self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
             self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
@@ -67,7 +67,7 @@ class ConvModelComponent(ModelComponent):
         self.board_z : int = self.input["board_z"]
         self.output_size : int = self.input["output_size"]
         
-        self.model = ConvModelComponent.DQN(boardX=self.board_x, boardY=self.board_y, boardZ=self.board_z, n_actions=self.output_size)
+        self.model = ConvModelSchema.DQN(boardX=self.board_x, boardY=self.board_y, boardZ=self.board_z, n_actions=self.output_size)
         
         if self.input["device"] != "":
             self.model.to(self.input["device"])
@@ -123,7 +123,7 @@ class ConvModelComponent(ModelComponent):
         
         print("Cloning model")
         
-        toReturn = ConvModelComponent(input=self.input)
+        toReturn = ConvModelSchema(input=self.input)
         toReturn.proccess_input()
         toReturn.model.load_state_dict(self.model.state_dict()) #copies current values into new model
         

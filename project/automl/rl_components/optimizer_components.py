@@ -1,10 +1,10 @@
-from ..component import Component, InputSignature, requires_input_proccess
+from ..component import Schema, InputSignature, requires_input_proccess
 import torch.optim as optim
 import torch.nn as nn
 
 from abc import abstractmethod
 
-class OptimizerComponent(Component):
+class OptimizerSchema(Schema):
         
     @abstractmethod
     def optimize_model(self, predicted, correct) -> None:
@@ -20,7 +20,7 @@ class OptimizerComponent(Component):
         
         pass
 
-class AdamOptimizer(OptimizerComponent):
+class AdamOptimizer(OptimizerSchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 

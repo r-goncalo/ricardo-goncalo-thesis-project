@@ -1,8 +1,8 @@
-from ...automl.component import Component, parameters_signature
+from ...automl.component import Schema, parameters_signature
 import unittest
 
 
-class _SimpleComponent(Component):
+class _SimpleComponent(Schema):
     
     parameters_signature = {"number" : parameters_signature()}
     
@@ -12,7 +12,7 @@ class _SimpleExtendendComponent(_SimpleComponent):
     parameters_signature = {"number" : parameters_signature(default_value=10)}
     
     
-class _SimpleComponent_2(Component):
+class _SimpleComponent_2(Schema):
     
     parameters_signature = {"number" : parameters_signature(default_value=10)}
     

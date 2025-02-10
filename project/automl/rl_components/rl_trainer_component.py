@@ -3,13 +3,13 @@
 
 
 
-from ..component import InputSignature, Component, requires_input_proccess
-from ..logger_component import LoggerComponent
+from ..component import InputSignature, Schema, requires_input_proccess
+from ..logger_component import LoggerSchema
 
 import torch
 import time
 
-class RLTrainerComponent(LoggerComponent):
+class RLTrainerComponent(LoggerSchema):
 
     TRAIN_LOG = 'train.txt'
     
@@ -37,7 +37,7 @@ class RLTrainerComponent(LoggerComponent):
         
         self.state_memory_size = self.input["state_memory_size"]
                 
-        self.agents = self.input["agents"] #this is a dictionary with {agentName -> agentComponent}, the environment must be able to return the agent name
+        self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
         
         self.optimization_interval = self.input["optimization_interval"]
         

@@ -4,9 +4,9 @@ import random
 
 
 
-from ..component import Component, InputSignature, requires_input_proccess
+from ..component import Schema, InputSignature, requires_input_proccess
 
-class MemoryComponent(Component):
+class MemoryComponent(Schema):
     
     parameters_signature = {
                         "capacity" : InputSignature(default_value=1000)

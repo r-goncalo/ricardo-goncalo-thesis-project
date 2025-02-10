@@ -1,4 +1,4 @@
-from ...automl.component import Component, parameters_signature
+from ...automl.component import Schema, parameters_signature
 import unittest
 
 
@@ -7,7 +7,7 @@ import unittest
 
 class TestComponentLambdaVerificator(unittest.TestCase):
         
-    class _ComponentLambdaVerificator(Component):
+    class _ComponentLambdaVerificator(Schema):
     
         N_MUST_BE_GREATER_THAN = 5
     

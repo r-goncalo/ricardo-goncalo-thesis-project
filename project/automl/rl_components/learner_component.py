@@ -1,12 +1,12 @@
-from ..component import Component, InputSignature, requires_input_proccess
+from ..component import Schema, InputSignature, requires_input_proccess
 
-from .optimizer_components import OptimizerComponent, AdamOptimizer
+from .optimizer_components import OptimizerSchema, AdamOptimizer
 
 from abc import abstractmethod
 
 import torch
 
-class LearnerComponent(Component):
+class LearnerSchema(Schema):
         
     @abstractmethod
     def learn(self, trajectory) -> None:
@@ -23,7 +23,7 @@ class LearnerComponent(Component):
         
         pass
 
-class DeepQLearnerComponent(LearnerComponent):
+class DeepQLearnerSchema(LearnerSchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ class DeepQLearnerComponent(LearnerComponent):
         
         
     def initialize_optimizer(self):
-        self.optimizer : OptimizerComponent = self.input["optimizer"]
+        self.optimizer : OptimizerSchema = self.input["optimizer"]
         self.optimizer.pass_input({"model_params" : self.policy.get_model_params()})
 
     

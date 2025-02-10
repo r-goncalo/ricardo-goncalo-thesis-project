@@ -1,4 +1,4 @@
-from .component import InputSignature, Component, requires_input_proccess
+from .component import InputSignature, Schema, requires_input_proccess
 
 from logger.Log import LogClass, openLog
 
@@ -11,7 +11,7 @@ def on_log_pass(self):
     return self.lg
 
 
-class LoggerComponent(Component):
+class LoggerSchema(Schema):
 
     '''
     A component that generalizes the behaviour of a component that has a logger object 

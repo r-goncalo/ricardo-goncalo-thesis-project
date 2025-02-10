@@ -1,15 +1,15 @@
-from ..component import InputSignature, Component, requires_input_proccess
-from .agent_components import AgentComponent
+from ..component import InputSignature, Schema, requires_input_proccess
+from .agent_components import AgentSchema
 from .optimizer_components import AdamOptimizer
 from .exploration_strategy_components import EpsilonGreedyStrategy
-from .model_components import ConvModelComponent
+from .model_components import ConvModelSchema
 from .rl_trainer_component import RLTrainerComponent
 from .meta_rl_trainer import RLSquaredTrainerComponent
 
 import torch
 import time
 
-class MetaRLPipelineComponent(Component):
+class MetaRLPipelineComponent(Schema):
 
     TRAIN_LOG = 'train.txt'
     
@@ -47,7 +47,7 @@ class MetaRLPipelineComponent(Component):
         
         self.state_memory_size = self.input["state_memory_size"]
                 
-        self.agent = self.input["agent"] #this is a dictionary with {agentName -> agentComponent}, the environment must be able to return the agent name
+        self.agent = self.input["agent"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
         
         self.rl_trainer = self.input["rl_trainer"]
         
@@ -143,7 +143,7 @@ class MetaRLPipelineComponent(Component):
         
         agent_input["device"] = self.device       
         
-        self.agent = AgentComponent(input=agent_input)
+        self.agent = AgentSchema(input=agent_input)
         
         self.lg_profile.writeLine("Created agent in training " + agent_name)
         

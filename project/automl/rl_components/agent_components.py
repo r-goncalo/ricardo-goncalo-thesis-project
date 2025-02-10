@@ -2,17 +2,17 @@
 # DEFAULT COMPONENTS -------------------------------------
 
 from .exploration_strategy_components import EpsilonGreedyStrategy
-from .optimizer_components import OptimizerComponent, AdamOptimizer
-from .learner_component import DeepQLearnerComponent
+from .optimizer_components import OptimizerSchema, AdamOptimizer
+from .learner_component import DeepQLearnerSchema
 
-from .model_components import ConvModelComponent
+from .model_components import ConvModelSchema
 
 from .memory_components import MemoryComponent
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from ..component import Component, InputSignature, requires_input_proccess, uses_component_exception
-from ..logger_component import LoggerComponent
+from ..component import Schema, InputSignature, requires_input_proccess, uses_component_exception
+from ..logger_component import LoggerSchema
 import torch
 import random
 import math
@@ -20,7 +20,7 @@ import numpy as nn
 
 DEFAULT_MEMORY_SIZE = 200
 
-class AgentComponent(LoggerComponent):
+class AgentSchema(LoggerSchema):
 
 
     # INITIALIZATION --------------------------------------------------------------------------
@@ -39,7 +39,7 @@ class AgentComponent(LoggerComponent):
                         
                        "memory" : InputSignature(generator = lambda self :  self.initialize_child_component(MemoryComponent, input={"capacity" : DEFAULT_MEMORY_SIZE})),
                        
-                       "learner" : InputSignature(generator= lambda self : self.initialize_child_component(DeepQLearnerComponent))
+                       "learner" : InputSignature(generator= lambda self : self.initialize_child_component(DeepQLearnerSchema))
                     }
 
         
@@ -76,7 +76,7 @@ class AgentComponent(LoggerComponent):
         passed_policy_model = self.input["policy_model"]
         
         #our policy network will transform input frames to output acions (what should we do given the current frame?)
-        self.policy_model : ConvModelComponent = passed_policy_model
+        self.policy_model : ConvModelSchema = passed_policy_model
         self.policy_model.pass_input({"device" : self.device}) #we have to guarantee that the device in our model is the same as the agent's
 
 
@@ -96,7 +96,7 @@ class AgentComponent(LoggerComponent):
             self.lg.writeLine("Creating policy model using default values and passed shape... Model input: " + str(model_input))
             
             #this makes some strong assumptions about the shape of the model and the input being received
-            return self.initialize_child_component(ConvModelComponent, input=model_input)
+            return self.initialize_child_component(ConvModelSchema, input=model_input)
             
         else:
             

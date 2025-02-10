@@ -6,7 +6,7 @@ import json
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
-class Component: # a component that receives and verifies input
+class Schema: # a component that receives and verifies input
     
     # a dictionary with { "input_name" : (default_value, validity verification) }
     # if default_value is None, an exception error is raised when input is missing
@@ -31,7 +31,7 @@ class Component: # a component that receives and verifies input
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         self.child_components = []
-        self.parent_component : Component = None
+        self.parent_component : Schema = None
 
         self.pass_input(input) #passes the input but note that it does not proccess it
         
@@ -216,7 +216,7 @@ class Component: # a component that receives and verifies input
                     
                 organized_parameters_signatures[priority].append((key, parameter_signature)) #put its key, parameter_signature pair in the list of respective priority                
             
-            if current_class_component == Component: #if this was the Component class, we reached the end
+            if current_class_component == Schema: #if this was the Component class, we reached the end
                 break
             
             current_class_component = current_class_component.__bases__[0] #gets the super class
@@ -293,7 +293,7 @@ class Component: # a component that receives and verifies input
 
 def requires_input_proccess(func):
     '''An annotation that makes the input be proccessed, if it was not already, when a function is called'''
-    def wrapper(self : Component, *args, **kwargs):
+    def wrapper(self : Schema, *args, **kwargs):
         if not self._input_was_proccessed:
             self.proccess_input()
         return func(self, *args, **kwargs)
@@ -302,7 +302,7 @@ def requires_input_proccess(func):
 def uses_component_exception(func):
     '''A wrapper for functions so its errors have more information regarding the component they appeared in'''
 
-    def wrapper(self : Component, *args, **kwargs):
+    def wrapper(self : Schema, *args, **kwargs):
         
         try:
             return func(self, *args, **kwargs)
