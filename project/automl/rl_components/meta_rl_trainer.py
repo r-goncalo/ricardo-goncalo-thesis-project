@@ -12,7 +12,7 @@ class RLSquaredTrainerComponent(Component):
 
     TRAIN_LOG = 'train.txt'
     
-    input_signature = {"device" : InputSignature(default_value="cpu"),
+    parameters_signature = {"device" : InputSignature(default_value="cpu"),
                        "logger" : InputSignature(),
                        "num_meta_episodes" : InputSignature(),
                        "meta_episode_len" : InputSignature(), 

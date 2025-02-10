@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 import json
 
-# Reserved attributes: input, values, input_signature, exposed_values, output, _input_was_proccessed
+# Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
 class Component: # a component that receives and verifies input
     
@@ -12,10 +12,10 @@ class Component: # a component that receives and verifies input
     # if default_value is None, an exception error is raised when input is missing
     # if validity verification function is not none, it will be applied to the input value
     # the actual input values will be saved in self.input
-    # worth noting that child components can freely repeat values in their input_signatures.
+    # worth noting that child components can freely repeat values in their parameters_signature.
     #   Default values and generators of child components will have priority
     #   Validity and type checkers will be applied from Parent to child     
-    input_signature = {}
+    parameters_signature = {}
     
     #A dictionary { "value_name" -> initial_value }
     #it tells other components what are the values exposed by this component, useful when checking the validity of the program before running it
@@ -50,24 +50,24 @@ class Component: # a component that receives and verifies input
         
         for passed_key in input.keys():
             
-            single_input_signature = self.get_input_signature(passed_key)
+            parameter_signature = self.get_parameter_signature(passed_key)
             
-            if single_input_signature != None:
+            if parameter_signature != None:
                 
-                self.__verified_pass_input(passed_key, input[passed_key], single_input_signature)
+                self.__verified_pass_input(passed_key, input[passed_key], parameter_signature)
                 
             else:
                 print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
 
                 
                 
-    def __verified_pass_input(self, key, value, single_input_signature): #for logic of passing the input, already verified
+    def __verified_pass_input(self, key, value, parameter_signature): #for logic of passing the input, already verified
         
         self.input[key] = value
         
-        if single_input_signature.on_pass != None: #if there is verification of logic for when the input is passed
+        if parameter_signature.on_pass != None: #if there is verification of logic for when the input is passed
             
-            single_input_signature.on_pass(self)
+            parameter_signature.on_pass(self)
 
 
 
@@ -76,14 +76,14 @@ class Component: # a component that receives and verifies input
         
         #get input signature priorities specified, sorted
         #and the input signatures organized by priorities
-        input_signature_priorities, organized_input_signatures = self.__get_organized_input_signatures()
+        parameters_signature_priorities, organized_parameters_signature = self.__get_organized_parameters_signature()
         
         passed_keys = self.input.keys()
         
-        for priority in input_signature_priorities:
+        for priority in parameters_signature_priorities:
                         
-            self.__add_default_values_of_class_input(passed_keys, organized_input_signatures[priority])
-            self.__verify_input(passed_keys, organized_input_signatures[priority])
+            self.__add_default_values_of_class_input(passed_keys, organized_parameters_signature[priority])
+            self.__verify_input(passed_keys, organized_parameters_signature[priority])
             
         self._input_was_proccessed = True
 
@@ -159,100 +159,100 @@ class Component: # a component that receives and verifies input
 
     # INPUT PROCCESSING ---------------------------------------------  
     
-    def __get_input_signature(self, key, class_component):
+    def __get_parameter_signature(self, key, class_component):
         
-        if key in class_component.input_signature.keys():
-            return class_component.input_signature[key]
+        if key in class_component.parameters_signature.keys():
+            return class_component.parameters_signature[key]
           
         elif len(class_component.__mro__) > 2:
-            return self.__get_input_signature(key, class_component.__mro__[1])
+            return self.__get_parameter_signature(key, class_component.__mro__[1])
         
         else:
             return None
     
     
     
-    def get_input_signature(self, key):
-        return self.__get_input_signature(key, type(self))   
+    def get_parameter_signature(self, key):
+        return self.__get_parameter_signature(key, type(self))   
     
     
     
-    def __in_input_signature(self, key, class_component): #checks if the key is in the input signature of this class, if not, checks in super classes
+    def __in_parameters_signature(self, key, class_component): #checks if the key is in the input signature of this class, if not, checks in super classes
         
-        if key in class_component.input_signature.keys():
+        if key in class_component.parameters_signature.keys():
             return True
         
         elif len(class_component.__mro__) > 2:
-            return self.__in_input_signature(key, class_component.__mro__[1])
+            return self.__in_parameters_signature(key, class_component.__mro__[1])
         
         else:
             return False
     
-    def in_input_signature(self, key): #checks if the key is in input signature of component or its parents components
+    def in_parameters_signature(self, key): #checks if the key is in input signature of component or its parents components
         
-        return self.__in_input_signature(key, type(self))
+        return self.__in_parameters_signature(key, type(self))
     
     
     
     # TODO: This is missing the capability of a Schematic re-writing the InputSignature of its super
-    def __get_organized_input_signatures(self): 
+    def __get_organized_parameters_signature(self): 
         
         current_class_component = self.__class__
         
-        input_signature_priorities = []
-        organized_input_signatures = {}
+        parameters_signature_priorities = []
+        organized_parameters_signatures = {}
         
         while True: #for each component class
             
-            current_input_signature = current_class_component.input_signature #get its input signature 
+            current_parameters_signature = current_class_component.parameters_signature #get its input signature 
             
-            for key, single_input_signature in current_input_signature.items():
+            for key, parameter_signature in current_parameters_signature.items():
                 
-                priority = single_input_signature.priority
+                priority = parameter_signature.priority
                 
-                if not priority in input_signature_priorities:
-                    input_signature_priorities.append(priority)
-                    organized_input_signatures[priority] = []
+                if not priority in parameters_signature_priorities:
+                    parameters_signature_priorities.append(priority)
+                    organized_parameters_signatures[priority] = []
                     
-                organized_input_signatures[priority].append((key, single_input_signature)) #put its key, single_input_signature pair in the list of respective priority                
+                organized_parameters_signatures[priority].append((key, parameter_signature)) #put its key, parameter_signature pair in the list of respective priority                
             
             if current_class_component == Component: #if this was the Component class, we reached the end
                 break
             
             current_class_component = current_class_component.__bases__[0] #gets the super class
 
-        input_signature_priorities.sort()
+        parameters_signature_priorities.sort()
         
-        return input_signature_priorities, organized_input_signatures
+        return parameters_signature_priorities, organized_parameters_signatures
         
             
     # DEFAULT VALUES -------------------------------------------------
             
     def __add_default_values_of_class_input(self, passed_keys, list_of_signatures):
         
-        for (input_key, single_input_signature) in list_of_signatures:
+        for (input_key, parameter_signature) in list_of_signatures:
                              
             #if this values was not already defined
             if not input_key in passed_keys: 
                                                                    
-                if not single_input_signature.default_value == None:
-                    self.input[input_key] = single_input_signature.default_value  #the value used will be the default value
+                if not parameter_signature.default_value == None:
+                    self.input[input_key] = parameter_signature.default_value  #the value used will be the default value
 
-                elif not single_input_signature.generator == None:
-                    self.input[input_key] = single_input_signature.generator(self) #generators have access to the instance              
+                elif not parameter_signature.generator == None:
+                    self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance              
                 
 
     # VALIDITY VERIFICATION ---------------------------------------------
 
     def __verify_input(self, passed_keys, list_of_signatures): #verify the input to this component and add default values, to the self.input dict
 
-        for (input_key, single_input_signature) in list_of_signatures:
+        for (input_key, parameter_signature) in list_of_signatures:
                                     
             if input_key in passed_keys: #if this value was in input
                 
                 input_value = self.input[input_key] #get the value passed
                     
-                self.verify_validity(input_key, input_value, single_input_signature.possible_types, single_input_signature.validity_verificator) #raises exceptions if input is not valid
+                self.verify_validity(input_key, input_value, parameter_signature.possible_types, parameter_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             else: #if there was no specified value for this attribute in the input
                 raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for value  with key '{input_key}' and has no default value nor generator")     

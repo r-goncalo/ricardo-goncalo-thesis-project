@@ -9,7 +9,7 @@ from abc import abstractmethod
 
 class EnvironmentComponent(Component):
     
-    input_signature =  {} 
+    parameters_signature =  {} 
     
         
     @abstractmethod
@@ -61,7 +61,7 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = { "petting_zoo_environment" : InputSignature(default_value="cooperative_pong"),
+    parameters_signature = { "petting_zoo_environment" : InputSignature(default_value="cooperative_pong"),
                        "device" : InputSignature(ignore_at_serialization=True)
                        }    
     

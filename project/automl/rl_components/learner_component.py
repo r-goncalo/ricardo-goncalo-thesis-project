@@ -27,7 +27,7 @@ class DeepQLearnerComponent(LearnerComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {
+    parameters_signature = {
         
                        "agent" : InputSignature(),
                        "target_update_rate" : InputSignature(default_value=0.05),

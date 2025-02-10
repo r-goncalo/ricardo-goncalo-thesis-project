@@ -45,9 +45,9 @@ class ComponentInputEncoder(json.JSONEncoder):
             
             for key in input.keys():
                                   
-                input_signature : InputSignature = obj.get_input_signature(key)
+                parameters_signature : InputSignature = obj.get_parameter_signature(key)
                                 
-                if not input_signature.ignore_at_serialization:
+                if not parameters_signature.ignore_at_serialization:
                     
                     serialized_value = json.dumps(input[key], cls=ComponentInputElementsEncoder) #for each value in input, loads
                     

@@ -17,7 +17,7 @@ class LoggerComponent(Component):
     A component that generalizes the behaviour of a component that has a logger object 
     '''
     
-    input_signature = {
+    parameters_signature = {
                        "logger" : InputSignature(ignore_at_serialization=True, priority=0, generator = lambda self : openLog(), on_pass=on_log_pass),
                        
                        "create_profile" : InputSignature(default_value=True, ignore_at_serialization=True)

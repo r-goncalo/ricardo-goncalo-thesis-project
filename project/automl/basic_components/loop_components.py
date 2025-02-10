@@ -6,7 +6,7 @@ import types
 class WhileFunDoFunComponent(ExecComponent):
 
     #The inputs this component receives
-    input_signature = { 
+    parameters_signature = { 
                        "execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)), #have no default values (None) and are functions
                        "condition" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
                        "pre_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
@@ -31,7 +31,7 @@ class DoNTimesComponent(ExecComponent):
     
     DEFAULT_TIMES_TO_DO = 10
         
-    input_signature = {"execution" : InputSignature(possible_types=[types.FunctionType]),
+    parameters_signature = {"execution" : InputSignature(possible_types=[types.FunctionType]),
                        "pre_execution" : InputSignature(possible_types=[types.FunctionType]),
                        "post_execution" : InputSignature(possible_types=[types.FunctionType]),
                        "times_to_do" : InputSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))}

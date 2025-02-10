@@ -8,7 +8,7 @@ from ..component import Component, InputSignature, requires_input_proccess
 
 class MemoryComponent(Component):
     
-    input_signature = {
+    parameters_signature = {
                         "capacity" : InputSignature(default_value=1000)
                     }
     

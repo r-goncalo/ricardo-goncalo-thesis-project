@@ -11,7 +11,7 @@ from abc import abstractmethod
 
 class ExplorationStrategyComponent(Component):
     
-    input_signature =  {
+    parameters_signature =  {
         "training_context" : InputSignature(possible_types=[dict]) # TODO: This should be substituted for a Component reference
         } 
 
@@ -42,7 +42,7 @@ class EpsilonGreedyStrategy(ExplorationStrategyComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = { "epsilon_end" : InputSignature(default_value=0.025),
+    parameters_signature = { "epsilon_end" : InputSignature(default_value=0.025),
                        "epsilon_start" : InputSignature(default_value=1.0),
                        "epsilon_decay" : InputSignature(default_value=0.01),
                        "training_context" : InputSignature(validity_verificator= lambda ctx : all(key in ctx.keys() for key in ["total_steps"]))} #training context is a dictionary where we'll be able to get outside data   
@@ -91,7 +91,7 @@ class UpperConfidenceBoundStrategy(ExplorationStrategyComponent):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {"n_action" : InputSignature(),
+    parameters_signature = {"n_action" : InputSignature(),
                        "exploration_param" : InputSignature(default_value=0.01)}    
     
     

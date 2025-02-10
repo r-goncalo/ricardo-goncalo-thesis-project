@@ -50,7 +50,7 @@ class ConvModelComponent(ModelComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {"board_x" : InputSignature(),
+    parameters_signature = {"board_x" : InputSignature(),
                        "board_y" : InputSignature(),
                        "board_z" : InputSignature(),
                        "output_size" : InputSignature(),

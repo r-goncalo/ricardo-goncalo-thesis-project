@@ -1,5 +1,5 @@
 from ...automl.basic_components import loop_components
-from ...automl.component import Component, input_signature
+from ...automl.component import Component, parameters_signature
 import unittest
               
         

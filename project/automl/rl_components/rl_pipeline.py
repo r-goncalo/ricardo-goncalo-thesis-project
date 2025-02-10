@@ -15,7 +15,7 @@ class RLPipelineComponent(LoggerComponent):
 
     TRAIN_LOG = 'train.txt'
     
-    input_signature = {"device" : InputSignature(default_value="cpu", ignore_at_serialization=True),
+    parameters_signature = {"device" : InputSignature(default_value="cpu", ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
                        "state_memory_size" : InputSignature(),

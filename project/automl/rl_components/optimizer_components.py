@@ -24,7 +24,7 @@ class AdamOptimizer(OptimizerComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    input_signature = {"model_params" : InputSignature(),
+    parameters_signature = {"model_params" : InputSignature(),
                        "learning_rate" : InputSignature(default_value=0.001),
                        "amsgrad" : InputSignature(default_value=True)}    
     

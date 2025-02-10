@@ -1,25 +1,25 @@
-from ...automl.component import Component, input_signature
+from ...automl.component import Component, parameters_signature
 import unittest
 
 
 class _SimpleComponent(Component):
     
-    input_signature = {"number" : input_signature()}
+    parameters_signature = {"number" : parameters_signature()}
     
 
 class _SimpleExtendendComponent(_SimpleComponent):
     
-    input_signature = {"number" : input_signature(default_value=10)}
+    parameters_signature = {"number" : parameters_signature(default_value=10)}
     
     
 class _SimpleComponent_2(Component):
     
-    input_signature = {"number" : input_signature(default_value=10)}
+    parameters_signature = {"number" : parameters_signature(default_value=10)}
     
 
 class _SimpleExtendendComponent_2(_SimpleComponent_2):
     
-    input_signature = {"number" : input_signature()}
+    parameters_signature = {"number" : parameters_signature()}
 
 
 class TestDefaultOverlap(unittest.TestCase):
