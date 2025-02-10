@@ -117,45 +117,20 @@ class LoggerProfile(LogClass):
             
         else:
             self.object_with_name = object_with_name
+            
+    
+    def __getattr__(self, name):
         
+        if name != "writeLine": #if it asks for any attribute that is not writeLine, use the lg object
+            return getattr(self.lg, name)
+        
+        return self.writeLine
         
     def writeLine(self, string='', **params): #writes a line of text in a log file
             
         params["string"] = f'{self.object_with_name.name}: {string}'
             
         self.lg.writeLine(**params)
-        
-    def writeToFile(self, **params):
-
-        return self.lg.writeToFile(**params)   
-        
-    def saveFile(self, **params): #saves a file using the directory of this log object as a point of reference
-        
-        return self.lg.saveFile(**params)
-    
-    def saveDataframe(self, **params): #saves a dataframe using this log object as a reference
-        
-        return self.lg.saveDataFrame(**params)
-        
-    def loadDataframe(self, **params):
-        
-        return self.lg.loadDataframe(dir,** params)
-  
-    
-    def createDirIfNotExistent(self, **params): #creates a dir if it does no exist
-        return self.lg.createDirIfNotExistent(**params)
-            
-        
-    def openFile(self, **params): #reads and returns a file
-        return self.lg.openFile(**params)
-    
-    
-    def openChildLog(self, **params):
-        return self.lg.openChildLog(**params)
-
-    def createProfile(self, **params):
-        
-        return self.lg.createProfile(**params)
      
      
 def createNewLogDirIfExistent(logDir):

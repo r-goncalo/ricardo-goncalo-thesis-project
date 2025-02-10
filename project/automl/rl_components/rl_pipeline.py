@@ -4,7 +4,7 @@ from .optimizer_components import AdamOptimizer
 from .exploration_strategy_components import EpsilonGreedyStrategy
 from .model_components import ConvModelComponent
 from .rl_trainer_component import RLTrainerComponent
-from .environment_components import PettingZooEnvironmentLoader
+from .environment.environment_components import PettingZooEnvironmentLoader
 from ..logger_component import LoggerComponent
 
 import torch

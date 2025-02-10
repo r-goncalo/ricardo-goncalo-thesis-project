@@ -107,7 +107,6 @@ class ConvModelComponent(ModelComponent):
         with torch.no_grad():
         
             # Soft update of the target network's weights
-            # θ′ ← τ θ + (1 −τ )θ′
             this_model_state_dict = self.model.state_dict()
             target_model_state_dict = target_model.model.state_dict()
 
