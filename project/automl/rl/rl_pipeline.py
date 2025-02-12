@@ -1,11 +1,11 @@
-from ..component import InputSignature, Schema, requires_input_proccess, uses_component_exception
-from .agent_components import AgentSchema
-from .optimizer_components import AdamOptimizer
-from .exploration_strategy_components import EpsilonGreedyStrategy
-from .model_components import ConvModelSchema
-from .rl_trainer_component import RLTrainerComponent
-from .environment.environment_components import PettingZooEnvironmentLoader
-from ..logger_component import LoggerSchema
+from automl.component import InputSignature, Schema, requires_input_proccess, uses_component_exception
+from automl.rl.agent.agent_components import AgentSchema
+from automl.ml.optimizers.optimizer_components import AdamOptimizer
+from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
+from automl.ml.models.model_components import ConvModelSchema
+from automl.rl.rl_trainer_component import RLTrainerComponent
+from automl.rl.environment.environment_components import PettingZooEnvironmentLoader
+from automl.loggers.logger_component import LoggerSchema
 
 import torch
 
@@ -160,7 +160,7 @@ class RLPipelineComponent(LoggerSchema):
         
         
     # TRAINING_PROCCESS ----------------------
-    
+        
     @uses_component_exception
     @requires_input_proccess
     def train(self):        

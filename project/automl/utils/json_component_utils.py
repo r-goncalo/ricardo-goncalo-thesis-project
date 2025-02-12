@@ -1,6 +1,6 @@
 import json
 
-from .component import Schema, InputSignature
+from automl.component import Schema, InputSignature
 
 
 

@@ -3,10 +3,10 @@
 
 
 
-from ..component import InputSignature, Schema, requires_input_proccess
-from ..logger_component import LoggerSchema
+from automl.component import InputSignature, Schema, requires_input_proccess
+from automl.loggers.logger_component import LoggerSchema
 
-from automl.result_yielder.result_yielder_component import ResultLogger
+from automl.loggers.result_logger import ResultLogger
 
 import torch
 import time

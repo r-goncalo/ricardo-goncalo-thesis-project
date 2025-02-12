@@ -1,7 +1,7 @@
 from ..component import InputSignature, Schema, requires_input_proccess
-from .agent_components import AgentSchema
+from .agent.agent_components import AgentSchema
 from .optimizer_components import AdamOptimizer
-from .exploration_strategy_components import EpsilonGreedyStrategy
+from .exploration.exploration_strategy_components import EpsilonGreedyStrategy
 from .model_components import ConvModelSchema
 from .rl_trainer_component import RLTrainerComponent
 from .meta_rl_trainer import RLSquaredTrainerComponent

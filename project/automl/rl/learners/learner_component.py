@@ -1,6 +1,6 @@
-from ..component import Schema, InputSignature, requires_input_proccess
+from automl.component import Schema, InputSignature, requires_input_proccess
 
-from .optimizer_components import OptimizerSchema, AdamOptimizer
+from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 
 from abc import abstractmethod
 

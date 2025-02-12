@@ -1,18 +1,18 @@
 
 # DEFAULT COMPONENTS -------------------------------------
 
-from .exploration_strategy_components import EpsilonGreedyStrategy
-from .optimizer_components import OptimizerSchema, AdamOptimizer
-from .learner_component import DeepQLearnerSchema
+from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
+from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
+from automl.rl.learners.learner_component import DeepQLearnerSchema
 
-from .model_components import ConvModelSchema
+from automl.ml.models.model_components import ConvModelSchema
 
-from .memory_components import MemoryComponent
+from automl.rl.memory_components import MemoryComponent
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from ..component import Schema, InputSignature, requires_input_proccess, uses_component_exception
-from ..logger_component import LoggerSchema
+from automl.component import Schema, InputSignature, requires_input_proccess, uses_component_exception
+from automl.loggers.logger_component import LoggerSchema
 import torch
 import random
 import math
@@ -137,6 +137,47 @@ class AgentSchema(LoggerSchema):
     def select_action(self, state):
         return self.exploration_strategy.select_action(self, state) #uses the exploration strategy defined, with the state, the agent and training information, to choose an action
     
+
+    def do_training_step(self, i_episode, env, state_memory_size, state):
+
+        action = self.select_action(state) # decides the next action to take (can be random)
+                                     
+        env.step(action) #makes the game proccess the action that was taken
+        
+        boardObs, reward, done, info = self.env.last()
+        
+        total_score += reward
+                                        
+        if done:
+            next_state = None
+        else:
+            
+            if self.state_memory_size > 1: #if we have memory in our states (we use previous states as inputs for actions)
+            
+                next_state = torch.stack([  state[i][u] for u in range(0, state_memory_size)  for i in range(1, state_memory_size)]) #adds the previous perceived states to the memory of the next state
+                for window in boardObs:
+                    next_state = torch.stack((next_state, window)) #adds the new perceived state
+            else:
+                
+                next_state = boardObs #if we have no memory (if we just use the current state)
+                                    
+    
+        # Store the transition in memory
+        self.memory.push(state, action, next_state, reward)
+        
+        # Save the (next) previous state
+        state = next_state
+        
+        if self.values["total_steps"] % self.optimization_interval == 0:
+            
+            self.lg.writeLine(f"In episode {i_episode}, optimizing at step {t} that is the total step {self.values['total_steps']}")
+            self.optimizeAgents()
+            
+        t += 1
+        self.values["total_steps"] += 1 #we just did a step
+
+
+    
     @requires_input_proccess
     @uses_component_exception        
     def optimize_policy_model(self):
@@ -153,6 +194,7 @@ class AgentSchema(LoggerSchema):
                 
         self.learner.learn(batch, self.GAMMA)
         
+
     
     # UTIL ----------------------------------------------------------------------------------------
     

@@ -1,4 +1,4 @@
-from ..component import Schema, InputSignature, requires_input_proccess
+from ...component import Schema, InputSignature, requires_input_proccess
 import torch
 import random
 import math

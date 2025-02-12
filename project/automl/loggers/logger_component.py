@@ -1,8 +1,8 @@
-from .component import InputSignature, Schema, requires_input_proccess
+from automl.component import InputSignature, Schema, requires_input_proccess
 
 from logger.Log import LogClass, openLog
 
-from .json_component_utils import json_string_of_component, component_from_json_string
+from automl.utils.json_component_utils import json_string_of_component, component_from_json_string
 
 
 def on_log_pass(self):
