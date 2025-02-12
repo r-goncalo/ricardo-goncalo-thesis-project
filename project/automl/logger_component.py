@@ -49,3 +49,4 @@ class LoggerSchema(Schema):
         fd.close()
         
         return  component_from_json_string(json_string)
+    

@@ -8,7 +8,6 @@ from .environment.environment_components import PettingZooEnvironmentLoader
 from ..logger_component import LoggerSchema
 
 import torch
-import time
 
 # TODO this is missing the evaluation component on a RLPipeline
 class RLPipelineComponent(LoggerSchema):
@@ -72,6 +71,7 @@ class RLPipelineComponent(LoggerSchema):
             
         for agent in self.agents.values(): #connect agents to rl_trainer
             agent.pass_input({"training_context" : self.rl_trainer.values}) 
+            
         
         
     def configure_device(self, str_device_str):
@@ -155,10 +155,13 @@ class RLPipelineComponent(LoggerSchema):
         self.agents = agents  
         self.input["agents"] = agents #this is done because we want to save these agents in the configuration
         
+
+
+        
         
     # TRAINING_PROCCESS ----------------------
     
     @uses_component_exception
     @requires_input_proccess
-    def train(self):
+    def train(self):        
         self.rl_trainer.run_episodes()

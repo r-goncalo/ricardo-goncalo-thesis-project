@@ -18,6 +18,8 @@ import random
 import math
 import numpy as nn
 
+import wandb
+
 DEFAULT_MEMORY_SIZE = 200
 
 class AgentSchema(LoggerSchema):
@@ -53,7 +55,7 @@ class AgentSchema(LoggerSchema):
         self.initialize_exploration_strategy()
         self.initialize_models()
         self.initialize_learner()
-        self.initialize_memory()    
+        self.initialize_memory()
             
 
     def initialize_exploration_strategy(self):
