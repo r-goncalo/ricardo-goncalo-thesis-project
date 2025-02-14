@@ -4,7 +4,7 @@ from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.model_components import ConvModelSchema
 from automl.rl.rl_trainer_component import RLTrainerComponent
-from automl.rl.environment.environment_components import PettingZooEnvironmentLoader
+from automl.rl.environment.environment_components import EnvironmentComponent, PettingZooEnvironmentLoader
 from automl.loggers.logger_component import LoggerSchema
 
 import torch
@@ -41,7 +41,7 @@ class RLPipelineComponent(LoggerSchema):
         self.limit_steps = self.input["limit_steps"]
         self.num_episodes =self.input["num_episodes"]  
         
-        self.env = self.input["environment"]
+        self.env : EnvironmentComponent= self.input["environment"]
         
         self.state_memory_size = self.input["state_memory_size"]
                 
@@ -130,17 +130,20 @@ class RLPipelineComponent(LoggerSchema):
             agent_input["logger"] = agent_logger
 
             state = self.env.observe(agent)
-            self.lg.writeLine("State for agent " + agent_name + " has shape: Z: " + str(len(state)) + " Y: " + str(len(state[0])) + " X: " + str(len(state[0][0])))
 
-            z_input_size = len(state) * self.state_memory_size
+            z_input_size = len(state)
             y_input_size = len(state[0])
             x_input_size = len(state[0][0])
+            
+            self.lg.writeLine("State for agent " + agent_name + " has shape: Z: " + str(z_input_size) + " Y: " + str(y_input_size) + " X: " + str(x_input_size))
+            
+            agent_input["state_memory_size"] = self.state_memory_size
 
             n_actions = self.env.action_space(agent).n
             print(f"Action space of agent {agent}: {self.env.action_space(agent)}")
 
-            agent_input["model_input_shape"] = [x_input_size, y_input_size, z_input_size]
-            agent_input["model_output_shape"] = n_actions
+            agent_input["state_shape"] = [x_input_size, y_input_size, z_input_size]
+            agent_input["action_shape"] = n_actions
             
             agent_input["device"] = self.device       
 

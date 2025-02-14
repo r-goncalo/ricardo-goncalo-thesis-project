@@ -32,6 +32,9 @@ class Schema: # a component that receives and verifies input
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         self.child_components = []
         self.parent_component : Schema = None
+        
+        self.name = str(type(self).__name__) #defines the initial component name
+
 
         self.pass_input(input) #passes the input but note that it does not proccess it
         
@@ -39,7 +42,6 @@ class Schema: # a component that receives and verifies input
         
         self._input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
         
-        self.name = str(type(self).__name__) #defines the initial component name
             
     
     def pass_input(self, input: dict): # pass input to this component, may need verification of input
