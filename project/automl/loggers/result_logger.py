@@ -8,6 +8,10 @@ import wandb
 import torch
 
 import pandas
+from typing import Dict
+
+import matplotlib.pyplot as plt
+
 
 class ResultLogger(LoggerSchema):
 
@@ -31,7 +35,7 @@ class ResultLogger(LoggerSchema):
  
  
     @requires_input_proccess           
-    def log_results(self, results):
+    def log_results(self, results : Dict[str, list]):
         
         results_df = pandas.DataFrame(results, columns=self.columns)
         
@@ -41,6 +45,47 @@ class ResultLogger(LoggerSchema):
     def save_dataframe(self):
         
         self.lg.saveDataframe(self.dataframe, filename="results.csv")
+        
+    @requires_input_proccess
+    def plot_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None):
+        """
+        Plots a graph using the dataframe stored in ResultLogger.
+
+        :param x_axis: The column key for the X-axis.
+        :param y_axis: A list of column keys for the Y-axis.
+        :param save_path: Optional path to save the plot as an image.
+        """
+        if self.dataframe.empty:
+            raise ValueError("Dataframe is empty. Log results before plotting.")
+
+        if x_axis not in self.dataframe.columns:
+            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
+
+        for y in y_axis:
+            if y not in self.dataframe.columns:
+                raise KeyError(f"Column '{y}' not found in dataframe.")
+
+        #plt.figure(figsize=(10, 6))
+        y_label = ''
+        for y in y_axis:
+            plt.plot(self.dataframe[x_axis], self.dataframe[y], marker='o', label=y)
+            y_label += y + ' '
+
+        plt.xlabel(x_axis)
+        plt.ylabel(y_label)
+        
+        if title != '':
+            plt.title(title)
+                
+        plt.legend()
+        plt.grid(True)
+
+        if save_path:
+            plt.savefig(save_path)
+            print(f"Plot saved to {save_path}")
+
+        plt.show()
+        
         
     
     ## WANDB --------------------------------

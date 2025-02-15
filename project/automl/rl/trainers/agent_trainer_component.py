@@ -66,7 +66,7 @@ class AgentTrainer(Schema):
     @requires_input_proccess
     def setup_episode(self, env : EnvironmentComponent):
         
-        self.lg.writeLine(f"Setting up episode{self.values['episodes_done'] + 1}")
+        self.lg.writeLine(f"Setting up episode {self.values['episodes_done'] + 1}")
 
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
@@ -88,7 +88,7 @@ class AgentTrainer(Schema):
             "episode" : [self.values["episodes_done"]],
             "total_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_steps"] / self.values["episode_steps"]]
+            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
             })  
         
         
@@ -115,7 +115,7 @@ class AgentTrainer(Schema):
                 self.lg.writeLine(f"In episode {i_episode}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}")
                 self.optimizeAgent()
                 
-            return done
+            return reward, done
          
                             
         #if we reached a point where it is supposed to save

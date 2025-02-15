@@ -40,7 +40,7 @@ class AgentSchema(LoggerSchema):
                        
                        "exploration_strategy" : InputSignature( generator=lambda self : self.initialize_child_component(EpsilonGreedyStrategy)), #this generates an epsilon greddy strategy object at runtime if it is not specified
                        
-                       "policy_model" : InputSignature(priority=2, generator= lambda self : self.create_policy_model()),
+                       "policy_model" : InputSignature(priority=50, generator= lambda self : self.create_policy_model()),
                        "state_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
                        "action_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
                         
@@ -158,7 +158,14 @@ class AgentSchema(LoggerSchema):
     @uses_component_exception
     def policy_predict(self, state):
         self.update_state_memory(state)
-        return self.policy_model.predict(torch.cat(self.state_memory_list))
+        
+        if self.state_memory_size > 1:
+        
+            return self.policy_model.predict(torch.cat(self.state_memory_list))
+        
+        else:
+            
+            return self.policy_model.predict(self.state_memory_list)
     
     @requires_input_proccess
     @uses_component_exception
@@ -170,7 +177,15 @@ class AgentSchema(LoggerSchema):
     #selects action using policy prediction
     def select_action(self, state):
         self.update_state_memory(state)
-        return self.exploration_strategy.select_action(self, torch.cat(self.state_memory_list) ) #uses the exploration strategy defined, with the state, the agent and training information, to choose an action
+         #uses the exploration strategy defined, with the state, the agent and training information, to choose an action
+
+        if self.state_memory_size > 1:
+        
+            return self.exploration_strategy.select_action(self, torch.cat(self.state_memory_list) )
+        
+        else:
+            
+            return self.exploration_strategy.select_action(self, self.state_memory_list )  
     
     
     @requires_input_proccess

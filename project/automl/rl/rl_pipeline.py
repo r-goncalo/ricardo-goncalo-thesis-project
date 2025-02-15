@@ -3,18 +3,20 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.model_components import ConvModelSchema
-from automl.rl.rl_trainer_component import RLTrainerComponent
+from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.environment_components import EnvironmentComponent, PettingZooEnvironmentLoader
 from automl.loggers.logger_component import LoggerSchema
 
 import torch
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(LoggerSchema):
+class RLPipelineComponent(Schema):
 
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {"device" : InputSignature(default_value="cpu", ignore_at_serialization=True),
+                            "pipeline_directory" : InputSignature(default_value='', priority=0),
+                            
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
                        "state_memory_size" : InputSignature(),
@@ -43,10 +45,7 @@ class RLPipelineComponent(LoggerSchema):
         
         self.env : EnvironmentComponent= self.input["environment"]
         
-        self.state_memory_size = self.input["state_memory_size"]
-                
-        self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
-        
+        self.state_memory_size = self.input["state_memory_size"]        
         
         self.rl_trainer = self.input["rl_trainer"]
         
@@ -54,11 +53,7 @@ class RLPipelineComponent(LoggerSchema):
         
         self.save_interval = self.input["save_interval"]
         
-        self.total_score = []
-        
-        self.episode_durations = []
-        
-        self.episode_time_per_step_durations = []
+        self.lg = LoggerSchema()
         
         self.configure_device(self.device)
 
@@ -71,7 +66,8 @@ class RLPipelineComponent(LoggerSchema):
             
         for agent in self.agents.values(): #connect agents to rl_trainer
             agent.pass_input({"training_context" : self.rl_trainer.values}) 
-            
+    
+        
         
         
     def configure_device(self, str_device_str):
@@ -106,6 +102,9 @@ class RLPipelineComponent(LoggerSchema):
         self.rl_trainer = self.initialize_child_component(RLTrainerComponent, input=rl_trainer_input)        
 
     def initialize_agents_components(self):
+
+        self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
+
 
         if self.agents  == {}:
             self.create_agents()
@@ -158,8 +157,6 @@ class RLPipelineComponent(LoggerSchema):
         self.agents = agents  
         self.input["agents"] = agents #this is done because we want to save these agents in the configuration
         
-
-
         
         
     # TRAINING_PROCCESS ----------------------
@@ -168,3 +165,10 @@ class RLPipelineComponent(LoggerSchema):
     @requires_input_proccess
     def train(self):        
         self.rl_trainer.run_episodes()
+        
+        
+    # RESULTS --------------------------------------
+    
+    def plot_graphs(self):
+        
+        self.rl_trainer.plot_results_graph()

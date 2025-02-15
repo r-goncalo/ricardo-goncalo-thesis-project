@@ -320,7 +320,7 @@ def uses_component_exception(func):
 class InputSignature():
     
     
-    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description='', ignore_at_serialization=False, priority=1, on_pass=None):
+    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description='', ignore_at_serialization=False, priority=50, on_pass=None):
         
         self.default_value = default_value
         self.generator = generator

@@ -18,9 +18,10 @@ class LoggerSchema(Schema):
     '''
     
     parameters_signature = {
-                       "logger" : InputSignature(ignore_at_serialization=True, priority=0, generator = lambda self : openLog(), on_pass=on_log_pass),
+                       "logger" : InputSignature(ignore_at_serialization=True, priority=10, generator = lambda self : openLog(), on_pass=on_log_pass),
                        
-                       "create_profile" : InputSignature(default_value=True, ignore_at_serialization=True)
+                       "create_profile_for_parent" : InputSignature(default_value=False),
+                       "create_profile_for_logger" : InputSignature(default_value=True)
                        }
     
     # INITIALIZATION --------------------------------------------------------
@@ -31,7 +32,10 @@ class LoggerSchema(Schema):
         
         self.lg : LogClass = self.input["logger"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
     
-        if self.input["create_profile"]:
+        if self.input["create_profile_for_parent"]:
+            self.lg = self.lg.createProfile(object_with_name=self.parent_component)
+    
+        elif self.input["create_profile"]:
             self.lg = self.lg.createProfile(object_with_name=self)
             
     # CONFIGURATION SAVING / LOADING ------------------------------------------------------    
