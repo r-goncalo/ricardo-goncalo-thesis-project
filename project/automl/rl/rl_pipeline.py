@@ -6,16 +6,20 @@ from automl.ml.models.model_components import ConvModelSchema
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.environment_components import EnvironmentComponent, PettingZooEnvironmentLoader
 from automl.loggers.logger_component import LoggerSchema
+from automl.utils.files_utils import open_or_create_folder
 
 import torch
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(Schema):
+class RLPipelineComponent(LoggerSchema):
 
     TRAIN_LOG = 'train.txt'
     
-    parameters_signature = {"device" : InputSignature(default_value="cpu", ignore_at_serialization=True),
-                            "pipeline_directory" : InputSignature(default_value='', priority=0),
+    parameters_signature = {
+        
+                        "device" : InputSignature(default_value="cpu", ignore_at_serialization=True),
+                            
+                        "create_directory_if_existent" : InputSignature(default_value=True, ignore_at_serialization=True, priority=3),
                             
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
@@ -24,7 +28,7 @@ class RLPipelineComponent(Schema):
                        "limit_steps" : InputSignature(),
                        "optimization_interval" : InputSignature(),
                        "save_interval" : InputSignature(default_value=100),
-                       "rl_trainer" : InputSignature(default_value=''),
+                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent)),
                        "created_agents_input" : InputSignature(
                             default_value={},
                             description='The input that will be passed to agents created by this pipeline')}
@@ -32,7 +36,7 @@ class RLPipelineComponent(Schema):
     exposed_values = {"total_steps" : 0} #this means we'll have a dic "values" with this starting values
 
 
-    # INITIALIZATION ----------------------
+    # INITIALIZATION -----------------------------------------------------------------------------
 
     def proccess_input(self): #this is the best method to have initialization done right after
         
@@ -47,28 +51,22 @@ class RLPipelineComponent(Schema):
         
         self.state_memory_size = self.input["state_memory_size"]        
         
-        self.rl_trainer = self.input["rl_trainer"]
-        
         self.optimization_interval = self.input["optimization_interval"]
         
         self.save_interval = self.input["save_interval"]
-        
-        self.lg = LoggerSchema()
         
         self.configure_device(self.device)
 
         self.env.pass_input({"device" : self.device})
         
         self.initialize_agents_components()
-            
-        if self.rl_trainer == '':
-            self.initialize_trainer()
-            
+    
+        self.setup_trainer()
+
         for agent in self.agents.values(): #connect agents to rl_trainer
             agent.pass_input({"training_context" : self.rl_trainer.values}) 
     
-        
-        
+    
         
     def configure_device(self, str_device_str):
         
@@ -82,11 +80,8 @@ class RLPipelineComponent(Schema):
             self.lg.writeLine(f"There was an error trying to setup the device in '{str_device_str}': {str(e)}")
 
         self.lg.writeLine("The model will trained and evaluated on: " + str(self.device))
-            
-
-    def initialize_trainer(self):
         
-        self.lg.writeLine("Initializing trainer")
+    def setup_trainer(self):    
         
         rl_trainer_input = {
             "device" : self.device,
@@ -97,10 +92,13 @@ class RLPipelineComponent(Schema):
             "limit_steps" : self.limit_steps ,
             "optimization_interval" : self.optimization_interval,
             "agents" : self.agents
-        }
-
-        self.rl_trainer = self.initialize_child_component(RLTrainerComponent, input=rl_trainer_input)        
-
+        }        
+        
+        self.rl_trainer : RLTrainerComponent = self.input["rl_trainer"]
+        
+        self.rl_trainer.pass_input(rl_trainer_input)
+            
+            
     def initialize_agents_components(self):
 
         self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
@@ -126,7 +124,7 @@ class RLPipelineComponent(Schema):
             agent_input["name"] = agent_name
 
             agent_logger = self.lg.openChildLog(logName=agent_name)
-            agent_input["logger"] = agent_logger
+            agent_input["logger_object"] = agent_logger
 
             state = self.env.observe(agent)
 
