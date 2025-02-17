@@ -6,13 +6,22 @@ from automl.utils.json_component_utils import json_string_of_component, componen
 
 from automl.utils.files_utils import open_or_create_folder
 
+from enum import Enum
+
+BASE_EXPERIMENT_DIRECTORY = 'data\\experiments'
+
 
 def on_log_pass(self : Schema):
     
-    self.lg = self.input["logger_object"]
+    print(f"on_log_pass called for object {self.name}")
+    
+    self.lg : LogClass = self.input["logger_object"]
+    self.input["logger_directory"] = self.lg.logDir
     
 
 def generate_log_object(self : Schema):
+    
+    print(f"generate_log_object called for object {self.name}, using directory {self.input['logger_directory']}")
     
     directory = self.input["logger_directory"]
     
@@ -21,12 +30,16 @@ def generate_log_object(self : Schema):
 
 def generate_log_directory(self : Schema):
     
+    print(f"generate_log_directory for object {self.name}")
+    
     if "logger_object" in self.input.keys():
+        print("logger direcory existent because logger object existent")
         lg_object : LogClass = self.lg
         return lg_object.logDir
     
     else:
-        return open_or_create_folder('data\\experiments', folder_name=self.name, create_new=self.input["create_directory_if_existent"])
+        print("no logger directory defined")
+        return open_or_create_folder(BASE_EXPERIMENT_DIRECTORY, folder_name=self.name, create_new=self.input["create_directory_if_existent"])
 
 
 class LoggerSchema(Schema):
@@ -34,6 +47,15 @@ class LoggerSchema(Schema):
     '''
     A component that generalizes the behaviour of a component that has a logger object 
     '''
+    
+    class Level(Enum):
+        CRITICAL = 0
+        ERROR = 1
+        WARNING = 2
+        INFO = 3
+        DEBUG = 4
+
+    
     
     parameters_signature = {
         
@@ -44,8 +66,11 @@ class LoggerSchema(Schema):
                                 generator=lambda self : generate_log_directory(self)
                                 ),
                         
+                        "logger_level" : InputSignature(default_value=Level.INFO),
+                        
                        "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
-                                                        generator = lambda self : generate_log_object(self), on_pass=on_log_pass),
+                                                        generator = lambda self : generate_log_object(self), 
+                                                        on_pass=on_log_pass),
                        
                        "create_profile_for_parent" : InputSignature(default_value=False),
                        "create_profile_for_logger" : InputSignature(default_value=True)
@@ -59,6 +84,8 @@ class LoggerSchema(Schema):
         
         self.lg : LogClass = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
     
+        self.logger_level : LoggerSchema.Level = self.input["logger_level"]
+    
         if self.input["create_profile_for_parent"]:
             self.lg = self.lg.createProfile(object_with_name=self.parent_component)
     
@@ -71,8 +98,10 @@ class LoggerSchema(Schema):
     def writeToFile(self, *args, **kargs):
         return self.lg.writeToFile(*args, **kargs)
                 
-    def writeLine(self, *args, **kargs):
-        return self.lg.writeLine(*args, **kargs)
+    def writeLine(self, *args, level=Level.INFO, **kargs):
+        
+        if self.logger_level.value <= level.value:
+            return self.lg.writeLine(*args, **kargs)
         
     def saveFile(self, *args, **kargs):
         return self.lg.saveFile(*args, **kargs)
@@ -95,9 +124,9 @@ class LoggerSchema(Schema):
             
     # CONFIGURATION SAVING / LOADING ------------------------------------------------------    
         
-    def save_configuration(self, parent_component, toPrint=False):
+    def save_configuration(self, toPrint=False):
         
-        json_string = json_string_of_component(parent_component)
+        json_string = json_string_of_component(self)
         
         self.lg.writeToFile(string=json_string, file='configuration.json', toPrint=toPrint)
     

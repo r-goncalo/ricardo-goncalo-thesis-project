@@ -37,6 +37,10 @@ class AgentTrainer(Schema):
                                 
         self.agent : AgentSchema = self.input["agent"]
         
+        self.agent.pass_input({"training_context" : self})
+        
+        self.agent.proccess_input()
+        
         self.lg = self.agent.lg.createProfile(object_with_name=self)
         
         self.optimization_interval = self.input["optimization_interval"]
@@ -44,7 +48,7 @@ class AgentTrainer(Schema):
         self.save_interval = self.input["save_interval"]
         
         
-        self.result_logger = ResultLogger({ "logger" : self.lg,
+        self.result_logger = ResultLogger({ "logger_object" : self.lg,
             "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]})
                     
     

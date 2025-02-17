@@ -10,24 +10,26 @@ from automl.utils.files_utils import open_or_create_folder
 
 import torch
 
-# TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(LoggerSchema):
+
+class HyperparameterOptimizationPipeline(LoggerSchema):
     
     parameters_signature = {
         
-                        "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
-                                                        
-                       "num_episodes" : InputSignature(),
-                       "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
-                       "state_memory_size" : InputSignature(),
-                       "agents" : InputSignature(default_value={}),
-                       "limit_steps" : InputSignature(),
-                       "optimization_interval" : InputSignature(),
-                       "save_interval" : InputSignature(default_value=100),
-                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent)),
-                       "created_agents_input" : InputSignature(
-                            default_value={},
-                            description='The input that will be passed to agents created by this pipeline')}
+                        "base_component" : InputSignature(),
+                        
+                        "evaluator" : InputSignature(),
+                        
+                        "hyperparameters_range_list" : InputSignature(
+                            
+                            default_value= [
+                                (["agent_1", "agent_2"], ["discount_factor"], [0.5, 0.99]),
+                                ([[2, 3, 0]], ["learning_rate"], [0.0001, 0.1])
+                            ]
+                            
+                        )
+                                                    
+                       }
+    
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
@@ -35,30 +37,11 @@ class RLPipelineComponent(LoggerSchema):
         
         super().proccess_input()
         
-        self.device = self.input["device"]
-    
-        self.limit_steps = self.input["limit_steps"]
-        self.num_episodes =self.input["num_episodes"]  
+        self.rl_pipeline : RLTrainerComponent = self.input["base_component"]
         
-        self.env : EnvironmentComponent= self.input["environment"]
+        # (component_names, input_keys, range) self.hyperparameters_range_list = 
         
-        self.state_memory_size = self.input["state_memory_size"]        
-        
-        self.optimization_interval = self.input["optimization_interval"]
-        
-        self.save_interval = self.input["save_interval"]
-        
-        self.configure_device(self.device)
-
-        self.env.pass_input({"device" : self.device})
-        
-        self.initialize_agents_components()
-    
-        self.setup_trainer()
-
-        for agent in self.agents.values(): #connect agents to rl_trainer
-            agent.pass_input({"training_context" : self.rl_trainer.values}) 
-    
+        self.hyperparameters_range_list : list[tuple[list[str], list[str], any]] = 
     
         
     def configure_device(self, str_device_str):
@@ -96,11 +79,9 @@ class RLPipelineComponent(LoggerSchema):
 
         self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
 
-
         if self.agents  == {}:
             self.create_agents()
         
-
     def create_agents(self):
 
         self.lg.writeLine("Creating agents")

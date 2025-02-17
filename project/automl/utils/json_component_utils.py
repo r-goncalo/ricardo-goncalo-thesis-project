@@ -89,25 +89,24 @@ def json_string_of_component(component):
     return json.dumps(component, cls=ComponentEncoder, indent=4)
 
 # DECODING --------------------------------------------------------------------------
-
-def get_component_from_source(source_component, localization):
-    
-    current_component : Schema = source_component
-    
-    for index in localization:
-        current_component = current_component.child_components[index]
-        
-    return current_component
     
 
 def decode_components_input_element(source_component : Schema, element):
+    
+    print(f"Decoding: \n{element}")
     
     if isinstance(element, dict):
         keys = element.keys()
         
         if "__type__" in keys and "localization" in keys:
             
-            return get_component_from_source(source_component, element["localization"])
+            print("Has a type and localization")
+            
+            component_to_return = source_component.get_child_by_localization(element["localization"])
+            
+            print(f"Elemento to return: {component_to_return}")
+            
+            return component_to_return
         
         else:
             
@@ -146,7 +145,6 @@ def decode_components_input(component : Schema, source_component : Schema, compo
             
         decode_components_input(child_component, source_component, component_dict["child_components"][i])
         
-        
 
 def decode_components_from_dict(dict : dict):
     
@@ -163,7 +161,8 @@ def decode_components_from_dict(dict : dict):
     if child_components != None:
         
         for child_dict in child_components:
-            component.child_components.append(decode_components_from_dict(child_dict)) 
+            
+            component.define_component_as_child(decode_components_from_dict(child_dict))
             
     return component
     

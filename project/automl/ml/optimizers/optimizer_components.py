@@ -24,7 +24,7 @@ class AdamOptimizer(OptimizerSchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = {"model_params" : InputSignature(),
+    parameters_signature = {"model_params" : InputSignature(ignore_at_serialization=True),
                        "learning_rate" : InputSignature(default_value=0.001),
                        "amsgrad" : InputSignature(default_value=True)}    
     

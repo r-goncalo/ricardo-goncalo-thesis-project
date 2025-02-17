@@ -45,7 +45,7 @@ class RLTrainerComponent(LoggerSchema):
     
         self.save_interval = self.input["save_interval"]
         
-        self.result_logger = ResultLogger({ "logger" : self.lg,
+        self.result_logger = ResultLogger({ "logger_object" : self.lg,
             "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]})
                 
         self.setup_agents()
@@ -63,7 +63,10 @@ class RLTrainerComponent(LoggerSchema):
             if isinstance(agents[key], AgentSchema):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
-                agent_trainer = self.initialize_child_component(AgentTrainer,{"agent" : agents[key], "optimization_interval" : self.optimization_interval} )
+                
+                agent_trainer_input = {"agent" : agents[key], "optimization_interval" : self.optimization_interval, "logger_object" : agents[key].lg} 
+                
+                agent_trainer = self.initialize_child_component(AgentTrainer, agent_trainer_input)
                 
                 self.agents_in_training[key] = agent_trainer
                 agents[key] = agent_trainer #puts the agent trainer in input too
@@ -102,12 +105,12 @@ class RLTrainerComponent(LoggerSchema):
                 "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
             })   
             
-            self.values["episodes_done"] = i_episode + 1
-            
-            
+            self.values["episodes_done"] = i_episode + 1    
             
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.end_training()            
+        
+        self.result_logger.save_dataframe()
         
             
     

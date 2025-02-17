@@ -16,7 +16,7 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from automl.component import Schema, InputSignature, requires_input_proccess, uses_component_exception
+from automl.component import Schema, InputSignature, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 import torch
 import random
@@ -155,7 +155,6 @@ class AgentSchema(LoggerSchema):
         return self.policy_model
     
     @requires_input_proccess
-    @uses_component_exception
     def policy_predict(self, state):
         self.update_state_memory(state)
         
@@ -168,28 +167,18 @@ class AgentSchema(LoggerSchema):
             return self.policy_model.predict(self.state_memory_list)
     
     @requires_input_proccess
-    @uses_component_exception
     def policy_random_predict(self):
         return self.policy_model.random_prediction()
     
     @requires_input_proccess
-    @uses_component_exception
     #selects action using policy prediction
     def select_action(self, state):
-        self.update_state_memory(state)
          #uses the exploration strategy defined, with the state, the agent and training information, to choose an action
-
-        if self.state_memory_size > 1:
-        
-            return self.exploration_strategy.select_action(self, torch.cat(self.state_memory_list) )
-        
-        else:
-            
-            return self.exploration_strategy.select_action(self, self.state_memory_list )  
+  
+         return self.exploration_strategy.select_action(self, state)  
     
     
     @requires_input_proccess
-    @uses_component_exception        
     def optimize_policy_model(self):
         
         if len(self.memory) < self.BATCH_SIZE:
@@ -218,9 +207,7 @@ class AgentSchema(LoggerSchema):
         
         next_state_memory_list = [element for element in self.state_memory_list]
         next_state_memory = torch.cat(next_state_memory_list) 
-        
-        #print(f"prev state len: {len(prev_state_memory)} net state len: {len(next_state_memory)}")
-        
+                
         self.memory.push(prev_state_memory, action, next_state_memory, reward)
     
     @requires_input_proccess
@@ -258,7 +245,6 @@ class AgentSchema(LoggerSchema):
     # UTIL ----------------------------------------------------------------------------------------
     
     @requires_input_proccess
-    @uses_component_exception
     def save_policy(self):
         
         self.lg.saveFile(self.policy_model, 'model', 'policy_net')

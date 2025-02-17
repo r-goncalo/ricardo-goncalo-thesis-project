@@ -22,10 +22,6 @@ class UpperConfidenceBoundStrategy(ExplorationStrategySchema):
         
         super().proccess_input()
         
-        self.EPS_END = self.input["epsilon_end"]                
-        self.EPS_START = self.input["epsilon_start"]
-        self.EPS_DECAY = self.input["epsilon_decay"]
-        
         self.counts = torch.zeros(self.values["output_size"], device=self.device)
         
         self.exploration_param  = self.values["exploration_param"]

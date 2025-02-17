@@ -47,7 +47,7 @@ class Schema: # a component that receives and verifies input
         self.input = {} #the input will be a dictionary
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
-        self.child_components = []
+        self.child_components : list[Schema] = []
         self.parent_component : Schema = None
         
         self.name = str(type(self).__name__) #defines the initial component name
@@ -120,11 +120,16 @@ class Schema: # a component that receives and verifies input
         
         initialized_component : Schema = component_type(input)
         
-        self.child_components.append(initialized_component)
-        
-        initialized_component.parent_component = self
+        self.define_component_as_child(initialized_component)
         
         return initialized_component
+    
+    def define_component_as_child(self, new_child_component):
+        
+        self.child_components.append(new_child_component)
+        
+        new_child_component.parent_component = self
+        
     
     def get_attr_from_parent(self, attr_name : str):
         '''Gets an attribute from a parent component, None if non existent'''
@@ -138,6 +143,33 @@ class Schema: # a component that receives and verifies input
             else:
                 return self.parent_component.get_attr_from_parent(attr_name)
             
+    
+    def get_child_by_name(self, name):
+        
+        found = False
+        
+        if self.name == name:
+            return True, self
+        
+        for child_component in self.child_components:
+            
+            found, to_return = child_component.get_child_by_name()
+            
+            if found:
+                return True, to_return
+            
+        return found, None
+    
+    def get_child_by_localization(self, localization : list):
+        
+        current_component : Schema = self
+
+        for index in localization:
+            current_component = current_component.child_components[index]
+
+        return current_component
+                
+                
     
     def get_localization(self):
         
@@ -305,7 +337,7 @@ class Schema: # a component that receives and verifies input
                     return #break the loop and the functon, value is of one of the possible types
 
             #if we reach the end of the function, then the value is of none of the types
-            raise Exception(f"No validity verificator specified for key '{input_key}' and its type ({type(input_key)}) is of none of the possible types: {possible_types}")
+            raise Exception(f"In component of type {type(self)}: No validity verificator specified for key '{input_key}' and its type ({type(input_key)}) is of none of the possible types: {possible_types}")
           
 
 # VALIDITY VERIFICATION (static methods for validating input) -----------------------------          

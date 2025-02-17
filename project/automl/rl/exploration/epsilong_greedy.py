@@ -16,7 +16,8 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
     parameters_signature = { "epsilon_end" : InputSignature(default_value=0.025),
                        "epsilon_start" : InputSignature(default_value=1.0),
                        "epsilon_decay" : InputSignature(default_value=0.01),
-                       "training_context" : InputSignature(validity_verificator= lambda ctx : all(key in ctx.keys() for key in ["total_steps"]))} #training context is a dictionary where we'll be able to get outside data   
+                       "training_context" : InputSignature(
+                           validity_verificator= lambda ctx : all(key in ctx.values.keys() for key in ["total_steps"]))} #training context is a dictionary where we'll be able to get outside data   
     
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
@@ -26,7 +27,7 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         self.EPS_END = self.input["epsilon_end"]                
         self.EPS_START = self.input["epsilon_start"]
         self.EPS_DECAY = self.input["epsilon_decay"]
-        self.training_context = self.input["training_context"]
+        self.training_context = self.input["training_context"].values
     
 
     
