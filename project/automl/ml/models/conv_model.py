@@ -1,27 +1,17 @@
+
+
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F    
+
 from ...component import Schema, InputSignature, requires_input_proccess
 import torch
 import random
 import math
 import numpy as nn
 
-from abc import abstractmethod
-
-class ModelComponent(Schema):
-    
-    @abstractmethod
-    def predict(self, state):
-        pass
-    
-    @abstractmethod
-    def random_prediction(self):
-        pass
-    
-    
-    
-    
-import torch
-import torch.nn as nn
-import torch.nn.functional as F    
+from automl.ml.models.model_components import ModelComponent
 
 class ConvModelSchema(ModelComponent):
     
@@ -126,9 +116,3 @@ class ConvModelSchema(ModelComponent):
         toReturn.model.load_state_dict(self.model.state_dict()) #copies current values into new model
         
         return toReturn
-            
-    
-
-        
-    
-    

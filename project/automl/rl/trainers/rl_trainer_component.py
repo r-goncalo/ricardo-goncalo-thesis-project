@@ -1,8 +1,4 @@
 
-
-
-
-
 from typing import Dict
 from automl.component import InputSignature, Schema, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
@@ -45,8 +41,10 @@ class RLTrainerComponent(LoggerSchema):
     
         self.save_interval = self.input["save_interval"]
         
-        self.result_logger = ResultLogger({ "logger_object" : self.lg,
-            "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]})
+        self.result_logger = ResultLogger({ 
+            "logger_object" : self.lg,
+            "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]
+            })
                 
         self.setup_agents()
         
@@ -72,7 +70,9 @@ class RLTrainerComponent(LoggerSchema):
                 agents[key] = agent_trainer #puts the agent trainer in input too
     
             elif isinstance(agents[key], AgentTrainer):
+                
                 self.agents_in_training[key] = agents[key]
+                self.agents_in_training[key].pass_input({"logger_object" : agents[key].lg})
 
     # TRAINING_PROCESS -------------------------------------------------------------------------------
 
@@ -139,7 +139,7 @@ class RLTrainerComponent(LoggerSchema):
                     self.agents_in_training[other_agent_name].observe_new_state(self.env)
                     
             self.values["episode_steps"] = self.values["episode_steps"] + 1
-            self.values["episode_score"] = self.values["episode_score"] + 1
+            self.values["episode_score"] = self.values["episode_score"] + reward
                             
             if done:
                 break
@@ -158,6 +158,9 @@ class RLTrainerComponent(LoggerSchema):
        self.result_logger.plot_graph("episode", ["avg_reward"])
         
                    
+    def get_last_results(self):
+        
+        return self.result_logger.get_last_results()
                             
         #if we reached a point where it is supposed to save
         #if(i_episode > 0 and i_episode < self.num_episodes - 1 and i_episode % self.save_interval == 0):

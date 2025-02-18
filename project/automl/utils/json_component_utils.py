@@ -92,20 +92,14 @@ def json_string_of_component(component):
     
 
 def decode_components_input_element(source_component : Schema, element):
-    
-    print(f"Decoding: \n{element}")
-    
+        
     if isinstance(element, dict):
         keys = element.keys()
         
         if "__type__" in keys and "localization" in keys:
-            
-            print("Has a type and localization")
-            
+                        
             component_to_return = source_component.get_child_by_localization(element["localization"])
-            
-            print(f"Elemento to return: {component_to_return}")
-            
+                        
             return component_to_return
         
         else:

@@ -52,7 +52,6 @@ class Schema: # a component that receives and verifies input
         
         self.name = str(type(self).__name__) #defines the initial component name
 
-
         self.pass_input(input) #passes the input but note that it does not proccess it
         
         self.output = {} #output, if any, will be a dictionary
@@ -80,7 +79,7 @@ class Schema: # a component that receives and verifies input
 
                 
                 
-    def __verified_pass_input(self, key, value, parameter_signature): #for logic of passing the input, already verified
+    def __verified_pass_input(self, key, value, parameter_signature : InputSignature): #for logic of passing the input, already verified
         
         self.input[key] = value
         
@@ -114,7 +113,7 @@ class Schema: # a component that receives and verifies input
     
     # CHILD AND PARENT COMPONENTS ---------------------------------
     
-    def initialize_child_component(self, component_type, input={}):
+    def initialize_child_component(self, component_type : type, input : dict ={}):
         
         '''Explicitly initializes a component of a certain type as a child component of this one'''
         
@@ -145,20 +144,18 @@ class Schema: # a component that receives and verifies input
             
     
     def get_child_by_name(self, name):
-        
-        found = False
-        
+                
         if self.name == name:
-            return True, self
+            return self
         
         for child_component in self.child_components:
             
-            found, to_return = child_component.get_child_by_name()
+            to_return = child_component.get_child_by_name(name)
             
-            if found:
-                return True, to_return
+            if to_return != None:
+                return to_return
             
-        return found, None
+        return None
     
     def get_child_by_localization(self, localization : list):
         

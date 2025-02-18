@@ -18,7 +18,8 @@ class ResultLogger(LoggerSchema):
     # TODO: empty parameters_signature should be able to be removed
     # TODO: verify order at which keys are verified
     parameters_signature = {
-            "keys" : InputSignature(possible_types=[list])
+            "keys" : InputSignature(possible_types=[list]),
+            "save_on_log" : InputSignature(default_value=True)
         } 
     
     # INITIALIZATION --------------------------------------------------------
@@ -28,8 +29,11 @@ class ResultLogger(LoggerSchema):
         super().proccess_input()
         
         self.columns = self.input["keys"]
-        
+                
         self.dataframe = pandas.DataFrame(columns=self.columns)
+        
+        self.save_on_log = self.input["save_on_log"]
+                
         
     # USAGE -------------------------------------------------------------------
  
@@ -39,7 +43,12 @@ class ResultLogger(LoggerSchema):
         
         results_df = pandas.DataFrame(results, columns=self.columns)
         
-        self.dataframe = pandas.concat((self.dataframe, results_df))        
+        self.dataframe = pandas.concat((self.dataframe, results_df), ignore_index=True) 
+        
+        if self.save_on_log:
+            self.save_dataframe()
+              
+        
     
     @requires_input_proccess    
     def save_dataframe(self):
@@ -82,9 +91,12 @@ class ResultLogger(LoggerSchema):
 
         if save_path:
             plt.savefig(save_path)
-            print(f"Plot saved to {save_path}")
 
         plt.show()
+        
+    def get_last_results(self):
+                        
+        return self.dataframe.tail(1)
         
         
     

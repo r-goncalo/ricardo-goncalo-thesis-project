@@ -15,14 +15,12 @@ def on_log_pass(self : Schema):
     
     print(f"on_log_pass called for object {self.name}")
     
-    self.lg : LogClass = self.input["logger_object"]
+    self.lg = self.input["logger_object"]
     self.input["logger_directory"] = self.lg.logDir
     
 
 def generate_log_object(self : Schema):
-    
-    print(f"generate_log_object called for object {self.name}, using directory {self.input['logger_directory']}")
-    
+        
     directory = self.input["logger_directory"]
     
     return openLog(logDir=directory, useLogName=False)
@@ -33,12 +31,10 @@ def generate_log_directory(self : Schema):
     print(f"generate_log_directory for object {self.name}")
     
     if "logger_object" in self.input.keys():
-        print("logger direcory existent because logger object existent")
         lg_object : LogClass = self.lg
         return lg_object.logDir
     
     else:
-        print("no logger directory defined")
         return open_or_create_folder(BASE_EXPERIMENT_DIRECTORY, folder_name=self.name, create_new=self.input["create_directory_if_existent"])
 
 
@@ -59,21 +55,24 @@ class LoggerSchema(Schema):
     
     parameters_signature = {
         
-                        "create_directory_if_existent" : InputSignature(priority=3, default_value=True),
+                        "create_directory_if_existent" : InputSignature(priority=3, default_value=True, ignore_at_serialization=True),
         
                         "logger_directory" : InputSignature(
                                 priority=5,
-                                generator=lambda self : generate_log_directory(self)
+                                generator=lambda self : generate_log_directory(self), 
+                                ignore_at_serialization=True
                                 ),
                         
-                        "logger_level" : InputSignature(default_value=Level.INFO),
+                        "create_folder_with_name" : InputSignature(default_value=False, ignore_at_serialization=True),
+                        
+                        "logger_level" : InputSignature(default_value=Level.INFO, ignore_at_serialization=True),
                         
                        "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
                                                         generator = lambda self : generate_log_object(self), 
                                                         on_pass=on_log_pass),
                        
-                       "create_profile_for_parent" : InputSignature(default_value=False),
-                       "create_profile_for_logger" : InputSignature(default_value=True)
+                       "create_profile_for_parent" : InputSignature(default_value=False, ignore_at_serialization=True),
+                       "create_profile_for_logger" : InputSignature(default_value=True, ignore_at_serialization=True)
                        }
     
     # INITIALIZATION --------------------------------------------------------
@@ -91,6 +90,8 @@ class LoggerSchema(Schema):
     
         elif self.input["create_profile_for_logger"]:
             self.lg = self.lg.createProfile(object_with_name=self)
+            
+        self.lg.writeLine("Created logger in directory: " + self.lg.logDir)
             
             
     # LOGGING -----------------------------------------------------------------------------        

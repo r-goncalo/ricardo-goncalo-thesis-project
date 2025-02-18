@@ -121,16 +121,25 @@ class LoggerProfile(LogClass):
     
     def __getattr__(self, name):
         
-        if name != "writeLine": #if it asks for any attribute that is not writeLine, use the lg object
-            return getattr(self.lg, name)
+        if name == "writeLine":
+            return self.writeLine
         
-        return self.writeLine
+        elif name == "createProfile":
+            return self.createProfile
+        
+        else:
+            return getattr(self.lg, name)
+
         
     def writeLine(self, string='', **params): #writes a line of text in a log file
             
         params["string"] = f'{self.object_with_name.name}: {string}'
             
         self.lg.writeLine(**params)
+        
+    def createProfile(self, name : str = '', object_with_name = None):
+        print("Type of object with name: " + str(type(object_with_name)) + " and name passed: " + name)
+        return LoggerProfile(self.lg, name, object_with_name)
      
      
 def createNewLogDirIfExistent(logDir):
@@ -185,7 +194,7 @@ def openLog(logDir='data\\logs', logName='', useLogName=True):
         LogClass: a Log object
     """
             
-    print("Opening a log... Log Dir: " + logDir + " Log Name:" + logName)
+    print("Opening a log in directory: " + logDir + ", with name:" + logName)
     
     try:
         logsDirectories = os.listdir(logDir) #is the logDir already created? if not, error

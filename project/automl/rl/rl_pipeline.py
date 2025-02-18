@@ -10,6 +10,8 @@ from automl.utils.files_utils import open_or_create_folder
 
 import torch
 
+import gc
+
 # TODO this is missing the evaluation component on a RLPipeline
 class RLPipelineComponent(LoggerSchema):
     
@@ -24,10 +26,8 @@ class RLPipelineComponent(LoggerSchema):
                        "limit_steps" : InputSignature(),
                        "optimization_interval" : InputSignature(),
                        "save_interval" : InputSignature(default_value=100),
-                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent)),
-                       "created_agents_input" : InputSignature(
-                            default_value={},
-                            description='The input that will be passed to agents created by this pipeline')}
+                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent))
+                       }
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ class RLPipelineComponent(LoggerSchema):
             "environment" : self.env,
             "limit_steps" : self.limit_steps ,
             "optimization_interval" : self.optimization_interval,
-            "agents" : self.agents
+            "agents" : self.agents.copy()
         }        
         
         self.rl_trainer : RLTrainerComponent = self.input["rl_trainer"]
@@ -100,24 +100,29 @@ class RLPipelineComponent(LoggerSchema):
         if self.agents  == {}:
             self.create_agents()
         
+        for agent in self.agents.values():
+            
+            print("Creating logger for agent in logdir " + self.lg.logDir)
+                                    
+            print(f"Agent input:\n{agent.input}") 
+                                    
+            agent_logger = self.lg.openChildLog(logName=agent.input["name"])
+            agent.pass_input({"logger_object" : agent_logger })
+            
 
     def create_agents(self):
 
-        self.lg.writeLine("Creating agents")
+        self.lg.writeLine("No agents defined, creating them...")
 
         agents = {}
 
         agentId = 1        
         for agent in self.env.agents(): #worth remembering that the order of the initialization of the agents is defined by the environment
 
-            agent_input = {**self.input["created_agents_input"]} #the input of the agent, with base values defined by "agents_input"
-
+            agent_input = {} #the input of the agent, with base values defined by "agents_input"
 
             agent_name = "agent_" + str(agentId)
             agent_input["name"] = agent_name
-
-            agent_logger = self.lg.openChildLog(logName=agent_name)
-            agent_input["logger_object"] = agent_logger
 
             state = self.env.observe(agent)
 
@@ -145,15 +150,20 @@ class RLPipelineComponent(LoggerSchema):
 
         self.lg.writeLine("Initialized " + str(agents) + " agents")
 
-        self.agents = agents  
+        self.agents : dict[str, AgentSchema] = agents  
         self.input["agents"] = agents #this is done because we want to save these agents in the configuration
         
+    
         
         
     # TRAINING_PROCCESS ----------------------
         
     @requires_input_proccess
     def train(self):        
+        
+        gc.collect() #this forces the garbage collector to collect any abandoned objects
+        torch.cuda.empty_cache() #this clears cache of cuda
+        
         self.rl_trainer.run_episodes()
         
         
@@ -162,3 +172,7 @@ class RLPipelineComponent(LoggerSchema):
     def plot_graphs(self):
         
         self.rl_trainer.plot_results_graph()
+        
+    def get_last_Results(self):
+        
+        return self.rl_trainer.get_last_results()
