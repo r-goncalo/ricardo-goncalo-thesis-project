@@ -166,6 +166,8 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
 
         if self.agents  == {}:
             self.create_agents()
+            
+            
         
     def create_agents(self):
 
@@ -209,7 +211,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
 
             agentId += 1
 
-        self.lg.writeLine("Initialized " + str(agents) + " agents")
+        self.lg.writeLine("Initialized agents")
 
         self.agents = agents  
         self.input["agents"] = agents #this is done because we want to save these agents in the configuration

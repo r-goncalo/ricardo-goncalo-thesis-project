@@ -10,7 +10,7 @@ from abc import abstractmethod
 class ExplorationStrategySchema(Schema):
     
     parameters_signature =  {
-        "training_context" : InputSignature() # TODO: This should be substituted for a Component reference
+        "training_context" : InputSignature(possible_types=[Schema])
         } 
 
     

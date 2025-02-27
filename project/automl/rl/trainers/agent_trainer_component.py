@@ -102,7 +102,7 @@ class AgentTrainer(Schema):
             observation = env.observe(self.name)
                                 
             action = self.agent.select_action(observation) # decides the next action to take (can be random)
-                                         
+                                                     
             env.step(action) #makes the game proccess the action that was taken
                 
             observation, reward, done, info = env.last()
@@ -128,6 +128,7 @@ class AgentTrainer(Schema):
         #    self.saveData()
         
     def observe_new_state(self, env : EnvironmentComponent):
+        '''Makes the agent observe a new state, remembering it in case it needs that information in future computations'''
         self.agent.observe_new_state(env.observe(self.name))
 
 

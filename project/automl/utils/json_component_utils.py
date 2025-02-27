@@ -1,9 +1,9 @@
 import json
 
-from automl.component import Schema, InputSignature
+from automl.component import Schema, InputSignature, InputMetaData
 
 
-
+from automl.utils.class_util import get_class_from_string
 
 # ENCODING --------------------------------------------------
 
@@ -15,7 +15,7 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
         if isinstance(obj, Schema):
 
             return {
-                "__type__": type(obj).__name__,
+                "__type__": str(type(obj)),
                 "name" : obj.name,
                 "localization" : obj.get_localization()
             }
@@ -35,6 +35,11 @@ class ComponentInputEncoder(json.JSONEncoder):
     
     '''Used with component to encode its input (not the input itself)'''
     
+    def __init__(self, *args, ignore_defaults : bool, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+        self.ignore_defaults = ignore_defaults
+    
     def default(self, obj):
         
         if isinstance(obj, Schema):
@@ -44,10 +49,11 @@ class ComponentInputEncoder(json.JSONEncoder):
             toReturn = {}
             
             for key in input.keys():
-                                  
-                parameters_signature : InputSignature = obj.get_parameter_signature(key)
+                
+                parameter_meta : InputMetaData = obj.get_input_meta()[key]
+                parameters_signature : InputSignature = parameter_meta.parameter_signature
                                 
-                if not parameters_signature.ignore_at_serialization:
+                if ( not parameters_signature.ignore_at_serialization ) and (not ( ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults )):
                     
                     serialized_value = json.dumps(input[key], cls=ComponentInputElementsEncoder) #for each value in input, loads
                     
@@ -63,6 +69,11 @@ class ComponentInputEncoder(json.JSONEncoder):
 
 class ComponentEncoder(json.JSONEncoder):
     
+    def __init__(self, *args, ignore_defaults : bool, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+        self.ignore_defaults = ignore_defaults
+    
     def default(self, obj):
         
         if isinstance(obj, Schema):
@@ -70,7 +81,7 @@ class ComponentEncoder(json.JSONEncoder):
             toReturn = {
                 "__type__": str(type(obj)),
                 "name": obj.name,
-                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder))
+                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults))
                 }
             
             if len(obj.child_components) > 0:
@@ -85,8 +96,8 @@ class ComponentEncoder(json.JSONEncoder):
         return None
 
 
-def json_string_of_component(component):
-    return json.dumps(component, cls=ComponentEncoder, indent=4)
+def json_string_of_component(component, ignore_defaults = False):
+    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults)
 
 # DECODING --------------------------------------------------------------------------
     
@@ -96,9 +107,19 @@ def decode_components_input_element(source_component : Schema, element):
     if isinstance(element, dict):
         keys = element.keys()
         
-        if "__type__" in keys and "localization" in keys:
+        if "__type__" in keys:
+            
+            class_of_component : type = get_class_from_string(element['__type__'])
+            
+            if issubclass(class_of_component, Schema): #if it is a Schema
+                
+                if "localization" in keys:
                         
-            component_to_return = source_component.get_child_by_localization(element["localization"])
+                    component_to_return = source_component.get_child_by_localization(element["localization"])
+                    
+                elif "name" in keys:
+                    
+                    component_to_return = source_component.get_child_by_name(element["name"])
                         
             return component_to_return
         
@@ -160,45 +181,20 @@ def decode_components_from_dict(dict : dict):
             
     return component
     
+def component_from_dict(dict):
     
+    source_component = decode_components_from_dict(dict)
+    
+    decode_components_input(source_component, source_component, dict)
+    
+    return source_component
+
 def component_from_json_string(json_string):
     
     dict_representation = json.loads(json_string)
     
-    source_component = decode_components_from_dict(dict_representation)
-    
-    decode_components_input(source_component, source_component, dict_representation)
-    
-    return source_component
-    
-    
-# UTIL -----------------------------------------------------------
+    return component_from_dict(dict_representation)
+     
 
-import importlib
-
-def get_class_from_string(class_string: str):
-    """
-    Returns the class type from its string representation.
-
-    Args:
-        class_string (str): A string like "<class 'module.submodule.ClassName'>".
-
-    Returns:
-        type: The class type if found, otherwise raises an error.
-    """
-    # Extract the full path of the class
-    if not class_string.startswith("<class '") or not class_string.endswith("'>"):
-        raise ValueError("Invalid class string format.")
     
-    full_path = class_string[len("<class '"):-len("'>")]
     
-    # Split into module path and class name
-    *module_parts, class_name = full_path.split('.')
-    module_name = '.'.join(module_parts)
-    
-    # Dynamically import the module and get the class
-    try:
-        module = importlib.import_module(module_name)
-        return getattr(module, class_name)
-    except (ImportError, AttributeError) as e:
-        raise ImportError(f"Unable to locate class '{class_string}': {e}")

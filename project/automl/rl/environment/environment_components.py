@@ -66,7 +66,10 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
                        }    
     
     def state_translator(state, device):
-        return torch.from_numpy(state).to(torch.float32).to(device)
+        
+        with torch.no_grad():
+            #return torch.from_numpy(state).to(torch.float32).to(device)
+            return torch.tensor(state, dtype=torch.float32, device=device).permute(2, 0, 1) / 255.0
 
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined

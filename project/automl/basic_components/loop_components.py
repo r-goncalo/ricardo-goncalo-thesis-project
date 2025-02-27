@@ -31,10 +31,12 @@ class DoNTimesComponent(ExecComponent):
     
     DEFAULT_TIMES_TO_DO = 10
         
-    parameters_signature = {"execution" : InputSignature(possible_types=[types.FunctionType]),
-                       "pre_execution" : InputSignature(possible_types=[types.FunctionType]),
-                       "post_execution" : InputSignature(possible_types=[types.FunctionType]),
-                       "times_to_do" : InputSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))}
+    parameters_signature = {
+        "execution" : InputSignature(possible_types=[types.FunctionType]),
+        "pre_execution" : InputSignature(possible_types=[types.FunctionType]),
+        "post_execution" : InputSignature(possible_types=[types.FunctionType]),
+        "times_to_do" : InputSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))
+        }
     
     def algorithm(self):
                 

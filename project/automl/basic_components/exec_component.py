@@ -1,6 +1,7 @@
 from ..component import InputSignature, Schema
 
-import 
+from abc import abstractmethod
+from enum import Enum
 
 # EXECUTABLE COMPONENT --------------------------
 

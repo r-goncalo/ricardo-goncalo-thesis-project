@@ -11,7 +11,8 @@ class RLTrainerComponent(LoggerSchema):
 
     TRAIN_LOG = 'train.txt'
     
-    parameters_signature = {"device" : InputSignature(ignore_at_serialization=True),
+    parameters_signature = {
+                        "device" : InputSignature(ignore_at_serialization=True),
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
                        "agents" : InputSignature(),
@@ -74,12 +75,13 @@ class RLTrainerComponent(LoggerSchema):
                 self.agents_in_training[key] = agents[key]
                 self.agents_in_training[key].pass_input({"logger_object" : agents[key].lg})
 
+
+
     # TRAINING_PROCESS -------------------------------------------------------------------------------
 
 
     @requires_input_proccess
     def run_episodes(self):
-        
         
         self.lg.writeLine("Starting to run episodes of training")
         
@@ -133,8 +135,7 @@ class RLTrainerComponent(LoggerSchema):
             
             reward, done = agent_in_training.do_training_step(i_episode, self.env)
             
-            
-            for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction
+            for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
                     self.agents_in_training[other_agent_name].observe_new_state(self.env)
                     

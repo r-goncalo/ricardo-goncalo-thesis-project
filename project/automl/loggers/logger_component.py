@@ -12,9 +12,7 @@ BASE_EXPERIMENT_DIRECTORY = 'data\\experiments'
 
 
 def on_log_pass(self : Schema):
-    
-    print(f"on_log_pass called for object {self.name}")
-    
+        
     self.lg = self.input["logger_object"]
     self.input["logger_directory"] = self.lg.logDir
     
@@ -62,9 +60,7 @@ class LoggerSchema(Schema):
                                 generator=lambda self : generate_log_directory(self), 
                                 ignore_at_serialization=True
                                 ),
-                        
-                        "create_folder_with_name" : InputSignature(default_value=False, ignore_at_serialization=True),
-                        
+                                                
                         "logger_level" : InputSignature(default_value=Level.INFO, ignore_at_serialization=True),
                         
                        "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 

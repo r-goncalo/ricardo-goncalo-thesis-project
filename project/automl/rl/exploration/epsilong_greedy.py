@@ -7,9 +7,7 @@ import random
 import math
 import torch
 
-
 class EpsilonGreedyStrategy(ExplorationStrategySchema):
-    
 
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -43,12 +41,8 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         
         #in the case we use our policy net to predict our next action    
         if sample > eps_threshold:
-            
-            with torch.no_grad(): #we do not need to track de gradients because we won't do back propagation
-                                
-                valuesForActions = agent.policy_predict(state)
-                max_value, max_index = valuesForActions.max(dim=0) 
-                return max_index.item()
+               
+            return  agent.policy_predict(state)
         
         #in the case we choose a random action
         else:

@@ -1,24 +1,4 @@
-
-from enum import Enum
-from abc import abstractmethod
-
-import json
-
-
-class InputSignature():
-    
-    
-    def __init__(self, default_value=None, generator=None, validity_verificator=None, possible_types : list = [], description='', ignore_at_serialization=False, priority=50, on_pass=None, mandatory=True):
-        
-        self.default_value = default_value
-        self.generator = generator
-        self.validity_verificator = validity_verificator
-        self.possible_types = possible_types
-        self.description = description
-        self.ignore_at_serialization = ignore_at_serialization
-        self.priority = priority
-        self.on_pass = on_pass
-        self.mandatory = mandatory
+from automl.core.input_management import InputMetaData, InputSignature
 
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
@@ -44,9 +24,14 @@ class Schema: # a component that receives and verifies input
     
     def __init__(self, input : dict[str, any] = {}): #we can immediatly receive the input
                 
-        self.input = {} #the input will be a dictionary
+        self.input : dict[str, any] = {} #the input will be a dictionary
+        
+        self.__input_meta : dict[str, InputMetaData] = {} # will store meta data according to the input
+        self.__initialize_input_meta_data(type(self))
+        
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
+        
         self.child_components : list[Schema] = []
         self.parent_component : Schema = None
         
@@ -79,9 +64,12 @@ class Schema: # a component that receives and verifies input
 
                 
                 
-    def __verified_pass_input(self, key, value, parameter_signature : InputSignature): #for logic of passing the input, already verified
+    def __verified_pass_input(self, key, value, parameter_signature : InputSignature):
+        
+        '''for logic of passing the input, already verified'''
         
         self.input[key] = value
+        self.__input_meta[key].custom_value_passed()
         
         if parameter_signature.on_pass != None: #if there is verification of logic for when the input is passed
             
@@ -123,7 +111,10 @@ class Schema: # a component that receives and verifies input
         
         return initialized_component
     
+    
     def define_component_as_child(self, new_child_component):
+        
+        '''Defines target component as being child component of this one'''
         
         self.child_components.append(new_child_component)
         
@@ -144,6 +135,8 @@ class Schema: # a component that receives and verifies input
             
     
     def get_child_by_name(self, name):
+        
+        '''Gets child component, looking for it by its name'''
                 
         if self.name == name:
             return self
@@ -159,6 +152,8 @@ class Schema: # a component that receives and verifies input
     
     def get_child_by_localization(self, localization : list):
         
+        '''Gets child component by its location'''
+        
         current_component : Schema = self
 
         for index in localization:
@@ -166,9 +161,10 @@ class Schema: # a component that receives and verifies input
 
         return current_component
                 
-                
     
     def get_localization(self):
+        
+        '''Gets localization of this component, stopping the definition of localization when it finds a source componen (without parent)'''
         
         current_component = self
         
@@ -207,7 +203,7 @@ class Schema: # a component that receives and verifies input
 
     # INPUT PROCCESSING ---------------------------------------------  
     
-    def __get_parameter_signature(self, key, class_component):
+    def __get_parameter_signature(self, key, class_component : type):
         
         if key in class_component.parameters_signature.keys():
             return class_component.parameters_signature[key]
@@ -219,10 +215,11 @@ class Schema: # a component that receives and verifies input
             return None
     
     
-    
     def get_parameter_signature(self, key):
+        
+        '''Gets the parameter signature for a key for this component'''
+        
         return self.__get_parameter_signature(key, type(self))   
-    
     
     
     def __in_parameters_signature(self, key, class_component): #checks if the key is in the input signature of this class, if not, checks in super classes
@@ -282,15 +279,38 @@ class Schema: # a component that receives and verifies input
                              
             #if this values was not already defined
             if not input_key in passed_keys: 
+                
+                if parameter_signature.get_from_parent:
+                    
+                    self.input[input_key] = self.get_attr_from_parent(input_key)
+                    
+                    if self.input[input_key] == None:
+                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Getting attribute from parent resulted in a None value")
+                    
                                                                    
-                if not parameter_signature.default_value == None:
+                elif not parameter_signature.default_value == None:
                     self.input[input_key] = parameter_signature.default_value  #the value used will be the default value
 
                 elif not parameter_signature.generator == None:
                     self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
                     
-                
-
+    
+    # INPUT META DATA ----------------------------------------------------------------
+    
+    def __initialize_input_meta_data(self, class_component):
+        
+        '''Initializes the dictionary __input_meta'''
+        
+        if len(class_component.__mro__) > 2:
+            self.__initialize_input_meta_data(class_component.__mro__[1])
+        
+        for key in class_component.parameters_signature.keys():
+            self.__input_meta[key] = InputMetaData(parameter_signature=class_component.parameters_signature[key])
+            
+            
+    def get_input_meta(self) -> dict[str, InputMetaData]:
+        return self.__input_meta
+        
     # VALIDITY VERIFICATION ---------------------------------------------
 
     def __verify_input(self, passed_keys, list_of_signatures : list[tuple[int, InputSignature]]): #verify the input to this component and add default values, to the self.input dict

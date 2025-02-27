@@ -6,8 +6,6 @@ from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptim
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.learner_component import DeepQLearnerSchema
 
-from automl.ml.models.model_components import ConvModelSchema
-
 from automl.rl.memory_components import MemoryComponent
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
@@ -19,11 +17,11 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.component import Schema, InputSignature, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 import torch
-import random
-import math
-import numpy as nn
+from automl.utils.class_util import get_class_from_string
 
-import wandb
+from automl.ml.models.model_components import ModelComponent
+
+from automl.utils.shapes_util import torch_zeros_for_space
 
 DEFAULT_MEMORY_SIZE = 200
 
@@ -33,22 +31,28 @@ class AgentSchema(LoggerSchema):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = { "name" : InputSignature(),
-                       "device" : InputSignature(generator= lambda self : self.get_attr_from_parent("device"), ignore_at_serialization=True),
+                       "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
-                       "training_context" : InputSignature(),
+                       "training_context" : InputSignature(possible_types=[Schema]),
                        
-                       "exploration_strategy" : InputSignature( generator=lambda self : self.initialize_child_component(EpsilonGreedyStrategy)), #this generates an epsilon greddy strategy object at runtime if it is not specified
+                       "exploration_strategy" : InputSignature( generator=lambda self : self.create_exploration_strategy(), priority=100), #this generates an epsilon greddy strategy object at runtime if it is not specified
+                       "exploration_strategy_input" : InputSignature(default_value={}),
+                       "exploration_strategy_class" : InputSignature(mandatory=False),
                        
-                       "policy_model" : InputSignature(priority=50, generator= lambda self : self.create_policy_model()),
-                       "state_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
-                       "action_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
+                       "policy_model" : InputSignature(priority=200, mandatory=False),
+                       
+                       "state_shape" : InputSignature(default_value='', mandatory=False, description='The shape received by the model, only used when the model was not passed already initialized'),
+                       "action_shape" : InputSignature(default_value='', mandatory=False, description='Shape of the output of the model, only used when the model was not passed already'),
                         
                        "memory" : InputSignature(generator = lambda self :  self.initialize_child_component(MemoryComponent, input={"capacity" : DEFAULT_MEMORY_SIZE})),
                        
                        "learner" : InputSignature(generator= lambda self : self.initialize_child_component(DeepQLearnerSchema)),
                        
-                       "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them")
+                       "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
+                       
+                       "model_class" : InputSignature(mandatory=False, possible_types=[str]), # TODO: make it possible for the class to be a type
+                       "model_input" : InputSignature(mandatory=False)
                     }
 
         
@@ -80,62 +84,91 @@ class AgentSchema(LoggerSchema):
         self.exploration_strategy.pass_input(input= {"training_context" : self.input["training_context"]}) #the exploration strategy has access to the same training context
         
         
+    def create_exploration_strategy(self):
+        
+        '''creates and returns an exploration strategy for this agent'''       
+        
+        if not "exploration_strategy_class" in self.input.keys():
+            raise Exception("No exploration strategy passed to agent and no exploration_strategy_class defined to generate it")
+        
+        self.exploration_strategy_class = self.input["exploration_strategy_class"]
+                
+        exploration_strategy_class : type[ExplorationStrategySchema] = get_class_from_string(self.exploration_strategy_class)
+        
+        return self.initialize_child_component(exploration_strategy_class, self.input["exploration_strategy_input"])         
+
+        
     def initialize_models(self):
         
         self.lg.writeLine("Initializing policy model...")
 
-        passed_policy_model = self.input["policy_model"]
+        if "policy_model" in self.input.keys():
+            self.policy_model : ModelComponent  = self.input["policy_model"]
+            
+        else:
+            self.policy_model : ModelComponent = self.create_policy_model()
         
         #our policy network will transform input frames to output acions (what should we do given the current frame?)
-        self.policy_model : ConvModelSchema = passed_policy_model
         self.policy_model.pass_input({"device" : self.device}) #we have to guarantee that the device in our model is the same as the agent's
 
 
     def initialize_state_memory(self):
+            
+        self.state_shape = self.input["state_shape"]
+        self.state_memory_size = self.input["state_memory_size"]
         
-        if hasattr(self, "state_memory_size"):
-            pass #the state memory size was already initialized
-        
+        if self.state_memory_size > 1:
+            self.model_input_shape = tuple(self.state_shape for _ in range(self.state_memory_size))
+            
         else:
+            self.model_input_shape = self.state_shape
+                            
+        self.state_memory_size = self.input["state_memory_size"]
+        self.state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device)
+
+        self.lg.writeLine(f"Initializing agent with more than one state memory size ({self.state_memory_size})")
+
+        if self.input["state_shape"] == '':
+            raise Exception("More than one state memory size and undefined model input shape")
+
+        self.state_length = self.input["state_shape"][2]
+
+        self.lg.writeLine(f"State length is {self.state_length}")
+
+
+    def create_policy_model(self) -> ModelComponent:
         
-            self.state_memory_size = self.input["state_memory_size"]
-            self.state_memory_list = [None] * self.state_memory_size
-
-            #if self.state_memory_size > 1:
-
-            self.lg.writeLine(f"Initializing agent with more than one state memory size ({self.state_memory_size})")
-
-            if self.input["state_shape"] == '':
-                raise Exception("More than one state memory size and undefined model input shape")
-
-            self.state_length = self.input["state_shape"][2]
-
-            self.lg.writeLine(f"State length is {self.state_length}")
-
-
-    #creates a policy model, only meant to be called if no policy model was passed
-    def create_policy_model(self):        
+        '''creates and returns a policy model for this agent'''        
                 
+        if not "model_class" in self.input.keys():
+            raise Exception("No policy model passed to agent and no model_class defined to generate the policy")
+        
+        if not "model_input" in self.input.keys():
+            model_input = {}
+        else:
+            model_input = self.input["model_input"]
+        
+        self.model_class = self.input["model_class"]
+                
+        model_class : type[ModelComponent] = get_class_from_string(self.model_class)
+                    
+        if ( not "state_shape" in self.input.keys() ) or (not "action_shape" in self.input.keys()):
+            raise Exception(f'In creating a policy model for agent: undefined input shape and/or output shape in keys passed: {self.input.keys()}')            
+
         self.model_input_shape = self.input["state_shape"]
         self.model_output_shape = self.input["action_shape"]
         
-        self.initialize_state_memory() #we need to initialize the 
+        if self.state_memory_size > 1:
+            self.model_input_shape = (self.state_memory_size, self.model_input_shape)
         
-        if self.model_input_shape != '' and self.model_output_shape != '':
-            
-            model_input = {"board_x" : int(self.model_input_shape[0]), 
-                           "board_y" : int(self.model_input_shape[1]), 
-                           "board_z" : int(self.model_input_shape[2]) * self.state_memory_size, 
-                           "output_size" : int(self.model_output_shape)}
-            
-            self.lg.writeLine("Creating policy model using default values and passed shape... Model input: " + str(model_input))
-            
-            #this makes some strong assumptions about the shape of the model and the input being received
-            return self.initialize_child_component(ConvModelSchema, input=model_input)
-            
-        else:
-            
-            raise Exception('Undefined policy model for agent and undefined model input shape and output shape, used to create a default model')            
+        model_input["input_shape"] =  self.model_input_shape
+        model_input["output_shape"] = self.model_output_shape
+        
+        self.lg.writeLine("Creating policy model...")
+        
+        #this makes some strong assumptions about the shape of the model and the input being received
+        return self.initialize_child_component(model_class, input=model_input)
+        
 
     def initialize_learner(self):
         
@@ -156,15 +189,20 @@ class AgentSchema(LoggerSchema):
     
     @requires_input_proccess
     def policy_predict(self, state):
-        self.update_state_memory(state)
         
-        if self.state_memory_size > 1:
+        '''makes a prediction based on the new state for a new action, using the current memory'''
         
-            return self.policy_model.predict(torch.cat(self.state_memory_list))
+        self.update_state_memory(state) #updates memory with the new state
         
-        else:
-            
-            return self.policy_model.predict(self.state_memory_list)
+        possible_state_memory = self.get_state_memory_with_new(state)
+        
+        valuesForActions : torch.Tensor = self.policy_model.predict(torch.cat([element for element in possible_state_memory]))
+        
+        max_value, max_index = valuesForActions.max(dim=1)
+        
+        return max_index.item() # the action
+
+                    
     
     @requires_input_proccess
     def policy_random_predict(self):
@@ -173,7 +211,8 @@ class AgentSchema(LoggerSchema):
     @requires_input_proccess
     #selects action using policy prediction
     def select_action(self, state):
-         #uses the exploration strategy defined, with the state, the agent and training information, to choose an action
+        
+         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
   
          return self.exploration_strategy.select_action(self, state)  
     
@@ -200,15 +239,16 @@ class AgentSchema(LoggerSchema):
     @requires_input_proccess
     def observe_transiction_to(self, new_state, action, reward):
         
-        prev_state_memory_list = [element for element in self.state_memory_list]
-        prev_state_memory = torch.cat(prev_state_memory_list)
+        '''Makes agent observe and remember a transiction from a state to another'''
+        
+        prev_state_memory = torch.cat([element for element in self.state_memory])
         
         self.update_state_memory(new_state)
         
-        next_state_memory_list = [element for element in self.state_memory_list]
-        next_state_memory = torch.cat(next_state_memory_list) 
+        next_state_memory = torch.cat([element for element in self.state_memory])
                 
         self.memory.push(prev_state_memory, action, next_state_memory, reward)
+        
     
     @requires_input_proccess
     def observe_new_state(self, new_state):
@@ -218,27 +258,37 @@ class AgentSchema(LoggerSchema):
     def reset_state_memory(self, new_state): #setup memory shared accross agents
         
         if self.state_memory_size > 1:
-                    
-            self.state_memory_list = [new_state] * self.state_memory_size
+            
+            for i in range(self.state_memory_size):
+                self.state_memory[i] = new_state
             
         else:
                         
-            self.state_memory_list = new_state
+            self.state_memory = new_state
          
              
     @requires_input_proccess    
     def update_state_memory(self, new_state): #update memory shared accross agents
-                   
+        self.state_memory = self.get_state_memory_with_new(new_state)
+        
+       
+    @requires_input_proccess     
+    def get_state_memory_with_new(self, new_state):
+        
+        new_state_memory = [state  for state in self.state_memory]
+        
         if self.state_memory_size > 1:   
             
             for i in range(1, self.state_memory_size):
-                self.state_memory_list[i - 1] = self.state_memory_list[i]
+                new_state_memory[i - 1] = new_state_memory[i]
             
-            self.state_memory_list[self.state_memory_size - 1] = new_state
+            new_state_memory[self.state_memory_size - 1] = new_state
+
+            return new_state_memory
         
         else:
             
-            self.state_memory_list = new_state
+            return new_state
 
 
     
