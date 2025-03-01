@@ -197,6 +197,10 @@ class RLPipelineComponent(LoggerSchema):
         self.train(n_episodes=n_episodes)
         
         return self.get_last_Results()
+    
+    @requires_input_proccess
+    def get_results_logger(self):
+        return self.rl_trainer.get_results_logger()
         
     # RESULTS --------------------------------------
     

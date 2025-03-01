@@ -187,19 +187,19 @@ class ResultLogger(LoggerSchema):
         return self.dataframe.tail(n_results).to_dict(orient="records")[0]
     
 
-    def get_avg_n_last_results(self, n_results):
+    def get_avg_n_last_results(self, n_results, column):
         
-        return self.dataframe.tail(n_results).mean().to_dict(orient="records")[0]
+        return self.dataframe[column].tail(n_results).mean()
     
     
-    def get_std_n_last_results(self, n_results):
+    def get_std_n_last_results(self, n_results, column):
         
-        return self.dataframe.tail(n_results).std().to_dict(orient="records")[0]    
+        return self.dataframe[column].tail(n_results).std()
     
     
-    def get_avg_and_std_n_last_results(self, n_results):
+    def get_avg_and_std_n_last_results(self, n_results, column):
         
-        return self.get_avg_n_last_results(n_results), self.get_std_n_last_results(n_results)
+        return self.get_avg_n_last_results(n_results, column), self.get_std_n_last_results(n_results, column)
         
         
     

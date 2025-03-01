@@ -145,14 +145,13 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         
         self.tried_configurations += 1
         
-        results = component_to_test.get_last_Results()
-        
-        print(f"Last results: {results}")
-                
-        result = results["total_reward"]
-        
-        print(f"Result: {result}")
+        #results = component_to_test.get_last_Results()
 
+        results_logger : ResultLogger = component_to_test.get_results_logger() 
+
+        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
+
+        result = avg_result - (std_result / 4)
         
         results_to_log = {**self.suggested_values, "result" : [result]}
         
