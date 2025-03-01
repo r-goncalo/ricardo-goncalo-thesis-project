@@ -65,8 +65,9 @@ class LogClass:
         df.to_csv(self.logDir + '\\' + directory + '\\' + filename, index=False)
         
     def loadDataframe(self, directory='', filename='dataframe.csv'):
-        
+                
         return pd.read_csv(self.logDir + '\\' + directory + '\\' + filename)
+        
   
     
     def createDirIfNotExistent(self, dir): #creates a dir if it does no exist

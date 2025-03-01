@@ -52,6 +52,14 @@ class EnvironmentComponent(Schema):
     @requires_input_proccess    
     def rewards(self):
         pass    
+    
+    @requires_input_proccess
+    def render(self):
+        pass
+    
+    @requires_input_proccess
+    def close(self):
+        pass
      
     
 from pettingzoo.butterfly import cooperative_pong_v5    
@@ -61,7 +69,9 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = { "petting_zoo_environment" : InputSignature(default_value="cooperative_pong"),
+    parameters_signature = { 
+                       "petting_zoo_environment" : InputSignature(default_value="cooperative_pong"),
+                       "render_mode" : InputSignature(default_value="none", validity_verificator= lambda x : x in ["none", "human"]),
                        "device" : InputSignature(ignore_at_serialization=True)
                        }    
     
@@ -84,7 +94,7 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
         
         if self.input["petting_zoo_environment"] == "cooperative_pong":
         
-            self.env = cooperative_pong_v5.env(render_mode='none')
+            self.env = cooperative_pong_v5.env(render_mode=self.input["render_mode"])
             
         else:
             raise Exception(f"{self.name}: No valid petting zoo environment specified")
@@ -125,3 +135,11 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
     def rewards(self):
         super().reset()
         return self.env.rewards    
+
+    def render(self):
+        self.env.render()
+    
+
+    def close(self):
+        self.env.close()
+     

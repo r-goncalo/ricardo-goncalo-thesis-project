@@ -181,7 +181,10 @@ def decode_components_from_dict(dict : dict):
             
     return component
     
+# EXPOSED DECODING METHODS ---------------------------------------------------------------------------------   
+    
 def component_from_dict(dict):
+    '''Returns a component, decoding it from a dictionary representation of a system'''
     
     source_component = decode_components_from_dict(dict)
     
@@ -189,9 +192,18 @@ def component_from_dict(dict):
     
     return source_component
 
+
+
+def dict_from_json_string(json_string):
+    '''Returns a dictionary representation of a system, decoded from a json string'''
+    return json.loads(json_string)
+
+
+
 def component_from_json_string(json_string):
+    '''Returns a component, reading it from a json_string'''
     
-    dict_representation = json.loads(json_string)
+    dict_representation = dict_from_json_string(json_string)
     
     return component_from_dict(dict_representation)
      

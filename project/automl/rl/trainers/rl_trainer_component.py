@@ -5,6 +5,7 @@ from automl.loggers.logger_component import LoggerSchema
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.loggers.result_logger import ResultLogger
+from automl.rl.environment.environment_components import EnvironmentComponent
 
 
 class RLTrainerComponent(LoggerSchema):
@@ -36,7 +37,7 @@ class RLTrainerComponent(LoggerSchema):
         self.limit_steps = self.input["limit_steps"]
         self.num_episodes = self.input["num_episodes"]  
         
-        self.env = self.input["environment"]
+        self.env : EnvironmentComponent = self.input["environment"]
         
         self.optimization_interval = self.input["optimization_interval"]
     
@@ -44,7 +45,7 @@ class RLTrainerComponent(LoggerSchema):
         
         self.result_logger = ResultLogger({ 
             "logger_object" : self.lg,
-            "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]
+            "keys" : ["episode", "episode_steps", "avg_reward", "total_reward"]
             })
                 
         self.setup_agents()
@@ -81,7 +82,15 @@ class RLTrainerComponent(LoggerSchema):
 
 
     @requires_input_proccess
-    def run_episodes(self):
+    def run_episodes(self, n_episodes : int = None):
+        
+        '''Starts training
+        
+           Args:
+           
+            :n_episodes, if defined, limits the number of episodes that will be done
+        
+        '''
         
         self.lg.writeLine("Starting to run episodes of training")
         
@@ -92,28 +101,34 @@ class RLTrainerComponent(LoggerSchema):
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_training() 
             
-        #each episode is an instance of playing the game
-        for i_episode in range(self.num_episodes):
+        
+        n_episodes_to_do = self.num_episodes - self.values["episodes_done"] if n_episodes == None else min(self.num_episodes - self.values["episodes_done"], n_episodes)
             
-            self.__run_episode(i_episode)
+        #each episode is an instance of playing the game
+        for _ in range(n_episodes_to_do):
+            
+            self.__run_episode(self.values["episodes_done"])
             
             for agent_in_training in self.agents_in_training.values():
                 agent_in_training.end_episode() 
             
+            self.values["episodes_done"] = self.values["episodes_done"] + 1
+            
             self.result_logger.log_results({
-                "episode" : [i_episode + 1],
+                "episode" : [self.values["episodes_done"]],
                 "total_reward" : [self.values["episode_score"]],
                 "episode_steps" : [self.values["episode_steps"]], 
                 "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
             })   
             
-            self.values["episodes_done"] = i_episode + 1    
+                
             
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.end_training()            
         
         self.result_logger.save_dataframe()
         
+        self.env.close()
             
     
     def __run_episode(self, i_episode):
@@ -126,12 +141,10 @@ class RLTrainerComponent(LoggerSchema):
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_episode(self.env) 
             
-        self.episode_reward = 0
-        self.episode_steps = 0
                 
         for agent_name in self.env.agent_iter(): #iterates infinitely over the agents that should be acting in the environment
                                 
-            agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer
+            agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
             
             reward, done = agent_in_training.do_training_step(i_episode, self.env)
             
@@ -162,8 +175,8 @@ class RLTrainerComponent(LoggerSchema):
     def get_last_results(self):
         
         return self.result_logger.get_last_results()
-                            
-        #if we reached a point where it is supposed to save
-        #if(i_episode > 0 and i_episode < self.num_episodes - 1 and i_episode % self.save_interval == 0):
-        #    self.lg.writeLine("Doing intermedian saving of results during training...", file=self.TRAIN_LOG)
-        #    self.saveData()
+    
+    def get_results_logger(self) -> ResultLogger:
+        
+        return self.result_logger
+                        

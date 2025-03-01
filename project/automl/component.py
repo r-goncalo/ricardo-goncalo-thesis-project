@@ -160,6 +160,18 @@ class Schema: # a component that receives and verifies input
             current_component = current_component.child_components[index]
 
         return current_component
+    
+    def get_child_component(self, component_localizer):
+        
+        if isinstance(component_localizer, str):
+                    
+            return self.get_child_by_name(component_localizer)
+                    
+        elif isinstance(component_localizer, list):
+                    
+            return self.get_child_by_localization(component_localizer)
+        
+        raise Exception(f"Could not find component in source_component {self.name} given localization {component_localizer}")
                 
     
     def get_localization(self):

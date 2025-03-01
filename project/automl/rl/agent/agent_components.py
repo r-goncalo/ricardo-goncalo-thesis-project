@@ -30,7 +30,8 @@ class AgentSchema(LoggerSchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = { "name" : InputSignature(),
+    parameters_signature = { 
+                        "name" : InputSignature(),
                        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
@@ -46,8 +47,10 @@ class AgentSchema(LoggerSchema):
                        "action_shape" : InputSignature(default_value='', mandatory=False, description='Shape of the output of the model, only used when the model was not passed already'),
                         
                        "memory" : InputSignature(generator = lambda self :  self.initialize_child_component(MemoryComponent, input={"capacity" : DEFAULT_MEMORY_SIZE})),
+                       "memory_input" : InputSignature(default_value={}),
                        
                        "learner" : InputSignature(generator= lambda self : self.initialize_child_component(DeepQLearnerSchema)),
+                       "learner_input" : InputSignature(default_value={}),
                        
                        "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
                        
@@ -174,12 +177,14 @@ class AgentSchema(LoggerSchema):
         
         self.learner : LearnerSchema = self.input["learner"]
         
+        self.learner.pass_input(self.input["learner_input"])
         self.learner.pass_input({"device" : self.device, "agent" : self})
       
     
     def initialize_memory(self):
         
         self.memory : MemoryComponent = self.input["memory"] #where we'll save the transitions we did    
+        self.memory.pass_input(self.input["memory_input"])
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------

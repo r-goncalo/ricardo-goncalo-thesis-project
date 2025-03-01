@@ -57,7 +57,7 @@ class AgentTrainer(Schema):
     @requires_input_proccess
     def setup_training(self):
         
-        self.lg.writeLine("Setting up training session")
+        self.lg.writeLine("Setting up training session", file=self.TRAIN_LOG)
         
         self.values["total_steps"] = 0
         self.values["total_score"] = 0
@@ -66,11 +66,13 @@ class AgentTrainer(Schema):
     @requires_input_proccess
     def end_training(self):
         self.result_logger.save_dataframe()
+        
+        self.lg.writeLine(f"Values of exploraion strategy: {self.agent.exploration_strategy.values}", file=self.TRAIN_LOG)
     
     @requires_input_proccess
     def setup_episode(self, env : EnvironmentComponent):
         
-        self.lg.writeLine(f"Setting up episode {self.values['episodes_done'] + 1}")
+        self.lg.writeLine(f"Setting up episode {self.values['episodes_done'] + 1}", file=self.TRAIN_LOG)
 
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
@@ -116,7 +118,7 @@ class AgentTrainer(Schema):
             
             if self.values["total_steps"] % self.optimization_interval == 0:
                 
-                self.lg.writeLine(f"In episode {i_episode}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}")
+                self.lg.writeLine(f"In episode {i_episode}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
                 self.optimizeAgent()
                 
             return reward, done
@@ -134,10 +136,12 @@ class AgentTrainer(Schema):
 
     def optimizeAgent(self):
         
-        self.lg.writeLine("Optimizing agent...")
+        self.lg.writeLine("Optimizing agent...", file=self.TRAIN_LOG)
         
         timeBeforeOptimizing = time.time()
                             
         self.agent.optimize_policy_model() # TODO : Take attention to this, the agents optimization strategy is too strict
         
-        self.lg.writeLine("Optimization took " + str(time.time() - timeBeforeOptimizing) + " seconds")
+        duration = time.time() - timeBeforeOptimizing
+        
+        self.lg.writeLine("Optimization took " + str(duration) + " seconds", file=self.TRAIN_LOG)

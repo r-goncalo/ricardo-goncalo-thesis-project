@@ -68,7 +68,9 @@ class LoggerSchema(Schema):
                                                         on_pass=on_log_pass),
                        
                        "create_profile_for_parent" : InputSignature(default_value=False, ignore_at_serialization=True),
-                       "create_profile_for_logger" : InputSignature(default_value=True, ignore_at_serialization=True)
+                       "create_profile_for_logger" : InputSignature(default_value=True, ignore_at_serialization=True),
+                       
+                       "default_print" : InputSignature(default_value=False)
                        }
     
     # INITIALIZATION --------------------------------------------------------
@@ -80,6 +82,8 @@ class LoggerSchema(Schema):
         self.lg : LogClass = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
     
         self.logger_level : LoggerSchema.Level = self.input["logger_level"]
+        
+        self.default_print = self.input["default_print"]
     
         if self.input["create_profile_for_parent"]:
             self.lg = self.lg.createProfile(object_with_name=self.parent_component)
@@ -95,10 +99,13 @@ class LoggerSchema(Schema):
     def writeToFile(self, *args, **kargs):
         return self.lg.writeToFile(*args, **kargs)
                 
-    def writeLine(self, *args, level=Level.INFO, **kargs):
+    def writeLine(self, *args, level=Level.INFO, toPrint=None, **kargs):
+        
+        if toPrint == None:
+            toPrint = self.default_print
         
         if self.logger_level.value <= level.value:
-            return self.lg.writeLine(*args, **kargs)
+            return self.lg.writeLine(*args, toPrint=toPrint, **kargs)
         
     def saveFile(self, *args, **kargs):
         return self.lg.saveFile(*args, **kargs)

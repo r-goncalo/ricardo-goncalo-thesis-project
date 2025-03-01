@@ -11,6 +11,8 @@ import torch
 
 import gc
 
+from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
+
 # TODO this is missing the evaluation component on a RLPipeline
 class RLPipelineComponent(LoggerSchema):
     
@@ -30,7 +32,9 @@ class RLPipelineComponent(LoggerSchema):
                        "optimization_interval" : InputSignature(),
                        "save_interval" : InputSignature(default_value=100),
                        
-                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent))
+                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent)),
+                       
+                       "seed" : InputSignature(generator=lambda self : generate_seed())
                        }
     
 
@@ -39,6 +43,8 @@ class RLPipelineComponent(LoggerSchema):
     def proccess_input(self): #this is the best method to have initialization done right after
         
         super().proccess_input()
+        
+        do_full_setup_of_seed(self.input["seed"])
         
         self.device = self.input["device"]
     
@@ -68,6 +74,8 @@ class RLPipelineComponent(LoggerSchema):
         
     def configure_device(self, str_device_str):
         
+        '''Configures the torch device'''
+        
         try:
 
             self.lg.writeLine("Trying to use cuda...")
@@ -81,6 +89,8 @@ class RLPipelineComponent(LoggerSchema):
         
         
     def setup_trainer(self):    
+        
+        '''Setups the trainer, which is rensonsible for executing the training algorithm, agnostic to the learning methods, models and number of agents'''
         
         rl_trainer_input = {
             "device" : self.device,
@@ -99,6 +109,8 @@ class RLPipelineComponent(LoggerSchema):
             
             
     def initialize_agents_components(self):
+        
+        '''Initialize the agents, creating them if necessary first'''
 
         self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
 
@@ -106,36 +118,43 @@ class RLPipelineComponent(LoggerSchema):
             self.create_agents()
         
         for agent_name, agent in self.agents.items():
-            self.initialize_agent_component(agent_name, agent)                                                
+            self.configure_agent_component(agent_name, agent)                                                
                                                                                     
             
-    def initialize_agent_component(self, agent_name, agent : AgentSchema):
+    def configure_agent_component(self, agent_name, agent : AgentSchema):
+        
+        '''Configures the agents, setting up their action and state spaces, the logger and more'''
             
-            self.setup_agent_state_action_shape(agent_name, agent)
-                        
-            agent_logger = self.lg.openChildLog(logName=agent.input["name"])
-            
-            agent.pass_input({"logger_object" : agent_logger })
-            agent.pass_input(self.input["agents_input"])
+        self.setup_agent_state_action_shape(agent_name, agent)
+                    
+        agent_logger = self.lg.openChildLog(logName=agent.input["name"])
+        
+        agent.pass_input({"logger_object" : agent_logger })
+        agent.pass_input(self.input["agents_input"])
             
             
     def setup_agent_state_action_shape(self, agent_name, agent : AgentSchema):       
+        
+        '''Setups the agent state space and action shape'''
          
-            state = self.env.observe(agent_name)
-            
-            self.lg.writeLine(f"State for agent {agent.name} has shape: {state.shape}")
-            
-            agent.pass_input({ "state_memory_size" : self.state_memory_size})
-
-            action_shape = self.env.action_space(agent_name)
-            self.lg.writeLine(f"Action space of agent {agent} has shape: {action_shape}")
-
-            agent.pass_input({"state_shape" : state.shape })
-            agent.pass_input({"action_shape" : action_shape })
+        state = self.env.observe(agent_name)
+        
+        self.lg.writeLine(f"State for agent {agent.name} has shape: {state.shape}")
+        
+        agent.pass_input({ "state_memory_size" : self.state_memory_size})
+        
+        action_shape = self.env.action_space(agent_name)
+        
+        self.lg.writeLine(f"Action space of agent {agent} has shape: {action_shape}")
+        
+        agent.pass_input({"state_shape" : state.shape })
+        agent.pass_input({"action_shape" : action_shape })
             
             
             
     def create_agents(self):
+        
+        '''Creates agents'''
 
         self.lg.writeLine("No agents defined, creating them...")
 
@@ -164,13 +183,20 @@ class RLPipelineComponent(LoggerSchema):
     # TRAINING_PROCCESS ----------------------
         
     @requires_input_proccess
-    def train(self):        
+    def train(self, n_episodes=None):        
         
         gc.collect() #this forces the garbage collector to collect any abandoned objects
         torch.cuda.empty_cache() #this clears cache of cuda
         
-        self.rl_trainer.run_episodes()
+        self.rl_trainer.run_episodes(n_episodes=n_episodes)
         
+    
+    @requires_input_proccess
+    def run(self, n_episodes=None):
+        
+        self.train(n_episodes=n_episodes)
+        
+        return self.get_last_Results()
         
     # RESULTS --------------------------------------
     

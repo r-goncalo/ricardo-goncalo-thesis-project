@@ -30,10 +30,13 @@ class DeepQLearnerSchema(LearnerSchema):
     parameters_signature = {
         
                        "agent" : InputSignature(),
+                       
                        "target_update_rate" : InputSignature(default_value=0.05),
                         "update_target_at_optimization" : InputSignature(default_value=True),
                         "device" : InputSignature(ignore_at_serialization=True),
+                        
                         "optimizer" : InputSignature(generator= lambda self : self.initialize_child_component(AdamOptimizer), possible_types=[OptimizerSchema]),
+                        "optimizer_input" : InputSignature(default_value={})
 
                         }    
     
@@ -58,6 +61,7 @@ class DeepQLearnerSchema(LearnerSchema):
         
     def initialize_optimizer(self):
         self.optimizer : OptimizerSchema = self.input["optimizer"]
+        self.optimizer.pass_input(self.input["optimizer_input"])
         self.optimizer.pass_input({"model_params" : self.policy.get_model_params()})
 
     

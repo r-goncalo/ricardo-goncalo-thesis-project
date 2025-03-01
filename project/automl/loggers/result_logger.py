@@ -12,13 +12,17 @@ from typing import Dict
 
 import matplotlib.pyplot as plt
 
+import numpy as np
+
+RESULTS_FILENAME = 'results.csv'
 
 class ResultLogger(LoggerSchema):
 
     # TODO: empty parameters_signature should be able to be removed
     # TODO: verify order at which keys are verified
     parameters_signature = {
-            "keys" : InputSignature(possible_types=[list]),
+            "filename" : InputSignature(default_value=RESULTS_FILENAME),
+            "keys" : InputSignature(possible_types=[list], mandatory=False),
             "save_on_log" : InputSignature(default_value=True)
         } 
     
@@ -28,11 +32,32 @@ class ResultLogger(LoggerSchema):
         
         super().proccess_input()
         
-        self.columns = self.input["keys"]
-                
-        self.dataframe = pandas.DataFrame(columns=self.columns)
+        self.filename = self.input["filename"]
+        
+        self.initialize_dataframe()
         
         self.save_on_log = self.input["save_on_log"]
+    
+    
+    
+    def initialize_dataframe(self):
+        
+        try:
+        
+            dataframe_on_folder = self.lg.loadDataframe(filename=self.filename)
+
+            self.dataframe = dataframe_on_folder
+            self.columns = self.dataframe.columns
+            self.lg.writeLine(f"Results dataframe with filename {self.filename} already existed with columns {self.columns}")
+        
+        except:
+            
+            self.columns = self.input["keys"]
+            self.dataframe = pandas.DataFrame(columns=self.columns)
+            self.save_dataframe()
+        
+
+
                 
         
     # USAGE -------------------------------------------------------------------
@@ -53,10 +78,13 @@ class ResultLogger(LoggerSchema):
     @requires_input_proccess    
     def save_dataframe(self):
         
-        self.lg.saveDataframe(self.dataframe, filename="results.csv")
+        self.lg.saveDataframe(self.dataframe, filename=self.filename)
+        
+
+    # GRAPHS ------------------------------------------------------------------------------------------------------------------
         
     @requires_input_proccess
-    def plot_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None):
+    def plot_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label=''):
         """
         Plots a graph using the dataframe stored in ResultLogger.
 
@@ -70,15 +98,22 @@ class ResultLogger(LoggerSchema):
         if x_axis not in self.dataframe.columns:
             raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
 
-        for y in y_axis:
-            if y not in self.dataframe.columns:
+
+        if isinstance(y_axis, str):
+            y_axis = [y_axis]
+            
+        for i in range(len(y_axis)):
+            
+            if isinstance(y_axis[i], str):
+                y_axis[i] = (y_axis[i], y_axis[i])
+
+            if y_axis[i][0] not in self.dataframe.columns:
                 raise KeyError(f"Column '{y}' not found in dataframe.")
 
+
         #plt.figure(figsize=(10, 6))
-        y_label = ''
-        for y in y_axis:
-            plt.plot(self.dataframe[x_axis], self.dataframe[y], marker='o', label=y)
-            y_label += y + ' '
+        for (column_name, name_to_plot) in y_axis:
+            plt.plot(self.dataframe[x_axis], self.dataframe[column_name], marker='o', label=name_to_plot)
 
         plt.xlabel(x_axis)
         plt.ylabel(y_label)
@@ -90,13 +125,81 @@ class ResultLogger(LoggerSchema):
         plt.grid(True)
 
         if save_path:
-            plt.savefig(save_path)
+            plt.savefig(self.lg.logDir + '\\' + save_path)
 
-        plt.show()
+        if to_show:
+            plt.show()
+            
+
+    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, aggregate_number = 5, title : str = '', save_path: str = None, to_show=True, y_label=''):
+
+        if self.dataframe.empty:
+            raise ValueError("Dataframe is empty. Log results before plotting.")
+
+        if x_axis not in self.dataframe.columns:
+            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
+
+        if y_column not in self.dataframe.columns:
+            raise KeyError(f"Column '{y_column}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
+
+        values = self.dataframe[y_column]
+
+        aggregated_values = [ [ values[u - aggregate_number + i] for i in range(0, aggregate_number * 2) ] for u in range(aggregate_number, len(values) - aggregate_number) ]
+        x_values = self.dataframe[x_axis][aggregate_number:(len(self.dataframe[x_axis]) - aggregate_number)]
+
+        mean_values = np.mean(aggregated_values, axis=1)
+        
+        if show_std:
+            std_values = np.std(aggregated_values, axis=1)
+
+        plt.plot(x_values, mean_values, label=y_values_label)
+        
+        if show_std:
+            plt.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=0.3)
+
+        plt.xlabel(x_axis)
+        plt.ylabel(y_label)
+        
+        if title != '':
+            plt.title(title)
+                
+        plt.legend()
+        plt.grid(True)
+
+        if save_path:
+            plt.savefig(self.lg.logDir + '\\' + save_path)
+
+        if to_show:
+            plt.show()
+
+
+
+    # RETURN RESULTS ------------------------------------------------------------------------------------------------
+    
         
     def get_last_results(self):
                         
-        return self.dataframe.tail(1)
+        return self.dataframe.tail(1).to_dict(orient="records")[0]
+    
+    
+    def get_n_last_results(self, n_results):
+        
+        return self.dataframe.tail(n_results).to_dict(orient="records")[0]
+    
+
+    def get_avg_n_last_results(self, n_results):
+        
+        return self.dataframe.tail(n_results).mean().to_dict(orient="records")[0]
+    
+    
+    def get_std_n_last_results(self, n_results):
+        
+        return self.dataframe.tail(n_results).std().to_dict(orient="records")[0]    
+    
+    
+    def get_avg_and_std_n_last_results(self, n_results):
+        
+        return self.get_avg_n_last_results(n_results), self.get_std_n_last_results(n_results)
         
         
     

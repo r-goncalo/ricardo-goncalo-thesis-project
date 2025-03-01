@@ -8,10 +8,10 @@ def config_dict():
     "__type__": "<class 'automl.rl.rl_pipeline.RLPipelineComponent'>",
     "name": "RLPipelineComponent",
     "input": {
-        "num_episodes": 3,
+        "num_episodes": 200,
         "state_memory_size": 2,
-        "limit_steps": 200,
-        "optimization_interval": 50,
+        "limit_steps": 1000,
+        "optimization_interval": 100,
         "device" : "cuda",
         "environment": {
             "__type__": "<class 'automl.rl.environment.environment_components.PettingZooEnvironmentLoader'>",
@@ -19,10 +19,24 @@ def config_dict():
         },
         "agents_input": {
             "exploration_strategy_class" : str(EpsilonGreedyStrategy),
+            "exploration_strategy_input" : {
+                "epsilon_end" : 0.1,
+                "epsilon_start" : 0.99,
+                "epsilon_decay" : 0.99
+                },
             "model_class" : str(FullyConnectedModelSchema),
             "model_input" : {
                 "hidden_layers" : 3,
                 "hidden_size" : 64
+            },
+            "learner_input" : {
+                "target_update_rate" : 0.05,
+                "optimizer_input" : {
+                    "learning_rate" : 0.0001
+                }
+            },
+            "memory_input" : {
+                "capacity" : 300
             }
         },
         "save_interval": 100

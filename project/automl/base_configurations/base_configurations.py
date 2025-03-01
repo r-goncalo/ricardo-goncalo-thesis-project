@@ -11,7 +11,12 @@ def load_configuration(configuration_name : Literal["basic_rl"]) -> Schema:
     
     '''Loads a pre-made configuration'''
     
+    return component_from_dict(load_configuration_dict(configuration_name))
+    
+
+def load_configuration_dict(configuration_name : Literal["basic_rl"]) -> dict:
+    
     if configuration_name == "basic_rl":
     
-        return component_from_dict(basic_rl.config_dict())
+        return basic_rl.config_dict()
     
