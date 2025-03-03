@@ -40,6 +40,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         
         self.initialize_config_dict()
         self.initialize_sampler()
+        self.initialize_database()
         
         self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
         
@@ -48,7 +49,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
 
         self.results_logger : ResultLogger = self.initialize_child_component(ResultLogger, { "logger_object" : self.lg,
-            "keys" : [*parameter_names, "result"]})
+            "keys" : ['experiment', *parameter_names, "result"]})
         
         self.suggested_values = { parameter_name : 0 for parameter_name in parameter_names}
         
@@ -72,6 +73,9 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         else:
             raise Exception("No configuration defined")
     
+    def initialize_database(self):
+        self.database_path = self.lg.logDir + "\\study_results.db"  # Path to the SQLite database file
+        self.storage = f"sqlite:///{self.database_path}"  # This will save the study results to the file
     
     
     def initialize_sampler(self):
@@ -153,7 +157,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
 
         result = avg_result - (std_result / 4)
         
-        results_to_log = {**self.suggested_values, "result" : [result]}
+        results_to_log = {'experiment' : self.tried_configurations, **self.suggested_values, "result" : [result]}
         
         self.results_logger.log_results(results_to_log)
         
@@ -171,7 +175,8 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
     @requires_input_proccess
     def run(self):
         
-        study = optuna.create_study(sampler=self.sampler)
+        study = optuna.create_study(sampler=self.sampler, storage=self.storage, load_if_exists=True)
+
         study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,
                        callbacks=[self.after_trial])

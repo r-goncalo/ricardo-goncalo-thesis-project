@@ -10,6 +10,8 @@ import torch
 import pandas
 from typing import Dict
 
+from sklearn.linear_model import LinearRegression
+
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -82,7 +84,53 @@ class ResultLogger(LoggerSchema):
         
 
     # GRAPHS ------------------------------------------------------------------------------------------------------------------
+
+    @requires_input_proccess
+    def plot_bar_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label=''):
+        """
+        Plots a graph using the dataframe stored in ResultLogger.
+
+        :param x_axis: The column key for the X-axis.
+        :param y_axis: A list of column keys for the Y-axis.
+        :param save_path: Optional path to save the plot as an image.
+        """
+        if self.dataframe.empty:
+            raise ValueError("Dataframe is empty. Log results before plotting.")
+
+        if x_axis not in self.dataframe.columns:
+            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
+
+
+        if isinstance(y_axis, str):
+            y_axis = [y_axis]
+            
+        for i in range(len(y_axis)):
+
+            if y_axis[i] not in self.dataframe.columns:
+                raise KeyError(f"Column '{y_axis[i]}' not found in dataframe.")
+            
+        categories = [str(value) for value in self.dataframe[x_axis]]
+
+
+        for column_name in y_axis:
+            plt.bar(self.dataframe[x_axis], self.dataframe[column_name])
+
+        plt.xlabel(x_axis)
+        plt.ylabel(y_label)
         
+        if title != '':
+            plt.title(title)
+                
+        plt.legend()
+        plt.grid(True)
+
+        if save_path:
+            plt.savefig(self.lg.logDir + '\\' + save_path)
+
+        if to_show:
+            plt.show()
+
+
     @requires_input_proccess
     def plot_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label=''):
         """
@@ -108,7 +156,7 @@ class ResultLogger(LoggerSchema):
                 y_axis[i] = (y_axis[i], y_axis[i])
 
             if y_axis[i][0] not in self.dataframe.columns:
-                raise KeyError(f"Column '{y}' not found in dataframe.")
+                raise KeyError(f"Column '{y_axis[i][0] }' not found in dataframe.")
 
 
         #plt.figure(figsize=(10, 6))
@@ -171,6 +219,65 @@ class ResultLogger(LoggerSchema):
 
         if to_show:
             plt.show()
+
+    
+    requires_input_proccess
+    def plot_linear_regression(self, x_axis: str, y_axis: list, title: str = '', save_path: str = None, to_show=True, y_label=''):
+       """
+       Plots a graph with linear regression lines for the given columns in the dataframe.
+
+       :param x_axis: The column key for the X-axis.
+       :param y_axis: A list of column keys for the Y-axis.
+       :param title: Optional title for the plot.
+       :param save_path: Optional path to save the plot as an image.
+       :param to_show: Whether to display the plot.
+       :param y_label: Label for the Y-axis.
+       """
+       if self.dataframe.empty:
+           raise ValueError("Dataframe is empty. Log results before plotting.")
+
+       if x_axis not in self.dataframe.columns:
+           raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
+
+       if isinstance(y_axis, str):
+           y_axis = [y_axis]
+               
+       for i in range(len(y_axis)):
+           if isinstance(y_axis[i], str):
+               y_axis[i] = (y_axis[i], y_axis[i])
+
+           if y_axis[i][0] not in self.dataframe.columns:
+               raise KeyError(f"Column '{y_axis[i][0]}' not found in dataframe.")
+       
+       for (column_name, name_to_plot) in y_axis:
+           # Extract X and Y data
+           X = self.dataframe[[x_axis]].values  # X values (reshaped for regression)
+           Y = self.dataframe[column_name].values  # Y values
+
+           # Fit the linear regression model
+           model = LinearRegression()
+           model.fit(X, Y)
+
+           # Predict Y values from the linear model
+           Y_pred = model.predict(X)
+
+           # Plot the regression line
+           plt.plot(self.dataframe[x_axis], Y_pred, label=f'{name_to_plot} Regression Line')
+
+       plt.xlabel(x_axis)
+       plt.ylabel(y_label)
+
+       if title != '':
+           plt.title(title)
+
+       plt.legend()
+       plt.grid(True)
+
+       if save_path:
+           plt.savefig(self.lg.logDir + '\\' + save_path)
+
+       if to_show:
+           plt.show()
 
 
 
