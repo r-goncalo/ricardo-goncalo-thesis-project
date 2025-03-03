@@ -21,6 +21,8 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
                         "configuration_dict" : InputSignature(mandatory=False),
                         "configuration_string" : InputSignature(mandatory=False),
                         "base_component_configuration_path" : InputSignature(mandatory=False),
+
+                        "database_study_name" : InputSignature(default_value='experiment'),
                         
                                                 
                         "hyperparameters_range_list" : InputSignature(),
@@ -175,7 +177,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
     @requires_input_proccess
     def run(self):
         
-        study = optuna.create_study(sampler=self.sampler, storage=self.storage, load_if_exists=True)
+        study = optuna.create_study(sampler=self.sampler, storage=self.storage, study_name=self.input["database_study_name"], load_if_exists=True)
 
         study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,

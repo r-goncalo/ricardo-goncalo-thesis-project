@@ -1,28 +1,21 @@
 
-import pandas as pd
 import optuna
 
 
-def load_study_from_dataframe(df : pd.DataFrame, study=None) -> optuna.Study:
+def load_study_from_database(database_path: str, study_name='experiment') -> optuna.Study:
+    """
+    Loads an Optuna study from the given SQLite database file.
 
-    '''
-    Created and returns an optuna trial given the values on the dataframe
-    It can also be used to add trials to a given dataframe
-    '''
+    Args:
+        database_path (str): The path to the SQLite database file.
 
-    if study == None:
-        study = optuna.create_study()
-
-    # Iterate through the rows of the DataFrame to create trials
-    for _, row in df.iterrows():
-        # Create trial parameters from the DataFrame
-        params = {col: row[col] for col in df.columns if col not in ['experiment', 'result']}  # Exclude non-parameter columns
-
-        # Create the trial object
-        trial = optuna.trial.create_trial(
-            params=params,         # The trial parameters (hyperparameters)
-            value=row['result'],    # The objective value (objective function result)
-        )
-
-        # Add the trial to the study
-        study.add_trial(trial)
+    Returns:
+        optuna.Study: The loaded Optuna study.
+    """
+    # Define the storage URI for SQLite database
+    storage_uri = f"sqlite:///{database_path}"
+    
+    # Load the study from the storage URI
+    study = optuna.load_study(study_name=study_name, storage=storage_uri)
+    
+    return study
