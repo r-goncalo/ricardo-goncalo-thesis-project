@@ -158,7 +158,7 @@ class RLTrainerComponent(LoggerSchema):
             if done:
                 break
             if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
-                self.lg.writeLine("In episode " + str(i_episode) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+                self.lg.writeLine("In episode " + self.values["episodes_done"] + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
                 break
             
             

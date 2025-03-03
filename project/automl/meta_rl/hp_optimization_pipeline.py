@@ -24,12 +24,13 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
 
                         "database_study_name" : InputSignature(default_value='experiment'),
                         
+                        "direction" : InputSignature(default_value='maximize'),
                                                 
                         "hyperparameters_range_list" : InputSignature(),
                         "n_trials" : InputSignature(),
                         
-                        "pruning_test_interval" : InputSignature(mandatory=False),
-                        "pruner" : InputSignature(default_value='Median')
+                        "steps" : InputSignature(default_value=1),
+                        "pruner" : InputSignature(mandatory=False)
                                                     
                        }
     
@@ -43,6 +44,9 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         self.initialize_config_dict()
         self.initialize_sampler()
         self.initialize_database()
+        self.initialize_pruning_strategy()
+        
+        self.n_steps = self.input["steps"]
         
         self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
         
@@ -89,15 +93,24 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         else:
             raise NotImplementedError(f"Did not implement for sampler '{self.input['sampler']}'") 
         
-#    def initialize_pruning_strategy(self):
-#        
-#        if "pruning_test_interval" in self.input.keys():
-#            
-#            self.pruning_interval = self.input["pruning_test_interval"]
-#            
-#            if self.input["pruner"] == "Median"
-#            
-#            self.pruning_strategy = optuna.pruners.MedianPruner
+    def initialize_pruning_strategy(self):
+        
+        if 'pruner' in self.input.keys():
+                        
+            if isinstance(self.input["pruner"], optuna.pruners.BasePruner):
+            
+                self.pruning_strategy = self.input["pruner"]
+            
+            
+            elif self.input["pruner"] == "Median":
+            
+                self.pruning_strategy = optuna.pruners.MedianPruner()
+        
+            else:
+                raise NotImplementedError(f"Pruner '{self.input['pruner']}' is not implemented")
+        
+        else:
+            self.lg.writeLine("Won't use prunning strategy")
         
     def load_configuration_str_from_path(self):
         
@@ -139,20 +152,33 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
                 
                 
                 
-    def objective(self, trial : optuna.trial):
+    def objective(self, trial : optuna.Trial):
         
         component_to_test = self.create_component_to_test()
 
         self.lg.writeLine("Starting new training with hyperparameter cofiguration")
         
         self.generate_configuration(trial, component_to_test)
-                
-        component_to_test.train()
         
+        self.episodes_per_test = int(component_to_test.input["num_episodes"] / self.n_steps)
+        
+        for step in range(self.n_steps):
+                
+            component_to_test.train(self.episodes_per_test)
+            
+            results_logger : ResultLogger = component_to_test.get_results_logger() 
+
+            avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
+
+            result = avg_result - (std_result / 4)
+            
+            trial.report(result, step)
+            
+            if trial.should_prune():
+                raise optuna.TrialPruned()
+            
         self.tried_configurations += 1
         
-        #results = component_to_test.get_last_Results()
-
         results_logger : ResultLogger = component_to_test.get_results_logger() 
 
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
@@ -177,7 +203,11 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
     @requires_input_proccess
     def run(self):
         
-        study = optuna.create_study(sampler=self.sampler, storage=self.storage, study_name=self.input["database_study_name"], load_if_exists=True)
+        study = optuna.create_study(sampler=self.sampler, 
+                                    storage=self.storage, 
+                                    study_name=self.input["database_study_name"], 
+                                    load_if_exists=True,
+                                    direction=self.input['direction'])
 
         study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,
