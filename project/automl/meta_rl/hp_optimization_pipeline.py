@@ -161,6 +161,8 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         self.generate_configuration(trial, component_to_test)
         
         self.episodes_per_test = int(component_to_test.input["num_episodes"] / self.n_steps)
+
+        self.lg.writeLine(f"Number of episodes that will be done per step: {self.episodes_per_test}")
         
         for step in range(self.n_steps):
                 
@@ -175,6 +177,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             trial.report(result, step)
             
             if trial.should_prune():
+                self.lg.writeLine("Prunning current experiment...")
                 raise optuna.TrialPruned()
             
         self.tried_configurations += 1

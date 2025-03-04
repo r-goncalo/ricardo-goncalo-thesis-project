@@ -24,7 +24,6 @@ class RLTrainerComponent(LoggerSchema):
     exposed_values = {"total_steps" : 0,
                       "episode_steps" : 0,
                       "episodes_done" : 0,
-                      "total_score" : 0,
                       "episode_score" : 0
                       } #this means we'll have a dic "values" with this starting values
 
@@ -42,6 +41,9 @@ class RLTrainerComponent(LoggerSchema):
         self.optimization_interval = self.input["optimization_interval"]
     
         self.save_interval = self.input["save_interval"]
+
+        self.values["episodes_done"] = 0
+        self.values["total_steps"] = 0
         
         self.result_logger = ResultLogger({ 
             "logger_object" : self.lg,
@@ -94,9 +96,6 @@ class RLTrainerComponent(LoggerSchema):
         
         self.lg.writeLine("Starting to run episodes of training")
         
-        self.values["total_steps"] = 0
-        self.values["total_score"] = 0
-        self.values["episodes_done"] = 0
             
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_training() 
@@ -120,6 +119,8 @@ class RLTrainerComponent(LoggerSchema):
                 "episode_steps" : [self.values["episode_steps"]], 
                 "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
             })   
+
+            ["episode", "episode_steps", "episode_reward", "episode_avg_reward", "avg_reward", "total_reward"]
             
                 
             
@@ -158,7 +159,7 @@ class RLTrainerComponent(LoggerSchema):
             if done:
                 break
             if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
-                self.lg.writeLine("In episode " + self.values["episodes_done"] + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
                 break
             
             
