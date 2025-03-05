@@ -154,21 +154,21 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
                 
     def objective(self, trial : optuna.Trial):
         
-        component_to_test = self.create_component_to_test()
+        self.component_to_test = self.create_component_to_test()
 
         self.lg.writeLine("Starting new training with hyperparameter cofiguration")
         
-        self.generate_configuration(trial, component_to_test)
+        self.generate_configuration(trial, self.component_to_test)
         
-        self.episodes_per_test = int(component_to_test.input["num_episodes"] / self.n_steps)
+        self.episodes_per_test = int(self.component_to_test.input["num_episodes"] / self.n_steps)
 
         self.lg.writeLine(f"Number of episodes that will be done per step: {self.episodes_per_test}")
         
         for step in range(self.n_steps):
                 
-            component_to_test.train(self.episodes_per_test)
+            self.component_to_test.train(self.episodes_per_test)
             
-            results_logger : ResultLogger = component_to_test.get_results_logger() 
+            results_logger : ResultLogger = self.component_to_test.get_results_logger() 
 
             avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
 
@@ -182,7 +182,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             
         self.tried_configurations += 1
         
-        results_logger : ResultLogger = component_to_test.get_results_logger() 
+        results_logger : ResultLogger = self.component_to_test.get_results_logger() 
 
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
 
@@ -198,6 +198,10 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         
         df = study.trials_dataframe()
         self.lg.saveDataframe(df, filename='optuna_study_results.csv')
+        
+        self.component_to_test.save_configuration()
+        
+        del self.component_to_test
     
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------

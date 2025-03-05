@@ -195,6 +195,8 @@ class ResultLogger(LoggerSchema):
         aggregated_values = [ [ values[u - aggregate_number + i] for i in range(0, aggregate_number * 2) ] for u in range(aggregate_number, len(values) - aggregate_number) ]
         x_values = self.dataframe[x_axis][aggregate_number:(len(self.dataframe[x_axis]) - aggregate_number)]
 
+        print(f"aggregated values: {aggregated_values}")
+
         mean_values = np.mean(aggregated_values, axis=1)
         
         if show_std:
