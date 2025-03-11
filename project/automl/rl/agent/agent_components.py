@@ -4,7 +4,7 @@
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
-from automl.rl.learners.learner_component import DeepQLearnerSchema
+from automl.rl.learners.q_learner import DeepQLearnerSchema
 
 from automl.rl.memory_components import MemoryComponent
 

@@ -309,6 +309,21 @@ class ResultLogger(LoggerSchema):
     def get_avg_and_std_n_last_results(self, n_results, column):
         
         return self.get_avg_n_last_results(n_results, column), self.get_std_n_last_results(n_results, column)
+    
+    def get_sorted_dataframe(self, column, ascending):
+        
+        return self.dataframe.sort_values(by=column, ascending=ascending)
+    
+    def get_n_last_ordered_results(self, n, column, ascending = True):
+        
+        '''Returns the best n results'''
+        
+        ordered_dataframe = self.get_sorted_dataframe(column=column, ascending=ascending)
+        
+        return ordered_dataframe.tail(n).to_records()
+        
+        
+        
         
         
     

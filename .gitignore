@@ -2,3 +2,5 @@
 **/__pycache__
 **/data
 peersim-environment/
+/peersim-project
+/project/automl.egg-info
