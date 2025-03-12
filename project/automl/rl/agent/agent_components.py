@@ -4,7 +4,7 @@
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
-from automl.rl.learners.learner_component import DeepQLearnerSchema
+from automl.rl.learners.q_learner import DeepQLearnerSchema
 
 from automl.rl.memory_components import MemoryComponent
 
@@ -12,14 +12,14 @@ from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
 
 from automl.rl.environment.environment_components import EnvironmentComponent
 
+from automl.rl.policy.policy import Policy
+
 # ACTUAL AGENT COMPONENT ---------------------------
 
 from automl.component import Schema, InputSignature, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 import torch
 from automl.utils.class_util import get_class_from_string
-
-from automl.ml.models.model_components import ModelComponent
 
 from automl.utils.shapes_util import torch_zeros_for_space
 
@@ -40,9 +40,7 @@ class AgentSchema(LoggerSchema):
                        "exploration_strategy" : InputSignature( generator=lambda self : self.create_exploration_strategy(), priority=100), #this generates an epsilon greddy strategy object at runtime if it is not specified
                        "exploration_strategy_input" : InputSignature(default_value={}),
                        "exploration_strategy_class" : InputSignature(mandatory=False),
-                       
-                       "policy_model" : InputSignature(priority=200, mandatory=False),
-                       
+                                              
                        "state_shape" : InputSignature(default_value='', mandatory=False, description='The shape received by the model, only used when the model was not passed already initialized'),
                        "action_shape" : InputSignature(default_value='', mandatory=False, description='Shape of the output of the model, only used when the model was not passed already'),
                         
@@ -54,8 +52,10 @@ class AgentSchema(LoggerSchema):
                        
                        "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
                        
-                       "model_class" : InputSignature(mandatory=False, possible_types=[str]), # TODO: make it possible for the class to be a type
-                       "model_input" : InputSignature(mandatory=False)
+                       "policy" : InputSignature(priority=200, mandatory=False),                       
+                       
+                       "policy_class" : InputSignature(mandatory=False, possible_types=[str]), # TODO: make it possible for the class to be a type
+                       "policy_input" : InputSignature(default_value={})
                     }
 
         
@@ -68,7 +68,7 @@ class AgentSchema(LoggerSchema):
     
         self.initialize_exploration_strategy()
         self.initialize_state_memory()
-        self.initialize_models()
+        self.initialize_policy()
         self.initialize_learner()
         self.initialize_memory()
         
@@ -80,7 +80,6 @@ class AgentSchema(LoggerSchema):
         self.GAMMA = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
                 
         self.lg.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA}")
-        
         
         self.exploration_strategy : ExplorationStrategySchema = self.input["exploration_strategy"]
         
@@ -101,19 +100,16 @@ class AgentSchema(LoggerSchema):
         return self.initialize_child_component(exploration_strategy_class, self.input["exploration_strategy_input"])         
 
         
-    def initialize_models(self):
+    def initialize_policy(self):
         
-        self.lg.writeLine("Initializing policy model...")
+        self.lg.writeLine("Initializing policy...")
 
-        if "policy_model" in self.input.keys():
-            self.policy_model : ModelComponent  = self.input["policy_model"]
+        if "policy" in self.input.keys():
+            self.policy : Policy  = self.input["policy"]
             
         else:
-            self.policy_model : ModelComponent = self.create_policy_model()
+            self.policy : Policy = self.create_policy()
         
-        #our policy network will transform input frames to output acions (what should we do given the current frame?)
-        self.policy_model.pass_input({"device" : self.device}) #we have to guarantee that the device in our model is the same as the agent's
-
 
     def initialize_state_memory(self):
             
@@ -139,21 +135,21 @@ class AgentSchema(LoggerSchema):
         self.lg.writeLine(f"State length is {self.state_length}")
 
 
-    def create_policy_model(self) -> ModelComponent:
+    def create_policy(self) -> Policy:
         
-        '''creates and returns a policy model for this agent'''        
+        '''creates and returns a policy for this agent'''        
                 
-        if not "model_class" in self.input.keys():
-            raise Exception("No policy model passed to agent and no model_class defined to generate the policy")
+        if not "policy_class" in self.input.keys():
+            raise Exception("No policy passed to agent and no policy_class defined to generate the policy")
         
-        if not "model_input" in self.input.keys():
-            model_input = {}
+        if not "policy_input" in self.input.keys():
+            policy_input = {}
         else:
-            model_input = self.input["model_input"]
+            policy_input = self.input["policy_input"]
         
-        self.model_class = self.input["model_class"]
+        self.policy_class = self.input["policy_class"]
                 
-        model_class : type[ModelComponent] = get_class_from_string(self.model_class)
+        policy_class : type[Policy] = get_class_from_string(self.policy_class)
                     
         if ( not "state_shape" in self.input.keys() ) or (not "action_shape" in self.input.keys()):
             raise Exception(f'In creating a policy model for agent: undefined input shape and/or output shape in keys passed: {self.input.keys()}')            
@@ -164,13 +160,13 @@ class AgentSchema(LoggerSchema):
         if self.state_memory_size > 1:
             self.model_input_shape = (self.state_memory_size, self.model_input_shape)
         
-        model_input["input_shape"] =  self.model_input_shape
-        model_input["output_shape"] = self.model_output_shape
+        policy_input["input_shape"] =  self.model_input_shape
+        policy_input["output_shape"] = self.model_output_shape
         
         self.lg.writeLine("Creating policy model...")
         
         #this makes some strong assumptions about the shape of the model and the input being received
-        return self.initialize_child_component(model_class, input=model_input)
+        return self.initialize_child_component(policy_class, input=policy_input)
         
 
     def initialize_learner(self):
@@ -190,7 +186,7 @@ class AgentSchema(LoggerSchema):
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
     
     def get_policy(self):
-        return self.policy_model
+        return self.policy
     
     @requires_input_proccess
     def policy_predict(self, state):
@@ -201,17 +197,15 @@ class AgentSchema(LoggerSchema):
         
         possible_state_memory = self.get_state_memory_with_new(state)
         
-        valuesForActions : torch.Tensor = self.policy_model.predict(torch.cat([element for element in possible_state_memory]))
-        
-        max_value, max_index = valuesForActions.max(dim=1)
-        
-        return max_index.item() # the action
+        return self.policy.predict(torch.cat([element for element in possible_state_memory]))
 
                     
     
     @requires_input_proccess
     def policy_random_predict(self):
-        return self.policy_model.random_prediction()
+        return self.policy.random_prediction()
+    
+    
     
     @requires_input_proccess
     #selects action using policy prediction
@@ -295,14 +289,6 @@ class AgentSchema(LoggerSchema):
             
             return new_state
 
-
-    
-    # UTIL ----------------------------------------------------------------------------------------
-    
-    @requires_input_proccess
-    def save_policy(self):
-        
-        self.lg.saveFile(self.policy_model, 'model', 'policy_net')
         
 
 

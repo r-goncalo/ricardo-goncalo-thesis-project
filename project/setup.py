@@ -6,4 +6,5 @@ setup(
     version='0.1.0',
     description='An AutoRL library',
     author='Ricardo Gonçalo',
+    install_requires = []
 )

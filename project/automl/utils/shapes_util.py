@@ -8,7 +8,7 @@ from math import prod
 
 # INPUT LAYER SIZE --------------------------------------------------------------------------
 
-def input_layer_size_of_space_gym(state_space : gym.spaces.Space) -> int:
+def discrete_input_layer_size_of_space_gym(state_space : gym.spaces.Space) -> int:
     
     """
     Determines the number of input nodes needed for a given state space.
@@ -30,10 +30,10 @@ def input_layer_size_of_space_gym(state_space : gym.spaces.Space) -> int:
         return state_space.n  # Number of binary values
 
     elif isinstance(state_space, gym.spaces.Tuple):
-        return sum(input_layer_size_of_space_gym(s) for s in state_space.spaces)  # Sum of all subspaces
+        return sum(discrete_input_layer_size_of_space_gym(s) for s in state_space.spaces)  # Sum of all subspaces
     
     elif isinstance(state_space, gym.spaces.Dict):
-        return sum(input_layer_size_of_space_gym(s) for s in state_space.spaces.values())  # Sum of all dictionary subspaces
+        return sum(discrete_input_layer_size_of_space_gym(s) for s in state_space.spaces.values())  # Sum of all dictionary subspaces
 
     
     else:
@@ -41,23 +41,23 @@ def input_layer_size_of_space_gym(state_space : gym.spaces.Space) -> int:
     
     
     
-def input_layer_size_of_space_torch(state_space : torch.Size) -> int:
+def discrete_input_layer_size_of_space_torch(state_space : torch.Size) -> int:
 
     return prod(state_space)
     
     
     
-def input_layer_size_of_space(state_space) -> int:
+def discrete_input_layer_size_of_space(state_space) -> int:
         
     if isinstance(state_space, torch.Size):
-        return input_layer_size_of_space_torch(state_space)
+        return discrete_input_layer_size_of_space_torch(state_space)
     
     elif isinstance(state_space, gym.spaces.Space):
-        return input_layer_size_of_space_gym(state_space)
+        return discrete_input_layer_size_of_space_gym(state_space)
     
     elif isinstance(state_space, tuple):
         
-        return prod([ (s if isinstance(s, int) else input_layer_size_of_space(s)) for s in state_space])
+        return prod([ (s if isinstance(s, int) else discrete_input_layer_size_of_space(s)) for s in state_space])
     
     else:
         raise NotImplementedError(f"Unkown space type: {type(state_space)}")
@@ -65,7 +65,7 @@ def input_layer_size_of_space(state_space) -> int:
 
 # OUTPUT LAYER SIZE ---------------------------------------------------------------------
 
-def output_layer_size_of_space(action_space):
+def discrete_output_layer_size_of_space(action_space):
     
     """
     Determines the number of output nodes needed for a given action space.
@@ -87,10 +87,10 @@ def output_layer_size_of_space(action_space):
         return action_space.n  # Number of binary actions
     
     elif isinstance(action_space, gym.spaces.Tuple):
-        return sum(output_layer_size_of_space(s) for s in action_space.spaces)  # Sum of all subspaces
+        return sum(discrete_output_layer_size_of_space(s) for s in action_space.spaces)  # Sum of all subspaces
     
     elif isinstance(action_space, gym.spaces.Dict):
-        return sum(output_layer_size_of_space(s) for s in action_space.spaces.values())  # Sum of all dictionary subspaces
+        return sum(discrete_output_layer_size_of_space(s) for s in action_space.spaces.values())  # Sum of all dictionary subspaces
     
     else:
         raise NotImplementedError(f"Unknown action space type: {type(action_space)}")

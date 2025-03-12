@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from automl.component import Schema, InputSignature, requires_input_proccess
 import random
 
-from automl.utils.shapes_util import input_layer_size_of_space, output_layer_size_of_space
+from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
 
 from automl.ml.models.model_components import ModelComponent
 
@@ -52,12 +52,12 @@ class FullyConnectedModelSchema(ModelComponent):
         
         super().proccess_input()
         
-        self.input_size: int =  input_layer_size_of_space(self.input_shape)
+        self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
         self.hidden_size: int = self.input["hidden_size"]
         self.hidden_layers: int = self.input["hidden_layers"]
         
-        self.output_size: int = output_layer_size_of_space(self.output_shape)
+        self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
         
         print(f"Created fully connected model with input size = {self.input_size}, and output size = {self.output_size}")
         

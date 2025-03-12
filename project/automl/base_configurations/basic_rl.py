@@ -1,5 +1,6 @@
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.neural_model import FullyConnectedModelSchema
+from automl.rl.policy.policy import QPolicy
 
 def config_dict():
 
@@ -24,10 +25,13 @@ def config_dict():
                 "epsilon_start" : 0.99,
                 "epsilon_decay" : 0.99
                 },
-            "model_class" : str(FullyConnectedModelSchema),
-            "model_input" : {
-                "hidden_layers" : 3,
-                "hidden_size" : 64
+            "policy_class" : str(QPolicy),
+            "policy_input" : {
+                "model_class" : str(FullyConnectedModelSchema),
+                "model_input" : {
+                    "hidden_layers" : 3,
+                    "hidden_size" : 64
+                }
             },
             "learner_input" : {
                 "target_update_rate" : 0.05,

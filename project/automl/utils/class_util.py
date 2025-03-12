@@ -28,7 +28,7 @@ def get_class_from_string(class_string: str):
         return getattr(module, class_name)
     
     except (ImportError, AttributeError) as e:
-        raise ImportError(f"Unable to locate class '{class_string}': {e}")
+        raise ImportError(f"Unable to locate module '{module_name}' in class '{class_string}': {e}")
     
     except Exception as e:
         raise Exception(f"Problem when getting class with string {class_string}: {e}")
