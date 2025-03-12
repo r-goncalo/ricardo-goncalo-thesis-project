@@ -192,7 +192,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         
         self.results_logger.log_results(results_to_log)
         
-        return - result #this function is minimized as a loss function, so we return the regret
+        return result
     
     def after_trial(self, study : optuna.Study, trial : optuna.Trial):
         
@@ -215,6 +215,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
                                     study_name=self.input["database_study_name"], 
                                     load_if_exists=True,
                                     direction=self.input['direction'])
+
 
         study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,
