@@ -19,9 +19,10 @@ from automl.rl.policy.policy import Policy
 from automl.component import Schema, InputSignature, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 import torch
-from automl.utils.class_util import get_class_from_string
+from automl.utils.class_util import get_class_from
 
 from automl.utils.shapes_util import torch_zeros_for_space
+
 
 DEFAULT_MEMORY_SIZE = 200
 
@@ -95,7 +96,7 @@ class AgentSchema(LoggerSchema):
         
         self.exploration_strategy_class = self.input["exploration_strategy_class"]
                 
-        exploration_strategy_class : type[ExplorationStrategySchema] = get_class_from_string(self.exploration_strategy_class)
+        exploration_strategy_class : type[ExplorationStrategySchema] = get_class_from(self.exploration_strategy_class)
         
         return self.initialize_child_component(exploration_strategy_class, self.input["exploration_strategy_input"])         
 
@@ -149,7 +150,7 @@ class AgentSchema(LoggerSchema):
         
         self.policy_class = self.input["policy_class"]
                 
-        policy_class : type[Policy] = get_class_from_string(self.policy_class)
+        policy_class : type[Policy] = get_class_from(self.policy_class)
                     
         if ( not "state_shape" in self.input.keys() ) or (not "action_shape" in self.input.keys()):
             raise Exception(f'In creating a policy model for agent: undefined input shape and/or output shape in keys passed: {self.input.keys()}')            
@@ -160,8 +161,8 @@ class AgentSchema(LoggerSchema):
         if self.state_memory_size > 1:
             self.model_input_shape = (self.state_memory_size, self.model_input_shape)
         
-        policy_input["input_shape"] =  self.model_input_shape
-        policy_input["output_shape"] = self.model_output_shape
+        policy_input["state_shape"] =  self.model_input_shape
+        policy_input["action_shape"] = self.model_output_shape
         
         self.lg.writeLine("Creating policy model...")
         

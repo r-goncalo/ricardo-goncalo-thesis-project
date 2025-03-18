@@ -5,6 +5,8 @@ from automl.rl.learners.learner_component import LearnerSchema
 
 import torch
 
+from automl.rl.policy.policy import Policy
+
 class QLearner(LearnerSchema):
     
     parameters_signature = {
@@ -46,9 +48,11 @@ class DeepQLearnerSchema(QLearner):
         
         self.update_target_at_optimization = self.input["update_target_at_optimization"]
         
-        self.policy = self.agent.get_policy()
+        self.policy : Policy = self.agent.get_policy()
         
-        self.target_net = self.policy.clone() #the target network has the same initial parameters as the policy being trained
+        self.model = self.policy.model
+        
+        self.target_net = self.model.clone() #the target network has the same initial parameters as the policy being trained
 
         self.initialize_optimizer()
         
@@ -56,7 +60,7 @@ class DeepQLearnerSchema(QLearner):
     def initialize_optimizer(self):
         self.optimizer : OptimizerSchema = self.input["optimizer"]
         self.optimizer.pass_input(self.input["optimizer_input"])
-        self.optimizer.pass_input({"model_params" : self.policy.get_model_params()})
+        self.optimizer.pass_input({"model_params" : self.model.get_model_params()})
 
     
     # EXPOSED METHODS --------------------------------------------------------------------------
@@ -64,7 +68,7 @@ class DeepQLearnerSchema(QLearner):
     @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
         
-        super().learn(trajectory)
+        super().learn(trajectory, discount_factor)
                 
         state_batch = torch.stack(trajectory.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
         reward_batch = torch.tensor(trajectory.reward, device=self.device)
@@ -79,7 +83,7 @@ class DeepQLearnerSchema(QLearner):
                 
         
         #predict the action we would take given the current state
-        predicted_actions_values = self.policy.predict(state_batch)
+        predicted_actions_values = self.model.predict(state_batch)
         predicted_actions_values, predicted_actions = predicted_actions_values.max(1)
         
         #compute the q values our target net predicts for the next_state (perceived reward)
@@ -102,4 +106,4 @@ class DeepQLearnerSchema(QLearner):
     @requires_input_proccess            
     def update_target_model(self):
         
-        self.target_net.update_model_with_target(self.policy, self.TAU)
+        self.target_net.update_model_with_target(self.model, self.TAU)

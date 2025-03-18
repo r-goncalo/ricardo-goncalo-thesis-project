@@ -98,7 +98,7 @@ class RLTrainerComponent(LoggerSchema):
         
             
         for agent_in_training in self.agents_in_training.values():
-            agent_in_training.setup_training() 
+            agent_in_training.setup_training_session() 
             
         
         n_episodes_to_do = self.num_episodes - self.values["episodes_done"] if n_episodes == None else min(self.num_episodes - self.values["episodes_done"], n_episodes)

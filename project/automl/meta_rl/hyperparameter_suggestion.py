@@ -45,9 +45,7 @@ class HyperparameterSuggestion():
         return suggested_value
     
     def pass_input(self, component_to_change : Schema, hyperparameter_localizer, suggested_value):
-        
-        print("Passing input to component: " + component_to_change.name)
-                
+                        
         if isinstance(hyperparameter_localizer, str):
             component_to_change.pass_input({hyperparameter_localizer : suggested_value})
             return        

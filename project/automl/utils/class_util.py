@@ -1,5 +1,16 @@
 import importlib
 
+def get_class_from(class_definition):
+    
+    if isinstance(class_definition, type):
+        return class_definition
+    
+    elif isinstance(class_definition, str):
+        return get_class_from_string(class_definition)
+    
+    else:
+        raise Exception(f"Clas definition {class_definition} is neither of type str nor type")
+
 def get_class_from_string(class_string: str):
     
     """

@@ -45,7 +45,7 @@ class FullyConnectedModelSchema(ModelComponent):
     parameters_signature = {
         "hidden_layers" : InputSignature(description="Number of hidden layers"),
         "hidden_size": InputSignature(description="Size of hidden layers"),
-        "device": InputSignature(default_value="", ignore_at_serialization=True)
+        "device": InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }    
     
     def proccess_input(self):
@@ -58,9 +58,7 @@ class FullyConnectedModelSchema(ModelComponent):
         self.hidden_layers: int = self.input["hidden_layers"]
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
-        
-        print(f"Created fully connected model with input size = {self.input_size}, and output size = {self.output_size}")
-        
+                
         self.model = FullyConnectedModelSchema.DQN(
             input_size=self.input_size, 
             hidden_size=self.hidden_size, 
@@ -68,7 +66,7 @@ class FullyConnectedModelSchema(ModelComponent):
             hidden_layers=self.hidden_layers
         )
         
-        if self.input["device"] != "":
+        if "device" in self.input.keys():
             self.model.to(self.input["device"])
             
         print("Initializing model with input" + str(self.input))

@@ -179,25 +179,26 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             if trial.should_prune():
                 self.lg.writeLine("Prunning current experiment...")
                 raise optuna.TrialPruned()
-            
-        self.tried_configurations += 1
-        
+                    
         results_logger : ResultLogger = self.component_to_test.get_results_logger() 
 
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
 
         result = avg_result - (std_result / 4)
         
+        
+        return result
+    
+    def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
+        
+        self.tried_configurations += 1
+        
+        result = trial.value
+        
         results_to_log = {'experiment' : self.tried_configurations, **self.suggested_values, "result" : [result]}
         
         self.results_logger.log_results(results_to_log)
         
-        return result
-    
-    def after_trial(self, study : optuna.Study, trial : optuna.Trial):
-        
-        df = study.trials_dataframe()
-        self.lg.saveDataframe(df, filename='optuna_study_results.csv')
         
         self.component_to_test.save_configuration()
         

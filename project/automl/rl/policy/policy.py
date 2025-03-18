@@ -6,7 +6,11 @@ from automl.utils.shapes_util import discrete_input_layer_size_of_space, discret
 
 from automl.ml.models.model_components import ModelComponent
 
+from automl.utils.class_util import get_class_from
+
 import torch
+
+import random
 
 class Policy(Schema):
         
@@ -32,7 +36,7 @@ class Policy(Schema):
     def initialize_model(self):
         
         if not "model" in self.input.keys():
-            self.create_model()
+            self.model : ModelComponent = self.create_model()
         
         else:
             self.model : ModelComponent = self.input["model"]
@@ -47,9 +51,9 @@ class Policy(Schema):
         if not "model_class" in self.input.keys():
             raise Exception("Model not defined and model class not defined")
         
-        model_class = self.input["model_class"]
+        model_class = get_class_from(self.input["model_class"])
         
-        self.initialize_child_component(model_class)
+        return self.initialize_child_component(model_class)
         
         
     def predict(self, state):
@@ -85,8 +89,8 @@ class QPolicy(Policy):
     
         super().initialize_model()
         
-        self.model_input_shape = discrete_input_layer_size_of_space(self.input["state_space"])
-        self.model_output_shape = discrete_output_layer_size_of_space(self.input["action_space"])
+        self.model_input_shape = self.input["state_shape"]
+        self.model_output_shape = self.input["action_shape"]
         
         self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape})
         
@@ -104,5 +108,5 @@ class QPolicy(Policy):
     
     
     @requires_input_proccess
-    def random_prediction(self, state):
-        raise NotImplementedError()
+    def random_prediction(self):
+        return random.randint(0, self.model_output_shape.n - 1)

@@ -30,8 +30,16 @@ class AgentTrainer(Schema):
                       "total_score" : 0,
                       "episode_score" : 0
                       } #this means we'll have a dic "values" with this starting values
+    
+    
+    
+    def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
+        super().__init__(*args, **kwargs)
+        
+        self.reset_training()
 
-    def proccess_input(self): #this is the best method to have initialization done right after
+
+    def proccess_input(self):
         
         super().proccess_input()
                                 
@@ -50,18 +58,28 @@ class AgentTrainer(Schema):
         
         self.result_logger = ResultLogger({ "logger_object" : self.lg,
             "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]})
+        
                     
     
     # TRAINING_PROCESS ---------------------
     
-    @requires_input_proccess
-    def setup_training(self):
+    def reset_training(self):
         
-        self.lg.writeLine("Setting up training session", file=self.TRAIN_LOG)
+        '''Resets the training values, such as the total number of episodes'''
         
         self.values["total_steps"] = 0
         self.values["total_score"] = 0
         self.values["episodes_done"] = 0
+        
+        self.values["episode_steps"] = 0
+        self.values["episode_score"] = 0
+        
+        
+        
+    @requires_input_proccess
+    def setup_training_session(self):
+        
+        self.lg.writeLine("Setting up training session", file=self.TRAIN_LOG)
                 
     @requires_input_proccess
     def end_training(self):

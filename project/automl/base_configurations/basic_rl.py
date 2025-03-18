@@ -2,14 +2,14 @@ from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.policy.policy import QPolicy
 
-def config_dict():
+def config_dict(num_episodes=200):
 
     return {
     
     "__type__": "<class 'automl.rl.rl_pipeline.RLPipelineComponent'>",
     "name": "RLPipelineComponent",
     "input": {
-        "num_episodes": 200,
+        "num_episodes": num_episodes,
         "state_memory_size": 2,
         "limit_steps": 1000,
         "optimization_interval": 100,

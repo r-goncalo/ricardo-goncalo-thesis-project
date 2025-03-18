@@ -171,13 +171,21 @@ def decode_components_from_dict(dict : dict):
     component : Schema = component_type()
     component.name = component_name
     
-    child_components = dict.get("child_components") 
+    try:
     
-    if child_components != None:
-        
-        for child_dict in child_components:
-            
-            component.define_component_as_child(decode_components_from_dict(child_dict))
+        child_components = dict.get("child_components") 
+
+        if child_components != None:
+
+            for child_dict in child_components:
+
+                decoded_child_component = decode_components_from_dict(child_dict)
+
+                component.define_component_as_child(decoded_child_component)
+    
+    except Exception as e:
+        print(f"Exception on decoding child components of component named {component_name} with type {component_type_name}")
+        raise e
             
     return component
     

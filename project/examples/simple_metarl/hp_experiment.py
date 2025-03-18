@@ -8,19 +8,7 @@ from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPi
 
 def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
     
-    hyperparameters_to_change : list[HyperparameterSuggestion] = []
-    
-    hyperparameters_to_change = [ *hyperparameters_to_change, 
-                                
-                             HyperparameterSuggestion(
-                                name='num_episodes', 
-                                hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["num_episodes"])
-                                ],
-                                #value_suggestion = ('int', {'low':200, 'high':800, 'step':100}) 
-                                value_suggestion = ('int', {'low':10, 'high':10}) 
-                            ),
-                            ]   
+    hyperparameters_to_change : list[HyperparameterSuggestion] = [] 
     
     hyperparameters_to_change = [ *hyperparameters_to_change, 
                                 
@@ -65,14 +53,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='hidden_layers', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "model_input", "hidden_layers"])
+                                    ('RLPipelineComponent', ["agents_input", "policy_input", "model_input", "hidden_layers"])
                                 ],
                                 value_suggestion = ('int', {'low':2, 'high':8}) 
                             ),
                              HyperparameterSuggestion(
                                 name='hidden_size', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "model_input", "hidden_size"])
+                                    ('RLPipelineComponent', ["agents_input", "policy_input", "model_input", "hidden_size"])
                                 ],
                                 value_suggestion = ('cat', {'choices' : [16, 32, 64, 128, 256]}) 
                             )
@@ -111,11 +99,15 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
     
     return hyperparameters_to_change
 
+def get_configuration_dict(*args, **kwargs):
+    
+    return load_configuration_dict('basic_rl', *args, **kwargs)
 
-def gen_hp_optimization_input(hyperparameters_to_change):
+
+def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict):
     
     return {
-    "configuration_dict" : load_configuration_dict('basic_rl'),
+    "configuration_dict" : configuration_dict,
     "hyperparameters_range_list" : hyperparameters_to_change,
     "n_trials" : 50,
     "steps" : 2,
