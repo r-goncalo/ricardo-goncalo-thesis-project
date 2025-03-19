@@ -1,4 +1,4 @@
-from automl.component import InputSignature, Schema, requires_input_proccess
+from automl.component import InputSignature, Component, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.rl_pipeline import RLPipelineComponent
@@ -140,7 +140,7 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         return rl_pipeline
 
 
-    def generate_configuration(self, trial : optuna.trial, base_component : Schema):
+    def generate_configuration(self, trial : optuna.trial, base_component : Component):
         
         for hyperparameter_suggestion in self.hyperparameters_range_list:
             

@@ -1,4 +1,4 @@
-from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 
@@ -12,7 +12,7 @@ import torch
 
 import random
 
-class Policy(Schema):
+class Policy(Component):
         
     '''
     It abstracts the usage of a model for the agent in determining its actions

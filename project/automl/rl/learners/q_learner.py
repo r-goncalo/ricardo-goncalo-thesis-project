@@ -1,4 +1,4 @@
-from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
@@ -40,7 +40,7 @@ class DeepQLearnerSchema(QLearner):
         
         super().proccess_input()
         
-        self.agent : Schema = self.input["agent"]
+        self.agent : Component = self.input["agent"]
         
         self.device = self.input["device"]
         

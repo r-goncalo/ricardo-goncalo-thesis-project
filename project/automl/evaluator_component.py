@@ -1,10 +1,10 @@
 
 
-from automl.component import Schema, requires_input_proccess
+from automl.component import Component, requires_input_proccess
 
 
 
-class EvaluatorComponent(Schema):
+class EvaluatorComponent(Component):
     
     '''
     A component that evaluates a Component, being able to give it a single numeric score
@@ -25,5 +25,5 @@ class EvaluatorComponent(Schema):
     # EVALUATION -------------------------------------------------------------------------------
     
     @requires_input_proccess
-    def evaluate(self, component_to_evaluate : Schema):
+    def evaluate(self, component_to_evaluate : Component):
         pass

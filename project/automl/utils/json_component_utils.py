@@ -1,6 +1,6 @@
 import json
 
-from automl.component import Schema, InputSignature, InputMetaData
+from automl.component import Component, InputSignature, InputMetaData
 
 
 from automl.utils.class_util import get_class_from_string
@@ -12,7 +12,7 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
     
     def default(self, obj):
                         
-        if isinstance(obj, Schema):
+        if isinstance(obj, Component):
 
             return {
                 "__type__": str(type(obj)),
@@ -42,7 +42,7 @@ class ComponentInputEncoder(json.JSONEncoder):
     
     def default(self, obj):
         
-        if isinstance(obj, Schema):
+        if isinstance(obj, Component):
             
             input = obj.input
             
@@ -76,7 +76,7 @@ class ComponentEncoder(json.JSONEncoder):
     
     def default(self, obj):
         
-        if isinstance(obj, Schema):
+        if isinstance(obj, Component):
             
             toReturn = {
                 "__type__": str(type(obj)),
@@ -102,7 +102,7 @@ def json_string_of_component(component, ignore_defaults = False):
 # DECODING --------------------------------------------------------------------------
     
 
-def decode_components_input_element(source_component : Schema, element):
+def decode_components_input_element(source_component : Component, element):
         
     if isinstance(element, dict):
         keys = element.keys()
@@ -111,7 +111,7 @@ def decode_components_input_element(source_component : Schema, element):
             
             class_of_component : type = get_class_from_string(element['__type__'])
             
-            if issubclass(class_of_component, Schema): #if it is a Schema
+            if issubclass(class_of_component, Component): #if it is a Schema
                 
                 if "localization" in keys:
                         
@@ -143,7 +143,7 @@ def decode_components_input_element(source_component : Schema, element):
     
 
 
-def decode_components_input(component : Schema, source_component : Schema, component_dict : dict):
+def decode_components_input(component : Component, source_component : Component, component_dict : dict):
     
     input_to_pass = {}
     
@@ -168,7 +168,7 @@ def decode_components_from_dict(dict : dict):
         
     component_type = get_class_from_string(component_type_name)
     
-    component : Schema = component_type()
+    component : Component = component_type()
     component.name = component_name
     
     try:

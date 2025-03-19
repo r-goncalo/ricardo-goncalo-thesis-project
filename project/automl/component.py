@@ -3,7 +3,10 @@ from automl.core.input_management import InputMetaData, InputSignature
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
-class Schema: # a component that receives and verifies input
+
+class Component: # a component that receives and verifies input
+
+    '''This is the basic Squema, all other Squemas should extend it'''
     
     # a dictionary with { "input_name" : (default_value, validity verification) }
     # if default_value is None, an exception error is raised when input is missing
@@ -32,8 +35,8 @@ class Schema: # a component that receives and verifies input
         self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         
-        self.child_components : list[Schema] = []
-        self.parent_component : Schema = None
+        self.child_components : list[Component] = []
+        self.parent_component : Component = None
         
         self.name = str(type(self).__name__) #defines the initial component name
 
@@ -105,7 +108,7 @@ class Schema: # a component that receives and verifies input
         
         '''Explicitly initializes a component of a certain type as a child component of this one'''
         
-        initialized_component : Schema = component_type(input)
+        initialized_component : Component = component_type(input)
         
         self.define_component_as_child(initialized_component)
         
@@ -154,7 +157,7 @@ class Schema: # a component that receives and verifies input
         
         '''Gets child component by its location'''
         
-        current_component : Schema = self
+        current_component : Component = self
 
         for index in localization:
             current_component = current_component.child_components[index]
@@ -273,7 +276,7 @@ class Schema: # a component that receives and verifies input
                     
                 organized_parameters_signatures[priority].append((key, parameter_signature)) #put its key, parameter_signature pair in the list of respective priority                
             
-            if current_class_component == Schema: #if this was the Component class, we reached the end
+            if current_class_component == Component: #if this was the Component class, we reached the end
                 break
             
             current_class_component = current_class_component.__bases__[0] #gets the super class
@@ -376,7 +379,7 @@ def requires_input_proccess(func):
     An annotation that makes the input be proccessed, if it was not already, when a function is called
     Note that if a method has its super method with this annotation, adding it will be redundant
     '''
-    def wrapper(self : Schema, *args, **kwargs):
+    def wrapper(self : Component, *args, **kwargs):
         if not self._input_was_proccessed:
             self.proccess_input()
         return func(self, *args, **kwargs)
@@ -385,7 +388,7 @@ def requires_input_proccess(func):
 def uses_component_exception(func):
     '''A wrapper for functions so its errors have more information regarding the component they appeared in'''
 
-    def wrapper(self : Schema, *args, **kwargs):
+    def wrapper(self : Component, *args, **kwargs):
         
         try:
             return func(self, *args, **kwargs)

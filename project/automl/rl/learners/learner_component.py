@@ -1,11 +1,11 @@
-from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 
 
 import torch
 
-class LearnerSchema(Schema):
+class LearnerSchema(Component):
         
     parameters_signature = {
         "agent" : InputSignature(),

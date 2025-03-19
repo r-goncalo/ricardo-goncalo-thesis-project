@@ -1,4 +1,4 @@
-from automl.component import InputSignature, Schema, requires_input_proccess
+from automl.component import InputSignature, Component, requires_input_proccess
 
 from logger.Log import LogClass, openLog
 
@@ -11,20 +11,20 @@ from enum import Enum
 BASE_EXPERIMENT_DIRECTORY = 'data\\experiments'
 
 
-def on_log_pass(self : Schema):
+def on_log_pass(self : Component):
         
     self.lg = self.input["logger_object"]
     self.input["logger_directory"] = self.lg.logDir
     
 
-def generate_log_object(self : Schema):
+def generate_log_object(self : Component):
         
     directory = self.input["logger_directory"]
     
     return openLog(logDir=directory, useLogName=False)
 
 
-def generate_log_directory(self : Schema):
+def generate_log_directory(self : Component):
     
     print(f"generate_log_directory for object {self.name}")
     
@@ -36,7 +36,7 @@ def generate_log_directory(self : Schema):
         return open_or_create_folder(BASE_EXPERIMENT_DIRECTORY, folder_name=self.name, create_new=self.input["create_directory_if_existent"])
 
 
-class LoggerSchema(Schema):
+class LoggerSchema(Component):
 
     '''
     A component that generalizes the behaviour of a component that has a logger object 

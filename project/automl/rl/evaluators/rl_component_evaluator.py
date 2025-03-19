@@ -1,5 +1,5 @@
 
-from automl.component import Schema, requires_input_proccess
+from automl.component import Component, requires_input_proccess
 from automl.evaluator_component import EvaluatorComponent
 from automl.rl.rl_pipeline import RLPipelineComponent
 

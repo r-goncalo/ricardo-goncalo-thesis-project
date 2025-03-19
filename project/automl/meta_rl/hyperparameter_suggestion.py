@@ -1,5 +1,5 @@
 
-from automl.component import Schema
+from automl.component import Component
 
 import optuna
 
@@ -15,7 +15,7 @@ class HyperparameterSuggestion():
         self.hyperparameter_localizations = hyperparameter_localizations
         self.value_suggestion = value_suggestion
         
-    def make_suggestion(self, source_component : Schema, trial : optuna.Trial):
+    def make_suggestion(self, source_component : Component, trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         
@@ -36,7 +36,7 @@ class HyperparameterSuggestion():
         
         for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
             
-            component_to_change : Schema = source_component.get_child_component(component_localizer)    
+            component_to_change : Component = source_component.get_child_component(component_localizer)    
             
             self.pass_input(component_to_change, hyperparameter_localizer, suggested_value)
             
@@ -44,7 +44,7 @@ class HyperparameterSuggestion():
             
         return suggested_value
     
-    def pass_input(self, component_to_change : Schema, hyperparameter_localizer, suggested_value):
+    def pass_input(self, component_to_change : Component, hyperparameter_localizer, suggested_value):
                         
         if isinstance(hyperparameter_localizer, str):
             component_to_change.pass_input({hyperparameter_localizer : suggested_value})

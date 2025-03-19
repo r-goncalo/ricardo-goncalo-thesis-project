@@ -16,7 +16,7 @@ from automl.rl.policy.policy import Policy
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 import torch
 from automl.utils.class_util import get_class_from
@@ -36,7 +36,7 @@ class AgentSchema(LoggerSchema):
                        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
                        "batch_size" : InputSignature(default_value=64),
                        "discount_factor" : InputSignature(default_value=0.95),
-                       "training_context" : InputSignature(possible_types=[Schema]),
+                       "training_context" : InputSignature(possible_types=[Component]),
                        
                        "exploration_strategy" : InputSignature( generator=lambda self : self.create_exploration_strategy(), priority=100), #this generates an epsilon greddy strategy object at runtime if it is not specified
                        "exploration_strategy_input" : InputSignature(default_value={}),

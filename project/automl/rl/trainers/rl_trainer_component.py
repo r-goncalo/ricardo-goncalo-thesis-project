@@ -1,6 +1,6 @@
 
 from typing import Dict
-from automl.component import InputSignature, Schema, requires_input_proccess
+from automl.component import InputSignature, Component, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer

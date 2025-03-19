@@ -1,10 +1,10 @@
-from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 import torch.optim as optim
 import torch.nn as nn
 
 from abc import abstractmethod
 
-class OptimizerSchema(Schema):
+class OptimizerSchema(Component):
         
     @abstractmethod
     def optimize_model(self, predicted, correct) -> None:

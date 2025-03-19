@@ -1,6 +1,6 @@
 
 
-from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 from automl.rl.environment.environment_components import EnvironmentComponent
 
 import torch

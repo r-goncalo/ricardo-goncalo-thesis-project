@@ -1,4 +1,4 @@
-from automl.component import InputSignature, Schema, requires_input_proccess
+from automl.component import InputSignature, Component, requires_input_proccess
 from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy

@@ -1,11 +1,11 @@
-from ..component import InputSignature, Schema
+from ..component import InputSignature, Component
 
 from abc import abstractmethod
 from enum import Enum
 
 # EXECUTABLE COMPONENT --------------------------
 
-class ExecComponent(Schema):
+class ExecComponent(Component):
     
     class State(Enum): #an enumerator to track state of executable component
         IDLE = 0

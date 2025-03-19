@@ -4,7 +4,7 @@
 
 
 from typing import Dict
-from automl.component import InputSignature, Schema, requires_input_proccess
+from automl.component import InputSignature, Component, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
@@ -13,7 +13,7 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 import torch
 import time
 
-class AgentTrainer(Schema):
+class AgentTrainer(Component):
     
     '''Describes a trainer specific for an agent, mostly used to control its logging'''
     
