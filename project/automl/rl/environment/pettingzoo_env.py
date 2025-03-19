@@ -1,62 +1,17 @@
+
+
 from automl.component import Schema, InputSignature, requires_input_proccess
+from automl.rl.environment.environment_components import EnvironmentComponent
+
 import torch
 import random
 import math
 import numpy as nn
 
 
-class EnvironmentComponent(Schema):
-    
-    parameters_signature =  {} 
-    
-        
-    @requires_input_proccess    
-    def reset(self):
-        pass
-        
-    @requires_input_proccess   
-    def observe(self, *args):
-        pass
-        
-    @requires_input_proccess   
-    def agents(self):
-        pass
+class PettingZooEnvironmentWrapper(EnvironmentComponent):
     
     
-    @requires_input_proccess  
-    def action_space(self, *args):
-        pass
-    
-    @requires_input_proccess   
-    def last(self):
-        pass
-    
-    @requires_input_proccess   
-    def agent_iter(self):
-        pass
-    
-    @requires_input_proccess    
-    def step(self, *args):
-        pass
-        
-    @requires_input_proccess    
-    def rewards(self):
-        pass    
-    
-    @requires_input_proccess
-    def render(self):
-        pass
-    
-    @requires_input_proccess
-    def close(self):
-        pass
-     
-    
-from pettingzoo.butterfly import cooperative_pong_v5    
-
-class PettingZooEnvironmentLoader(EnvironmentComponent):
-    
-
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = { 
@@ -72,6 +27,7 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
             return torch.tensor(state, dtype=torch.float32, device=device).permute(2, 0, 1) / 255.0
 
     
+    
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
         
         super().proccess_input()
@@ -80,39 +36,61 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
         self.setup_environment()
         self.env.reset()
         
+    
     def setup_environment(self):
         
-        if self.input["petting_zoo_environment"] == "cooperative_pong":
+        from pettingzoo import ParallelEnv
         
+        if isinstance(self.input["petting_zoo_environment"], str):
+            self.load_environment(self.input["petting_zoo_environment"])
+            
+        elif isinstance(self.input["petting_zoo_environment"], ParallelEnv):
+            self.env = self.input["petting_zoo_environment"]
+            
+        else:
+            raise Exception("No valid environment or environment name passed to PettingZoo Wrapper")
+        
+        
+    def load_environment(self, environment_name : str):
+        
+        if environment_name == "cooperative_pong":
+            
+            from pettingzoo.butterfly import cooperative_pong_v5
             self.env = cooperative_pong_v5.env(render_mode=self.input["render_mode"])
             
         else:
             raise Exception(f"{self.name}: No valid petting zoo environment specified")
+        
+        
     
     def reset(self):
         
         super().reset()
         
         return self.env.reset()
+    
         
     def observe(self, *args):
         super().reset()
-        return PettingZooEnvironmentLoader.state_translator(self.env.observe(*args), self.device)
+        return PettingZooEnvironmentWrapper.state_translator(self.env.observe(*args), self.device)
+    
         
     def agents(self):
         super().reset()
         return self.env.agents
     
+    
     def action_space(self, *args):
         super().reset()
         return self.env.action_space(*args)
+    
     
     def last(self):
         super().reset()
         observation, reward, termination, truncation, info = self.env.last()
         
         #returns state, reward, done, info
-        return PettingZooEnvironmentLoader.state_translator(observation, self.device), reward, termination, info
+        return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, termination, info
     
     def agent_iter(self):
         super().reset()
@@ -132,4 +110,3 @@ class PettingZooEnvironmentLoader(EnvironmentComponent):
 
     def close(self):
         self.env.close()
-     

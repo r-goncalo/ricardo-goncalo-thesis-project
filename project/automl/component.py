@@ -372,7 +372,10 @@ class Schema: # a component that receives and verifies input
 # VALIDITY VERIFICATION (static methods for validating input) -----------------------------          
 
 def requires_input_proccess(func):
-    '''An annotation that makes the input be proccessed, if it was not already, when a function is called'''
+    '''
+    An annotation that makes the input be proccessed, if it was not already, when a function is called
+    Note that if a method has its super method with this annotation, adding it will be redundant
+    '''
     def wrapper(self : Schema, *args, **kwargs):
         if not self._input_was_proccessed:
             self.proccess_input()
