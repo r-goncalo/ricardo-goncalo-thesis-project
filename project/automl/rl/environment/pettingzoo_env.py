@@ -15,7 +15,7 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = { 
-                       "petting_zoo_environment" : InputSignature(default_value="cooperative_pong"),
+                       "environment" : InputSignature(default_value="cooperative_pong"),
                        "render_mode" : InputSignature(default_value="none", validity_verificator= lambda x : x in ["none", "human"]),
                        "device" : InputSignature(ignore_at_serialization=True)
                        }    
@@ -41,11 +41,11 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent):
         
         from pettingzoo import ParallelEnv
         
-        if isinstance(self.input["petting_zoo_environment"], str):
-            self.load_environment(self.input["petting_zoo_environment"])
+        if isinstance(self.input["environment"], str):
+            self.load_environment(self.input["environment"])
             
-        elif isinstance(self.input["petting_zoo_environment"], ParallelEnv):
-            self.env = self.input["petting_zoo_environment"]
+        elif isinstance(self.input["environment"], ParallelEnv):
+            self.env = self.input["environment"]
             
         else:
             raise Exception("No valid environment or environment name passed to PettingZoo Wrapper")

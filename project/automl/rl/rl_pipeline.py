@@ -3,7 +3,8 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
-from automl.rl.environment.environment_components import EnvironmentComponent, PettingZooEnvironmentLoader
+from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.loggers.logger_component import LoggerSchema
 from automl.utils.files_utils import open_or_create_folder
 
@@ -22,7 +23,7 @@ class RLPipelineComponent(LoggerSchema):
                                                         
                        "num_episodes" : InputSignature(),
                        
-                       "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentLoader)),
+                       "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentWrapper)),
                        
                        "state_memory_size" : InputSignature(),
                        "agents" : InputSignature(default_value={}),

@@ -1,6 +1,8 @@
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.neural_model import FullyConnectedModelSchema
-from automl.rl.policy.policy import QPolicy
+from automl.rl.policy.qpolicy import QPolicy
+
+from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 
 def config_dict(num_episodes=200):
 
@@ -15,7 +17,7 @@ def config_dict(num_episodes=200):
         "optimization_interval": 100,
         "device" : "cuda",
         "environment": {
-            "__type__": "<class 'automl.rl.environment.environment_components.PettingZooEnvironmentLoader'>",
+            "__type__": str(PettingZooEnvironmentWrapper),
             "name": "PettingZooEnvironmentLoader"        
         },
         "agents_input": {
@@ -47,7 +49,7 @@ def config_dict(num_episodes=200):
     },
     "child_components": [
         {
-            "__type__": "<class 'automl.rl.environment.environment_components.PettingZooEnvironmentLoader'>",
+            "__type__": str(PettingZooEnvironmentWrapper),
             "name": "PettingZooEnvironmentLoader",
             "input": {
                 "petting_zoo_environment": "cooperative_pong"

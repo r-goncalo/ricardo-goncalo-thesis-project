@@ -7,16 +7,8 @@ import torch
 
 from automl.rl.policy.policy import Policy
 
-class QLearner(LearnerSchema):
-    
-    parameters_signature = {
-        
-        
-        
-    }
 
-
-class DeepQLearnerSchema(QLearner):
+class DeepQLearnerSchema(LearnerSchema):
     
     '''
     This represents a Deep Q Learner

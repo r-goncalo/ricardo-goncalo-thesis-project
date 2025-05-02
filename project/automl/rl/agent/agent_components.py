@@ -198,7 +198,7 @@ class AgentSchema(LoggerSchema):
         
         possible_state_memory = self.get_state_memory_with_new(state)
         
-        return self.policy.predict(torch.cat([element for element in possible_state_memory]))
+        return self.policy.predict(torch.cat([element for element in possible_state_memory])).item()
 
                     
     

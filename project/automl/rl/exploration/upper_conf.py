@@ -14,8 +14,10 @@ class UpperConfidenceBoundStrategy(ExplorationStrategySchema):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = {"n_action" : InputSignature(),
-                       "exploration_param" : InputSignature(default_value=0.01)}    
+    parameters_signature = {
+                       "n_action" : InputSignature(),
+                       "exploration_param" : InputSignature(default_value=0.01)
+                       }    
     
     
     def proccess_input(self): #this is the best method to have initialization done right after, input is already defined

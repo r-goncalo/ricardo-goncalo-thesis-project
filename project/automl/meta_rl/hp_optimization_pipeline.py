@@ -93,6 +93,11 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         else:
             raise NotImplementedError(f"Did not implement for sampler '{self.input['sampler']}'") 
         
+    def initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
+        
+        self.sampler : sampler_class(seed=self.input["seed"])
+        
+        
     def initialize_pruning_strategy(self):
         
         if 'pruner' in self.input.keys():
