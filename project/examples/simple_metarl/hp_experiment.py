@@ -101,7 +101,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
 
 def get_configuration_dict(*args, **kwargs):
     
-    return load_configuration_dict('basic_rl', *args, **kwargs)
+    return load_configuration_dict('basic_dqn', *args, **kwargs)
 
 
 def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict):
@@ -111,7 +111,8 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict):
     "hyperparameters_range_list" : hyperparameters_to_change,
     "n_trials" : 50,
     "steps" : 2,
-    "pruner" : optuna.pruners.PercentilePruner(percentile=25.0)
+    "pruner" : optuna.pruners.PercentilePruner(percentile=25.0),
+    "base_directory" :  'data\\experiments'
     }
     
     
