@@ -30,9 +30,9 @@ class Component: # a component that receives and verifies input
         self.input : dict[str, any] = {} #the input will be a dictionary
         
         self.__input_meta : dict[str, InputMetaData] = {} # will store meta data according to the input
-        self.__initialize_input_meta_data(type(self))
+        self.__initialize_input_meta_data()
         
-        self.__set_exposed_values_with_super(type(self)) #updates the exposed values with the ones in super classes
+        self.__set_exposed_values_with_super() #updates the exposed values with the ones in super classes
         self.values = self.exposed_values.copy() #this is where the exposed values will be stored
         
         self.child_components : list[Component] = []
@@ -95,6 +95,11 @@ class Component: # a component that receives and verifies input
             self.__verify_input(passed_keys, organized_parameters_signature[priority])
             
         self._input_was_proccessed = True
+        
+    def proccess_input_if_not_proccesd(self):
+    
+        if not self._input_was_proccessed:
+            self.proccess_input()
 
 
     # OUTPUT -------------------------
@@ -122,6 +127,12 @@ class Component: # a component that receives and verifies input
         self.child_components.append(new_child_component)
         
         new_child_component.parent_component = self
+        
+        new_child_component.on_parent_component_defined()
+        
+    def on_parent_component_defined(self):
+        '''called after this component as another parent component defined'''
+        pass
         
     
     def get_attr_from_parent(self, attr_name : str):
@@ -205,81 +216,92 @@ class Component: # a component that receives and verifies input
     # EXPOSED VALUES -------------------------------------------
     
     # TODO : maybe this should happen at the end of class definition for all classes that extend Component, statically? Instead of happening multiple times per class redundantly
-    def __set_exposed_values_with_super(self, class_component):
+    def __set_exposed_values_with_super(self):
         
         '''Updates the exposed values with super classes'''
                 
-        if len(class_component.__mro__) > 2:
-            self.__set_exposed_values_with_super(class_component.__mro__[1]) # adds the exposed values of the super component if any
+        current_class_index = 0
+        method_resolution_list = type(self).__mro__
+        current_squeme : type[Component] = method_resolution_list[current_class_index]
         
+        while True:
             
-        self.exposed_values =  {**class_component.exposed_values, **self.exposed_values}
+            self.exposed_values =  {**current_squeme.exposed_values, **self.exposed_values} #updates the exposed values with the exposed values in super classes
+            
+            if current_squeme == Component:
+                break #this is the last squeme
+            
+            else:
+                current_class_index += 1
+                current_squeme : type[Component] = method_resolution_list[current_class_index]
 
 
-    # INPUT PROCCESSING ---------------------------------------------  
-    
-    def __get_parameter_signature(self, key, class_component : type):
-        
-        if key in class_component.parameters_signature.keys():
-            return class_component.parameters_signature[key]
-          
-        elif len(class_component.__mro__) > 2:
-            return self.__get_parameter_signature(key, class_component.__mro__[1])
-        
-        else:
-            return None
-    
+
+    # INPUT PROCCESSING ---------------------------------------------      
     
     def get_parameter_signature(self, key):
         
         '''Gets the parameter signature for a key for this component'''
         
-        return self.__get_parameter_signature(key, type(self))   
-    
-    
-    def __in_parameters_signature(self, key, class_component): #checks if the key is in the input signature of this class, if not, checks in super classes
+        current_class_index = 0
+        method_resolution_list = type(self).__mro__
+        current_squeme : type[Component] = method_resolution_list[current_class_index]
         
-        if key in class_component.parameters_signature.keys():
-            return True
-        
-        elif len(class_component.__mro__) > 2:
-            return self.__in_parameters_signature(key, class_component.__mro__[1])
-        
-        else:
-            return False
+        while True:
+            
+            if key in current_squeme.parameters_signature.keys():
+                return current_squeme.parameters_signature[key]
+            
+            elif current_squeme == Component:
+                break #this will return false
+            
+            else:
+                current_class_index += 1
+                current_squeme : type[Component] = method_resolution_list[current_class_index]
+            
+        return None #there was no key
     
     def in_parameters_signature(self, key): #checks if the key is in input signature of component or its parents components
         
-        return self.__in_parameters_signature(key, type(self))
+        return self.get_parameter_signature(key) != None
     
+    
+    def __proccess_squeme_from_priorities(self, current_squeme, parameters_signature_priorities : list[int], organized_parameters_signatures : dict[int, list[InputSignature]]):
+    
+        current_parameters_signature : dict[str, InputSignature] = current_squeme.parameters_signature #get its input signature 
+        
+        for key, parameter_signature in current_parameters_signature.items():
+            
+            priority = parameter_signature.priority
+            
+            if not priority in parameters_signature_priorities: #if this is the first key for that priority, initialize the list for that priority
+                parameters_signature_priorities.append(priority)
+                organized_parameters_signatures[priority] = []
+                
+            organized_parameters_signatures[priority].append((key, parameter_signature)) #put its key, parameter_signature pair in the list of respective priority                
+
     
     
     # TODO: This is missing the capability of a Schematic re-writing the InputSignature of its super
     def __get_organized_parameters_signature(self): 
         
-        current_class_component = self.__class__
+        current_class_index = 0
+        method_resolution_list = type(self).__mro__
+        current_squeme : type[Component] = method_resolution_list[current_class_index]
         
         parameters_signature_priorities : list[int] = [] #all priorities defined
         organized_parameters_signatures : dict[int, list[InputSignature]] = {} #InputSignatures organized by priorities
         
         while True: #for each component class
             
-            current_parameters_signature : dict[str, InputSignature] = current_class_component.parameters_signature #get its input signature 
+            self.__proccess_squeme_from_priorities(current_squeme, parameters_signature_priorities, organized_parameters_signatures)              
             
-            for key, parameter_signature in current_parameters_signature.items():
-                
-                priority = parameter_signature.priority
-                
-                if not priority in parameters_signature_priorities:
-                    parameters_signature_priorities.append(priority)
-                    organized_parameters_signatures[priority] = []
-                    
-                organized_parameters_signatures[priority].append((key, parameter_signature)) #put its key, parameter_signature pair in the list of respective priority                
+            if current_squeme == Component:
+                break #this is the last squeme
             
-            if current_class_component == Component: #if this was the Component class, we reached the end
-                break
-            
-            current_class_component = current_class_component.__bases__[0] #gets the super class
+            else:
+                current_class_index += 1
+                current_squeme : type[Component] = method_resolution_list[current_class_index]
 
         parameters_signature_priorities.sort()
         
@@ -312,15 +334,27 @@ class Component: # a component that receives and verifies input
     
     # INPUT META DATA ----------------------------------------------------------------
     
-    def __initialize_input_meta_data(self, class_component):
+    def __initialize_input_meta_data(self):
         
         '''Initializes the dictionary __input_meta'''
+            
+        current_class_index = 0
+        method_resolution_list = type(self).__mro__
+        current_squeme : type[Component] = method_resolution_list[current_class_index]
         
-        if len(class_component.__mro__) > 2:
-            self.__initialize_input_meta_data(class_component.__mro__[1])
+        while True:
+            
+            for key in current_squeme.parameters_signature.keys():
+                self.__input_meta[key] = InputMetaData(parameter_signature=current_squeme.parameters_signature[key])
+            
+            if current_squeme == Component:
+                break #this is the last squeme
+            
+            else:
+                current_class_index += 1
+                current_squeme : type[Component] = method_resolution_list[current_class_index]
         
-        for key in class_component.parameters_signature.keys():
-            self.__input_meta[key] = InputMetaData(parameter_signature=class_component.parameters_signature[key])
+
             
             
     def get_input_meta(self) -> dict[str, InputMetaData]:
@@ -377,13 +411,14 @@ class Component: # a component that receives and verifies input
 def requires_input_proccess(func):
     '''
     An annotation that makes the input be proccessed, if it was not already, when a function is called
+    
     Note that if a method has its super method with this annotation, adding it will be redundant
     '''
     def wrapper(self : Component, *args, **kwargs):
-        if not self._input_was_proccessed:
-            self.proccess_input()
+        self.proccess_input_if_not_proccesd()
         return func(self, *args, **kwargs)
     return wrapper
+
 
 def uses_component_exception(func):
     '''A wrapper for functions so its errors have more information regarding the component they appeared in'''
