@@ -30,6 +30,28 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
             
             return None
         
+class ComponentExposedValueEncoder(json.JSONEncoder):
+    
+    def default(self, obj):
+                        
+        if isinstance(obj, Component):
+
+            return {
+                "__type__": str(type(obj)),
+                "name" : obj.name,
+                "localization" : obj.get_localization()
+            }
+            
+        elif isinstance(obj, (int, float, str, dict, list)):
+            return obj
+        
+        try:    
+            return super().default(obj)
+        
+        except:
+            
+            return None
+        
 
 class ComponentInputEncoder(json.JSONEncoder):
     
@@ -65,14 +87,47 @@ class ComponentInputEncoder(json.JSONEncoder):
         
         else:
             raise Exception('Was expecting an object of type Component')
+        
+        
+class ComponentExposedValuesEncoder(json.JSONEncoder):
+    
+    '''Used with component to encode its exposed values'''
+    
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+    
+    
+    
+    def default(self, obj):
+        
+        if isinstance(obj, Component):
+            
+            exposed_values = obj.exposed_values
+            
+            toReturn = {}
+            
+            for key in exposed_values.keys():
+                
+                serialized_value = json.dumps(exposed_values[key], cls=ComponentExposedValueEncoder) #for each value in exposed_value, loads
+                   
+                if serialized_value != 'null':
+                    toReturn[key]  = json.loads(serialized_value)
+                    
+            return toReturn
+                
+        
+        else:
+            raise Exception('Was expecting an object of type Component')
             
 
 class ComponentEncoder(json.JSONEncoder):
     
-    def __init__(self, *args, ignore_defaults : bool, **kwargs):
+    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, **kwargs):
         
         super().__init__(*args, **kwargs)
         self.ignore_defaults = ignore_defaults
+        self.save_exposed_values = save_exposed_values
     
     def default(self, obj):
         
@@ -81,8 +136,13 @@ class ComponentEncoder(json.JSONEncoder):
             toReturn = {
                 "__type__": str(type(obj)),
                 "name": obj.name,
-                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults))
+                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults)),
                 }
+            
+            if self.save_exposed_values:
+                
+                toReturn["exposed_values"] = json.loads(json.dumps(obj, cls= ComponentExposedValuesEncoder))
+
             
             if len(obj.child_components) > 0:
                 
@@ -96,8 +156,8 @@ class ComponentEncoder(json.JSONEncoder):
         return None
 
 
-def json_string_of_component(component, ignore_defaults = False):
-    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults)
+def json_string_of_component(component, ignore_defaults = False, save_exposed_values = False):
+    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values)
 
 # DECODING --------------------------------------------------------------------------
     
