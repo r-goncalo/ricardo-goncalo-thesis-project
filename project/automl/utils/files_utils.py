@@ -6,6 +6,8 @@ import os
 
 def open_or_create_folder(dir, folder_name, create_new=True):
     
+    ''''''
+    
             
     try:
         folders_in_dir = os.listdir(dir) #is the dir already created? if not, error
@@ -28,3 +30,31 @@ def open_or_create_folder(dir, folder_name, create_new=True):
     os.makedirs(full_path)
     
     return full_path
+
+
+
+def write_text_to_file(dir, filename, text : str, create_new=True):
+    full_path = os.path.join(dir, filename)
+
+    # If the file doesn't exist and create_new is True, create it
+    if not os.path.exists(full_path):
+        if create_new:
+            with open(full_path, 'w') as f:
+                f.write("")
+        else:
+            raise FileNotFoundError(f"{full_path} does not exist and create_new is False.")
+
+    # Append the text to the file
+    with open(full_path, 'a') as f:
+        f.write(text + "\n")
+
+
+    
+def read_text_from_file(dir, filename):
+    full_path = os.path.join(dir, filename)
+
+    # Append the text to the file
+    with open(full_path, 'r') as f:
+        return f.read()
+
+
