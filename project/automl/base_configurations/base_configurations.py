@@ -25,5 +25,8 @@ def load_configuration_dict(configuration_name : Literal["basic_dqn", "basic_ppo
     elif configuration_name == "basic_ppo":
         
         return basic_ppo.config_dict(*args, **kwargs)
+    
+    else:
+        raise Exception("Non valid configuration name passed")
 
     
