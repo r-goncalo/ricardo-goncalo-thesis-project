@@ -5,3 +5,4 @@ peersim-environment/
 /peersim-project
 /project/automl.egg-info
 /project/examples/simple_metarl/archived_data
+/project/examples/simple_metarl/state

@@ -11,7 +11,7 @@ def config_dict(num_episodes=200):
     "__type__": "<class 'automl.rl.rl_pipeline.RLPipelineComponent'>",
     "name": "RLPipelineComponent",
     "input": {
-        "num_episodes": num_episodes,
+        "num_episodes_per_run": num_episodes,
         "state_memory_size": 2,
         "limit_steps": 1000,
         "optimization_interval": 100,

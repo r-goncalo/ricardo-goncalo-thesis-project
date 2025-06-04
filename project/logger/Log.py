@@ -92,7 +92,6 @@ class LogClass:
         return openLog(logDir=self.logDir, logName=logName)
     
     def createProfile(self, name : str = '', object_with_name = None):
-        print("Type of object with name: " + str(type(object_with_name)) + " and name passed: " + name)
         return LoggerProfile(self, name, object_with_name)
 
 

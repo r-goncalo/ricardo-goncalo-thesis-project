@@ -1,6 +1,10 @@
 
 from enum import Enum
 
+
+
+
+
 class InputSignature():
     
     
@@ -29,6 +33,13 @@ class InputSignature():
         
 class InputMetaData():
     
+    '''
+    Represents the metadata of an input of a component
+    
+    Contains informations such as if it was passed, generated or is a default value
+    
+    '''
+    
     class InputOrigin(Enum):
         
         DEFAULT = 0
@@ -46,3 +57,5 @@ class InputMetaData():
         
     def was_custom_value_passed(self):
         return self.origin == InputMetaData.InputOrigin.PASSED
+    
+

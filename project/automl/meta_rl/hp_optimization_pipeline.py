@@ -1,9 +1,15 @@
 from automl.component import InputSignature, Component, requires_input_proccess
-from automl.loggers.logger_component import LoggerSchema
+from automl.basic_components.artifact_management import ArtifactComponent
+from automl.basic_components.exec_component import ExecComponent
+from automl.core.advanced_input_management import ComponentInputSignature
+from automl.basic_components.evaluator_component import EvaluatorComponent
+from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.rl_pipeline import RLPipelineComponent
 
-from automl.utils.json_component_utils import component_from_dict,  dict_from_json_string
+from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+
+from automl.utils.json_component_utils import gen_component_from_dict,  dict_from_json_string
 
 import optuna
 
@@ -11,7 +17,13 @@ from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
 
 from automl.utils.random_utils import generate_and_setup_a_seed
 
-class HyperparameterOptimizationPipeline(LoggerSchema):
+from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
+
+Component_to_opt_type = ExecComponent | StatefulComponent
+ 
+import copy
+
+class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
     
     parameters_signature = {
         
@@ -30,17 +42,19 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
                         "n_trials" : InputSignature(),
                         
                         "steps" : InputSignature(default_value=1),
-                        "pruner" : InputSignature(mandatory=False)
+                        "pruner" : InputSignature(mandatory=False),
+                        
+                        "evaluator_component" : ComponentInputSignature(description="The evaluator component to be used for evaluating the components to optimize")
                                                     
                        }
-    
+            
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
     def proccess_input(self): # this is the best method to have initialization done right after
-        
+                
         super().proccess_input()
-        
+                
         self.initialize_config_dict()
         self.initialize_sampler()
         self.initialize_database()
@@ -53,16 +67,17 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         parameter_names = [hyperparameter_specification.name for hyperparameter_specification in self.hyperparameters_range_list]
         
         self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
-
-        self.results_logger : ResultLogger = self.initialize_child_component(ResultLogger, { "logger_object" : self.lg,
-            "keys" : ['experiment', *parameter_names, "result"]})
         
+        self.results_lg : ResultLogger = self.initialize_child_component(ResultLogger, { "artifact_relative_directory" : "",
+            "results_columns" : ['experiment', *parameter_names, "result"]})
+                
         self.suggested_values = { parameter_name : 0 for parameter_name in parameter_names}
         
         self.n_trials = self.input["n_trials"]
+                
+        self.trial_loaders : dict[str, StatefulComponentLoader] = {}
         
-        self.tried_configurations = 0
-        
+        self.evaluator_component : EvaluatorComponent = self.input["evaluator_component"] # TODO: implement evaluator component in HP
         
         
     def initialize_config_dict(self):
@@ -71,6 +86,10 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             self.load_configuration_str_from_path()
   
         elif "configuration_dict" in self.input.keys():
+            
+            if not isinstance(self.input["configuration_dict"], dict):
+                raise Exception("Configuration input passed is not a dictionary")
+            
             self.config_dict = self.input["configuration_dict"]
             
         elif "configuration_string" in self.input.keys():
@@ -78,10 +97,17 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             
         else:
             raise Exception("No configuration defined")
-    
+        
+        
+            
     def initialize_database(self):
-        self.database_path = self.lg.logDir + "\\study_results.db"  # Path to the SQLite database file
+        
+        self.database_path = self.artifact_directory + "\\study_results.db"  # Path to the SQLite database file
+        
+        self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
+        
         self.storage = f"sqlite:///{self.database_path}"  # This will save the study results to the file
+    
     
     
     def initialize_sampler(self):
@@ -92,10 +118,15 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         
         else:
             raise NotImplementedError(f"Did not implement for sampler '{self.input['sampler']}'") 
+    
+    
+    
         
     def initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
         
         self.sampler : sampler_class(seed=self.input["seed"])
+    
+    
         
         
     def initialize_pruning_strategy(self):
@@ -106,7 +137,6 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             
                 self.pruning_strategy = self.input["pruner"]
             
-            
             elif self.input["pruner"] == "Median":
             
                 self.pruning_strategy = optuna.pruners.MedianPruner()
@@ -116,6 +146,8 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         
         else:
             self.lg.writeLine("Won't use prunning strategy")
+    
+    
         
     def load_configuration_str_from_path(self):
         
@@ -125,27 +157,81 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
         self.config_str = fd.read()
         fd.close()
         
+        self.config_dict = dict_from_json_string(self.config_str)        
+        
 
     # OPTIMIZATION -------------------------------------------------------------------------
-
-    def create_component_to_test(self):
+    
+    
+    def create_component_to_optimize_configuration(self, trial : optuna.Trial) -> dict:
         
-        self.lg.writeLine("Creating component to test")
-
-        rl_pipeline : RLPipelineComponent = component_from_dict(self.config_dict)
-        
-        name = 'configuration_' + str(self.tried_configurations + 1)        
+        '''Creates the configuration dictionary and making the hyperparameter suggestions'''
                 
-        configuration_logger = self.lg.openChildLog(logName=name)
+        config_of_opt = copy.deepcopy(self.config_dict)
         
-        rl_pipeline.pass_input({"logger_object" : configuration_logger})
+        self.setup_trial_component_with_suggestion(trial, config_of_opt)
+        
+        return config_of_opt
+        
+        
+        
+    
+    def create_component_to_optimize(self, trial : optuna.Trial) -> Component_to_opt_type:
+        
+        '''Creates the actual component to optimize, using the configuration dictionary and making the hyperparameter suggestions'''
+        
+        self.lg.writeLine(f"Creating component to test for trial {trial.number}...")
+        
+        config_of_opt = self.create_component_to_optimize_configuration(trial)
+                
+        component_to_opt : Component_to_opt_type = gen_component_from_dict(config_of_opt)
+                
+        name = self.gen_trial_name(trial)  
+        
+        component_to_opt.pass_input({"name" : name, "base_directory" : self.artifact_directory})  
         
         self.lg.writeLine(f"Created component with name {name}")
         
-        return rl_pipeline
+        
+    
+    def gen_trial_name(self, trial : optuna.Trial) -> str:
+        '''Generates a name for the trial based on its number'''
+        
+        return f"configuration_{trial.number}"
 
 
-    def generate_configuration(self, trial : optuna.trial, base_component : Component):
+
+    def create_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+        
+        '''Creates the component to optimize and and saver / loader for it, returning the component to optimize itself'''
+        
+        component_to_opt = self.create_component_to_optimize(trial)
+        
+        component_saver_loader = StatefulComponentLoader()
+        component_saver_loader.define_component_to_save_load(component_to_opt)
+        
+        self.trial_loaders[trial.number] = component_saver_loader
+                
+        return component_to_opt
+    
+    
+    
+    def create_or_load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+        
+        if trial.number in self.trial_loaders.keys():
+            component_saver_loader = self.trial_loaders[trial.number]
+            component_to_opt = component_saver_loader.load_component()
+            
+        else:
+            component_to_opt = self.create_component_to_test(trial)
+            self.generate_hp_configuration_for_component_in_trial(trial, component_to_opt)
+        
+        return component_to_opt
+
+
+    def setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Component | dict):
+        
+        self.lg.writeLine("Generating configuration for trial " + str(trial.number))
         
         for hyperparameter_suggestion in self.hyperparameters_range_list:
             
@@ -154,74 +240,84 @@ class HyperparameterOptimizationPipeline(LoggerSchema):
             self.suggested_values[hyperparameter_suggestion.name] = [suggested_value]
             
             self.lg.writeLine(f"{hyperparameter_suggestion.name}: {suggested_value}")
+            
+            
                 
                 
+    def evaluate_component(self, component_to_test : Component_to_opt_type) -> float:
+        
+        if self.evaluator_component is None: # TODO: Implement this, right now, the evaluator component is mandatory
+            
+            if not isinstance(component_to_test, ComponentWithResults):
+                raise Exception("Component to test is not a ComponentWithResults, cannot get evaluation")
+            
+            component_to_test_results : ResultLogger = component_to_test.get_results_logger()
+            
+            result = component_to_test_results.get_last_results()["result"]
+            
+        else:
+            
+            result = self.evaluator_component.evaluate(component_to_test)
+            
+        return result
+    
+    
                 
     def objective(self, trial : optuna.Trial):
         
-        self.component_to_test = self.create_component_to_test()
+        '''Responsible for running the optimization trial and evaluating the component to test'''
+                
+        self.component_to_test  = self.create_or_load_component_to_test(trial)
 
         self.lg.writeLine("Starting new training with hyperparameter cofiguration")
         
-        self.generate_configuration(trial, self.component_to_test)
-        
-        self.episodes_per_test = int(self.component_to_test.input["num_episodes"] / self.n_steps)
-
-        self.lg.writeLine(f"Number of episodes that will be done per step: {self.episodes_per_test}")
-        
         for step in range(self.n_steps):
                 
-            self.component_to_test.train(self.episodes_per_test)
+            self.component_to_test.run()
             
-            results_logger : ResultLogger = self.component_to_test.get_results_logger() 
-
-            avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
-
-            result = avg_result - (std_result / 4)
+            result = self.evaluate_component(self.component_to_test)
             
             trial.report(result, step)
             
             if trial.should_prune():
                 self.lg.writeLine("Prunning current experiment...")
                 raise optuna.TrialPruned()
-                    
-        results_logger : ResultLogger = self.component_to_test.get_results_logger() 
-
-        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
-
-        result = avg_result - (std_result / 4)
-        
         
         return result
     
+    
+    
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
-        
-        self.tried_configurations += 1
-        
+                
         result = trial.value
         
-        results_to_log = {'experiment' : self.tried_configurations, **self.suggested_values, "result" : [result]}
+        results_to_log = {'experiment' : trial.number, **self.suggested_values, "result" : [result]}
         
-        self.results_logger.log_results(results_to_log)
+        self.log_results(results_to_log)
         
+        #self.component_to_test.save_configuration()
         
-        self.component_to_test.save_configuration()
-        
-        del self.component_to_test
+        #del self.component_to_test
     
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------
                     
                     
     @requires_input_proccess
-    def run(self):
+    def algorithm(self):
+                
+        print(f"Sampler: {self.sampler}")
+        print(f"storage: {self.storage}")
+        print(f"database_study_name: {self.input['database_study_name']}")
+        print(f"direction: {self.input['direction']}")
         
+        
+
         study = optuna.create_study(sampler=self.sampler, 
                                     storage=self.storage, 
                                     study_name=self.input["database_study_name"], 
                                     load_if_exists=True,
                                     direction=self.input['direction'])
-
 
         study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,

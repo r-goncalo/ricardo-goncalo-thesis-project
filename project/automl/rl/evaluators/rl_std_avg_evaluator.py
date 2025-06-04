@@ -6,7 +6,7 @@ from automl.loggers.result_logger import ResultLogger
 
 from automl.core.input_management import InputSignature
 
-class RLPipelineAvgStdEvaluator(RLPipelineEvaluator):
+class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     
     '''
     An evaluator specific for RL pipelines
@@ -14,7 +14,8 @@ class RLPipelineAvgStdEvaluator(RLPipelineEvaluator):
     '''
     
     parameters_signature = {
-        "n_results_to_use" : InputSignature(default_value=10)
+        "n_results_to_use" : InputSignature(default_value=10),
+        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation")
     }
     
 
@@ -23,6 +24,7 @@ class RLPipelineAvgStdEvaluator(RLPipelineEvaluator):
         super().proccess_input()
         
         self.n_results_to_use = self.input["n_results_to_use"]
+        self.std_deviation_factor = self.input["std_deviation_factor"]
         
 
 
@@ -33,9 +35,9 @@ class RLPipelineAvgStdEvaluator(RLPipelineEvaluator):
         
         results_logger : ResultLogger = component_to_evaluate.get_results_logger() 
 
-        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(10, 'total_reward')
+        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(self.n_results_to_use, 'total_reward')
 
-        result = avg_result - (std_result / 4)
+        result = avg_result - (std_result / self.std_deviation_factor)
         
-        return result
+        return {"result" : result}
         

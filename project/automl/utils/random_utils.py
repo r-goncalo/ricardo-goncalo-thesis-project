@@ -3,6 +3,7 @@ import random
 import numpy
 import torch
 
+
 def generate_and_setup_a_seed():
     
     seed = generate_seed()
@@ -11,16 +12,20 @@ def generate_and_setup_a_seed():
     
     return seed
 
+
+
 def generate_seed():
     return random.randint(0, 2**32 - 1)
 
-
-
+    
 def do_full_setup_of_seed(seed):
     
     setup_torch_seed(seed)
     setup_numpy_seed(seed)
     setup_python_seed(seed)
+
+    global full_setup_of_seed_was_done
+    full_setup_of_seed_was_done = True
 
 
 def setup_python_seed(seed):

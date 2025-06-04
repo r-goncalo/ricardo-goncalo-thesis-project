@@ -14,10 +14,13 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 
 from automl.rl.policy.policy import Policy
 
+from automl.basic_components.state_management import StatefulComponent
+
+from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+
 # ACTUAL AGENT COMPONENT ---------------------------
 
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.loggers.logger_component import LoggerSchema
 import torch
 from automl.utils.class_util import get_class_from
 
@@ -26,7 +29,7 @@ from automl.utils.shapes_util import torch_zeros_for_space
 
 DEFAULT_MEMORY_SIZE = 200
 
-class AgentSchema(LoggerSchema):
+class AgentSchema(ComponentWithLogging, StatefulComponent):
 
 
     # INITIALIZATION --------------------------------------------------------------------------
@@ -289,7 +292,7 @@ class AgentSchema(LoggerSchema):
         else:
             
             return new_state
-
+         
         
-
+        
 

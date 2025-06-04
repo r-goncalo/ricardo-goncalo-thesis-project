@@ -5,45 +5,38 @@ from automl.component import Component, InputSignature, InputMetaData
 
 from automl.utils.class_util import get_class_from_string
 
-# ENCODING --------------------------------------------------
+from enum import Enum
 
+# ENCODING --------------------------------------------------
 
 class ComponentInputElementsEncoder(json.JSONEncoder):
     
-    def default(self, obj):
-                        
-        if isinstance(obj, Component):
-
-            return {
-                "__type__": str(type(obj)),
-                "name" : obj.name,
-                "localization" : obj.get_localization()
-            }
-            
-        elif isinstance(obj, (int, float, str, dict, list)):
-            return obj
+    '''Encodes elements of a component input, which can be a component (defined by its localization) or a primitive type'''
+    
+    def __init__(self, *args, source_component, **kwargs):
+        super().__init__(*args, **kwargs)
         
-        try:    
-            return super().default(obj)
-        
-        except:
-            
-            return None
-        
-class ComponentExposedValueEncoder(json.JSONEncoder):
+        self.source_component = source_component
     
     def default(self, obj):
                         
         if isinstance(obj, Component):
+            
+            if obj.get_source_component() != self.source_component: # TODO: Optimize this
+                raise Exception(f"Component {obj.name} is not in the same tree as the source component")
 
             return {
                 "__type__": str(type(obj)),
                 "name" : obj.name,
-                "localization" : obj.get_localization()
+                "localization" : obj.get_index_localization()
             }
             
         elif isinstance(obj, (int, float, str, dict, list)):
             return obj
+        
+        elif isinstance(obj, Enum):
+            return obj.value
+        
         
         try:    
             return super().default(obj)
@@ -57,10 +50,11 @@ class ComponentInputEncoder(json.JSONEncoder):
     
     '''Used with component to encode its input (not the input itself)'''
     
-    def __init__(self, *args, ignore_defaults : bool, **kwargs):
+    def __init__(self, *args, ignore_defaults : bool, source_component, **kwargs):
         
         super().__init__(*args, **kwargs)
         self.ignore_defaults = ignore_defaults
+        self.source_component = source_component
     
     def default(self, obj):
         
@@ -77,7 +71,7 @@ class ComponentInputEncoder(json.JSONEncoder):
                                 
                 if ( not parameters_signature.ignore_at_serialization ) and (not ( ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults )):
                     
-                    serialized_value = json.dumps(input[key], cls=ComponentInputElementsEncoder) #for each value in input, loads
+                    serialized_value = json.dumps(input[key], cls=ComponentInputElementsEncoder, source_component=self.source_component) #for each value in input, loads
                     
                     if serialized_value != 'null':
                         toReturn[key]  = json.loads(serialized_value)
@@ -93,9 +87,11 @@ class ComponentExposedValuesEncoder(json.JSONEncoder):
     
     '''Used with component to encode its exposed values'''
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, source_component, **kwargs):
         
         super().__init__(*args, **kwargs)
+        
+        self.source_component = source_component
     
     
     
@@ -103,13 +99,13 @@ class ComponentExposedValuesEncoder(json.JSONEncoder):
         
         if isinstance(obj, Component):
             
-            exposed_values = obj.exposed_values
+            exposed_values = obj.values
             
             toReturn = {}
             
             for key in exposed_values.keys():
                 
-                serialized_value = json.dumps(exposed_values[key], cls=ComponentExposedValueEncoder) #for each value in exposed_value, loads
+                serialized_value = json.dumps(exposed_values[key], cls=ComponentInputElementsEncoder, source_component=self.source_component) #for each value in exposed_value, loads
                    
                 if serialized_value != 'null':
                     toReturn[key]  = json.loads(serialized_value)
@@ -123,11 +119,15 @@ class ComponentExposedValuesEncoder(json.JSONEncoder):
 
 class ComponentEncoder(json.JSONEncoder):
     
-    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, **kwargs):
+    
+    '''Encodes the definition of a component, focusing on its child components'''
+    
+    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, source_component, **kwargs):
         
         super().__init__(*args, **kwargs)
         self.ignore_defaults = ignore_defaults
         self.save_exposed_values = save_exposed_values
+        self.source_component = source_component
     
     def default(self, obj):
         
@@ -136,12 +136,12 @@ class ComponentEncoder(json.JSONEncoder):
             toReturn = {
                 "__type__": str(type(obj)),
                 "name": obj.name,
-                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults)),
+                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults, source_component=self.source_component)),
                 }
             
             if self.save_exposed_values:
                 
-                toReturn["exposed_values"] = json.loads(json.dumps(obj, cls= ComponentExposedValuesEncoder))
+                toReturn["exposed_values"] = json.loads(json.dumps(obj, cls= ComponentExposedValuesEncoder, source_component=self.source_component))
 
             
             if len(obj.child_components) > 0:
@@ -163,6 +163,11 @@ def json_string_of_component(component, ignore_defaults = False, save_exposed_va
     
 
 def decode_components_input_element(source_component : Component, element):
+    
+    '''
+    Decodes an element in a dictionary of a component
+    One of the things it does is get a component with a localization and set it
+    '''
         
     if isinstance(element, dict):
         keys = element.keys()
@@ -202,8 +207,30 @@ def decode_components_input_element(source_component : Component, element):
         return element
     
 
+def decode_components_exposed_values(component : Component, source_component : Component, component_dict : dict):
+    
+    
+    saved_exposed_values = component_dict["exposed_values"]
+    
+    for exposed_values_key, exposed_value in saved_exposed_values.items():
+        component.values[exposed_values_key] = decode_components_input_element(source_component, exposed_value)
+
+    for i in range(0, len(component.child_components)):
+        
+        child_component = component.child_components[i]
+            
+        decode_components_input(child_component, source_component, component_dict["child_components"][i])
+    
+
 
 def decode_components_input(component : Component, source_component : Component, component_dict : dict):
+    
+    '''
+        From a component to change
+        The source_component, which is the root of the component tree
+        And a dictionary which specifies the component and its children
+    '''
+    
     
     input_to_pass = {}
     
@@ -222,6 +249,8 @@ def decode_components_input(component : Component, source_component : Component,
         
 
 def decode_components_from_dict(dict : dict):
+    
+    '''Decodes only the components and child components from a dictionary representation of a system.'''
     
     component_type_name = dict["__type__"]
     component_name = dict["name"]
@@ -250,31 +279,133 @@ def decode_components_from_dict(dict : dict):
     return component
     
 # EXPOSED DECODING METHODS ---------------------------------------------------------------------------------   
+
+def set_values_of_dict_in_component(component : Component, dict_representation : dict):
     
-def component_from_dict(dict):
+    '''Receives a component with children and uses the dictionary to set its values (input, exposed values, ...)'''
+    
+    source_component = component.get_source_component()
+
+    decode_components_input(component, source_component, dict_representation)
+    decode_components_exposed_values(component, source_component, dict_representation)
+    
+    
+    
+    
+def gen_component_from_dict(dict_representation) -> Component:
     '''Returns a component, decoding it from a dictionary representation of a system'''
     
-    source_component = decode_components_from_dict(dict)
+    source_component_with_children = decode_components_from_dict(dict_representation)
     
-    decode_components_input(source_component, source_component, dict)
+    set_values_of_dict_in_component(source_component_with_children, dict_representation)
     
-    return source_component
+    return source_component_with_children
 
 
 
-def dict_from_json_string(json_string):
+def dict_from_json_string(json_string) -> dict:
     '''Returns a dictionary representation of a system, decoded from a json string'''
     return json.loads(json_string)
 
 
 
-def component_from_json_string(json_string):
+def component_from_json_string(json_string) -> Component:
     '''Returns a component, reading it from a json_string'''
     
     dict_representation = dict_from_json_string(json_string)
     
-    return component_from_dict(dict_representation)
-     
+    return gen_component_from_dict(dict_representation)
 
+
+def component_from_tuple_definition(tuple_definition) -> Component:
+     
+    class_definition = tuple_definition[0]
     
+    if len(tuple_definition) > 2:
+        raise Exception(f"Tuple definition has more than 2 elements, but it should have only 2, got {len(tuple_definition)}")
     
+    elif len(tuple_definition) == 2:
+        input = tuple_definition[1]
+        
+        if not isinstance(input, dict):
+            raise Exception(f"Input in tuple is not a dict, but {type(input)}")
+    
+    else:
+        input = {}
+        
+    if isinstance(class_definition, str):
+        class_of_component : type = get_class_from_string(class_definition)
+        
+    elif isinstance(class_definition, type):
+        class_of_component : type = class_definition
+        
+    return class_of_component(input=input)
+        
+        
+
+def gen_component_from(definition : Component | dict | str | tuple) -> Component:
+
+    if isinstance(definition, Component):
+        return definition
+    
+    elif isinstance(definition, dict):
+        return gen_component_from_dict(definition)
+    
+    elif isinstance(definition, str):
+        return component_from_json_string(definition)
+    
+    elif isinstance(definition, tuple):
+        
+        return component_from_tuple_definition(definition)
+    
+    else:
+        raise Exception(f"Definition is not a Component, dict, str or tuple, but {type(definition)}")
+        
+    
+# OTHER METHODS ---------------------------------------------------------------------------------
+
+def get_child_dict_from_index_localization(component_dict, localization : int) -> dict:
+    
+    if "child_components" in component_dict:
+        
+        child_components : list = component_dict["child_components"]
+        
+        return child_components[localization]        
+
+    return None
+
+def get_child_dict_from_str_localization(component_dict, localization : int) -> dict:
+    
+    if "child_components" in component_dict:
+        
+        child_components : list = component_dict["child_components"]
+        
+        for child_component in child_components:
+            
+            if child_component["name"] == localization:
+                return child_component
+
+        return None     
+
+    return None
+
+
+def get_child_dict_from_localization(component_dict, localization) -> dict:
+    
+    if isinstance(localization, int):
+        return get_child_dict_from_index_localization(component_dict, localization)
+    
+    elif isinstance(localization, str):
+        return get_child_dict_from_str_localization(component_dict, localization)
+    
+    elif isinstance(localization, list):
+        
+        if len(localization) == 1:
+            return get_child_dict_from_localization(component_dict, localization[0])
+        
+        child_component_dict = get_child_dict_from_localization(component_dict, localization[0])
+        
+        return get_child_dict_from_localization(child_component_dict, localization[1:])
+    
+    else:
+        raise Exception(f"Localization is not an int or a str, but {type(localization)}")

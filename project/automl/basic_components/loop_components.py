@@ -1,5 +1,5 @@
 
-from .exec_component import ExecComponent
+from ..core.exec_component import ExecComponent
 from ..component import InputSignature
 import types
 

@@ -1,6 +1,6 @@
 import os
 
-from automl.utils.json_component_utils import component_from_dict
+from automl.utils.json_component_utils import gen_component_from_dict
 from automl.component import Component
 
 from typing import Literal
@@ -13,7 +13,7 @@ def load_configuration(configuration_name : Literal["basic_dqn"], *args, **kwarg
     
     '''Loads a pre-made configuration'''
     
-    return component_from_dict(load_configuration_dict(configuration_name, *args, **kwargs))
+    return gen_component_from_dict(load_configuration_dict(configuration_name, *args, **kwargs))
     
 
 def load_configuration_dict(configuration_name : Literal["basic_dqn", "basic_ppo"], *args, **kwargs) -> dict:

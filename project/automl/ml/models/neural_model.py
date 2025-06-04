@@ -1,3 +1,5 @@
+import os
+from automl.basic_components.state_management import StatefulComponent
 import torch
 import torch.nn as nn
 import torch.nn.functional as F    
@@ -9,13 +11,21 @@ from automl.utils.shapes_util import discrete_input_layer_size_of_space, discret
 
 from automl.ml.models.model_components import ModelComponent
 
-class FullyConnectedModelSchema(ModelComponent):
+class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
+    
+    
+    '''
+        Represents a fully connected neural network model schema.
+        
+        The class "Model_Class" is the actual model architecture, which is a subclass of nn.Module
+        A class that extends this schema could reimplement the Model_Class to define the architecture of the model.
+    '''
         
     # The actual model architecture
-    class DQN(nn.Module):
+    class Model_Class(nn.Module):
         
         def __init__(self, input_size, hidden_size, output_size, hidden_layers):
-            super(FullyConnectedModelSchema.DQN, self).__init__()
+            super(FullyConnectedModelSchema.Model_Class, self).__init__()
             
             self.input_size = input_size
             
@@ -59,18 +69,29 @@ class FullyConnectedModelSchema(ModelComponent):
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
                 
-        self.model = FullyConnectedModelSchema.DQN(
-            input_size=self.input_size, 
-            hidden_size=self.hidden_size, 
-            output_size=self.output_size,
-            hidden_layers=self.hidden_layers
-        )
+        self.initialize_model()
         
         if "device" in self.input.keys():
             self.model.to(self.input["device"])
             
-        print("Initializing model with input" + str(self.input))
-                
+        
+    def initialize_model(self):
+        
+        if not hasattr(self, "model") or self.model is None: #if the model is not already loaded
+            
+            self.model = type(self).Model_Class(
+                input_size=self.input_size, 
+                hidden_size=self.hidden_size, 
+                output_size=self.output_size,
+                hidden_layers=self.hidden_layers
+            )
+            
+        else: #the model could be already loaded from a state, in which case we just need to check if the input and output sizes are compatible
+            
+            #TODO: check if the model is compatible with the input and output sizes
+            pass
+        
+                            
     # EXPOSED METHODS --------------------------------------------
     
     @requires_input_proccess
@@ -117,3 +138,31 @@ class FullyConnectedModelSchema(ModelComponent):
         toReturn.proccess_input()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn
+    
+    
+
+    # STATE MANAGEMENT -----------------------------------------------------
+    
+    def save_state(self):
+        
+        super().save_state()
+        
+        torch.save(self.model.state_dict(), os.path.join(self.artifact_relative_directory, "model_weights.pth"))
+    
+    
+    
+    def load_state(self) -> None:
+        
+        super().load_state()
+                
+        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
+        
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model weights file not found at {model_path}")
+                
+        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        
+        self.initialize_model()  # Ensure the model is initialized before loading weights
+        
+        self.model.load_state_dict(state_dict) #loads the saved weights into the model
+                

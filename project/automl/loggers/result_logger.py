@@ -1,7 +1,7 @@
+import os
+import pandas as pd
 from automl.component import InputSignature, Component, requires_input_proccess
-from automl.loggers.logger_component import LoggerSchema
-
-from logger.Log import LogClass, openLog
+from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
 import wandb
 
@@ -23,40 +23,41 @@ class ResultLogger(LoggerSchema):
     # TODO: empty parameters_signature should be able to be removed
     # TODO: verify order at which keys are verified
     parameters_signature = {
-            "filename" : InputSignature(default_value=RESULTS_FILENAME),
-            "keys" : InputSignature(possible_types=[list], mandatory=False),
-            "save_on_log" : InputSignature(default_value=True)
+            "results_filename" : InputSignature(default_value=RESULTS_FILENAME, description="The filename of the results file, in this case a csv file"),
+            "results_columns" : InputSignature(possible_types=[list], description="The columns (metrics) of the results"),
+            "save_results_on_log" : InputSignature(default_value=True, description="If the results should be save on the disk after each log")
         } 
-    
+
     # INITIALIZATION --------------------------------------------------------
 
     def proccess_input(self): #this is the best method to have initialization done right after
         
         super().proccess_input()
         
-        self.filename = self.input["filename"]
+        self.results_filename = self.input["results_filename"]
         
         self.initialize_dataframe()
         
-        self.save_on_log = self.input["save_on_log"]
+        self.save_on_log = self.input["save_results_on_log"]
     
     
-    
+    @requires_input_proccess
     def initialize_dataframe(self):
         
         try:
         
-            dataframe_on_folder = self.lg.loadDataframe(filename=self.filename)
+            dataframe_on_folder = self.loadDataframe(filename=self.results_filename)
 
             self.dataframe = dataframe_on_folder
             self.columns = self.dataframe.columns
-            self.lg.writeLine(f"Results dataframe with filename {self.filename} already existed with columns {self.columns}")
+            self.writeLine(f"Results dataframe with filename {self.results_filename} already existed with columns {self.columns}")
         
         except:
             
-            self.columns = self.input["keys"]
+            self.columns = self.input["results_columns"]
             self.dataframe = pandas.DataFrame(columns=self.columns)
             self.save_dataframe()
+            
         
 
 
@@ -80,8 +81,64 @@ class ResultLogger(LoggerSchema):
     @requires_input_proccess    
     def save_dataframe(self):
         
-        self.lg.saveDataframe(self.dataframe, filename=self.filename)
+        self.saveDataframe(self.dataframe, filename=self.results_filename)
         
+    
+    @requires_input_proccess
+    def get_results_columns(self):
+        return self.columns
+        
+
+   # RETURN RESULTS ------------------------------------------------------------------------------------------------
+    
+        
+    def get_last_results(self):
+                        
+        return self.dataframe.tail(1).to_dict(orient="records")[0]
+    
+    
+    def get_n_last_results(self, n_results):
+        
+        return self.dataframe.tail(n_results).to_dict(orient="records")[0]
+    
+
+    def get_avg_n_last_results(self, n_results, column):
+        
+        return self.dataframe[column].tail(n_results).mean()
+    
+    
+    def get_std_n_last_results(self, n_results, column):
+        
+        return self.dataframe[column].tail(n_results).std()
+    
+    
+    def get_avg_and_std_n_last_results(self, n_results, column):
+        
+        return self.get_avg_n_last_results(n_results, column), self.get_std_n_last_results(n_results, column)
+    
+    def get_sorted_dataframe(self, column, ascending):
+        
+        return self.dataframe.sort_values(by=column, ascending=ascending)
+    
+    def get_n_last_ordered_results(self, n, column, ascending = True):
+        
+        '''Returns the best n results'''
+        
+        ordered_dataframe = self.get_sorted_dataframe(column=column, ascending=ascending)
+        
+        return ordered_dataframe.tail(n).to_records()
+    
+    @requires_input_proccess
+    def get_dataframe(self):
+        return self.dataframe
+
+    def get_grouped_dataframes(self, key_to_group_by) -> Dict[str, pandas.DataFrame]:
+        
+        grouped_dataframes = self.dataframe.groupby(key_to_group_by)
+
+        grouped_dataframes_dict = {k: v for k, v in grouped_dataframes}
+        
+        return grouped_dataframes_dict
 
     # GRAPHS ------------------------------------------------------------------------------------------------------------------
 
@@ -125,7 +182,7 @@ class ResultLogger(LoggerSchema):
         plt.grid(True)
 
         if save_path:
-            plt.savefig(self.lg.logDir + '\\' + save_path)
+            plt.savefig(self.logDir + '\\' + save_path)
 
         if to_show:
             plt.show()
@@ -173,7 +230,7 @@ class ResultLogger(LoggerSchema):
         plt.grid(True)
 
         if save_path:
-            plt.savefig(self.lg.logDir + '\\' + save_path)
+            plt.savefig(self.logDir + '\\' + save_path)
 
         if to_show:
             plt.show()
@@ -195,8 +252,6 @@ class ResultLogger(LoggerSchema):
         aggregated_values = [ [ values[u - aggregate_number + i] for i in range(0, aggregate_number * 2) ] for u in range(aggregate_number, len(values) - aggregate_number) ]
         x_values = self.dataframe[x_axis][aggregate_number:(len(self.dataframe[x_axis]) - aggregate_number)]
 
-        #print(f"aggregated values: {aggregated_values}")
-
         mean_values = np.mean(aggregated_values, axis=1)
         
         if show_std:
@@ -217,7 +272,7 @@ class ResultLogger(LoggerSchema):
         plt.grid(True)
 
         if save_path:
-            plt.savefig(self.lg.logDir + '\\' + save_path)
+            plt.savefig(self.logDir + '\\' + save_path)
 
         if to_show:
             plt.show()
@@ -276,52 +331,34 @@ class ResultLogger(LoggerSchema):
        plt.grid(True)
 
        if save_path:
-           plt.savefig(self.lg.logDir + '\\' + save_path)
+           plt.savefig(self.logDir + '\\' + save_path)
 
        if to_show:
            plt.show()
 
 
 
-    # RETURN RESULTS ------------------------------------------------------------------------------------------------
-    
+ 
+def get_results_logger_from_file(folder_path, results_filename=RESULTS_FILENAME) -> ResultLogger:
         
-    def get_last_results(self):
-                        
-        return self.dataframe.tail(1).to_dict(orient="records")[0]
+    artifact_base_directory = folder_path
+    artifact_relative_directory = ''
     
+    datafrane = pd.read_csv(os.path.join(artifact_base_directory, artifact_relative_directory, results_filename))
     
-    def get_n_last_results(self, n_results):
-        
-        return self.dataframe.tail(n_results).to_dict(orient="records")[0]
+    results_columns = datafrane.columns.tolist()    
     
-
-    def get_avg_n_last_results(self, n_results, column):
-        
-        return self.dataframe[column].tail(n_results).mean()
+    resuls_logger = ResultLogger(
+        {
+            "artifact_relative_directory": artifact_relative_directory,
+            "base_directory": artifact_base_directory,
+            "create_new_directory": False,
+            "results_filename": results_filename,
+            "results_columns": results_columns
+        }
+    )
     
-    
-    def get_std_n_last_results(self, n_results, column):
-        
-        return self.dataframe[column].tail(n_results).std()
-    
-    
-    def get_avg_and_std_n_last_results(self, n_results, column):
-        
-        return self.get_avg_n_last_results(n_results, column), self.get_std_n_last_results(n_results, column)
-    
-    def get_sorted_dataframe(self, column, ascending):
-        
-        return self.dataframe.sort_values(by=column, ascending=ascending)
-    
-    def get_n_last_ordered_results(self, n, column, ascending = True):
-        
-        '''Returns the best n results'''
-        
-        ordered_dataframe = self.get_sorted_dataframe(column=column, ascending=ascending)
-        
-        return ordered_dataframe.tail(n).to_records()
-        
+    return resuls_logger
         
         
         
@@ -331,9 +368,9 @@ class ResultLogger(LoggerSchema):
     #
     #def initialize_wandb(self):
     #    
-    #    self.lg.writeLine("Initializing wandb...")
+    #    self.writeLine("Initializing wandb...")
     #    
-    #    self.wandb_run = wandb.init(project="rl_pipeline", entity="rl_pipeline", mode="offline", dir = self.lg.logDir)
+    #    self.wandb_run = wandb.init(project="rl_pipeline", entity="rl_pipeline", mode="offline", dir = self.logDir)
     #    
     #def log_to_wandb(self, toLog : dict):
     #    
@@ -341,5 +378,8 @@ class ResultLogger(LoggerSchema):
     #    
     #def close_wandb(self):
     #
-    #    self.lg.writeLine("Closing wandb...")        
+    #    self.writeLine("Closing wandb...")        
     #    self.wandb_run.finish()    
+    
+    
+    

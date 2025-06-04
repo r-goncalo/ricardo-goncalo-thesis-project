@@ -15,7 +15,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                             HyperparameterSuggestion(
                                 name='discount_factor', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "discount_factor"])
+                                    ([], ["agents_input", "discount_factor"])
                                 ],
                                 value_suggestion = ('float', {'low':0.5, 'high':0.99}) 
                             )
@@ -27,21 +27,21 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                                  HyperparameterSuggestion(
                                     name='epsilon_start', 
                                     hyperparameter_localizations= [
-                                        ('RLPipelineComponent', ["agents_input", "exploration_strategy_input", "epsilon_start"])
+                                        ([], ["agents_input", "exploration_strategy_input", "epsilon_start"])
                                     ],
                                     value_suggestion = ('float', {'low':0.95, 'high':0.999}) 
                                 ),
                                  HyperparameterSuggestion(
                                     name='epsilon_end', 
                                     hyperparameter_localizations= [
-                                        ('RLPipelineComponent', ["agents_input", "exploration_strategy_input", "epsilon_end"])
+                                        ([], ["agents_input", "exploration_strategy_input", "epsilon_end"])
                                     ],
                                     value_suggestion = ('float', {'low':0.05, 'high':0.3}) 
                                 ),
                                  HyperparameterSuggestion(
                                     name='epsilon_decay', 
                                     hyperparameter_localizations= [
-                                        ('RLPipelineComponent', ["agents_input", "exploration_strategy_input", "epsilon_decay"])
+                                        ([], ["agents_input", "exploration_strategy_input", "epsilon_decay"])
                                     ],
                                     value_suggestion = ('float', {'low':0.95, 'high':0.9999}) 
                                  )
@@ -53,14 +53,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='hidden_layers', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "policy_input", "model_input", "hidden_layers"])
+                                    ([], ["agents_input", "policy_input", "model_input", "hidden_layers"])
                                 ],
                                 value_suggestion = ('int', {'low':2, 'high':8}) 
                             ),
                              HyperparameterSuggestion(
                                 name='hidden_size', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "policy_input", "model_input", "hidden_size"])
+                                    ([], ["agents_input", "policy_input", "model_input", "hidden_size"])
                                 ],
                                 value_suggestion = ('cat', {'choices' : [16, 32, 64, 128, 256]}) 
                             )
@@ -71,14 +71,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='target_update_rate', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "learner_input", "target_update_rate"])
+                                    ([], ["agents_input", "learner_input", "target_update_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.01, 'high':0.15}) 
                             ),
                              HyperparameterSuggestion(
                                 name='learning_rate', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "learner_input", "optimizer_input", "learning_rate"])
+                                    ([], ["agents_input", "learner_input", "optimizer_input", "learning_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.000001, 'high':0.1}) 
                             )            
@@ -89,7 +89,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='memory_capacity', 
                                 hyperparameter_localizations= [
-                                    ('RLPipelineComponent', ["agents_input", "memory_input", "capacity"])
+                                    ([], ["agents_input", "memory_input", "capacity"])
                                 ],
                                 value_suggestion = ('int', {'low':100, 'high':1000}) 
                             )
@@ -121,13 +121,19 @@ def main():
     
     hyperparameters_to_change = get_hyperparameters_to_change()
     
-    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change)
+    print("Generating hyperparameters to change")
+    
+    configuration_dict = get_configuration_dict(num_episodes=12)
+    
+    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict)
     
     hp_opt_pipeline = HyperparameterOptimizationPipeline(hp_opt_input)
     
-    hp_opt_pipeline.save_configuration()
+    hp_opt_pipeline.run()
+    
+    #hp_opt_pipeline.save_configuration()
     
     
-    
+
 if __name__ == "__main__":
     main()

@@ -1,14 +1,17 @@
 
 from typing import Dict
 from automl.component import InputSignature, Component, requires_input_proccess
-from automl.loggers.logger_component import LoggerSchema
+from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.environment.environment_components import EnvironmentComponent
 
+from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
-class RLTrainerComponent(LoggerSchema):
+
+
+class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
     TRAIN_LOG = 'train.txt'
     
@@ -26,6 +29,8 @@ class RLTrainerComponent(LoggerSchema):
                       "episodes_done" : 0,
                       "episode_score" : 0
                       } #this means we'll have a dic "values" with this starting values
+    
+    results_columns = ["episode", "episode_steps", "avg_reward", "total_reward"]
 
     def proccess_input(self): #this is the best method to have initialization done right after
         
@@ -45,11 +50,6 @@ class RLTrainerComponent(LoggerSchema):
         self.values["episodes_done"] = 0
         self.values["total_steps"] = 0
         
-        self.result_logger = ResultLogger({ 
-            "logger_object" : self.lg,
-            "keys" : ["episode", "episode_steps", "avg_reward", "total_reward"]
-            })
-                
         self.setup_agents()
         
         
@@ -66,7 +66,7 @@ class RLTrainerComponent(LoggerSchema):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
                 
-                agent_trainer_input = {"agent" : agents[key], "optimization_interval" : self.optimization_interval, "logger_object" : agents[key].lg} 
+                agent_trainer_input = {"agent" : agents[key], "optimization_interval" : self.optimization_interval} 
                 
                 agent_trainer = self.initialize_child_component(AgentTrainer, agent_trainer_input)
                 
@@ -76,15 +76,26 @@ class RLTrainerComponent(LoggerSchema):
             elif isinstance(agents[key], AgentTrainer):
                 
                 self.agents_in_training[key] = agents[key]
-                self.agents_in_training[key].pass_input({"logger_object" : agents[key].lg})
+                self.agents_in_training[key].pass_input({})
 
 
+    # RESULTS LOGGING --------------------------------------------------------------------------------
+    
+    def calculate_results(self):
+                
+        return {
+            "episode" : [self.values["episodes_done"]],
+            "total_reward" : [self.values["episode_score"]],
+            "episode_steps" : [self.values["episode_steps"]], 
+            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
+            }
+    
 
     # TRAINING_PROCESS -------------------------------------------------------------------------------
 
 
     @requires_input_proccess
-    def run_episodes(self, n_episodes : int = None):
+    def run_episodes(self):
         
         '''Starts training
         
@@ -100,11 +111,9 @@ class RLTrainerComponent(LoggerSchema):
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_training_session() 
             
-        
-        n_episodes_to_do = self.num_episodes - self.values["episodes_done"] if n_episodes == None else min(self.num_episodes - self.values["episodes_done"], n_episodes)
-            
+                    
         #each episode is an instance of playing the game
-        for _ in range(n_episodes_to_do):
+        for _ in range(self.num_episodes):
             
             self.__run_episode(self.values["episodes_done"])
             
@@ -113,21 +122,13 @@ class RLTrainerComponent(LoggerSchema):
             
             self.values["episodes_done"] = self.values["episodes_done"] + 1
             
-            self.result_logger.log_results({
-                "episode" : [self.values["episodes_done"]],
-                "total_reward" : [self.values["episode_score"]],
-                "episode_steps" : [self.values["episode_steps"]], 
-                "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
-            })   
-
-            ["episode", "episode_steps", "episode_reward", "episode_avg_reward", "avg_reward", "total_reward"]
-            
+            self.calculate_and_log_results()
                 
             
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.end_training()            
         
-        self.result_logger.save_dataframe()
+        self.results_lg.save_dataframe()
         
         self.env.close()
             
@@ -162,22 +163,7 @@ class RLTrainerComponent(LoggerSchema):
                 self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
                 break
             
-            
-            
-    def plot_results_graph(self):
-           
-       self.result_logger.plot_graph("episode", ["total_reward"])
-       
-       self.result_logger.plot_graph("episode", ["episode_steps"])
-       
-       self.result_logger.plot_graph("episode", ["avg_reward"])
         
                    
-    def get_last_results(self):
-        
-        return self.result_logger.get_last_results()
-    
-    def get_results_logger(self) -> ResultLogger:
-        
-        return self.result_logger
+
                         

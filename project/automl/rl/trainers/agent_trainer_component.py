@@ -5,7 +5,8 @@
 
 from typing import Dict
 from automl.component import InputSignature, Component, requires_input_proccess
-from automl.loggers.logger_component import LoggerSchema
+from automl.loggers.component_with_results import ComponentWithResults
+from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.environment.environment_components import EnvironmentComponent
@@ -13,7 +14,7 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 import torch
 import time
 
-class AgentTrainer(Component):
+class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     '''Describes a trainer specific for an agent, mostly used to control its logging'''
     
@@ -31,7 +32,7 @@ class AgentTrainer(Component):
                       "episode_score" : 0
                       } #this means we'll have a dic "values" with this starting values
     
-    
+    results_columns = ["episode", "total_reward", "episode_steps", "avg_reward"]
     
     def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
         super().__init__(*args, **kwargs)
@@ -48,18 +49,23 @@ class AgentTrainer(Component):
         self.agent.pass_input({"training_context" : self})
         
         self.agent.proccess_input()
-        
-        self.lg = self.agent.lg.createProfile(object_with_name=self)
-        
+                
         self.optimization_interval = self.input["optimization_interval"]
         
         self.save_interval = self.input["save_interval"]
         
+    # RESULTS LOGGING --------------------------------------------------------------------------------
+    
+    @requires_input_proccess
+    def calculate_results(self):
         
-        self.result_logger = ResultLogger({ "logger_object" : self.lg,
-            "keys" : ["episode", "total_reward", "episode_steps", "avg_reward"]})
+        return {
+            "episode" : [self.values["episodes_done"]],
+            "total_reward" : [self.values["total_score"]],
+            "episode_steps" : [self.values["episode_steps"]], 
+            "avg_reward" : [self.values["total_score"] / self.values["total_steps"]]
+            }
         
-                    
     
     # TRAINING_PROCESS ---------------------
     
@@ -83,7 +89,7 @@ class AgentTrainer(Component):
                 
     @requires_input_proccess
     def end_training(self):
-        self.result_logger.save_dataframe()
+        self.results_lg.save_dataframe()
         
         self.lg.writeLine(f"Values of exploraion strategy: {self.agent.exploration_strategy.values}", file=self.TRAIN_LOG)
     
@@ -108,12 +114,7 @@ class AgentTrainer(Component):
         
         self.lg.writeLine("Ended episode: " + str(self.values["episodes_done"]) + " with duration: " + str(self.values["episode_steps"]) + ", total reward: " + str(self.values["episode_score"]), file=self.TRAIN_LOG)
         
-        self.result_logger.log_results({
-            "episode" : [self.values["episodes_done"]],
-            "total_reward" : [self.values["episode_score"]],
-            "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
-            })  
+        self.calculate_and_log_results()
         
         
     @requires_input_proccess

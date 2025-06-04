@@ -1,10 +1,30 @@
 from automl.core.input_management import InputMetaData, InputSignature
+from types import FunctionType
+import copy
 
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
+def on_name_pass(self):
+    self.name = self.input["name"] #sets the name of the component to the input name
+    
 
-class Component: # a component that receives and verifies input
+#TODO: this should make all pre computation necessary for input processing
+class Scheme(type): # the meta class of all component classes, defines their behavior (not the behavior of the instances)
+    
+    def __init__(self_class, *args, **kwargs):
+        # Create the new class
+        super().__init__(*args, **kwargs)
+                
+    
+    def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values
+        return {
+            "parameters_signature": {},
+            "exposed_values": {}
+        }
+
+
+class Component(metaclass=Scheme): # a component that receives and verifies input
 
     '''This is the basic Squema, all other Squemas should extend it'''
     
@@ -15,7 +35,10 @@ class Component: # a component that receives and verifies input
     # worth noting that child components can freely repeat values in their parameters_signature.
     #   Default values and generators of child components will have priority
     #   Validity and type checkers will be applied from Parent to child     
-    parameters_signature : dict[str, InputSignature] = {}
+    
+    parameters_signature : dict[str, InputSignature] = {
+        "name" : InputSignature(on_pass=on_name_pass, ignore_at_serialization=True, mandatory=False, priority=0), #the name of the component
+    }
     
     #A dictionary { "value_name" -> initial_value }
     #it tells other components what are the values exposed by this component, useful when checking the validity of the program before running it
@@ -26,7 +49,7 @@ class Component: # a component that receives and verifies input
     # INITIALIZATION -------------------------------------------------------------------------
     
     def __init__(self, input : dict[str, any] = {}): #we can immediatly receive the input
-                
+                        
         self.input : dict[str, any] = {} #the input will be a dictionary
         
         self.__input_meta : dict[str, InputMetaData] = {} # will store meta data according to the input
@@ -45,13 +68,17 @@ class Component: # a component that receives and verifies input
         self.output = {} #output, if any, will be a dictionary
         
         self._input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
-        
+                
             
     
     def pass_input(self, input: dict): # pass input to this component, may need verification of input
         '''Pass input to this component
            It is supposed to be called only before proccess_input and, if not, it mean proccess_input may be called a multitude of times
            '''
+        
+        if not isinstance(input, dict):
+            raise Exception("Passed input is not of type dict")
+           
         self._input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
         
         for passed_key in input.keys():
@@ -60,28 +87,38 @@ class Component: # a component that receives and verifies input
             
             if parameter_signature != None:
                 
-                self.__verified_pass_input(passed_key, input[passed_key], parameter_signature)
+                self.__verified_pass_input(passed_key, input[passed_key])
                 
             else:
                 print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
 
                 
                 
-    def __verified_pass_input(self, key, value, parameter_signature : InputSignature):
+    def __verified_pass_input(self, key, value):
         
         '''for logic of passing the input, already verified'''
         
         self.input[key] = value
         self.__input_meta[key].custom_value_passed()
         
-        if parameter_signature.on_pass != None: #if there is verification of logic for when the input is passed
+        parameters_signatures_of_key : list[InputSignature] = self.get_list_of_parameter_signatures_for_key(key)
+        
+        for parameter_signature in parameters_signatures_of_key: # TODO: this should all be defined in the creation of the Scheme, not computed every time an input is passed
+        
+            if parameter_signature.on_pass != None: #if there is verification of logic for when the input is passed
+
+                try:
+                
+                    parameter_signature.on_pass(self)
+
+                except:
+                    raise Exception(f"In component of type {type(self)}, when passing input: Exception while using the on_pass for {key}, named {parameter_signature.on_pass.__name__}")
+                
             
-            parameter_signature.on_pass(self)
-
-
 
     def proccess_input(self): #verify the input to this component
         '''Verify validity of input and add default values''' 
+        
         
         #get input signature priorities specified, sorted
         #and the input signatures organized by priorities
@@ -89,16 +126,21 @@ class Component: # a component that receives and verifies input
         
         passed_keys = self.input.keys()
         
+        
         for priority in parameters_signature_priorities:
                         
             self.__add_default_values_of_class_input(passed_keys, organized_parameters_signature[priority])
+            
             self.__verify_input(passed_keys, organized_parameters_signature[priority])
+            
+
+            
             
         self._input_was_proccessed = True
         
-    def proccess_input_if_not_proccesd(self):
-    
+    def proccess_input_if_not_proccesd(self):    
         if not self._input_was_proccessed:
+            
             self.proccess_input()
 
 
@@ -166,12 +208,23 @@ class Component: # a component that receives and verifies input
     
     def get_child_by_localization(self, localization : list):
         
-        '''Gets child component by its location'''
+        '''
+        Gets child component by its location
+        Note that an emty localization will return the component itself
+        '''
         
         current_component : Component = self
 
         for index in localization:
-            current_component = current_component.child_components[index]
+            
+            if isinstance(index, int):
+                current_component = current_component.child_components[index]
+
+            elif isinstance(index, str):
+                current_component = current_component.get_child_by_name(index)
+            
+            else:
+                raise Exception(f"Invalid index {index} in localization {localization} for component {self.name}")
 
         return current_component
     
@@ -180,6 +233,10 @@ class Component: # a component that receives and verifies input
         if isinstance(component_localizer, str):
                     
             return self.get_child_by_name(component_localizer)
+        
+        elif isinstance(component_localizer, int):
+            
+            return self.get_child_by_localization([component_localizer])
                     
         elif isinstance(component_localizer, list):
                     
@@ -188,7 +245,7 @@ class Component: # a component that receives and verifies input
         raise Exception(f"Could not find component in source_component {self.name} given localization {component_localizer}")
                 
     
-    def get_localization(self):
+    def get_index_localization(self):
         
         '''Gets localization of this component, stopping the definition of localization when it finds a source componen (without parent)'''
         
@@ -212,6 +269,34 @@ class Component: # a component that receives and verifies input
                 break #we reached the source component
             
         return full_localization 
+    
+    
+    def get_source_component(self):
+        '''Gets the source component, the one without parent'''
+        
+        current_component = self
+        
+        while True:
+            
+            if current_component.parent_component != None:
+                current_component = current_component.parent_component
+            else:
+                return current_component
+    
+    # CLONING -------------------------------------------------
+    
+    def clone(self):
+        
+        '''
+        Creates a clone of this component, with the same input and exposed values.
+        Not that the clone will not have the same parent component
+        '''
+        
+        cloned_component = type(self)(copy.deepcopy(self.input))
+        cloned_component.values = copy.deepcopy(self.values) #copy the exposed values
+        cloned_component.output = copy.deepcopy(self.output) #copy the output
+        
+        return cloned_component
     
     # EXPOSED VALUES -------------------------------------------
     
@@ -239,7 +324,35 @@ class Component: # a component that receives and verifies input
 
     # INPUT PROCCESSING ---------------------------------------------      
     
-    def get_parameter_signature(self, key):
+    def get_list_of_parameter_signatures_for_key(self, key) -> list[InputSignature]:
+        
+        current_class_index = 0
+        method_resolution_list = type(self).__mro__
+        current_squeme : type[Component] = method_resolution_list[current_class_index]
+        
+        toReturn : list[InputSignature]= []
+        
+        while True:
+            
+            if key in current_squeme.parameters_signature.keys():
+                toReturn.append(current_squeme.parameters_signature[key])
+                
+                if current_squeme == Component:
+                    break 
+                
+                current_class_index += 1
+                current_squeme : type[Component] = method_resolution_list[current_class_index]
+            
+            elif current_squeme == Component:
+                break 
+            
+            else:
+                current_class_index += 1
+                current_squeme : type[Component] = method_resolution_list[current_class_index]
+        
+        return toReturn
+    
+    def get_parameter_signature(self, key) -> InputSignature:
         
         '''Gets the parameter signature for a key for this component'''
         
@@ -311,7 +424,7 @@ class Component: # a component that receives and verifies input
     # DEFAULT VALUES -------------------------------------------------
             
     def __add_default_values_of_class_input(self, passed_keys, list_of_signatures : list[tuple[int, InputSignature]]):
-        
+                        
         for (input_key, parameter_signature) in list_of_signatures:
                              
             #if this values was not already defined
@@ -329,7 +442,11 @@ class Component: # a component that receives and verifies input
                     self.input[input_key] = parameter_signature.default_value  #the value used will be the default value
 
                 elif not parameter_signature.generator == None:
-                    self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
+                    try:
+                        self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
+                    
+                    except:
+                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}")
                     
     
     # INPUT META DATA ----------------------------------------------------------------
@@ -408,15 +525,17 @@ class Component: # a component that receives and verifies input
 
 # VALIDITY VERIFICATION (static methods for validating input) -----------------------------          
 
-def requires_input_proccess(func):
+def requires_input_proccess(func : FunctionType):
     '''
     An annotation that makes the input be proccessed, if it was not already, when a function is called
     
     Note that if a method has its super method with this annotation, adding it will be redundant
     '''
+        
     def wrapper(self : Component, *args, **kwargs):
         self.proccess_input_if_not_proccesd()
         return func(self, *args, **kwargs)
+    
     return wrapper
 
 
@@ -436,8 +555,5 @@ def uses_component_exception(func):
     return wrapper
         
         
-        
-
-
 
 

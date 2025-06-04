@@ -40,7 +40,8 @@ class ConvModelSchema(ModelComponent):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = {"board_x" : InputSignature(),
+    parameters_signature = {
+        "board_x" : InputSignature(),
                        "board_y" : InputSignature(),
                        "board_z" : InputSignature(),
                        "output_size" : InputSignature(),
@@ -61,9 +62,7 @@ class ConvModelSchema(ModelComponent):
         
         if self.input["device"] != "":
             self.model.to(self.input["device"])
-            
-        print("Initializing model with input" + str(self.input))
-                
+                            
     # EXPOSED METHODS --------------------------------------------
     
     @requires_input_proccess

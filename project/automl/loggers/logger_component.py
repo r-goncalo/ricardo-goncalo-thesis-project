@@ -8,70 +8,52 @@ from automl.utils.files_utils import open_or_create_folder
 
 from enum import Enum
 
-BASE_EXPERIMENT_DIRECTORY = 'data\\experiments'
+from automl.basic_components.artifact_management import ArtifactComponent
 
 
-def on_log_pass(self : Component):
-        
-    self.lg = self.input["logger_object"]
-    self.input["logger_directory"] = self.lg.logDir
-    
-
-def generate_log_object(self : Component):
-        
-    directory = self.input["logger_directory"]
-    
-    return openLog(logDir=directory, useLogName=False)
+class DEBUG_LEVEL(Enum):
+    NONE = -1
+    CRITICAL = 0
+    ERROR = 1
+    WARNING = 2
+    DEBUG = 3
+    INFO = 4
 
 
-def generate_log_directory(self : Component):
-    
-    print(f"generate_log_directory for object {self.name}")
-    
-    if "logger_object" in self.input.keys():
-        lg_object : LogClass = self.lg
-        return lg_object.logDir
-    
-    else:
-        return open_or_create_folder(BASE_EXPERIMENT_DIRECTORY, folder_name=self.name, create_new=self.input["create_directory_if_existent"])
+# LOGGING SCHEMA  -------------------------------------------------------------------------------------------------   
 
 
-class LoggerSchema(Component):
+class LoggerSchema(ArtifactComponent):
 
     '''
     A component that generalizes the behaviour of a component that has a logger object 
     '''
-    
-    class Level(Enum):
-        CRITICAL = 0
-        ERROR = 1
-        WARNING = 2
-        INFO = 3
-        DEBUG = 4
 
     
     
     parameters_signature = {
         
-                        "create_directory_if_existent" : InputSignature(priority=3, default_value=True, ignore_at_serialization=True),
-        
-                        "logger_directory" : InputSignature(
-                                priority=5,
-                                generator=lambda self : generate_log_directory(self), 
-                                ignore_at_serialization=True
-                                ),
                                                 
-                        "logger_level" : InputSignature(default_value=Level.INFO, ignore_at_serialization=True),
-                        
-                       "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
-                                                        generator = lambda self : generate_log_object(self), 
-                                                        on_pass=on_log_pass),
+                        "logger_level" : InputSignature(default_value=DEBUG_LEVEL.INFO, ignore_at_serialization=True),
                        
-                       "create_profile_for_parent" : InputSignature(default_value=False, ignore_at_serialization=True),
-                       "create_profile_for_logger" : InputSignature(default_value=True, ignore_at_serialization=True),
+                       "create_profile_for_parent" : InputSignature(default_value=True, ignore_at_serialization=True, description="if the entity responsible for the messages is the parent of the logger object"),
+                       "create_profile_for_logger" : InputSignature(default_value=False, ignore_at_serialization=True, description="If the entity responsible for the messages is the logger object"),
                        
-                       "default_print" : InputSignature(default_value=False)
+                       "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
+                       
+                       "artifact_relative_directory" : InputSignature(
+                                priority=1,
+                                default_value="log"
+                                ),
+                       
+                       "logger_object" : InputSignature(mandatory=False, ignore_at_serialization=True)
                        }
+        
+
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+                
     
     # INITIALIZATION --------------------------------------------------------
 
@@ -79,27 +61,31 @@ class LoggerSchema(Component):
         
         super().proccess_input()
         
-        self.lg : LogClass = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
-    
-        self.logger_level : LoggerSchema.Level = self.input["logger_level"]
-        
-        self.default_print = self.input["default_print"]
-    
+        if "logger_object" in self.input.keys():
+            self.lg = self.input["logger_object"]
+            
+        else:
+            self.lg : LogClass = openLog(logDir=self.artifact_directory, useLogName=False)
+            
         if self.input["create_profile_for_parent"]:
             self.lg = self.lg.createProfile(object_with_name=self.parent_component)
     
         elif self.input["create_profile_for_logger"]:
-            self.lg = self.lg.createProfile(object_with_name=self)
+            self.lg = self.lg.createProfile(object_with_name=self)  
             
-        self.lg.writeLine("Created logger in directory: " + self.lg.logDir)
-            
+        self.logger_level = self.input["logger_level"]  
+        
+        self.default_print = self.input["default_print"]
+                        
             
     # LOGGING -----------------------------------------------------------------------------        
-            
+        
+    @requires_input_proccess
     def writeToFile(self, *args, **kargs):
         return self.lg.writeToFile(*args, **kargs)
                 
-    def writeLine(self, *args, level=Level.INFO, toPrint=None, **kargs):
+    @requires_input_proccess
+    def writeLine(self, *args, level=DEBUG_LEVEL.INFO, toPrint=None, **kargs):
         
         if toPrint == None:
             toPrint = self.default_print
@@ -107,38 +93,70 @@ class LoggerSchema(Component):
         if self.logger_level.value <= level.value:
             return self.lg.writeLine(*args, toPrint=toPrint, **kargs)
         
+        
+        
+    @requires_input_proccess
     def saveFile(self, *args, **kargs):
         return self.lg.saveFile(*args, **kargs)
     
+    @requires_input_proccess
     def saveDataframe(self, *args, **kargs):
         return self.lg.saveDataframe(*args, **kargs)
         
+    @requires_input_proccess
     def loadDataframe(self, *args, **kargs):
         return self.lg.loadDataframe(*args, **kargs)
         
+    @requires_input_proccess
     def openFile(self, *args, **kargs):
         return self.lg.openFile(*args, **kargs)
     
+    @requires_input_proccess
     def openChildLog(self, *args, **kargs):
         return self.lg.openChildLog(*args, **kargs)
     
+    @requires_input_proccess
     def createProfile(self, *args, **kargs):
-        return self.lg.createProfile(*args, **kargs)
+        
+        return LoggerSchema(input={**self.input, "logger_object" : self.lg.createProfile(*args, **kargs)})
     
+    
+# COMPONENT WITH LOGGING -------------------------------------------------------------------------------------------------    
+    
+def on_log_pass(self : Component):
             
-    # CONFIGURATION SAVING / LOADING ------------------------------------------------------    
-        
-    def save_configuration(self, toPrint=False):
-        
-        json_string = json_string_of_component(self)
-        
-        self.lg.writeToFile(string=json_string, file='configuration.json', toPrint=toPrint)
+    self.lg  = self.input["logger_object"]
     
-    def load_configuration(path):
+def generate_logger_for_component(self : ArtifactComponent):
+    return self.initialize_child_component(LoggerSchema, input={
+            "create_new_directory" : False,
+            "base_directory" : self.get_artifact_directory(), 
+            "artifact_relative_directory" : ""}
+        )
+
+# TODO: In the future, components may extend this, but not the LoggingComponent
+class ComponentWithLogging(ArtifactComponent):
+
+    '''
+    A component that generalizes the behaviour of a component that has a logger object 
+    '''
+    
+    
+    parameters_signature = {
+                                                                                
+                       "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
+                                                        generator = generate_logger_for_component , 
+                                                        on_pass=on_log_pass)
+                       }
+
+
+    def proccess_input(self): #this is the best method to have initialization done right after
+            
+        super().proccess_input()
         
-        fd = open(path, 'r') 
-        json_string = fd.read()
-        fd.close()
+        self.lg : LogClass = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
         
-        return  component_from_json_string(json_string)
+        
+
+
     

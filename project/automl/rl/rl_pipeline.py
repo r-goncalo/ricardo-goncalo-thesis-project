@@ -1,3 +1,5 @@
+import os
+from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
@@ -5,23 +7,25 @@ from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
-from automl.loggers.logger_component import LoggerSchema
 from automl.utils.files_utils import open_or_create_folder
+from automl.basic_components.state_management import StatefulComponent
 
 import torch
 
 import gc
 
+from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+
 from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(LoggerSchema):
+class RLPipelineComponent(ComponentWithLogging, StatefulComponent, ComponentWithEvaluator):
     
     parameters_signature = {
         
                         "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
                                                         
-                       "num_episodes" : InputSignature(),
+                       "num_episodes_per_run" : InputSignature(),
                        
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentWrapper)),
                        
@@ -31,7 +35,7 @@ class RLPipelineComponent(LoggerSchema):
                        
                        "limit_steps" : InputSignature(),
                        "optimization_interval" : InputSignature(),
-                       "save_interval" : InputSignature(default_value=100),
+                       "save_in_between" : InputSignature(default_value=True),
                        
                        "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent)),
                        
@@ -50,7 +54,7 @@ class RLPipelineComponent(LoggerSchema):
         self.device = self.input["device"]
     
         self.limit_steps = self.input["limit_steps"]
-        self.num_episodes =self.input["num_episodes"]  
+        self.num_episodes_per_run =self.input["num_episodes_per_run"]  
         
         self.env : EnvironmentComponent= self.input["environment"]
         
@@ -58,7 +62,7 @@ class RLPipelineComponent(LoggerSchema):
         
         self.optimization_interval = self.input["optimization_interval"]
         
-        self.save_interval = self.input["save_interval"]
+        self.save_in_between = self.input["save_in_between"]
         
         self.configure_device(self.device)
 
@@ -96,7 +100,7 @@ class RLPipelineComponent(LoggerSchema):
         rl_trainer_input = {
             "device" : self.device,
             "logger_object" : self.lg,
-            "num_episodes" : self.num_episodes,
+            "num_episodes" : self.num_episodes_per_run,
             "state_memory_size" : self.state_memory_size,
             "environment" : self.env,
             "limit_steps" : self.limit_steps ,
@@ -127,10 +131,7 @@ class RLPipelineComponent(LoggerSchema):
         '''Configures the agents, setting up their action and state spaces, the logger and more'''
             
         self.setup_agent_state_action_shape(agent_name, agent)
-                    
-        agent_logger = self.lg.openChildLog(logName=agent.input["name"])
-        
-        agent.pass_input({"logger_object" : agent_logger })
+                            
         agent.pass_input(self.input["agents_input"])
             
             
@@ -167,8 +168,10 @@ class RLPipelineComponent(LoggerSchema):
             agent_input = {} #the input of the agent, with base values defined by "agents_input"
 
             agent_name = "agent_" + str(agentId)
-            agent_input["name"] = agent_name    
-
+            agent_input["name"] = agent_name
+            
+            agent_input["base_directory"] = os.path.join(self.get_artifact_directory(), "agents" )
+            
             agents[agent] = self.initialize_child_component(AgentSchema, input=agent_input)
 
             self.lg.writeLine("Created agent in training " + agent_name)
@@ -185,30 +188,40 @@ class RLPipelineComponent(LoggerSchema):
         
     @requires_input_proccess
     def train(self, n_episodes=None):        
+        '''Executes the training part of the algorithm with a specified number of episodes < than the number specified'''
         
         gc.collect() #this forces the garbage collector to collect any abandoned objects
         torch.cuda.empty_cache() #this clears cache of cuda
         
         self.rl_trainer.run_episodes(n_episodes=n_episodes)
         
+        if self.save_in_between:
+            self.save_state()
+        
     
     @requires_input_proccess
-    def run(self, n_episodes=None):
+    def algorithm(self, n_episodes=None):
+        
+        '''
+        Executes the training part of the algorithm with a specified number of episodes < than the number specified
+        
+        It then evaluates and returns the results
+        '''
         
         self.train(n_episodes=n_episodes)
         
-        return self.get_last_Results()
+        self.output = self.get_last_Results()
+    
+        
+    # RESULTS --------------------------------------
     
     @requires_input_proccess
     def get_results_logger(self):
         return self.rl_trainer.get_results_logger()
-        
-    # RESULTS --------------------------------------
     
-    def plot_graphs(self):
-        
-        self.rl_trainer.plot_results_graph()
-        
+    
+    
+    @requires_input_proccess    
     def get_last_Results(self):
         
         return self.rl_trainer.get_last_results()
