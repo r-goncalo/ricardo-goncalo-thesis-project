@@ -31,17 +31,36 @@ class ComponentInputSignature(InputSignature):
     
     
     
-    def __init__(default_component_definition = None):
+    def __init__(self, default_component_definition = None, **kwargs):
         
-        def generator(self : Component):
-            
-            if default_component_definition is not None:
-                return ComponentInputSignature.get_component_from_input(self, default_component_definition)
-            
-            else:
-                return None
+        '''Default component definition can be a component, a json string, a dictionary, and so on'''
+    
+        if default_component_definition is not None and "generator" in kwargs.keys():
+            raise Exception("Geneator in arguments of Component Input Signature")
         
-        super().__init__(possible_types=[type, dict, str, tuple])
+        print("this is a print")
+        print(default_component_definition)
+        
+        if default_component_definition is not None:
+        
+            def generator(self : Component): # will return the component to be saved in 
+                
+                print("this is a print")
+                print(default_component_definition)
+
+                component = gen_component_from(default_component_definition)
+                self.define_component_as_child(component)
+                
+                return component
+            
+            super().__init__(possible_types=[Component, type, dict, str, tuple], generator=generator, **kwargs)
+        
+        else:
+            super().__init__(possible_types=[Component, type, dict, str, tuple], **kwargs)
+            
+
+        
+        
         
     
 
