@@ -1,4 +1,5 @@
 import json
+from typing import Union
 
 from automl.component import Component, InputSignature, InputMetaData
 
@@ -318,6 +319,11 @@ def component_from_json_string(json_string) -> Component:
 
 
 def component_from_tuple_definition(tuple_definition) -> Component:
+    
+    '''
+    Generates a component from a tuple definition (Component_definition, input)
+    
+    '''
      
     class_definition = tuple_definition[0]
     
@@ -333,17 +339,25 @@ def component_from_tuple_definition(tuple_definition) -> Component:
     else:
         input = {}
         
-    if isinstance(class_definition, str):
+    if isinstance(class_definition, str): #if if is a class
         class_of_component : type = get_class_from_string(class_definition)
+        return class_of_component(input=input)
+
         
-    elif isinstance(class_definition, type):
+    elif isinstance(class_definition, type): # if it is a class
         class_of_component : type = class_definition
-        
-    return class_of_component(input=input)
+        return class_of_component(input=input)
+    
+    else: #if the first element of the tuple is another type of definition
+        component_to_return = gen_component_from(class_definition)
+        component_to_return.pass_input(input=input)
+        return component_to_return
         
         
 
-def gen_component_from(definition : Component | dict | str | tuple) -> Component:
+def gen_component_from(definition :  Union[Component, dict, str, tuple]) -> Component:
+    
+    '''Generates a component from a definition'''
 
     if isinstance(definition, Component):
         return definition

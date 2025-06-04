@@ -1,3 +1,4 @@
+from typing import Union
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.basic_components.artifact_management import ArtifactComponent
 from automl.basic_components.exec_component import ExecComponent
@@ -19,7 +20,7 @@ from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 
-Component_to_opt_type = ExecComponent | StatefulComponent
+Component_to_opt_type = Union[ExecComponent, StatefulComponent]
  
 import copy
 
@@ -229,7 +230,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         return component_to_opt
 
 
-    def setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Component | dict):
+    def setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Union[Component, dict]):
         
         self.lg.writeLine("Generating configuration for trial " + str(trial.number))
         

@@ -1,4 +1,5 @@
 
+from typing import Union
 from automl.component import Component
 
 from automl.utils.json_component_utils import get_child_dict_from_localization
@@ -49,8 +50,7 @@ class HyperparameterSuggestion():
     
     
     
-    
-    def set_suggested_value(self, suggested_value, component_definition : Component | dict):
+    def set_suggested_value(self, suggested_value, component_definition : Union[Component, dict]):
         
         '''Sets the suggested value in the component (or component input), using the localization'''
         
@@ -68,7 +68,7 @@ class HyperparameterSuggestion():
         
         
         
-    def make_suggestion(self, source_component : Component | dict, trial : optuna.Trial):
+    def make_suggestion(self, source_component : Union[Component, dict], trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         
