@@ -117,13 +117,13 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict):
     
     
     
-def main():
+def main(num_episodes=12):
     
     hyperparameters_to_change = get_hyperparameters_to_change()
     
     print("Generating hyperparameters to change")
     
-    configuration_dict = get_configuration_dict(num_episodes=12)
+    configuration_dict = get_configuration_dict(num_episodes=num_episodes)
     
     hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict)
     
@@ -136,4 +136,11 @@ def main():
     
 
 if __name__ == "__main__":
-    main()
+    
+    import argparse
+    parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
+    parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
+    
+    args = parser.parse_args()
+    
+    main(num_episodes=args.num_episodes)
