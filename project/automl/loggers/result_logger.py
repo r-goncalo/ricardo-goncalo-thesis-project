@@ -91,6 +91,9 @@ class ResultLogger(LoggerSchema):
 
    # RETURN RESULTS ------------------------------------------------------------------------------------------------
     
+    def get_number_of_rows(self):
+        
+        return len(self.dataframe)
         
     def get_last_results(self):
                         

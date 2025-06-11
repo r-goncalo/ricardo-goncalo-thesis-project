@@ -15,7 +15,7 @@ class ComponentInputSignature(InputSignature):
     
     def get_component_from_input(component_with_input : Component, key):
         
-        '''Returns a component from a CompoenentsInputSignature passed value'''
+        '''Returns a component from a ComponentInputSignature passed value'''
         
         value = component_with_input.input[key]
         
@@ -36,16 +36,14 @@ class ComponentInputSignature(InputSignature):
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
     
         if default_component_definition is not None and "generator" in kwargs.keys():
-            raise Exception("Geneator in arguments of Component Input Signature")
+            raise Exception("Geneator in arguments of Component Input Signature when there is a default component definition")
         
-        print("this is a print")
-        print(default_component_definition)
-        
+
         if default_component_definition is not None:
         
             def generator(self : Component): # will return the component to be saved in 
                 
-                print("this is a print")
+                print("generator for evaluater component called")
                 print(default_component_definition)
 
                 component = gen_component_from(default_component_definition)

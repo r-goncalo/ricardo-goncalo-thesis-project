@@ -1,6 +1,7 @@
 
 
 from automl.component import Component, requires_input_proccess
+from automl.core.input_management import InputSignature
 
 
 
@@ -43,7 +44,7 @@ class ComponentWithEvaluator(Component):
     '''
     
     parameters_signature = {
-        "component_evaluator" : EvaluatorComponent,
+        "component_evaluator" : InputSignature(mandatory=True),
     }
     
     def proccess_input(self):

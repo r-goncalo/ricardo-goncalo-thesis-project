@@ -9,7 +9,9 @@ from automl.core.input_management import InputSignature
 class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     
     '''
-    An evaluator specific for RL pipelines
+    An evaluator specific for RL pipelines, which evaluates the last results it has and uses them to compute a result, penalizing high variance and using the mean as the base value
+    
+    This is meant to be used not as a final evaluation of a component, but as an intermediary evaluator at training time.
     
     '''
     
@@ -34,8 +36,14 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     def evaluate(self, component_to_evaluate : RLPipelineComponent):
         
         results_logger : ResultLogger = component_to_evaluate.get_results_logger() 
+        
+        n_results_to_use = self.n_results_to_use
+        n_rows = results_logger.get_number_of_rows()
+        
+        if n_results_to_use > n_rows:
+            n_results_to_use = n_rows
 
-        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(self.n_results_to_use, 'total_reward')
+        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, 'total_reward')
 
         result = avg_result - (std_result / self.std_deviation_factor)
         

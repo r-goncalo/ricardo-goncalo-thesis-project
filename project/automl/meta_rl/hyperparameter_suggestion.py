@@ -41,11 +41,17 @@ class HyperparameterSuggestion():
         for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
 
             component_dict : dict = get_child_dict_from_localization(component_dict, component_localizer)
+            
+            if not "input" in component_dict:
+                component_input_dict = {}
+            
+            else:
+                component_input_dict = component_dict["input"]
 
             if component_dict == None:
                 raise Exception(f"Could not find component with localization <{component_localizer}>")   
 
-            self.pass_input_to_component_input(component_dict, hyperparameter_localizer, suggested_value)
+            self.pass_input_to_component_input(component_input_dict, hyperparameter_localizer, suggested_value)
         
     
     
@@ -105,7 +111,7 @@ class HyperparameterSuggestion():
                 current_input_dict = current_input_dict[hyperparameter_localizer[i]]
     
             except KeyError as e:
-                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}')
+                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for component input {component_input}')
         
         current_input_dict[len(hyperparameter_localizer) - 1] = suggested_value
         

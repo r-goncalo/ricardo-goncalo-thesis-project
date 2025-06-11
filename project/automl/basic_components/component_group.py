@@ -19,7 +19,7 @@ from automl.basic_components.state_management import StatefulComponent, Stateful
 
 from automl.consts import CONFIGURATION_FILE_NAME
 
-Component_in_group_type = Union[ExecComponent, StatefulComponent, SeededComponent, ComponentWithResults, ComponentWithEvaluator]
+Component_in_group_type = Union[ExecComponent, StatefulComponent, SeededComponent, ComponentWithResults]
 
 class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, ComponentWithLogging, ComponentWithResults, EvaluatorComponent):
 

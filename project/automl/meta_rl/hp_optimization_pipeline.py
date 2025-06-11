@@ -3,9 +3,10 @@ from automl.component import InputSignature, Component, requires_input_proccess
 from automl.basic_components.artifact_management import ArtifactComponent
 from automl.basic_components.exec_component import ExecComponent
 from automl.core.advanced_input_management import ComponentInputSignature
-from automl.basic_components.evaluator_component import EvaluatorComponent
+from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
+from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
@@ -45,7 +46,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "steps" : InputSignature(default_value=1),
                         "pruner" : InputSignature(mandatory=False),
                         
-                        "evaluator_component" : ComponentInputSignature(description="The evaluator component to be used for evaluating the components to optimize")
+                        "evaluator_component" : ComponentInputSignature(
+                            default_component_definition=(LastValuesAvgStdEvaluator, {}),
+                            description="The evaluator component to be used for evaluating the components to optimize in their training process"
+                            )
                                                     
                        }
             
@@ -78,8 +82,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
         self.trial_loaders : dict[str, StatefulComponentLoader] = {}
         
-        self.evaluator_component : EvaluatorComponent = self.input["evaluator_component"] # TODO: implement evaluator component in HP
-        
+        self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_component_from_input(self, "evaluator_component")
+                
         
     def initialize_config_dict(self):
         
@@ -191,7 +195,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         component_to_opt.pass_input({"name" : name, "base_directory" : self.artifact_directory})  
         
+        if isinstance(component_to_opt, ComponentWithEvaluator):
+            component_to_opt.pass_input({"component_evaluator" : self.evaluator_component})
+        
         self.lg.writeLine(f"Created component with name {name}")
+        
+        return component_to_opt
         
         
     
@@ -225,7 +234,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
         else:
             component_to_opt = self.create_component_to_test(trial)
-            self.generate_hp_configuration_for_component_in_trial(trial, component_to_opt)
         
         return component_to_opt
 

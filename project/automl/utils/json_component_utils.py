@@ -210,17 +210,18 @@ def decode_components_input_element(source_component : Component, element):
 
 def decode_components_exposed_values(component : Component, source_component : Component, component_dict : dict):
     
+    if "exposed_values" in component_dict: #if there are exposed values
     
-    saved_exposed_values = component_dict["exposed_values"]
-    
-    for exposed_values_key, exposed_value in saved_exposed_values.items():
-        component.values[exposed_values_key] = decode_components_input_element(source_component, exposed_value)
+        saved_exposed_values = component_dict["exposed_values"]
+
+        for exposed_values_key, exposed_value in saved_exposed_values.items():
+            component.values[exposed_values_key] = decode_components_input_element(source_component, exposed_value)
 
     for i in range(0, len(component.child_components)):
         
         child_component = component.child_components[i]
             
-        decode_components_input(child_component, source_component, component_dict["child_components"][i])
+        decode_components_exposed_values(child_component, source_component, component_dict["child_components"][i])
     
 
 
@@ -382,13 +383,21 @@ def get_child_dict_from_index_localization(component_dict, localization : int) -
     
     if "child_components" in component_dict:
         
-        child_components : list = component_dict["child_components"]
+        try:
+        
+            child_components : list = component_dict["child_components"]
+        
+        except IndexError:
+            
+            raise IndexError(f"Localization index {localization} out of range for component with children: {child_components}")
+            
+            
         
         return child_components[localization]        
 
     return None
 
-def get_child_dict_from_str_localization(component_dict, localization : int) -> dict:
+def get_child_dict_from_str_localization(component_dict, localization : str) -> dict:
     
     if "child_components" in component_dict:
         
@@ -414,12 +423,17 @@ def get_child_dict_from_localization(component_dict, localization) -> dict:
     
     elif isinstance(localization, list):
         
-        if len(localization) == 1:
+        if len(localization) == 0:
+            return component_dict
+                    
+        elif len(localization) == 1:
             return get_child_dict_from_localization(component_dict, localization[0])
         
-        child_component_dict = get_child_dict_from_localization(component_dict, localization[0])
+        else:
         
-        return get_child_dict_from_localization(child_component_dict, localization[1:])
+            child_component_dict = get_child_dict_from_localization(component_dict, localization[0])
+
+            return get_child_dict_from_localization(child_component_dict, localization[1:])
     
     else:
         raise Exception(f"Localization is not an int or a str, but {type(localization)}")

@@ -56,7 +56,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        
                        "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
                        
-                       "policy" : InputSignature(priority=200, mandatory=False),                       
+                       "policy" : InputSignature(priority=200, mandatory=False), # TODO: switch this to other input                      
                        
                        "policy_class" : InputSignature(mandatory=False, possible_types=[str]), # TODO: make it possible for the class to be a type
                        "policy_input" : InputSignature(default_value={})
@@ -81,9 +81,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     def initialize_exploration_strategy(self):
                 
         self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
-        self.GAMMA = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
+        self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
                 
-        self.lg.writeLine(f"Batch size: {self.BATCH_SIZE} Gamma: {self.GAMMA}")
+        self.lg.writeLine(f"Batch size: {self.BATCH_SIZE} discount_factor: {self.discount_factor}")
         
         self.exploration_strategy : ExplorationStrategySchema = self.input["exploration_strategy"]
         
@@ -233,7 +233,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         #[ (all states), (all actions), (all next states), (all rewards) ]
         batch = self.memory.Transition(*zip(*transitions))
                 
-        self.learner.learn(batch, self.GAMMA)
+        self.learner.learn(batch, self.discount_factor)
         
     
     # STATE MEMORY --------------------------------------------------------------------

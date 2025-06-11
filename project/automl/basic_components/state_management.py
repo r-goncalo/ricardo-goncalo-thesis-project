@@ -116,7 +116,7 @@ class StatefulComponentLoader(ArtifactComponent):
     def define_component_to_save_load(self, component : ArtifactComponent):
         
         if not isinstance(component, ArtifactComponent):
-            raise Exception("Component is not a ArtifactComponent")
+            raise Exception(f"Tried to define component to save / load that is not a ArtifactComponent, but a {type(component)}")
         
         
         
