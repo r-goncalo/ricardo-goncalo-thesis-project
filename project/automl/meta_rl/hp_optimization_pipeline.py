@@ -1,3 +1,4 @@
+import gc
 from typing import Union
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.basic_components.artifact_management import ArtifactComponent
@@ -20,6 +21,7 @@ from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
+import torch
 
 Component_to_opt_type = Union[ExecComponent, StatefulComponent]
  
@@ -297,6 +299,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
+        
+        '''Called when a trial is over'''
+        
                 
         result = trial.value
         
@@ -306,7 +311,18 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         #self.component_to_test.save_configuration()
         
-        #del self.component_to_test
+        del self.component_to_test
+        gc.collect()
+
+        
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            # Get memory before
+            before = torch.cuda.memory_allocated(device)
+    
+            # Clean memory
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()  # Optional: Collect unused IPC memory
     
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------
