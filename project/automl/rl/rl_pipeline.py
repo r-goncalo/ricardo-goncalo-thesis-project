@@ -1,6 +1,8 @@
 import os
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
+from automl.basic_components.exec_component import ExecComponent
 from automl.component import InputSignature, Component, requires_input_proccess
+from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
@@ -19,7 +21,7 @@ from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(ComponentWithLogging, StatefulComponent, ComponentWithEvaluator):
+class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator):
     
     parameters_signature = {
         
@@ -187,20 +189,20 @@ class RLPipelineComponent(ComponentWithLogging, StatefulComponent, ComponentWith
     # TRAINING_PROCCESS ----------------------
         
     @requires_input_proccess
-    def train(self, n_episodes=None):        
+    def train(self):        
         '''Executes the training part of the algorithm with a specified number of episodes < than the number specified'''
         
         gc.collect() #this forces the garbage collector to collect any abandoned objects
         torch.cuda.empty_cache() #this clears cache of cuda
         
-        self.rl_trainer.run_episodes(n_episodes=n_episodes)
+        self.rl_trainer.run_episodes()
         
         if self.save_in_between:
             self.save_state()
         
     
     @requires_input_proccess
-    def algorithm(self, n_episodes=None):
+    def algorithm(self,):
         
         '''
         Executes the training part of the algorithm with a specified number of episodes < than the number specified
@@ -208,7 +210,9 @@ class RLPipelineComponent(ComponentWithLogging, StatefulComponent, ComponentWith
         It then evaluates and returns the results
         '''
         
-        self.train(n_episodes=n_episodes)
+        self.train() #trains the agents in the reinforcement learning pipeline
+        
+        evaluation_results = self.component_evaluator.evaluate() # evaluates the resulting model and saves the results
         
         self.output = self.get_last_Results()
     
