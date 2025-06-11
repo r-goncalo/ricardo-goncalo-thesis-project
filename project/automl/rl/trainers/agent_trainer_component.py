@@ -88,9 +88,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.lg.writeLine("Setting up training session", file=self.TRAIN_LOG)
                 
     @requires_input_proccess
-    def end_training(self):
-        self.results_lg.save_dataframe()
-        
+    def end_training(self):        
         self.lg.writeLine(f"Values of exploraion strategy: {self.agent.exploration_strategy.values}", file=self.TRAIN_LOG)
     
     @requires_input_proccess

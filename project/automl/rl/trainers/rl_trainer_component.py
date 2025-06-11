@@ -105,7 +105,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         '''
         
-        self.lg.writeLine("Starting to run episodes of training")
+        self.lg.writeLine(f"Starting to run {self.num_episodes} episodes of training")
         
             
         for agent_in_training in self.agents_in_training.values():
@@ -127,9 +127,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.end_training()            
-        
-        self.results_lg.save_dataframe()
-        
+                
         self.env.close()
             
     

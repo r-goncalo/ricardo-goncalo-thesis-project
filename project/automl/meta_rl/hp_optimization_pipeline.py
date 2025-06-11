@@ -284,15 +284,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
             self.component_to_test.run()
             
-            result = self.evaluate_component(self.component_to_test)
+            evaluation_results = self.evaluate_component(self.component_to_test)
             
-            trial.report(result, step)
+            trial.report(evaluation_results["result"], step)
             
             if trial.should_prune():
                 self.lg.writeLine("Prunning current experiment...")
                 raise optuna.TrialPruned()
         
-        return result
+        return evaluation_results["result"]
     
     
     

@@ -44,6 +44,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                        "seed" : InputSignature(generator=lambda self : generate_seed())
                        }
     
+    
+    results_columns = ["episodes_done"] # this means a result_logger will exist with the column "episodes_done"
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
@@ -73,10 +75,20 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         self.initialize_agents_components()
     
         self.setup_trainer()
+        
+        self.rl_setup_evaluator()
 
         for agent in self.agents.values(): #connect agents to rl_trainer
             agent.pass_input({"training_context" : self.rl_trainer}) 
     
+    
+    def rl_setup_evaluator(self):
+        
+        '''Setups custom logic for '''
+        
+        evaluation_columns = self.component_evaluator.get_metrics_strings()
+        
+        self.add_to_columns_of_results_logger(evaluation_columns)
     
         
     def configure_device(self, str_device_str):
@@ -202,7 +214,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
     
     @requires_input_proccess
-    def algorithm(self,):
+    def algorithm(self):
         
         '''
         Executes the training part of the algorithm with a specified number of episodes < than the number specified
@@ -212,7 +224,11 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         self.train() #trains the agents in the reinforcement learning pipeline
         
-        evaluation_results = self.component_evaluator.evaluate() # evaluates the resulting model and saves the results
+        evaluation_results = self.evaluate_this_component() # evaluates the resulting model and saves the results
+        
+        self.log_results({
+            "episodes_done" : self.rl_trainer.values["episodes_done"],
+                          **evaluation_results})
         
         self.output = self.get_last_Results()
     
