@@ -2,7 +2,7 @@
 from automl.component import Component, requires_input_proccess
 from automl.basic_components.artifact_management import ArtifactComponent
 from automl.core.input_management import InputSignature
-from automl.loggers.result_logger import ResultLogger
+from automl.loggers.result_logger import ResultLogger, get_results_logger_from_file
 
 
 def on_log_pass(self : Component):
@@ -87,3 +87,17 @@ class ComponentWithResults(ArtifactComponent):
     def get_results_logger(self) -> ResultLogger:
         
         return self.results_lg
+    
+
+    def get_aggregate_results_lg(self) -> ResultLogger:
+        
+        '''
+        Returns the aggregate results logger
+        This does not need the component to be initialized, as it is capable of getting them from file if needed
+        '''
+        
+        if hasattr(self, "aggregate_results_lg") and self.results_lg != None:
+            return self.results_lg
+        
+        else:
+            return get_results_logger_from_file(self.get_artifact_directory(), "aggregate_results.csv")
