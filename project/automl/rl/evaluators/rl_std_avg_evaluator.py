@@ -32,6 +32,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
 
     # EVALUATION -------------------------------------------------------------------------------
     
+    def get_metrics_strings(self) -> list[str]:
+        return [*super().get_metrics_strings(), "result"]
+    
     @requires_input_proccess
     def evaluate(self, component_to_evaluate : RLPipelineComponent):
         
@@ -47,5 +50,5 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
 
         result = avg_result - (std_result / self.std_deviation_factor)
         
-        return {"result" : result}
+        return {"result" : result, **super().evaluate(component_to_evaluate)}
         

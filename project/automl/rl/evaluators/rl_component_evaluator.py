@@ -24,4 +24,4 @@ class RLPipelineEvaluator(EvaluatorComponent):
     
     @requires_input_proccess
     def evaluate(self, component_to_evaluate : RLPipelineComponent):
-        pass
+        return super().evaluate(component_to_evaluate)

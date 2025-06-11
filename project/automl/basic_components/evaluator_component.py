@@ -3,7 +3,7 @@
 from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
 
-
+from abc import abstractmethod
 
 class EvaluatorComponent(Component):
     
@@ -22,18 +22,21 @@ class EvaluatorComponent(Component):
 
 
     # EVALUATION -------------------------------------------------------------------------------
+
     
     @requires_input_proccess
+    @abstractmethod
     def get_metrics_strings(self) -> list[str]:
-        pass
+        return []
     
     @requires_input_proccess
+    @abstractmethod
     def evaluate(self, component_to_evaluate : Component) -> dict:
         '''
         Returns a dictionary with the results of the evaluation
         A value for the key "result" will always exist
         '''
-        pass
+        return {}
 
 
 class ComponentWithEvaluator(Component):
@@ -47,6 +50,11 @@ class ComponentWithEvaluator(Component):
         "component_evaluator" : InputSignature(mandatory=True),
     }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.last_evaluation = {}
+    
     def proccess_input(self):
         
         super().proccess_input()
@@ -59,4 +67,9 @@ class ComponentWithEvaluator(Component):
         '''
         Evaluates this component using its evaluator
         '''
-        return self.component_evaluator.evaluate(self)
+        self.last_evaluation = self.component_evaluator.evaluate(self)
+        
+        return self.last_evaluation
+    
+    def get_last_evaluation(self):
+        return self.last_evaluation
