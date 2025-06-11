@@ -1,7 +1,7 @@
 from automl.core.input_management import InputMetaData, InputSignature
 from types import FunctionType
 import copy
-
+from abc import ABCMeta
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
@@ -10,7 +10,7 @@ def on_name_pass(self):
     
 
 #TODO: this should make all pre computation necessary for input processing
-class Scheme(type): # the meta class of all component classes, defines their behavior (not the behavior of the instances)
+class Scheme(ABCMeta): # the meta class of all component classes, defines their behavior (not the behavior of the instances)
     
     def __init__(self_class, *args, **kwargs):
         # Create the new class
@@ -18,6 +18,7 @@ class Scheme(type): # the meta class of all component classes, defines their beh
                 
     
     def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values
+        
         return {
             "parameters_signature": {},
             "exposed_values": {}
