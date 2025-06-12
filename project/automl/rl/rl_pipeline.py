@@ -114,6 +114,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         rl_trainer_input = {
             "device" : self.device,
             "logger_object" : self.lg,
+            "create_profile_for_logger" : True,
             "num_episodes" : self.num_episodes_per_run,
             "state_memory_size" : self.state_memory_size,
             "environment" : self.env,
@@ -161,7 +162,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         action_shape = self.env.action_space(agent_name)
         
-        self.lg.writeLine(f"Action space of agent {agent} has shape: {action_shape}")
+        self.lg.writeLine(f"Action space of agent {agent.name} has shape: {action_shape}")
         
         agent.pass_input({"state_shape" : state.shape })
         agent.pass_input({"action_shape" : action_shape })

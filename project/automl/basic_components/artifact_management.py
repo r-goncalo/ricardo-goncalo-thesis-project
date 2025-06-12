@@ -55,7 +55,7 @@ class ArtifactComponent(Component):
         
         current_parent_component = self.parent_component
         
-        while current_parent_component != None:
+        while current_parent_component != None: #looks for a parent component which is an Artifact Component and sets its directory based on it
             
             if isinstance(current_parent_component, ArtifactComponent):
                 self.pass_input({"base_directory" : current_parent_component.get_artifact_directory()}) 
@@ -67,7 +67,7 @@ class ArtifactComponent(Component):
     def __generate_artifact_directory(self):
         
         if not all(key in self.input.keys() for key in ["artifact_relative_directory", "base_directory", "create_new_directory"]):
-            raise Exception("Artifact trying to create a directory without the necessary parameters")
+            raise Exception(f"Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters")
         
         self.artifact_relative_directory = self.input["artifact_relative_directory"]
         
@@ -78,10 +78,26 @@ class ArtifactComponent(Component):
         
         full_path = os.path.join(self.base_directory, self.artifact_relative_directory)
         
-        self.artifact_directory = open_or_create_folder(full_path, create_new=self.input["create_new_directory"])
+        try:
+            self.artifact_directory = open_or_create_folder(full_path, create_new=self.input["create_new_directory"])
+            
+        except Exception as e:
+            
+            raise Exception(f"Could not open or create folder with base directory \'{self.base_directory}\' and artifact relative directory \'{self.artifact_relative_directory}\', full directory {full_path}")
+            
         
-        print(f"Generated artifact directory for component: " + self.artifact_directory)
+        print(f"Generated artifact directory for component {self.name} of type{type(self)}: " + self.artifact_directory)
     
+    
+    def generate_artifact_directory(self):
+        
+        '''Forces generation of artifact directory for this component and raises an exception if it already has it generated'''
+        
+        if hasattr(self, "artifact_directory"):
+            raise Exception(f"Component {self.name} already had an artifact directory generated, \'{self.artifact_directory}\'")
+            
+        self.__generate_artifact_directory()
+        
     
     def get_artifact_directory(self):
         '''Gets (and sets if needed) the artifact directory'''      

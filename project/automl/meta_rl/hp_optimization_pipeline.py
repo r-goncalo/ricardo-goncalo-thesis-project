@@ -219,6 +219,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         component_to_opt = self.create_component_to_optimize(trial)
         
+        component_to_opt.pass_input({"base_directory" : self.get_artifact_directory(), "artifact_relative_directory" : component_to_opt.name, "create_new_directory" : True})
+        
         component_saver_loader = StatefulComponentLoader()
         component_saver_loader.define_component_to_save_load(component_to_opt)
         
@@ -278,15 +280,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Responsible for running the optimization trial and evaluating the component to test'''
                 
-        self.component_to_test  = self.create_or_load_component_to_test(trial)
+        component_to_test  = self.create_or_load_component_to_test(trial)
 
-        self.lg.writeLine("Starting new training with hyperparameter cofiguration")
+        self.lg.writeLine("\nStarting new training with hyperparameter cofiguration")
         
         for step in range(self.n_steps):
                 
-            self.component_to_test.run()
+            component_to_test.run()
             
-            evaluation_results = self.evaluate_component(self.component_to_test)
+            evaluation_results = self.evaluate_component(component_to_test)
             
             trial.report(evaluation_results["result"], step)
             
@@ -308,21 +310,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         results_to_log = {'experiment' : trial.number, **self.suggested_values, "result" : [result]}
         
         self.log_results(results_to_log)
-        
-        #self.component_to_test.save_configuration()
-        
-        del self.component_to_test
-        gc.collect()
-
-        
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            # Get memory before
-            before = torch.cuda.memory_allocated(device)
-    
-            # Clean memory
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()  # Optional: Collect unused IPC memory
+                
+        self.trial_loaders[trial.number].unload_component()
     
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------

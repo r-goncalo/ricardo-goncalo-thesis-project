@@ -117,13 +117,19 @@ class StatefulComponentLoader(ArtifactComponent):
     
     def define_component_to_save_load(self, component : ArtifactComponent):
         
+        '''
+        Defines an Artifact Component as the component to be saved and loaded
+        That component has to already have its artifact directory generated
+        '''
+        
         if not isinstance(component, ArtifactComponent):
             raise Exception(f"Tried to define component to save / load that is not a ArtifactComponent, but a {type(component)}")
         
-        
-        
         self.component_to_save_load = component
         self.component_to_save_type = type(component)
+        
+        self.input["artifact_relative_directory"] = ''
+        self.input["base_directory"] = component.get_artifact_directory()
         
 
         

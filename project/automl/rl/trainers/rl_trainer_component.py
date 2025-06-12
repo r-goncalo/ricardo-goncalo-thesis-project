@@ -61,12 +61,14 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         self.agents_in_training : Dict[str, AgentTrainer] = {}
         
         for key in agents:
+            
+            agent_trainer_input = {"create_profile_for_logger" : True}
     
             if isinstance(agents[key], AgentSchema):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
                 
-                agent_trainer_input = {"agent" : agents[key], "optimization_interval" : self.optimization_interval} 
+                agent_trainer_input = {**agent_trainer_input, "agent" : agents[key], "optimization_interval" : self.optimization_interval} 
                 
                 agent_trainer = self.initialize_child_component(AgentTrainer, agent_trainer_input)
                 
