@@ -36,7 +36,6 @@ class LoggerSchema(ArtifactComponent):
                                                 
                         "logger_level" : InputSignature(default_value=DEBUG_LEVEL.INFO, ignore_at_serialization=True),
                        
-                       "create_profile_for_parent" : InputSignature(default_value=True, ignore_at_serialization=True, description="if the entity responsible for the messages is the parent of the logger object"),
                        "create_profile_for_logger" : InputSignature(default_value=False, ignore_at_serialization=True, description="If the entity responsible for the messages is the logger object"),
                        
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
@@ -66,11 +65,8 @@ class LoggerSchema(ArtifactComponent):
             
         else:
             self.lg : LogClass = openLog(logDir=self.artifact_directory, useLogName=False)
-            
-        if self.input["create_profile_for_parent"]:
-            self.lg = self.lg.createProfile(object_with_name=self.parent_component)
     
-        elif self.input["create_profile_for_logger"]:
+        if self.input["create_profile_for_logger"]:
             self.lg = self.lg.createProfile(object_with_name=self)  
             
         self.logger_level = self.input["logger_level"]  
