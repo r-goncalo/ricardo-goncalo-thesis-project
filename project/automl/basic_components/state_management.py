@@ -12,6 +12,8 @@ from automl.consts import CONFIGURATION_FILE_NAME
 
 import weakref
 import gc
+
+import torch
                 
                 
                 
@@ -148,6 +150,16 @@ class StatefulComponentLoader(ArtifactComponent):
 
         if weak_ref() is not None:
             raise Exception("Component was not fully unloaded — still referenced elsewhere.")
+        
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            # Get memory before
+            before = torch.cuda.memory_allocated(device)
+    
+            # Clean memory
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()  # Optional: Collect unused IPC memor
+            
         
     @requires_input_proccess
     def save_and_onload_component(self):
