@@ -104,12 +104,12 @@ def get_configuration_dict(*args, **kwargs):
     return load_configuration_dict('basic_dqn', *args, **kwargs)
 
 
-def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict):
+def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20):
     
     return {
     "configuration_dict" : configuration_dict,
     "hyperparameters_range_list" : hyperparameters_to_change,
-    "n_trials" : 50,
+    "n_trials" : num_trials,
     "steps" : 2,
     "pruner" : optuna.pruners.PercentilePruner(percentile=25.0),
     "base_directory" :  'data\\experiments'
@@ -117,15 +117,15 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict):
     
     
     
-def main(num_episodes=12):
+def main(num_episodes, num_trials):
     
     hyperparameters_to_change = get_hyperparameters_to_change()
     
     print("Generating hyperparameters to change")
-    
+
     configuration_dict = get_configuration_dict(num_episodes=num_episodes)
-    
-    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict)
+
+    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials)
     
     hp_opt_pipeline = HyperparameterOptimizationPipeline(hp_opt_input)
     
@@ -140,7 +140,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
     parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
-    
+    parser.add_argument("--num_trials", type=int, default=20, help="Number of trials to run.")
+
     args = parser.parse_args()
-    
-    main(num_episodes=args.num_episodes)
+
+    main(num_episodes=args.num_episodes, num_trials=args.num_trials)

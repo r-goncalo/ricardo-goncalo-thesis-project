@@ -279,10 +279,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def objective(self, trial : optuna.Trial):
         
         '''Responsible for running the optimization trial and evaluating the component to test'''
+        
+        self.lg.writeLine("\nStarting new training with hyperparameter cofiguration")
                 
         component_to_test  = self.create_or_load_component_to_test(trial)
 
-        self.lg.writeLine("\nStarting new training with hyperparameter cofiguration")
         
         for step in range(self.n_steps):
                 
