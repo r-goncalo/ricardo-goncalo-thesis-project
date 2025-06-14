@@ -104,7 +104,7 @@ def get_configuration_dict(*args, **kwargs):
     return load_configuration_dict('basic_dqn', *args, **kwargs)
 
 
-def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20):
+def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20, directory='data\\experiments'):
     
     return {
     "configuration_dict" : configuration_dict,
@@ -112,7 +112,7 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num
     "n_trials" : num_trials,
     "steps" : 2,
     "pruner" : optuna.pruners.PercentilePruner(percentile=25.0),
-    "base_directory" :  'data\\experiments'
+    "base_directory" :  directory
     }
     
     
@@ -132,15 +132,15 @@ def main(num_episodes, num_trials):
     hp_opt_pipeline.run()
     
     #hp_opt_pipeline.save_configuration()
-    
-    
+
 
 if __name__ == "__main__":
-    
+
     import argparse
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
     parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
     parser.add_argument("--num_trials", type=int, default=20, help="Number of trials to run.")
+    parser.add_argument("--directory", type=str, default='.\\data\\experiments', help="Directory to save results.")
 
     args = parser.parse_args()
 
