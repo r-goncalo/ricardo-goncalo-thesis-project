@@ -117,7 +117,7 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num
     
     
     
-def main(num_episodes, num_trials):
+def main(num_episodes, num_trials, directory):
     
     hyperparameters_to_change = get_hyperparameters_to_change()
     
@@ -125,8 +125,8 @@ def main(num_episodes, num_trials):
 
     configuration_dict = get_configuration_dict(num_episodes=num_episodes)
 
-    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials)
-    
+    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=num_trials, directory=directory)
+
     hp_opt_pipeline = HyperparameterOptimizationPipeline(hp_opt_input)
     
     hp_opt_pipeline.run()
