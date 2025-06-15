@@ -144,4 +144,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(num_episodes=args.num_episodes, num_trials=args.num_trials)
+    main(num_episodes=args.num_episodes, num_trials=args.num_trials, directory=args.directory)
