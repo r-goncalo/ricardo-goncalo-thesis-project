@@ -104,9 +104,9 @@ def get_configuration_dict(*args, **kwargs):
     return load_configuration_dict('basic_dqn', *args, **kwargs)
 
 
-def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20, directory='data\\experiments'):
+def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20, directory='data\\experiments', mockup=False):
     
-    return {
+    hp_opt_input = {
     "configuration_dict" : configuration_dict,
     "hyperparameters_range_list" : hyperparameters_to_change,
     "n_trials" : num_trials,
@@ -115,9 +115,16 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num
     "base_directory" :  directory
     }
     
+    if mockup:
+        
+        from automl.basic_components.mock_components.mock_evaluators import RandomMockEvaluator
+        hp_opt_input["evaluator_component"] = (RandomMockEvaluator, {})
+    
+    return hp_opt_input
     
     
-def main(num_episodes, num_trials, directory):
+    
+def main(num_episodes, num_trials, directory, mockup):
     
     hyperparameters_to_change = get_hyperparameters_to_change()
     
@@ -125,7 +132,7 @@ def main(num_episodes, num_trials, directory):
 
     configuration_dict = get_configuration_dict(num_episodes=num_episodes)
 
-    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=num_trials, directory=directory)
+    hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=num_trials, directory=directory, mockup=mockup)
 
     hp_opt_pipeline = HyperparameterOptimizationPipeline(hp_opt_input)
     
@@ -141,7 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
     parser.add_argument("--num_trials", type=int, default=20, help="Number of trials to run.")
     parser.add_argument("--directory", type=str, default='.\\data\\experiments', help="Directory to save results.")
+    parser.add_argument("--mockup", default=True, help="Configuration to use for the experiment.")
 
     args = parser.parse_args()
 
-    main(num_episodes=args.num_episodes, num_trials=args.num_trials, directory=args.directory)
+    main(num_episodes=args.num_episodes, num_trials=args.num_trials, directory=args.directory, mockup=args.mockup)
