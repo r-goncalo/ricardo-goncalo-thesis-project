@@ -71,14 +71,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='target_update_rate', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "learner_input", "target_update_rate"])
+                                    ([], ["agents_input", "learner", 1, "target_update_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.01, 'high':0.15}) 
                             ),
                              HyperparameterSuggestion(
                                 name='learning_rate', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "learner_input", "optimizer", 1, "learning_rate"])
+                                    ([], ["agents_input", "learner", 1, "optimizer", 1, "learning_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.000001, 'high':0.1}) 
                             )            

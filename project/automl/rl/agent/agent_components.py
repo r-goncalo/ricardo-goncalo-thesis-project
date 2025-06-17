@@ -1,6 +1,7 @@
 
 # DEFAULT COMPONENTS -------------------------------------
 
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
@@ -51,8 +52,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        "memory" : InputSignature(generator = lambda self :  self.initialize_child_component(MemoryComponent, input={"capacity" : DEFAULT_MEMORY_SIZE})),
                        "memory_input" : InputSignature(default_value={}),
                        
-                       "learner" : InputSignature(generator= lambda self : self.initialize_child_component(DeepQLearnerSchema)),
-                       "learner_input" : InputSignature(default_value={}),
+                       "learner" : ComponentInputSignature(
+                            default_component_definition=(DeepQLearnerSchema, {})
+                           ),
                        
                        "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
                        
@@ -175,9 +177,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
     def initialize_learner(self):
         
-        self.learner : LearnerSchema = self.input["learner"]
-        
-        self.learner.pass_input(self.input["learner_input"])
+        self.learner : LearnerSchema = ComponentInputSignature.get_component_from_input(self, "learner")
         self.learner.pass_input({"device" : self.device, "agent" : self})
       
     

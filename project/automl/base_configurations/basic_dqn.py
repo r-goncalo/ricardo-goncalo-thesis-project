@@ -1,6 +1,7 @@
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.neural_model import FullyConnectedModelSchema
+from automl.rl.learners.q_learner import DeepQLearnerSchema
 from automl.rl.policy.qpolicy import QPolicy
 
 from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
@@ -38,7 +39,7 @@ def config_dict(num_episodes=200):
                     }
                     ),
             },
-            "learner_input" : {
+            "learner" : (DeepQLearnerSchema, {
                 "target_update_rate" : 0.05,
                 "optimizer" :(
                     AdamOptimizer,
@@ -46,8 +47,7 @@ def config_dict(num_episodes=200):
                         "learning_rate" : 0.0001
                     }
                 )
-
-            },
+            }),
             "memory_input" : {
                 "capacity" : 300
             }
@@ -95,10 +95,10 @@ def mockup_config_dict(num_episodes=200):
             "policy_input" : {
                 "model" : (MockupRandomModel, {}),
             },
-            "learner_input" : {
+            "learner" : (DeepQLearnerSchema, {
                 "target_update_rate" : 0.05,
                 "optimizer" :( MockupOptimizerSchema, {})
-            },
+            }),
             "memory_input" : {
                 "capacity" : 300
             }
