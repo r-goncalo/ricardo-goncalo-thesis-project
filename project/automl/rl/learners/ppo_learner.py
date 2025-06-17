@@ -66,7 +66,7 @@ class PPOLearner(LearnerSchema):
     def initialize_optimizer(self):
         self.optimizer : OptimizerSchema = self.input["optimizer"]
         self.optimizer.pass_input(self.input["optimizer_input"])
-        self.optimizer.pass_input({"model_params" : self.model.get_model_params()})
+        self.optimizer.pass_input({"model" : self.model})
 
     
     def initialize_critic_model(self):

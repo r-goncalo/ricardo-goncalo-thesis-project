@@ -111,7 +111,7 @@ class HyperparameterSuggestion():
                 current_input_dict = current_input_dict[hyperparameter_localizer[i]]
     
             except KeyError as e:
-                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for component input {component_input}')
+                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
         
         current_input_dict[len(hyperparameter_localizer) - 1] = suggested_value
         

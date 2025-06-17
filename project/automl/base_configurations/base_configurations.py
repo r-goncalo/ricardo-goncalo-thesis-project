@@ -16,11 +16,15 @@ def load_configuration(configuration_name : Literal["basic_dqn"], *args, **kwarg
     return gen_component_from_dict(load_configuration_dict(configuration_name, *args, **kwargs))
     
 
-def load_configuration_dict(configuration_name : Literal["basic_dqn", "basic_ppo"], *args, **kwargs) -> dict:
+def load_configuration_dict(configuration_name : Literal["basic_dqn", "basic_ppo", "mockup_basic_dqn"], *args, **kwargs) -> dict:
     
     if configuration_name == "basic_dqn":
     
         return basic_dqn.config_dict(*args, **kwargs)
+    
+    elif configuration_name == "mockup_basic_dqn":
+        
+        return basic_dqn.mockup_config_dict(*args, **kwargs)
     
     elif configuration_name == "basic_ppo":
         

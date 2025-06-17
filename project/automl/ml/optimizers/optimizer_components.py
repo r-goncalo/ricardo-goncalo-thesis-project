@@ -1,4 +1,6 @@
 from automl.component import Component, InputSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentInputSignature
+from automl.ml.models.model_components import ModelComponent
 import torch.optim as optim
 import torch.nn as nn
 
@@ -24,7 +26,7 @@ class AdamOptimizer(OptimizerSchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = {"model_params" : InputSignature(ignore_at_serialization=True),
+    parameters_signature = {"model" : ComponentInputSignature(ignore_at_serialization=True),
                        "learning_rate" : InputSignature(default_value=0.001),
                        "amsgrad" : InputSignature(default_value=True)}    
     
@@ -33,7 +35,8 @@ class AdamOptimizer(OptimizerSchema):
         
         super().proccess_input()
         
-        self.params = self.input["model_params"]
+        model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
+        self.params = model.get_model_params() #gets the model parameters to optimize
                 
         self.torch_adam_opt = optim.AdamW(params=self.params,lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
 

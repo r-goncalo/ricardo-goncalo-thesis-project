@@ -53,14 +53,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='hidden_layers', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "policy_input", "model_input", "hidden_layers"])
+                                    ([], ["agents_input", "policy_input", "model", 1, "hidden_layers"])
                                 ],
                                 value_suggestion = ('int', {'low':2, 'high':8}) 
                             ),
                              HyperparameterSuggestion(
                                 name='hidden_size', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "policy_input", "model_input", "hidden_size"])
+                                    ([], ["agents_input", "policy_input", "model", 1, "hidden_size"])
                                 ],
                                 value_suggestion = ('cat', {'choices' : [16, 32, 64, 128, 256]}) 
                             )
@@ -78,7 +78,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='learning_rate', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "learner_input", "optimizer_input", "learning_rate"])
+                                    ([], ["agents_input", "learner_input", "optimizer", 1, "learning_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.000001, 'high':0.1}) 
                             )            
@@ -99,9 +99,13 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
     
     return hyperparameters_to_change
 
-def get_configuration_dict(*args, **kwargs):
+def get_configuration_dict(*args, mockup, **kwargs):
     
-    return load_configuration_dict('basic_dqn', *args, **kwargs)
+    if mockup:
+        return load_configuration_dict('mockup_basic_dqn', *args, **kwargs)
+    
+    else:
+        return load_configuration_dict('basic_dqn', *args, **kwargs)
 
 
 def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20, directory='data\\experiments', mockup=False):
@@ -130,7 +134,7 @@ def main(num_episodes, num_trials, directory, mockup):
     
     print("Generating hyperparameters to change")
 
-    configuration_dict = get_configuration_dict(num_episodes=num_episodes)
+    configuration_dict = get_configuration_dict(num_episodes=num_episodes, mockup=mockup)
 
     hp_opt_input = gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=num_trials, directory=directory, mockup=mockup)
 

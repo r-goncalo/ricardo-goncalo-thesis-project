@@ -44,9 +44,7 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
         def forward(self, x : torch.Tensor):
 
             if isinstance(x, torch.Tensor):
-                #x = x.view(x.size(0), -1)  # Ensures batch processing compatibility
-                #x = x.view(-1)
-                x = x.view(-1, self.input_size)
+                x = x.view(-1, self.input_size) #the x is reshaped so it has 2 dimensions, the first one is the batch and the second the input size 
                         
             return self.network(x)
     
@@ -103,11 +101,7 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
     def predict(self, state):
         super().predict(state)
         return self.model(state)
-    
-    @requires_input_proccess
-    def random_prediction(self):
-        super().random_prediction()
-        return random.randrange(self.output_size) 
+
     
     @requires_input_proccess            
     def update_model_with_target(self, target_model, target_model_weight):

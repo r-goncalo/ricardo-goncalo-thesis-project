@@ -1,5 +1,6 @@
 from automl.component import Component, InputSignature
 
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.ml.models.model_components import ModelComponent
 
 from automl.utils.class_util import get_class_from
@@ -12,9 +13,8 @@ class Policy(Component):
     '''
         
     parameters_signature = {
-        "model" : InputSignature(mandatory=False),
-        "model_class" : InputSignature(mandatory=False),
-        "model_input" : InputSignature(default_value={}),
+        
+        "model" : ComponentInputSignature(),
         
         "state_shape": InputSignature(),
         "action_shape": InputSignature(),
@@ -23,30 +23,8 @@ class Policy(Component):
     def proccess_input(self):
         
         super().proccess_input()
-        self.initialize_model()
         
-        
-    def initialize_model(self):
-        
-        if not "model" in self.input.keys():
-            self.model : ModelComponent = self.create_model()
-        
-        else:
-            self.model : ModelComponent = self.input["model"]
-
-            
-        self.model.pass_input(self.input['model_input'])
-        
-        
-        
-    def create_model(self):
-        
-        if not "model_class" in self.input.keys():
-            raise Exception("Model not defined and model class not defined")
-        
-        model_class = get_class_from(self.input["model_class"])
-        
-        return self.initialize_child_component(model_class)
+        self.model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
         
         
     def predict(self, state):
