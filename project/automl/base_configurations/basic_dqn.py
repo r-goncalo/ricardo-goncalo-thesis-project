@@ -79,7 +79,7 @@ def mockup_config_dict(num_episodes=200):
         "state_memory_size": 2,
         "limit_steps": 50,
         "optimization_interval": 300,
-        "device" : "cuda",
+        "device" : "cpu",
         "environment": {
             "__type__": str(PettingZooEnvironmentWrapper),
             "name": "PettingZooEnvironmentLoader"        
