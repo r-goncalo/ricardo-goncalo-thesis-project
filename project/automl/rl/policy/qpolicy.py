@@ -20,12 +20,7 @@ class QPolicy(Policy):
     
     def proccess_input(self):
         
-        super().proccess_input()
-        
-        self.model_input_shape = self.input["state_shape"]
-        self.model_output_shape = self.input["action_shape"]
-        
-        self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape})        
+        super().proccess_input()       
         
 
         

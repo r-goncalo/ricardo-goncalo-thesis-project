@@ -26,6 +26,11 @@ class Policy(Component):
         
         self.model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
         
+        self.model_input_shape = self.input["state_shape"]
+        self.model_output_shape = self.input["action_shape"]
+        
+        self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape}) 
+        
         
     def predict(self, state):
         

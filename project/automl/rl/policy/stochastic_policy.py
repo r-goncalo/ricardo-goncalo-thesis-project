@@ -1,5 +1,6 @@
 from automl.component import InputSignature, requires_input_proccess
 
+from automl.core.advanced_input_management import ComponentInputSignature
 import torch
 
 import random
@@ -16,29 +17,11 @@ class StochasticPolicy(Policy):
     '''
         
     parameters_signature = {
-        "model" : InputSignature(mandatory=False),
-        "model_class" : InputSignature(mandatory=False),
-        "model_input" : InputSignature(default_value={}),
-        
-        "state_shape": InputSignature(),
-        "action_shape": InputSignature()
     }   
     
     def proccess_input(self):
         
         super().proccess_input()
-        self.initialize_model()
-        
-        
-    def initialize_model(self):
-    
-        super().initialize_model()
-        
-        self.model_input_shape = self.input["state_shape"]
-        self.model_output_shape = self.input["action_shape"]
-        
-        self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape})
-        
         
         
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
@@ -46,8 +29,6 @@ class StochasticPolicy(Policy):
         
     @requires_input_proccess
     def predict(self, state):
-        
-        
         
         probabilitiesForActions : torch.Tensor = self.model.predict(state)
         
