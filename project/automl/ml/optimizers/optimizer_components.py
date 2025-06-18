@@ -7,6 +7,16 @@ import torch.nn as nn
 from abc import abstractmethod
 
 class OptimizerSchema(Component):
+    
+    parameters_signature = {"model" : ComponentInputSignature(ignore_at_serialization=True)}
+    
+    def proccess_input(self):
+        super().proccess_input()
+        
+        self.model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
+
+        
+        
         
     @abstractmethod
     def optimize_model(self, predicted, correct) -> None:
@@ -26,7 +36,7 @@ class AdamOptimizer(OptimizerSchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = {"model" : ComponentInputSignature(ignore_at_serialization=True),
+    parameters_signature = {
                        "learning_rate" : InputSignature(default_value=0.001),
                        "amsgrad" : InputSignature(default_value=True)}    
     
@@ -35,8 +45,7 @@ class AdamOptimizer(OptimizerSchema):
         
         super().proccess_input()
         
-        model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
-        self.params = model.get_model_params() #gets the model parameters to optimize
+        self.params = self.model.get_model_params() #gets the model parameters to optimize
                 
         self.torch_adam_opt = optim.AdamW(params=self.params,lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
 
