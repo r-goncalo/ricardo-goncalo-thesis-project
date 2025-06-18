@@ -58,10 +58,10 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        
                        "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
                        
-                       "policy" : InputSignature(priority=200, mandatory=False), # TODO: switch this to other input                      
+                       "policy" : ComponentInputSignature(
+                            priority=100, mandatory=False, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
+                       ),
                        
-                       "policy_class" : InputSignature(mandatory=False, possible_types=[str]), # TODO: make it possible for the class to be a type
-                       "policy_input" : InputSignature(default_value={})
                     }
 
         
@@ -105,17 +105,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         return self.initialize_child_component(exploration_strategy_class, self.input["exploration_strategy_input"])         
 
-        
-    def initialize_policy(self):
-        
-        self.lg.writeLine("Initializing policy...")
-
-        if "policy" in self.input.keys():
-            self.policy : Policy  = self.input["policy"]
-            
-        else:
-            self.policy : Policy = self.create_policy()
-        
 
     def initialize_state_memory(self):
             
@@ -139,40 +128,21 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.state_length = self.input["state_shape"][2]
 
         self.lg.writeLine(f"State length is {self.state_length}")
-
-
-    def create_policy(self) -> Policy:
         
-        '''creates and returns a policy for this agent'''        
-                
-        if not "policy_class" in self.input.keys():
-            raise Exception("No policy passed to agent and no policy_class defined to generate the policy")
+    def initialize_policy(self):
         
-        if not "policy_input" in self.input.keys():
-            policy_input = {}
-        else:
-            policy_input = self.input["policy_input"]
+        self.lg.writeLine("Initializing policy...")
         
-        self.policy_class = self.input["policy_class"]
-                
-        policy_class : type[Policy] = get_class_from(self.policy_class)
-                    
-        if ( not "state_shape" in self.input.keys() ) or (not "action_shape" in self.input.keys()):
-            raise Exception(f'In creating a policy model for agent: undefined input shape and/or output shape in keys passed: {self.input.keys()}')            
-
         self.model_input_shape = self.input["state_shape"]
         self.model_output_shape = self.input["action_shape"]
         
         if self.state_memory_size > 1:
             self.model_input_shape = (self.state_memory_size, self.model_input_shape)
         
-        policy_input["state_shape"] =  self.model_input_shape
-        policy_input["action_shape"] = self.model_output_shape
+        self.policy : Policy = ComponentInputSignature.get_component_from_input(self, "policy")
         
-        self.lg.writeLine("Creating policy model...")
-        
-        #this makes some strong assumptions about the shape of the model and the input being received
-        return self.initialize_child_component(policy_class, input=policy_input)
+        self.policy.pass_input({"state_shape" : self.model_input_shape,
+                               "action_shape" : self.model_output_shape,})
         
 
     def initialize_learner(self):

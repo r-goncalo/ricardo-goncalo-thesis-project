@@ -1,8 +1,11 @@
 from automl.component import Component, InputSignature, requires_input_proccess
 
+from automl.core.advanced_input_management import ComponentInputSignature
+from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 
+from automl.rl.policy.stochastic_policy import StochasticPolicy
 import torch
 
 from automl.rl.policy.policy import Policy
@@ -25,11 +28,13 @@ class PPOLearner(LearnerSchema):
                                
                         "device" : InputSignature(ignore_at_serialization=True),
                         
-                        "critic_model" : InputSignature(),
-                        "critic_model_input" : InputSignature(default_value={}),
+                        "critic_model" : ComponentInputSignature(
+                            default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64})    
+                        ),
                         
-                        "optimizer" : InputSignature(generator= lambda self : self.initialize_child_component(AdamOptimizer), possible_types=[OptimizerSchema]),
-                        "optimizer_input" : InputSignature(default_value={}),
+                        "optimizer" : ComponentInputSignature(
+                            default_component_definition=( AdamOptimizer, {} ) #the default optimizer is Adam with no specific input
+                        ),
                         
                         "clip_epsilon" : InputSignature(default_value=0.2, description="The clip range"),
                         "entropy_coef" : InputSignature(default_value=0.01, description="How much weight entropy has"),
@@ -45,12 +50,13 @@ class PPOLearner(LearnerSchema):
         self.agent : Component = self.input["agent"]
         
         self.device = self.input["device"]
+                        
+        self.policy : StochasticPolicy = self.agent.get_policy()
         
-        self.TAU = self.input["target_update_rate"] #the update rate of the target network
-                
-        self.policy : Policy = self.agent.get_policy()
+        if isinstance(self.policy, StochasticPolicy) is False:
+            raise Exception("PPO Learner requires a Stochastic Policy, but got {}".format(get_class_from(self.policy)))
         
-        self.model = self.policy.model
+        self.model : ModelComponent = self.policy.model
         
         self.initialize_critic_model()
         self.initialize_optimizer()
@@ -64,25 +70,13 @@ class PPOLearner(LearnerSchema):
         
         
     def initialize_optimizer(self):
-        self.optimizer : OptimizerSchema = self.input["optimizer"]
-        self.optimizer.pass_input(self.input["optimizer_input"])
+        self.optimizer : OptimizerSchema = ComponentInputSignature.get_component_from_input(self, "optimizer")
         self.optimizer.pass_input({"model" : self.model})
 
     
     def initialize_critic_model(self):
         
-        if isinstance(self.input["critic_model"], str) or isinstance(self.input["critic_model"], type):
-            self.critic : ModelComponent = self.initialize_child_component(get_class_from(self.input["critic_model"]))
-            
-        elif isinstance(self.input["critic_model"], ModelComponent):
-        
-            self.critic : ModelComponent = self.input["critic_model"]
-            
-        else:
-            raise Exception("No valid Model passed")
-
-            
-        self.critic.pass_input(self.input['critic_model_input'])
+        self.critic : ModelComponent = ComponentInputSignature.get_component_from_input(self, "critic_model")
         
         
     
@@ -147,5 +141,3 @@ class PPOLearner(LearnerSchema):
 
         # Optimize the model
         self.optimizer.optimize_model(loss)
-
-        return loss.item()

@@ -53,14 +53,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='hidden_layers', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "policy_input", "model", 1, "hidden_layers"])
+                                    ([], ["agents_input", "policy", 1, "model", 1, "hidden_layers"])
                                 ],
                                 value_suggestion = ('int', {'low':2, 'high':8}) 
                             ),
                              HyperparameterSuggestion(
                                 name='hidden_size', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "policy_input", "model", 1, "hidden_size"])
+                                    ([], ["agents_input", "policy", 1, "model", 1, "hidden_size"])
                                 ],
                                 value_suggestion = ('cat', {'choices' : [16, 32, 64, 128, 256]}) 
                             )

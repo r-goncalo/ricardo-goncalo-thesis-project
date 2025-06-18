@@ -29,16 +29,17 @@ def config_dict(num_episodes=200):
                 "epsilon_start" : 0.99,
                 "epsilon_decay" : 0.99
                 },
-            "policy_class" : str(QPolicy),
-            "policy_input" : {
-                "model" : (
-                    FullyConnectedModelSchema, 
-                    {
-                    "hidden_layers" : 3,
-                    "hidden_size" : 64
-                    }
-                    ),
-            },
+            "policy" : ( QPolicy,
+                        {
+                        "model" : (
+                            FullyConnectedModelSchema, 
+                            {
+                            "hidden_layers" : 3,
+                            "hidden_size" : 64
+                            }
+                            ),
+                        }
+                ),
             "learner" : (DeepQLearnerSchema, {
                 "target_update_rate" : 0.05,
                 "optimizer" :(
@@ -91,10 +92,11 @@ def mockup_config_dict(num_episodes=200):
                 "epsilon_start" : 0.99,
                 "epsilon_decay" : 0.99
                 },
-            "policy_class" : str(QPolicy),
-            "policy_input" : {
-                "model" : (MockupRandomModel, {}),
-            },
+            "policy" : ( QPolicy,
+                        {
+                        "model" : ( MockupRandomModel,{})
+                        }
+                ),
             "learner" : (DeepQLearnerSchema, {
                 "target_update_rate" : 0.05,
                 "optimizer" :( MockupOptimizerSchema, {})
