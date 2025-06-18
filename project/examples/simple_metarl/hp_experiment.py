@@ -152,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
     parser.add_argument("--num_trials", type=int, default=20, help="Number of trials to run.")
     parser.add_argument("--directory", type=str, default='.\\data\\experiments', help="Directory to save results.")
-    parser.add_argument("--mockup", default=True, help="Configuration to use for the experiment.")
+    parser.add_argument("--mockup", type=bool, default=False, help="Configuration to use for the experiment.")
 
     args = parser.parse_args()
 
