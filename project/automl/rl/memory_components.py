@@ -31,6 +31,14 @@ class MemoryComponent(Component):
     @requires_input_proccess
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
+    
+    @requires_input_proccess
+    def clear(self):
+        self.memory.clear()
+        
+    @requires_input_proccess
+    def get_all(self):
+        return list(self.memory) 
 
     @requires_input_proccess
     def __len__(self):

@@ -39,8 +39,6 @@ class LoggerSchema(ArtifactComponent):
 
                        "logger_level" : InputSignature(default_value=DEBUG_LEVEL.INFO, ignore_at_serialization=True),
 
-                       "create_profile_for_logger" : InputSignature(default_value=False, ignore_at_serialization=True, description="If the entity responsible for the messages is the logger object"),
-
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
 
                        "artifact_relative_directory" : InputSignature(
@@ -67,10 +65,6 @@ class LoggerSchema(ArtifactComponent):
     def proccess_input(self): #this is the best method to have initialization done right after
         
         super().proccess_input()
-    
-    
-        if self.input["create_profile_for_logger"]:
-            self.lg = self.lg.createProfile(object_with_name=self)  
             
         self.default_logger_level = self.input["logger_level"]  
         

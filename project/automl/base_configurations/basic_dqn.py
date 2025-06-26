@@ -14,8 +14,6 @@ def config_dict(num_episodes=200):
     "name": "RLPipelineComponent",
     "input": {
         "num_episodes_per_run": num_episodes,
-        "state_memory_size": 2,
-        "limit_steps": 1000,
         "optimization_interval": 100,
         "device" : "cuda",
         "environment": {
@@ -24,6 +22,7 @@ def config_dict(num_episodes=200):
         },
         "agents_input": {
             "exploration_strategy_class" : str(EpsilonGreedyStrategy),
+            "state_memory_size" : 2,
             "exploration_strategy_input" : {
                 "epsilon_end" : 0.1,
                 "epsilon_start" : 0.99,
@@ -53,14 +52,13 @@ def config_dict(num_episodes=200):
                 "capacity" : 300
             }
         },
-        "save_interval": 100
     },
     "child_components": [
         {
             "__type__": str(PettingZooEnvironmentWrapper),
             "name": "PettingZooEnvironmentLoader",
             "input": {
-                "petting_zoo_environment": "cooperative_pong"
+                "environment": "cooperative_pong"
             }
         }
     ]
@@ -77,8 +75,6 @@ def mockup_config_dict(num_episodes=200):
     "name": "RLPipelineComponent",
     "input": {
         "num_episodes_per_run": num_episodes,
-        "state_memory_size": 2,
-        "limit_steps": 50,
         "optimization_interval": 300,
         "device" : "cpu",
         "environment": {
@@ -87,6 +83,7 @@ def mockup_config_dict(num_episodes=200):
         },
         "agents_input": {
             "exploration_strategy_class" : str(EpsilonGreedyStrategy),
+            "state_memory_size" : 2,
             "exploration_strategy_input" : {
                 "epsilon_end" : 0.1,
                 "epsilon_start" : 0.99,
@@ -105,14 +102,14 @@ def mockup_config_dict(num_episodes=200):
                 "capacity" : 300
             }
         },
-        "save_interval": 100
+
     },
     "child_components": [
         {
             "__type__": str(PettingZooEnvironmentWrapper),
             "name": "PettingZooEnvironmentLoader",
             "input": {
-                "petting_zoo_environment": "cooperative_pong"
+                "environment": "cooperative_pong"
             }
         }
     ]

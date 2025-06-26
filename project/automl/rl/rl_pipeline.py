@@ -31,11 +31,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                        
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentWrapper)),
                        
-                       "state_memory_size" : InputSignature(),
                        "agents" : InputSignature(default_value={}),
                        "agents_input" : InputSignature(default_value={}),
-                       
-                       "limit_steps" : InputSignature(),
+
                        "optimization_interval" : InputSignature(),
                        "save_in_between" : InputSignature(default_value=True),
                        
@@ -57,13 +55,10 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         self.device = self.input["device"]
     
-        self.limit_steps = self.input["limit_steps"]
         self.num_episodes_per_run =self.input["num_episodes_per_run"]  
         
         self.env : EnvironmentComponent= self.input["environment"]
-        
-        self.state_memory_size = self.input["state_memory_size"]        
-        
+                
         self.optimization_interval = self.input["optimization_interval"]
         
         self.save_in_between = self.input["save_in_between"]
@@ -114,11 +109,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         rl_trainer_input = {
             "device" : self.device,
             "logger_object" : self.lg,
-            "create_profile_for_logger" : True,
             "num_episodes" : self.num_episodes_per_run,
-            "state_memory_size" : self.state_memory_size,
             "environment" : self.env,
-            "limit_steps" : self.limit_steps ,
             "optimization_interval" : self.optimization_interval,
             "agents" : self.agents.copy()
         }        
@@ -157,9 +149,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         state = self.env.observe(agent_name)
         
         self.lg.writeLine(f"State for agent {agent.name} has shape: {state.shape}")
-        
-        agent.pass_input({ "state_memory_size" : self.state_memory_size})
-        
+                
         action_shape = self.env.action_space(agent_name)
         
         self.lg.writeLine(f"Action space of agent {agent.name} has shape: {action_shape}")

@@ -129,6 +129,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
         self.lg.writeLine(f"State length is {self.state_length}")
         
+        
+        
     def initialize_policy(self):
         
         self.lg.writeLine("Initializing policy...")
