@@ -20,7 +20,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
                        "agents" : InputSignature(),
-                       "limit_steps" : InputSignature(),
+                       "limit_steps" : InputSignature(default_value=-1),
                        "optimization_interval" : InputSignature(),
                        "save_interval" : InputSignature(default_value=100)}
     
@@ -62,8 +62,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         for key in agents:
             
-            agent_trainer_input = {"create_profile_for_logger" : True}
-    
+            agent_trainer_input = {}
+                
             if isinstance(agents[key], AgentSchema):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
