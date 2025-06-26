@@ -40,15 +40,15 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.reset_training()
 
 
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
                                 
         self.agent : AgentSchema = self.input["agent"]
         
         self.agent.pass_input({"training_context" : self})
         
-        self.agent.proccess_input()
+        self.agent.proccess_input_internal()
                 
         self.optimization_interval = self.input["optimization_interval"]
         

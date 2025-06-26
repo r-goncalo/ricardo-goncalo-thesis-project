@@ -47,9 +47,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def proccess_input(self): #this is the best method to have initialization done right after
+    def proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         do_full_setup_of_seed(self.input["seed"])
         

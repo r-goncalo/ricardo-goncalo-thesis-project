@@ -21,9 +21,9 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation")
     }
 
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.std_deviation_factor = self.input["std_deviation_factor"]
 

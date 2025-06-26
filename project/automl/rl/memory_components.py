@@ -16,9 +16,9 @@ class MemoryComponent(Component):
     Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.capacity = self.input["capacity"]                  
         self.memory = deque([], maxlen=self.capacity)

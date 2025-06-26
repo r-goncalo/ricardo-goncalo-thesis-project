@@ -11,8 +11,8 @@ class ModelComponent(Component):
         "output_shape": InputSignature(),
     }    
     
-    def proccess_input(self):
-        super().proccess_input()
+    def proccess_input_internal(self):
+        super().proccess_input_internal()
         
         self.input_shape = self.input["input_shape"]
         self.output_shape = self.input["output_shape"]

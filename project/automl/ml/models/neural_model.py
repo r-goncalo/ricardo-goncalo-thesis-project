@@ -56,9 +56,9 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
         "device": InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }    
     
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
@@ -129,7 +129,7 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
     @requires_input_proccess
     def clone(self):
         toReturn = FullyConnectedModelSchema(input=self.input)
-        toReturn.proccess_input()
+        toReturn.proccess_input_internal()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn
     

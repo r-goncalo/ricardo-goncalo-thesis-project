@@ -79,9 +79,9 @@ class ComponentWithResults(ArtifactComponent):
             self.results_columns = {DEFAULT_RESULTS_LOGGER_KEY : self.results_columns}
 
 
-    def proccess_input(self): #this is the best method to have initialization done right after
+    def proccess_input_internal(self): #this is the best method to have initialization done right after
             
-        super().proccess_input()
+        super().proccess_input_internal()
 
                 
     def set_as_result_logger_object(self, logger_object, key=DEFAULT_RESULTS_LOGGER_KEY):

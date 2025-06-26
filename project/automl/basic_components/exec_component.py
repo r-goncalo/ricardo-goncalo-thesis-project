@@ -23,8 +23,8 @@ class ExecComponent(Component):
 
     exposed_values = {"running_state" : State.IDLE, "times_ran" : 0}    
     
-    def proccess_input(self):
-        super().proccess_input()
+    def proccess_input_internal(self):
+        super().proccess_input_internal()
 
         if "times_to_run" not in self.input:
             self.times_to_run = None

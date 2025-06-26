@@ -20,9 +20,9 @@ class Policy(Component):
         "action_shape": InputSignature(),
     }   
     
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
         

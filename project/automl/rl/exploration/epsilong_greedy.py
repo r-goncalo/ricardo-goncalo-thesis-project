@@ -19,9 +19,9 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
     
     exposed_values = {"n_random" : 0, "n_greedy" : 0}
     
-    def proccess_input(self): #this is the best method to have initialization done right after, input is already defined
+    def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.EPS_END = self.input["epsilon_end"]                
         self.EPS_START = self.input["epsilon_start"]

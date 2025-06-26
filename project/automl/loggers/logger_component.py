@@ -62,9 +62,9 @@ class LoggerSchema(ArtifactComponent):
     
     # INITIALIZATION --------------------------------------------------------
 
-    def proccess_input(self): #this is the best method to have initialization done right after
+    def proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input()
+        super().proccess_input_internal()
             
         self.default_logger_level = self.input["logger_level"]  
         
@@ -206,9 +206,9 @@ class ComponentWithLogging(ArtifactComponent):
                        }
 
 
-    def proccess_input(self): #this is the best method to have initialization done right after
+    def proccess_input_internal(self): #this is the best method to have initialization done right after
             
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.lg : LoggerSchema = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
         

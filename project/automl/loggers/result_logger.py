@@ -30,9 +30,9 @@ class ResultLogger(LoggerSchema):
 
     # INITIALIZATION --------------------------------------------------------
 
-    def proccess_input(self): #this is the best method to have initialization done right after
+    def proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.results_filename = self.input["results_filename"]
         

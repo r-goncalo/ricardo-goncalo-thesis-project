@@ -18,9 +18,9 @@ class QPolicy(Policy):
         "action_shape": InputSignature()
     }   
     
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()       
+        super().proccess_input_internal()       
         
 
         
@@ -33,7 +33,7 @@ class QPolicy(Policy):
         valuesForActions : torch.Tensor = self.model.predict(state) #a tensor ether in the form of [q values for each action] or [[q value for each action]]?
         
         #tensor of max values and tensor of indexes
-        max_values, max_indexes = valuesForActions.max(dim=1)
+        _, max_indexes = valuesForActions.max(dim=1)
         
         return max_indexes
     

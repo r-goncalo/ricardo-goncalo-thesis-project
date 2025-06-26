@@ -16,9 +16,9 @@ class EvaluatorComponent(Component):
     parameters_signature = {
                     }    
 
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
 
 
     # EVALUATION -------------------------------------------------------------------------------
@@ -55,9 +55,9 @@ class ComponentWithEvaluator(Component):
         
         self.last_evaluation = {}
     
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()
+        super().proccess_input_internal()
         
         self.component_evaluator : EvaluatorComponent = self.input["component_evaluator"]
         

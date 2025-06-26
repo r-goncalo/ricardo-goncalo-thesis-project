@@ -32,9 +32,9 @@ class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPip
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def proccess_input(self): # this is the best method to have initialization done right after
+    def proccess_input_internal(self): # this is the best method to have initialization done right after
                 
-        super().proccess_input()
+        super().proccess_input_internal()
                 
         self.number_of_opt_per_group = self.input["number_of_opt_per_group"]
         

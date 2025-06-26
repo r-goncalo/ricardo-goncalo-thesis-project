@@ -117,8 +117,11 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 
             
 
-    def proccess_input(self): #verify the input to this component
-        '''Verify validity of input and add default values''' 
+    def proccess_input_internal(self): #verify the input to this component
+        '''
+        Verify validity of input and add default values, following initializing the attributes
+        This can and should be extended by child Schemas
+        ''' 
         
         
         #get input signature priorities specified, sorted
@@ -132,14 +135,27 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                         
             self.__add_default_values_of_class_input(passed_keys, organized_parameters_signature[priority])
             
-            self.__verify_input(passed_keys, organized_parameters_signature[priority])
-            
-
-            
+            self.__verify_input(passed_keys, organized_parameters_signature[priority])            
             
         self._input_was_proccessed = True
         
-    def proccess_input_if_not_proccesd(self):    
+    def proccess_input(self):
+        '''
+        This method is called by external parties
+        Instead of extending it, extend proccess_input_internal
+        '''
+        self.proccess_input_internal()
+        self.post_proccess_input()
+        
+    
+    def post_proccess_input(self):
+        '''Called after the input was proccessed, to do any post processing necessary'''
+        
+        pass
+    
+        
+    def proccess_input_if_not_proccesd(self): 
+           
         if not self._input_was_proccessed:
             
             self.proccess_input()

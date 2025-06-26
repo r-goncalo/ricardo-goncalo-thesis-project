@@ -133,9 +133,9 @@ class StatefulComponentLoader(ArtifactComponent):
         
 
         
-    def proccess_input(self):
+    def proccess_input_internal(self):
         
-        super().proccess_input()    
+        super().proccess_input_internal()    
         
         self.pass_input({"artifact_relative_directory" : str(self.component_to_save_load.input["artifact_relative_directory"])}) #str is used to clone the string
         self.pass_input({"base_directory" : str(self.component_to_save_load.input["base_directory"])})
