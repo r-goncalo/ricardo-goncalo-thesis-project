@@ -39,6 +39,8 @@ class HyperparameterSuggestion():
         '''Sets the suggested value in the dictionary representing a component, using the localization'''
 
         for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
+            
+            print('Setting suggested value in component dict', component_localizer, hyperparameter_localizer)
 
             component_dict : dict = get_child_dict_from_localization(component_dict, component_localizer)
             
@@ -113,7 +115,7 @@ class HyperparameterSuggestion():
             except KeyError as e:
                 raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
         
-        current_input_dict[len(hyperparameter_localizer) - 1] = suggested_value
+        current_input_dict[hyperparameter_localizer[len(hyperparameter_localizer) - 1]] = suggested_value
         
         
     
