@@ -4,7 +4,7 @@ from typing import Union
 from automl.component import Component, InputSignature, InputMetaData
 
 
-from automl.utils.class_util import get_class_from_string
+from automl.utils.class_util import get_class_from, get_class_from_string
 
 from enum import Enum
 
@@ -340,14 +340,7 @@ def component_from_tuple_definition(tuple_definition) -> Component:
     else:
         input = {} #input was not passed
         
-    if isinstance(class_definition, str): #if if is a string of a class
-        class_of_component : type = get_class_from_string(class_definition)
-        
-    elif isinstance(class_definition, type): # if it is a class
-        class_of_component : type = class_definition
-    
-    else:#if the first element of the tuple is another type of definition
-        raise Exception(f"First element of tuple definition is not a class or a string, but {type(class_definition)}")
+    class_of_component : type = get_class_from(class_definition)
         
     component_to_return = class_of_component(input=input)
     return component_to_return

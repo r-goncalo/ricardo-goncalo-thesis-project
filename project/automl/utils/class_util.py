@@ -44,3 +44,10 @@ def get_class_from_string(class_string: str):
     except Exception as e:
         raise Exception(f"Problem when getting class with string {class_string}: {e}")
         
+
+def get_all_subclasses(cls):
+    
+    '''Returns a list of all subclasses of a class, including indirect ones.'''
+    
+    direct_subs = cls.__subclasses__()
+    return direct_subs + [g for s in direct_subs for g in get_all_subclasses(s)]
