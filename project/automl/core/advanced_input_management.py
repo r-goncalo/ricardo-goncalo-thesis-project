@@ -56,6 +56,63 @@ class ComponentInputSignature(InputSignature):
         else:
             super().__init__(possible_types=[Component, type, dict, str, tuple], **kwargs)
             
+            
+
+
+class ComponentListInputSignature(InputSignature):
+    
+    '''Abstracts the passage of component list in other components inputs'''
+    
+    def get_component_list_from_input(component_with_input : Component, key):
+        
+        '''Returns a component list from a ComponentListInputSignature passed value'''
+        
+        list_of_components = component_with_input.input[key]
+
+        for value in list_of_components:
+        
+            if isinstance(value, Component):
+                component = value
+
+            else:
+            
+                component = gen_component_from(value)
+                component_with_input.define_component_as_child(component)
+
+            return component
+    
+    
+    
+    def __init__(self, default_component_definition = None, **kwargs):
+        
+        '''Default component definition can be a component, a json string, a dictionary, and so on'''
+    
+        if default_component_definition is not None and "generator" in kwargs.keys():
+            raise Exception("Geneator in arguments of Component Input Signature when there is a default component definition")
+        
+
+        if default_component_definition is not None:
+            
+            (component_definition, n_components) = default_component_definition
+        
+            def generator(self : Component): # will return the component to be saved in 
+
+                list_of_components : list[Component] = [None] * n_components
+
+                for i in range(n_components):
+
+                    component = gen_component_from(component_definition)
+                    self.define_component_as_child(component)
+                    
+                    list_of_components[i] = component
+                
+                return list_of_components
+            
+            super().__init__(generator=generator, **kwargs)
+        
+        else:
+            super().__init__(**kwargs)
+            
 
         
         
