@@ -369,12 +369,15 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         return toReturn
     
-    def get_parameter_signature(self, key) -> InputSignature:
+    
+    
+    @classmethod
+    def get_schema_parameter_signature(cls, key) -> InputSignature:
         
-        '''Gets the parameter signature for a key for this component'''
+        '''Returns the parameter signature for a key for this Schema'''
         
         current_class_index = 0
-        method_resolution_list = type(self).__mro__
+        method_resolution_list = cls.__mro__
         current_squeme : type[Component] = method_resolution_list[current_class_index]
         
         while True:
@@ -390,6 +393,14 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 current_squeme : type[Component] = method_resolution_list[current_class_index]
             
         return None #there was no key
+    
+    
+
+    def get_parameter_signature(self, key) -> InputSignature:
+        
+        '''Gets the parameter signature for a key for this component'''
+        
+        return type(self).get_schema_parameter_signature(key) #uses the class method to get the parameter signature for a key
     
     def in_parameters_signature(self, key): #checks if the key is in input signature of component or its parents components
         
