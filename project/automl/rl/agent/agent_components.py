@@ -55,9 +55,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        "learner" : ComponentInputSignature(
                             default_component_definition=(DeepQLearnerSchema, {})
                            ),
-                       
-                       "state_memory_size" : InputSignature(default_value=1, description="This makes the agent remember previous states of the environment and concatenates them"),
-                       
+                                              
                        "policy" : ComponentInputSignature(
                             priority=100, mandatory=False, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
                        ),
@@ -118,7 +116,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
             self.model_input_shape = self.state_shape
                             
         self.state_memory_size = self.input["state_memory_size"]
-        self.state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device)
+        
+        self.state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device) # makes a list of tensors for the state_memory, using them to store memory of the states
 
         self.lg.writeLine(f"Initializing agent with more than one state memory size ({self.state_memory_size})")
 
@@ -230,16 +229,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.update_state_memory(new_state)
     
     @requires_input_proccess
-    def reset_state_memory(self, new_state): #setup memory shared accross agents
-        
-        if self.state_memory_size > 1:
-            
-            for i in range(self.state_memory_size):
-                self.state_memory[i] = new_state
-            
-        else:
-                        
-            self.state_memory = new_state
+    def reset_agent_in_environment(self, initial_state): # resets anything the agent has saved regarding the environment
+        pass
          
              
     @requires_input_proccess    
@@ -249,6 +240,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
        
     @requires_input_proccess     
     def get_state_memory_with_new(self, new_state):
+        
+        '''Returns a new state memory with the new state added, shifting the previous states'''
         
         new_state_memory = [state  for state in self.state_memory]
         

@@ -93,6 +93,8 @@ class DeepQLearnerSchema(LearnerSchema):
         # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
         expected_state_action_values = (next_state_values * discount_factor) + reward_batch
                 
+                
+        print("optimizing 11213123213")
         #Optimizes the model given the optimizer defined
         self.optimizer.optimize_model(predicted_actions_values, expected_state_action_values)        
         

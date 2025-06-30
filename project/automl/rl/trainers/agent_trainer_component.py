@@ -99,7 +99,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
                 
-        self.agent.reset_state_memory(env.observe(self.agent.name))
+        self.agent.reset_agent_in_environment(env.observe(self.agent.name))
             
         
     @requires_input_proccess

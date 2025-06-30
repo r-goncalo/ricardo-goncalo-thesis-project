@@ -2,6 +2,7 @@ import os
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
 from automl.component import InputSignature, Component, requires_input_proccess
+from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
@@ -57,7 +58,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     
         self.num_episodes_per_run =self.input["num_episodes_per_run"]  
         
-        self.env : EnvironmentComponent= self.input["environment"]
+        self.env : EnvironmentComponent = self.input["environment"]
                 
         self.optimization_interval = self.input["optimization_interval"]
         
@@ -177,7 +178,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             
             agent_input["base_directory"] = os.path.join(self.get_artifact_directory(), "agents" )
             
-            agents[agent] = self.initialize_child_component(AgentSchema, input=agent_input)
+            agent_class = get_sub_class_with_correct_parameter_signature(AgentSchema, self.input["agents_input"]) #gets the agent class with the correct parameter signature
+
+            agents[agent] = self.initialize_child_component(agent_class, input=agent_input)
 
             self.lg.writeLine("Created agent in training " + agent_name)
 
