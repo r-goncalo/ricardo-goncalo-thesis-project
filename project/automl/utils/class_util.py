@@ -45,9 +45,15 @@ def get_class_from_string(class_string: str):
         raise Exception(f"Problem when getting class with string {class_string}: {e}")
         
 
+def __get_all_subclasses_recursive(cls):
+
+    direct_subs = cls.__subclasses__()
+    return direct_subs + [g for s in direct_subs for g in get_all_subclasses(s)]
+    
+
 def get_all_subclasses(cls):
     
     '''Returns a list of all subclasses of a class, including indirect ones.'''
     
-    direct_subs = cls.__subclasses__()
-    return direct_subs + [g for s in direct_subs for g in get_all_subclasses(s)]
+    return [cls, *__get_all_subclasses_recursive(cls)]
+    
