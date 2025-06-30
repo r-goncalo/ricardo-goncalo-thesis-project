@@ -43,3 +43,6 @@ class MemoryComponent(Component):
     @requires_input_proccess
     def __len__(self):
         return len(self.memory)
+    
+
+
