@@ -130,9 +130,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         self.memory : MemoryComponent = ComponentInputSignature.get_component_from_input(self, "memory")
         
-        if isinstance(self.memory, TorchMemoryComponent):
             
-            self.memory.pass_input({"state_dim" : self.model_input_shape, 
+        self.memory.pass_input({"state_dim" : self.model_input_shape, 
                                     "action_dim" : self.model_output_shape, 
                                     "device" : self.device}
                                 )

@@ -23,7 +23,7 @@ from automl.utils.shapes_util import discrete_output_layer_size_of_space
 from automl.ml.memory.memory_components import MemoryComponent
 
 
-class TorchMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulComponent):
+class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulComponent):
 
     parameters_signature = {
         "capacity": InputSignature(default_value=1_000),
@@ -44,7 +44,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCompon
         self.device = self.input["device"]
         self.dtype = self.input["dtype"]
         self.max_in_memory = self.input["max_in_memory"]
-        self.storage_dir = os.path.join(self.artifact_directory, self.input["storage_dir"])
+        self.storage_dir = Path(os.path.join(self.artifact_directory, self.input["storage_dir"]))
 
         self.lg.writeLine("Initializing hybrid TorchMemoryComponent...")
 

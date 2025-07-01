@@ -1,3 +1,4 @@
+from automl.ml.memory.torch_disk_memory_component import TorchDiskMemoryComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
@@ -49,7 +50,7 @@ def config_dict(num_episodes=200):
                     }
                 )
             }),
-            "memory" : (TorchMemoryComponent, {
+            "memory" : (TorchDiskMemoryComponent, {
                 "capacity" : 500
             })
         },

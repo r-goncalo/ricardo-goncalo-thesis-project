@@ -56,7 +56,7 @@ class AdamOptimizer(OptimizerSchema):
     def optimize_model(self, predicted, correct) -> None:
         
         super().optimize_model(predicted, correct)
-        
+            
         # Compute Huber loss TODO : The loss should not be hard calculated like this
         criterion = nn.SmoothL1Loss()
         loss = criterion(predicted, correct)

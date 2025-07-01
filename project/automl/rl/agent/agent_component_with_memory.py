@@ -81,13 +81,11 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         
     def initialize_memory_with_state_memory(self):
-                
-        if isinstance(self.memory, TorchMemoryComponent):
-            
-            self.memory.pass_input({"state_dim" : self.model_input_shape, 
-                                    "action_dim" : self.model_output_shape, 
-                                    "device" : self.device}
-                                )
+                            
+        self.memory.pass_input({"state_dim" : self.model_input_shape, 
+                                "action_dim" : self.model_output_shape, 
+                                "device" : self.device}
+                            )
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
@@ -117,9 +115,9 @@ class AgentSchemaWithStateMemory(AgentSchema):
     def observe_transiction_to(self, new_state, action, reward):
         
         '''Makes agent observe and remember a transiction from a state to another'''
-        
+                
         self.temp_cache_state_memory.copy_(self.state_memory)
-        
+                
         self.update_state_memory(new_state)
                         
         self.memory.push(self.temp_cache_state_memory, action, self.state_memory, reward)

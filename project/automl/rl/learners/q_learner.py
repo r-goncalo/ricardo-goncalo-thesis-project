@@ -80,10 +80,12 @@ class DeepQLearnerSchema(LearnerSchema):
             next_state_batch = trajectory.next_state
             
         if not isinstance(trajectory.reward, torch.Tensor):
+            
             reward_batch = torch.stack(trajectory.reward, dim=0)  # Stack tensors along a new dimension (dimension 0)
+    
         
         else:
-            reward_batch = trajectory.reward
+            reward_batch = trajectory.reward.view(-1) # TODO: This assumes the reward only has one dimension
             
         
         # Compute a mask of non-final states and concatenate the batch elements
@@ -107,12 +109,10 @@ class DeepQLearnerSchema(LearnerSchema):
             next_state_values[non_final_mask] = self.target_net.predict(non_final_next_states).max(1).values # it returns the maximum q-action values of the next action
             
         # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
-        expected_state_action_values = (next_state_values * discount_factor) + reward_batch
+        next_state_values.mul_(discount_factor).add_(reward_batch)
                 
-                
-        print("optimizing 11213123213")
         #Optimizes the model given the optimizer defined
-        self.optimizer.optimize_model(predicted_actions_values, expected_state_action_values)        
+        self.optimizer.optimize_model(predicted_actions_values, next_state_values)        
         
         if self.update_target_at_optimization:
             self.update_target_model()
