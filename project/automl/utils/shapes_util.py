@@ -117,7 +117,7 @@ def torch_zeros_for_space(state_space, device) -> torch.Tensor:
         return torch_zeros_for_space_gym(state_space, device=device)
     
     elif isinstance(state_space, tuple):
-        return torch.stack([torch_zeros_for_space(s, device=device) for s in state_space])
+        return torch.zeros(size=state_space, device=device)
     
     else:
         raise NotImplementedError(f"Unkown space type: {type(state_space)}")

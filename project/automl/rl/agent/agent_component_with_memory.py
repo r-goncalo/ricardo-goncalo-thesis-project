@@ -2,12 +2,15 @@
 
 from automl.component import requires_input_proccess
 from automl.core.input_management import InputSignature
+from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
 from automl.utils.shapes_util import torch_zeros_for_space
 import torch
 
 
 class AgentSchemaWithStateMemory(AgentSchema):
+    
+    '''An agent which state has memory of previous states, such as a robot remembering its previous positions'''
 
 
     # INITIALIZATION --------------------------------------------------------------------------
@@ -28,23 +31,30 @@ class AgentSchemaWithStateMemory(AgentSchema):
     
         self.initialize_state_memory()
         self.initialize_policy_with_state_memory()
+        self.initialize_memory_with_state_memory()
 
         
 
 
     def initialize_state_memory(self):
+        
             
         self.state_shape = self.input["state_shape"]
         self.state_memory_size = self.input["state_memory_size"]
         
+        print(f"State shape before change: {self.state_shape}")
+        
         if self.state_memory_size <= 1:
             raise Exception("State memory size must be greater than 1 to use this agent schema")
         
-        self.model_input_shape = tuple(self.state_shape for _ in range(self.state_memory_size))
+        self.model_input_shape = (self.state_memory_size, *self.state_shape)
+        
+        print(f"State shape after change: {self.model_input_shape}")
 
         self.state_memory_size = self.input["state_memory_size"]
         
         self.state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device) # makes a list of tensors for the state_memory, using them to store memory of the states
+        self.temp_cache_state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device) # a reserved memory space to store 
 
         self.lg.writeLine(f"Initializing agent with more than one state memory size ({self.state_memory_size})")
 
@@ -58,18 +68,26 @@ class AgentSchemaWithStateMemory(AgentSchema):
         if torch.cuda.is_available():   
             self.lg.writeLine(f"Initialized state memory, Cuda memory allocated: {torch.cuda.memory_allocated()}, Cuda memory reserved: {torch.cuda.memory_reserved()}, Cuda memory available: {torch.cuda.mem_get_info()}")
         
+        else:
+            self.lg.writeLine(f"Initialized state memory, Cuda not available, using CPU memory")
+        
         
     def initialize_policy_with_state_memory(self):
         
         self.lg.writeLine("Initializing policy...")
-        
-        self.model_input_shape = self.input["state_shape"]
-        self.model_output_shape = self.input["action_shape"]
-        
-        self.model_input_shape = (self.state_memory_size, self.model_input_shape)
                 
         self.policy.pass_input({"state_shape" : self.model_input_shape,
                                "action_shape" : self.model_output_shape,})
+        
+        
+    def initialize_memory_with_state_memory(self):
+                
+        if isinstance(self.memory, TorchMemoryComponent):
+            
+            self.memory.pass_input({"state_dim" : self.model_input_shape, 
+                                    "action_dim" : self.model_output_shape, 
+                                    "device" : self.device}
+                                )
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
@@ -80,13 +98,16 @@ class AgentSchemaWithStateMemory(AgentSchema):
     @requires_input_proccess
     def policy_predict(self, state):
         
-        '''makes a prediction based on the new state for a new action, using the current memory'''
+        '''
+        Makes a prediction based on the new state for a new action, using the current memory
+        Note that this does not observe the transition
+        '''
         
         self.update_state_memory(state) #updates memory with the new state
         
         possible_state_memory = self.get_state_memory_with_new(state)
         
-        return self.policy.predict(torch.cat([element for element in possible_state_memory])).item()
+        return self.policy.predict(possible_state_memory).item()
         
     
     # STATE MEMORY --------------------------------------------------------------------
@@ -97,29 +118,22 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         '''Makes agent observe and remember a transiction from a state to another'''
         
-        prev_state_memory = torch.cat([element for element in self.state_memory])
+        self.temp_cache_state_memory.copy_(self.state_memory)
         
         self.update_state_memory(new_state)
-        
-        next_state_memory = torch.cat([element for element in self.state_memory])
-                
-        self.memory.push(prev_state_memory, action, next_state_memory, reward)
+                        
+        self.memory.push(self.temp_cache_state_memory, action, self.state_memory, reward)
         
         
     
     @requires_input_proccess
-    def reset_state_in_environment(self, initial_state): #setup memory shared accross agents
+    def reset_state_in_environment(self, initial_state : torch.Tensor): #setup memory shared accross agents
         
         super().reset_agent_in_environment(initial_state)
-        
-        if self.state_memory_size > 1:
+                    
+        self.state_memory = initial_state.unsqueeze(0).expand(self.state_memory_size, *self.state_shape).clone()
+
             
-            for i in range(self.state_memory_size):
-                self.state_memory[i] = initial_state
-            
-        else:
-                        
-            self.state_memory = initial_state
          
              
     @requires_input_proccess    
@@ -129,23 +143,20 @@ class AgentSchemaWithStateMemory(AgentSchema):
        
     @requires_input_proccess     
     def get_state_memory_with_new(self, new_state):
+        '''
+        Returns a new state memory tensor with the new_state added,
+        shifting the previous states to the left.
         
-        '''Returns a new state memory with the new state added, shifting the previous states'''
-        
-        new_state_memory = [state  for state in self.state_memory]
-        
-        if self.state_memory_size > 1:   
-            
-            for i in range(1, self.state_memory_size):
-                new_state_memory[i - 1] = new_state_memory[i]
-            
-            new_state_memory[self.state_memory_size - 1] = new_state
+        Note that this tensor is cloned and not used anymore by the agent, so it can be safely used
+        '''
+        # shift previous memory left by one position
+        self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:])
 
-            return new_state_memory
-        
-        else:
-            
-            return new_state
+        # insert new state into the last position
+        self.temp_cache_state_memory[-1].copy_(new_state)
+
+        return self.temp_cache_state_memory.clone()
+    
          
         
         

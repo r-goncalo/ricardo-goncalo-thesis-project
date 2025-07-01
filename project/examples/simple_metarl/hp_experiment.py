@@ -89,7 +89,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='memory_capacity', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "memory_input", "capacity"])
+                                    ([], ["agents_input", "memory", 1, "capacity"])
                                 ],
                                 value_suggestion = ('int', {'low':100, 'high':1000}) 
                             )

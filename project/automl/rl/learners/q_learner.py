@@ -66,16 +66,32 @@ class DeepQLearnerSchema(LearnerSchema):
     def learn(self, trajectory, discount_factor) -> None:
         
         super().learn(trajectory, discount_factor)
-                
-        state_batch = torch.stack(trajectory.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
-        reward_batch = torch.tensor(trajectory.reward, device=self.device)
+        
+        if not isinstance(trajectory.state, torch.Tensor):
+            state_batch = torch.stack(trajectory.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
+        
+        else:
+            state_batch = trajectory.state
+            
+        if not isinstance(trajectory.next_state, torch.Tensor):
+            next_state_batch = torch.stack(trajectory.next_state, dim=0)  # Stack tensors along a new dimension (dimension 0)
+        
+        else:
+            next_state_batch = trajectory.next_state
+            
+        if not isinstance(trajectory.reward, torch.Tensor):
+            reward_batch = torch.stack(trajectory.reward, dim=0)  # Stack tensors along a new dimension (dimension 0)
+        
+        else:
+            reward_batch = trajectory.reward
+            
         
         # Compute a mask of non-final states and concatenate the batch elements
         # (a final state would've been the one after which simulation ended)
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                              trajectory.next_state)), dtype=torch.bool)
+                                              next_state_batch)), dtype=torch.bool)
         
-        non_final_next_states = torch.stack([s for s in trajectory.next_state
+        non_final_next_states = torch.stack([s for s in next_state_batch
                                                         if s is not None], dim=0)
                 
         

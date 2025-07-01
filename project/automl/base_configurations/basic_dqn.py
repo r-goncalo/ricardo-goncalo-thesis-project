@@ -1,3 +1,4 @@
+from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.neural_model import FullyConnectedModelSchema
@@ -48,9 +49,9 @@ def config_dict(num_episodes=200):
                     }
                 )
             }),
-            "memory_input" : {
-                "capacity" : 300
-            }
+            "memory" : (TorchMemoryComponent, {
+                "capacity" : 500
+            })
         },
     },
     "child_components": [

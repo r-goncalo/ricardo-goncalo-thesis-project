@@ -33,6 +33,14 @@ class MemoryComponent(Component):
         return random.sample(self.memory, batch_size)
     
     @requires_input_proccess
+    def sample_transposed(self, batch_size):
+        return self.transpose(self.sample(batch_size))    
+    
+    
+    def transpose(self, transitions):
+        return self.Transition(*zip(*transitions))
+    
+    @requires_input_proccess
     def clear(self):
         self.memory.clear()
         

@@ -2,12 +2,13 @@
 # DEFAULT COMPONENTS -------------------------------------
 
 from automl.core.advanced_input_management import ComponentInputSignature
+from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema
 
-from automl.rl.memory_components import MemoryComponent
+from automl.ml.memory.memory_components import MemoryComponent
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
 
@@ -49,8 +50,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        "state_shape" : InputSignature(default_value='', mandatory=False, description='The shape received by the model, only used when the model was not passed already initialized'),
                        "action_shape" : InputSignature(default_value='', mandatory=False, description='Shape of the output of the model, only used when the model was not passed already'),
                         
-                       "memory" : InputSignature(generator = lambda self :  self.initialize_child_component(MemoryComponent, input={"capacity" : DEFAULT_MEMORY_SIZE})),
-                       "memory_input" : InputSignature(default_value={}),
+                       "memory" : ComponentInputSignature(
+                            default_component_definition=(TorchMemoryComponent, {"capacity" : DEFAULT_MEMORY_SIZE}),
+                       ),
                        
                        "learner" : ComponentInputSignature(
                             default_component_definition=(DeepQLearnerSchema, {})
@@ -71,7 +73,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.device = self.input["device"]
     
         self.initialize_exploration_strategy()
-        self.initialize_state_memory()
         self.initialize_policy()
         self.initialize_learner()
         self.initialize_memory()
@@ -102,31 +103,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         exploration_strategy_class : type[ExplorationStrategySchema] = get_class_from(self.exploration_strategy_class)
         
         return self.initialize_child_component(exploration_strategy_class, self.input["exploration_strategy_input"])         
-
-
-    def initialize_state_memory(self):
-            
-        self.state_shape = self.input["state_shape"]
-        self.state_memory_size = self.input["state_memory_size"]
-        
-        if self.state_memory_size > 1:
-            self.model_input_shape = tuple(self.state_shape for _ in range(self.state_memory_size))
-            
-        else:
-            self.model_input_shape = self.state_shape
-                            
-        self.state_memory_size = self.input["state_memory_size"]
-        
-        self.state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device) # makes a list of tensors for the state_memory, using them to store memory of the states
-
-        self.lg.writeLine(f"Initializing agent with more than one state memory size ({self.state_memory_size})")
-
-        if self.input["state_shape"] == '':
-            raise Exception("More than one state memory size and undefined model input shape")
-
-        self.state_length = self.input["state_shape"][2]
-
-        self.lg.writeLine(f"State length is {self.state_length}")
         
         
         
@@ -136,9 +112,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         self.model_input_shape = self.input["state_shape"]
         self.model_output_shape = self.input["action_shape"]
-        
-        if self.state_memory_size > 1:
-            self.model_input_shape = (self.state_memory_size, self.model_input_shape)
+    
         
         self.policy : Policy = ComponentInputSignature.get_component_from_input(self, "policy")
         
@@ -154,8 +128,14 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     def initialize_memory(self):
         
-        self.memory : MemoryComponent = self.input["memory"] #where we'll save the transitions we did    
-        self.memory.pass_input(self.input["memory_input"])
+        self.memory : MemoryComponent = ComponentInputSignature.get_component_from_input(self, "memory")
+        
+        if isinstance(self.memory, TorchMemoryComponent):
+            
+            self.memory.pass_input({"state_dim" : self.model_input_shape, 
+                                    "action_dim" : self.model_output_shape, 
+                                    "device" : self.device}
+                                )
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
@@ -168,12 +148,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         '''makes a prediction based on the new state for a new action, using the current memory'''
         
-        self.update_state_memory(state) #updates memory with the new state
-        
-        possible_state_memory = self.get_state_memory_with_new(state)
-        
-        return self.policy.predict(torch.cat([element for element in possible_state_memory])).item()
-
+        return self.policy.predict(state)
                     
     
     @requires_input_proccess
@@ -197,12 +172,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         if len(self.memory) < self.BATCH_SIZE:
             return
         
-        #a batch of transitions [(state, action next_state, reward)]
-        transitions = self.memory.sample(self.BATCH_SIZE)
+        #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
+        batch = self.memory.sample_transposed(self.BATCH_SIZE)
         
-        # Transpose the batch
-        #[ (all states), (all actions), (all next states), (all rewards) ]
-        batch = self.memory.Transition(*zip(*transitions))
                 
         self.learner.learn(batch, self.discount_factor)
         
@@ -217,7 +189,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         prev_state_memory = torch.cat([element for element in self.state_memory])
         
-        self.update_state_memory(new_state)
+        self.observe_new_state(new_state)
         
         next_state_memory = torch.cat([element for element in self.state_memory])
                 
@@ -226,37 +198,13 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     @requires_input_proccess
     def observe_new_state(self, new_state):
-        self.update_state_memory(new_state)
+        pass
     
     @requires_input_proccess
     def reset_agent_in_environment(self, initial_state): # resets anything the agent has saved regarding the environment
         pass
          
              
-    @requires_input_proccess    
-    def update_state_memory(self, new_state): #update memory shared accross agents
-        self.state_memory = self.get_state_memory_with_new(new_state)
-        
-       
-    @requires_input_proccess     
-    def get_state_memory_with_new(self, new_state):
-        
-        '''Returns a new state memory with the new state added, shifting the previous states'''
-        
-        new_state_memory = [state  for state in self.state_memory]
-        
-        if self.state_memory_size > 1:   
-            
-            for i in range(1, self.state_memory_size):
-                new_state_memory[i - 1] = new_state_memory[i]
-            
-            new_state_memory[self.state_memory_size - 1] = new_state
-
-            return new_state_memory
-        
-        else:
-            
-            return new_state
          
         
         
