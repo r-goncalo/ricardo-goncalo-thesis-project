@@ -130,6 +130,9 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num
     
 def main(num_episodes, num_trials, directory, mockup):
     
+    if mockup:
+        print("Running mockup test")
+    
     hyperparameters_to_change = get_hyperparameters_to_change()
     
     print("Generating hyperparameters to change")

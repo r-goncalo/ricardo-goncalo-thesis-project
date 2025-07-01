@@ -42,15 +42,12 @@ class AgentSchemaWithStateMemory(AgentSchema):
         self.state_shape = self.input["state_shape"]
         self.state_memory_size = self.input["state_memory_size"]
         
-        print(f"State shape before change: {self.state_shape}")
         
         if self.state_memory_size <= 1:
             raise Exception("State memory size must be greater than 1 to use this agent schema")
         
         self.model_input_shape = (self.state_memory_size, *self.state_shape)
         
-        print(f"State shape after change: {self.model_input_shape}")
-
         self.state_memory_size = self.input["state_memory_size"]
         
         self.state_memory = torch_zeros_for_space(self.model_input_shape, device=self.device) # makes a list of tensors for the state_memory, using them to store memory of the states
