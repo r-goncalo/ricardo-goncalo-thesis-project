@@ -1,4 +1,5 @@
 import os
+import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
 from automl.component import InputSignature, Component, requires_input_proccess
@@ -193,6 +194,20 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         
     # TRAINING_PROCCESS ----------------------
+    
+    def onException(self, exception : Exception):
+        
+        super().onException(exception)
+        
+        error_message = str(exception)
+        full_traceback = traceback.format_exc()
+
+        self.lg.writeLine("Error message:", file="error_report.txt")
+        self.lg.writeLine(error_message, file="error_report.txt")
+
+        self.lg.writeLine("\nFull traceback:")
+        self.lg.writeLine(full_traceback, file="error_report.txt")
+        
         
     @requires_input_proccess
     def train(self):        

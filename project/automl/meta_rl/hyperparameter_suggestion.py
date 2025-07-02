@@ -40,8 +40,6 @@ class HyperparameterSuggestion():
 
         for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
             
-            print('Setting suggested value in component dict', component_localizer, hyperparameter_localizer)
-
             component_dict : dict = get_child_dict_from_localization(component_dict, component_localizer)
             
             if not "input" in component_dict:

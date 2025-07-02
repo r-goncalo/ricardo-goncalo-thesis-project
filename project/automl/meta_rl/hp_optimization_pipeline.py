@@ -45,7 +45,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "hyperparameters_range_list" : InputSignature(),
                         "n_trials" : InputSignature(),
                         
-                        "steps" : InputSignature(default_value=1),
+                        "steps" : InputSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
                         "pruner" : InputSignature(mandatory=False),
                         
                         "evaluator_component" : ComponentInputSignature(
@@ -288,16 +288,26 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         
         for step in range(self.n_steps):
+            
+            try:
                 
-            component_to_test.run()
-            
-            evaluation_results = self.evaluate_component(component_to_test)
-            
-            trial.report(evaluation_results["result"], step)
-            
-            if trial.should_prune():
-                self.lg.writeLine("Prunning current experiment...")
-                raise optuna.TrialPruned()
+                component_to_test.run()
+
+                evaluation_results = self.evaluate_component(component_to_test)
+
+                trial.report(evaluation_results["result"], step)
+
+                if trial.should_prune():
+                    self.lg.writeLine("Prunning current experiment dues to pruner...")
+                    trial.set_user_attr("prune_reason", "pruner")
+                    raise optuna.TrialPruned()
+                
+            except:
+                
+                self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
+                trial.set_user_attr("prune_reason", "error")
+                raise optuna.TrialPruned("error")
+                
         
         return evaluation_results["result"]
     

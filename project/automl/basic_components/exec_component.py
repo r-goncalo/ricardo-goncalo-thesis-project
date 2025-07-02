@@ -91,5 +91,5 @@ class ExecComponent(Component):
         except Exception as e:
             self.values["running_state"] = State.ERROR
             self.onException(e)
-            raise e
+            raise e # TODO: decide on this, are the elements that run this responsible for caughting the exception?
     

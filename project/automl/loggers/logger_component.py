@@ -79,7 +79,7 @@ class LoggerSchema(ArtifactComponent):
     # LOGGING -----------------------------------------------------------------------------        
 
     @requires_input_proccess
-    def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, **kargs):
+    def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None):
         
         
         if self.default_logger_level.value <= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
@@ -211,7 +211,6 @@ class ComponentWithLogging(ArtifactComponent):
         super().proccess_input_internal()
         
         self.lg : LoggerSchema = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
-        
         
 
 
