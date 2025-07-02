@@ -84,10 +84,7 @@ class ArtifactComponent(Component):
         except Exception as e:
             
             raise Exception(f"Could not open or create folder with base directory \'{self.base_directory}\' and artifact relative directory \'{self.artifact_relative_directory}\', full directory {full_path}")
-            
-        
-        print(f"Generated artifact directory for component {self.name} of type{type(self)}: " + self.artifact_directory)
-    
+                
     
     def generate_artifact_directory(self):
         

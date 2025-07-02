@@ -7,7 +7,7 @@ from automl.loggers.result_logger import ResultLogger, get_results_logger_from_f
 
 
 
-DEFAULT_RESULTS_LOGGER_KEY = "default"
+DEFAULT_RESULTS_LOGGER_KEY = "results"
 
 
 def on_log_pass(self : Component):
@@ -35,7 +35,8 @@ def generate_logger_for_component(self : ArtifactComponent):
                     "create_new_directory" : False,
                     "base_directory" : self.get_artifact_directory(), 
                     "artifact_relative_directory" : "",
-                    "results_columns" : self.results_columns[results_logger_key] if results_logger_key in self.results_columns.keys() else []}
+                    "results_columns" : self.results_columns[results_logger_key] if results_logger_key in self.results_columns.keys() else [],
+                    "results_filename" : f"{results_logger_key}.csv"}
                 ),
                     results_logger_key
             )

@@ -3,6 +3,7 @@
 from automl.basic_components.component_group import RunnableComponentGroup
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.component import Component, requires_input_proccess
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.core.input_management import InputSignature
 from automl.loggers.result_logger import ResultLogger
 import pandas
@@ -18,7 +19,8 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
     '''
     
     parameters_signature = {
-        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation")
+        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
+        "base_evaluator" : ComponentInputSignature(mandatory=False)
     }
 
     def proccess_input_internal(self):
@@ -26,6 +28,13 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         super().proccess_input_internal()
         
         self.std_deviation_factor = self.input["std_deviation_factor"]
+        
+        if not "base_evaluator" in self.input.keys():
+            print(f"WARNING: no base evaluator defined for evaluator component of group, this needs all the components in the group to be defined with the same evaluator or it will not work as intended")
+            self.base_evaluator = None
+        
+        else:
+            self.base_evaluator = ComponentInputSignature.get_component_from_input(self, "base_evaluator")
 
         
 
@@ -39,6 +48,9 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         '''
         if not isinstance(component_to_evaluate, RunnableComponentGroup):
             raise TypeError("The component to evaluate must be a RunnableComponentGroup")
+        
+        if not self.base_evaluator == None:
+            raise NotImplementedError()
         
         results_lg_of_group : ResultLogger = component_to_evaluate.get_aggregate_results_lg()
         

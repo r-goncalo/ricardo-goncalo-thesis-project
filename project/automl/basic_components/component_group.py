@@ -1,11 +1,12 @@
 
 
 
+import copy
 from automl.component import Component, requires_input_proccess, InputSignature
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
-from automl.loggers.component_with_results import ComponentWithResults
+from automl.loggers.component_with_results import ComponentWithResults, DEFAULT_RESULTS_LOGGER_KEY
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.loggers.result_logger import ResultLogger, get_results_logger_from_file
 from automl.utils.json_component_utils import gen_component_from_dict, json_string_of_component, component_from_json_string
@@ -17,7 +18,9 @@ from typing import Union
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 
-from automl.consts import CONFIGURATION_FILE_NAME
+
+AGGREGATE_RESULTS_KEY = "aggregate_results"
+
 
 Component_in_group_type = Union[ExecComponent, StatefulComponent, SeededComponent, ComponentWithResults]
 
@@ -50,20 +53,30 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         
     }
     
+    results_columns = {
+        
+        DEFAULT_RESULTS_LOGGER_KEY : [],
+        AGGREGATE_RESULTS_KEY : ["index", "times_ran"]
+        
+    }
+    
+    results_loggers_names = [DEFAULT_RESULTS_LOGGER_KEY, AGGREGATE_RESULTS_KEY]
+    
+    
     
     def proccess_input_internal(self):
         super().proccess_input_internal()
         
         self.runnable_components = []
         self.last_ran_component = -1
-        
-        self.aggregate_results_lg = None
-        
+                
         self.instantiate_evaluator()
         
         self.check_component_class()
         
         self.instantiate_components_in_group()
+        
+        self.__was_aggregate_results_initialized = False
         
         
     
@@ -81,6 +94,11 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         
     def initialize_aggregate_results_lg(self, component : Component_in_group_type):
         
+        '''
+        Initializes aggregate results logger with columns appropriate for the components in group
+        This has to happen before aggregate_results is first used
+        '''
+        
         component_results = component.get_results_columns()
         
         
@@ -90,15 +108,10 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         else:
             evaluation_results = []
             
+        self.add_to_columns_of_results_logger([*component_results, *evaluation_results], key=AGGREGATE_RESULTS_KEY)
         
-        #the results shown in the aggregate results is a combination of the evaluation and the results shown by the components
-        results_columns = ["index", "times_ran", *component_results, *evaluation_results]
+        self.__was_aggregate_results_initialized = True
         
-        self.aggregate_results_lg : ResultLogger = self.initialize_child_component(ResultLogger, { 
-            "results_filename" : "aggregate_results.csv",
-            "artifact_relative_directory" : "",
-            "results_columns" : results_columns
-            })
         
         
         
@@ -109,11 +122,7 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         This does not need the component to be initialized, as it is capable of getting them from file if needed
         '''
         
-        if hasattr(self, "aggregate_results_lg") and self.aggregate_results_lg != None:
-            return self.aggregate_results_lg
-        
-        else:
-            return get_results_logger_from_file(self.get_artifact_directory(), "aggregate_results.csv")
+        return self.get_decoupled_results_logger(f"{AGGREGATE_RESULTS_KEY}.csv")
     
     
     def get_results_by_component(self) -> dict:
@@ -134,12 +143,13 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         
     def log_aggregate_results(self, component : Component_in_group_type, component_index : int, component_results, evaluation_results):
         
-        self.aggregate_results_lg.log_results({
+        self.log_results({
             "component_index" : component_index,
             "times_ran" : component.values["times_ran"],
             **component_results,
             **evaluation_results
-        })
+        },
+        key=AGGREGATE_RESULTS_KEY)
         
             
     # COMPONENT GROUP INITIALIZATION ----------------------------------------------
@@ -250,7 +260,7 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         
         evaluation = self.evaluate_component_in_group(component)
         
-        if self.aggregate_results_lg == None: #if this was not initialized yet, we initialize it
+        if not self.__was_aggregate_results_initialized: #if this was not initialized yet, we initialize it
             self.initialize_aggregate_results_lg(component)
         
         self.log_aggregate_results(component, index, component.get_last_results(), evaluation)
