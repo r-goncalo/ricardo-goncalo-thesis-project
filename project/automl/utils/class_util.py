@@ -96,7 +96,9 @@ def __get_all_subclasses_recursive(cls):
 
 def get_all_subclasses(cls):
     
-    '''Returns a list of all subclasses of a class, including indirect ones.'''
+    '''Returns a list of all subclasses of a class, including indirect ones.
+    
+    '''
     
     return [cls, *__get_all_subclasses_recursive(cls)]
     

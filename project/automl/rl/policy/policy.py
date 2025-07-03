@@ -18,6 +18,7 @@ class Policy(Component):
         
         "state_shape": InputSignature(),
         "action_shape": InputSignature(),
+        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }   
     
     def proccess_input_internal(self):
@@ -28,6 +29,8 @@ class Policy(Component):
         
         self.model_input_shape = self.input["state_shape"]
         self.model_output_shape = self.input["action_shape"]
+        
+        self.device = self.input["device"]
         
         self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape}) 
         

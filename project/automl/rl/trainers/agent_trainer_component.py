@@ -121,8 +121,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             observation = env.observe(self.name)
                                 
             action = self.agent.select_action(observation) # decides the next action to take (can be random)
-                                                     
-            env.step(action) #makes the game proccess the action that was taken
+                                                                 
+            env.step(action.item()) #makes the game proccess the action that was taken
                 
             observation, reward, done, info = env.last()
             

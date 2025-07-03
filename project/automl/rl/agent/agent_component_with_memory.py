@@ -102,7 +102,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         possible_state_memory = self.get_state_memory_with_new(state)
         
-        return self.policy.predict(possible_state_memory).item()
+        return self.policy.predict(possible_state_memory) #note that this may be a torch element or something
         
     
     # STATE MEMORY --------------------------------------------------------------------

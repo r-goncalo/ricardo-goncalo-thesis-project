@@ -5,6 +5,7 @@ from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
+from automl.utils.maths import nearest_highest_multiple, nearest_multiple
 from automl.utils.shapes_util import discrete_output_layer_size_of_space
 import torch
 from automl.ml.memory.memory_components import MemoryComponent
@@ -31,24 +32,47 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         "action_dim": InputSignature(),
         "device": InputSignature(default_value="cuda"),
         "dtype": InputSignature(default_value=torch.float32),
-        "max_in_memory": InputSignature(default_value=100),
+        "max_in_memory": InputSignature(default_value=80),
         "storage_dir": InputSignature(default_value="./memory_storage"),
     }
 
     def proccess_input_internal(self):
         super().proccess_input_internal()
-
-        self.capacity = self.input["capacity"]
+        
         self.state_dim = self.input["state_dim"]
         self.action_dim = self.input["action_dim"]
         self.device = self.input["device"]
         self.dtype = self.input["dtype"]
         self.max_in_memory = self.input["max_in_memory"]
-        self.storage_dir = Path(os.path.join(self.artifact_directory, self.input["storage_dir"]))
+
+        self.set_capaticy()
 
         self.lg.writeLine("Initializing hybrid TorchMemoryComponent...")
 
-        # Allocate in-memory buffer
+        self.allocate_computer_memory_to_transitions()
+
+        self.position = 0
+        self.size_in_memory = 0
+        self.total_size = 0
+        
+        self.initialize_disk_files()
+
+        self.lg.writeLine("TorchMemoryComponent initialized.")
+
+    def set_capaticy(self):
+        
+        '''Sets capacity to an appropriate value, multiple of the max transitions in memory'''
+
+        self.capacity = nearest_highest_multiple(self.input["capacity"], self.max_in_memory)
+        
+        if self.capacity != self.input["capacity"]:
+            self.lg.writeLine(f"Capacity of {self.input['capacity']} was changed to {self.capacity} due to it not being a multiple of max in memory ({self.max_in_memory})")
+
+        
+    def allocate_computer_memory_to_transitions(self):
+        
+        '''Allocates the necessary space '''
+        
         self.states = torch.zeros((self.max_in_memory, *self.state_dim),
                                   device=self.device, dtype=self.dtype)
         self.actions = torch.zeros((self.max_in_memory, discrete_output_layer_size_of_space(self.action_dim)),
@@ -57,17 +81,23 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
                                        device=self.device, dtype=self.dtype)
         self.rewards = torch.zeros((self.max_in_memory, 1),
                                    device=self.device, dtype=self.dtype)
+        
+        
+    def initialize_disk_files(self):
+        
+        self.storage_dir = Path(os.path.join(self.artifact_directory, self.input["storage_dir"]))
 
-        self.position = 0
-        self.size_in_memory = 0
-        self.total_size = 0
-
-        # Disk storage setup
         self.storage_dir.mkdir(parents=True, exist_ok=True)
-        self.disk_file_counter = 0
-        self.disk_files = []  # List of file paths on disk
-
-        self.lg.writeLine("TorchMemoryComponent initialized.")
+        self.disk_file_position = 0
+        
+        number_of_times_size_in_memory_in_capacity = int(self.capacity / self.max_in_memory)
+        
+        self.lg.writeLine(f"There are {number_of_times_size_in_memory_in_capacity} times the max_in_memory in the whole capacity of the memory")
+        
+        self.number_of_files = number_of_times_size_in_memory_in_capacity - 1
+                
+        self.disk_files = [os.path.join(self.storage_dir, f"transitions_{i}.pt") for i in range(0, self.number_of_files)]
+        
 
     @requires_input_proccess
     def push(self, state, action, next_state, reward):
@@ -79,20 +109,25 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         self.rewards[idx].copy_(reward)
 
         self.position = (self.position + 1) % self.max_in_memory
+        self.total_size += 1
 
         if self.size_in_memory < self.max_in_memory:
             self.size_in_memory += 1
+    
+            
         else:
             # Buffer is full → flush to disk
             self._flush_to_disk()
 
-        self.total_size += 1
+    
 
     def _flush_to_disk(self):
+        
         """
         Save current memory buffer to disk and clear memory.
         """
-        file_path = self.storage_dir / f"transitions_{self.disk_file_counter}.pt"
+        file_path = self.disk_files[self.disk_file_position]
+        
         torch.save({
             "state": self.states.cpu(),
             "action": self.actions.cpu(),
@@ -102,16 +137,19 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         }, file_path)
 
         self.lg.writeLine(f"Flushed {self.size_in_memory} transitions to disk at {file_path}")
-        self.disk_files.append(file_path)
-        self.disk_file_counter += 1
+        
+        self.disk_file_position = (self.disk_file_position + 1) % self.number_of_files
 
-        # Clear memory buffer
-        self.states.zero_()
-        self.actions.zero_()
-        self.next_states.zero_()
-        self.rewards.zero_()
+        # We don't clear the memory because we don't need to, only new positions will be used
         self.position = 0
         self.size_in_memory = 0
+        
+        
+        if self.total_size == self.capacity:
+        
+            self.total_size -= self.size_in_memory #we deleted self.size_in_memory entries previously stored
+        
+    
 
     @requires_input_proccess
     def sample(self, batch_size):
@@ -131,6 +169,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
             return self._sample_from_memory(batch_size)
 
     def _sample_from_memory(self, batch_size):
+        
         indices = torch.randint(0, self.size_in_memory, (batch_size,), device=self.device)
 
         batch = self.Transition(
@@ -142,6 +181,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         return batch
 
     def _sample_from_disk(self, batch_size):
+        
         file_path = np.random.choice(self.disk_files)
 
         data = torch.load(file_path, map_location="cpu")
@@ -160,50 +200,3 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
     def sample_transposed(self, batch_size):
         batch = self.sample(batch_size)
         return self.Transition(*batch)
-
-    @requires_input_proccess
-    def clear(self):
-        self.states.zero_()
-        self.actions.zero_()
-        self.next_states.zero_()
-        self.rewards.zero_()
-        self.position = 0
-        self.size_in_memory = 0
-        self.total_size = 0
-
-        for f in self.disk_files:
-            os.remove(f)
-        self.disk_files = []
-        self.disk_file_counter = 0
-
-    @requires_input_proccess
-    def get_all(self):
-        """
-        Returns all transitions (from memory + disk) merged as tensors.
-        Warning: may consume a lot of RAM if dataset is huge.
-        """
-        # Gather in-memory
-        result_states = [self.states[:self.size_in_memory]]
-        result_actions = [self.actions[:self.size_in_memory]]
-        result_next_states = [self.next_states[:self.size_in_memory]]
-        result_rewards = [self.rewards[:self.size_in_memory]]
-
-        # Gather from disk
-        for f in self.disk_files:
-            data = torch.load(f, map_location=self.device)
-            result_states.append(data["state"].to(self.device))
-            result_actions.append(data["action"].to(self.device))
-            result_next_states.append(data["next_state"].to(self.device))
-            result_rewards.append(data["reward"].to(self.device))
-
-        return self.Transition(
-            state=torch.cat(result_states, dim=0),
-            action=torch.cat(result_actions, dim=0),
-            next_state=torch.cat(result_next_states, dim=0),
-            reward=torch.cat(result_rewards, dim=0)
-        )
-
-    @requires_input_proccess
-    def __len__(self):
-        total_disk_size = sum(torch.load(f)["size"] for f in self.disk_files)
-        return total_disk_size + self.size_in_memory

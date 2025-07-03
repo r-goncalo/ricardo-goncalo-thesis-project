@@ -22,7 +22,6 @@ class QPolicy(Policy):
         
         super().proccess_input_internal()       
         
-
         
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
         
@@ -34,10 +33,15 @@ class QPolicy(Policy):
         
         #tensor of max values and tensor of indexes
         _, max_indexes = valuesForActions.max(dim=1)
-        
+                
         return max_indexes
     
     
     @requires_input_proccess
-    def random_prediction(self):
-        return random.randint(0, self.model_output_shape.n - 1)
+    def random_prediction(self):    
+        return torch.randint(
+            0, #low
+            int(self.model_output_shape.n), #high
+            (1,), #size
+            device=self.device
+        )

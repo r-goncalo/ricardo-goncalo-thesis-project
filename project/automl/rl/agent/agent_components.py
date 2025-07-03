@@ -39,7 +39,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     parameters_signature = { 
                         "name" : InputSignature(),
                        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
-                       "batch_size" : InputSignature(default_value=64),
+                       "batch_size" : InputSignature(default_value=32),
                        "discount_factor" : InputSignature(default_value=0.95),
                        "training_context" : InputSignature(possible_types=[Component]),
                        
