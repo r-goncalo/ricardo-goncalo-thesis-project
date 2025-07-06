@@ -2,6 +2,7 @@ import os
 import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
+from automl.basic_components.seeded_component import SeededComponent
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
 from automl.loggers.component_with_results import ComponentWithResults
@@ -25,7 +26,7 @@ from automl.core.advanced_input_management import ComponentInputSignature
 from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator):
+class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator, SeededComponent):
     
     parameters_signature = {
         
@@ -40,7 +41,6 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                        
                        "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
                                               
-                       "seed" : InputSignature(generator=lambda self : generate_seed())
                        }
     
     
@@ -51,9 +51,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     def proccess_input_internal(self): #this is the best method to have initialization done right after
         
         super().proccess_input_internal()
-        
-        do_full_setup_of_seed(self.input["seed"])
-        
+                
         self.device = self.input["device"]
             
         self.env : EnvironmentComponent = self.input["environment"]
