@@ -204,6 +204,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             observation = env.observe(self.name)
                                 
             action = self.select_action(observation) # decides the next action to take (can be random)
+            
+            print(f"Agent traing {self.name} is doing the action {action}")
                                                                              
             env.step(action.item()) #makes the game proccess the action that was taken
                 

@@ -89,8 +89,11 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent):
         super().reset()
         observation, reward, termination, truncation, info = self.env.last()
         
+        print(f"Truncation: {truncation}")
+        print(f"Termination: {termination}")
+        
         #returns state, reward, done, info
-        return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, termination, info
+        return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, truncation or termination, info
     
     def agent_iter(self):
         super().reset()
