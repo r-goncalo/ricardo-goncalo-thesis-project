@@ -4,6 +4,27 @@ import optuna
 from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 
 
+RL_PIPELINE = ([])
+
+TRAINER_INPUT = ["rl_trainer" , 1]
+
+AGENTS_INPUT = ["agents_input"]
+
+POLICY_INPUT = [*AGENTS_INPUT, "policy", 1]
+
+MODEL_INPUT = [*POLICY_INPUT, "model", 1]
+
+AGENTS_TRAINER_INPUT = [*TRAINER_INPUT, "agents_trainers_input"]
+
+EXPLORATION_STRATEGY_INPUT = [*AGENTS_TRAINER_INPUT, "exploration_strategy", 1]
+
+AGENT_MEMORY_INPUT = [*AGENTS_TRAINER_INPUT, "memory", 1]
+
+AGENT_LEARNER_INPUT = [*AGENTS_TRAINER_INPUT, "learner", 1]
+
+LEARNER_OPTIMIZER_INPUT = [*AGENT_LEARNER_INPUT, "optimizer", 1]
+
+
 
 
 def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
@@ -15,7 +36,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                             HyperparameterSuggestion(
                                 name='discount_factor', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "discount_factor"])
+                                    ([], [*AGENTS_TRAINER_INPUT, "discount_factor"])
                                 ],
                                 value_suggestion = ('float', {'low':0.5, 'high':0.99}) 
                             )
@@ -27,21 +48,21 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                                  HyperparameterSuggestion(
                                     name='epsilon_start', 
                                     hyperparameter_localizations= [
-                                        ([], ["agents_input", "exploration_strategy_input", "epsilon_start"])
+                                        ([], [*EXPLORATION_STRATEGY_INPUT, "epsilon_start"])
                                     ],
                                     value_suggestion = ('float', {'low':0.95, 'high':0.999}) 
                                 ),
                                  HyperparameterSuggestion(
                                     name='epsilon_end', 
                                     hyperparameter_localizations= [
-                                        ([], ["agents_input", "exploration_strategy_input", "epsilon_end"])
+                                        ([], [*EXPLORATION_STRATEGY_INPUT, "epsilon_end"])
                                     ],
                                     value_suggestion = ('float', {'low':0.05, 'high':0.3}) 
                                 ),
                                  HyperparameterSuggestion(
                                     name='epsilon_decay', 
                                     hyperparameter_localizations= [
-                                        ([], ["agents_input", "exploration_strategy_input", "epsilon_decay"])
+                                        ([], [*EXPLORATION_STRATEGY_INPUT, "epsilon_decay"])
                                     ],
                                     value_suggestion = ('float', {'low':0.95, 'high':0.9999}) 
                                  )
@@ -53,14 +74,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='hidden_layers', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "policy", 1, "model", 1, "hidden_layers"])
+                                    ([], [*MODEL_INPUT, "hidden_layers"])
                                 ],
                                 value_suggestion = ('int', {'low':2, 'high':8}) 
                             ),
                              HyperparameterSuggestion(
                                 name='hidden_size', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "policy", 1, "model", 1, "hidden_size"])
+                                    ([], [*MODEL_INPUT, "hidden_size"])
                                 ],
                                 value_suggestion = ('cat', {'choices' : [16, 32, 64, 128, 256]}) 
                             )
@@ -71,14 +92,14 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='target_update_rate', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "learner", 1, "target_update_rate"])
+                                    ([], [*AGENT_LEARNER_INPUT, "target_update_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.01, 'high':0.15}) 
                             ),
                              HyperparameterSuggestion(
                                 name='learning_rate', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "learner", 1, "optimizer", 1, "learning_rate"])
+                                    ([], [*LEARNER_OPTIMIZER_INPUT, "learning_rate"])
                                 ],
                                 value_suggestion = ('float', {'low':0.000001, 'high':0.1}) 
                             )            
@@ -89,7 +110,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                              HyperparameterSuggestion(
                                 name='memory_capacity', 
                                 hyperparameter_localizations= [
-                                    ([], ["agents_input", "memory", 1, "capacity"])
+                                    ([], [*AGENT_MEMORY_INPUT, "capacity"])
                                 ],
                                 value_suggestion = ('int', {'low':100, 'high':1000}) 
                             )

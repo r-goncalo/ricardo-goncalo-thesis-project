@@ -20,6 +20,8 @@ import gc
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
+from automl.core.advanced_input_management import ComponentInputSignature
+
 from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
 
 # TODO this is missing the evaluation component on a RLPipeline
@@ -28,19 +30,16 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     parameters_signature = {
         
                         "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
-                                                        
-                       "num_episodes_per_run" : InputSignature(),
-                       
+                                                                               
                        "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentWrapper)),
                        
                        "agents" : InputSignature(default_value={}),
                        "agents_input" : InputSignature(default_value={}),
 
-                       "optimization_interval" : InputSignature(),
                        "save_in_between" : InputSignature(default_value=True),
                        
-                       "rl_trainer" : InputSignature(generator= lambda self : self.initialize_child_component(RLTrainerComponent)),
-                       
+                       "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
+                                              
                        "seed" : InputSignature(generator=lambda self : generate_seed())
                        }
     
@@ -56,13 +55,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         do_full_setup_of_seed(self.input["seed"])
         
         self.device = self.input["device"]
-    
-        self.num_episodes_per_run =self.input["num_episodes_per_run"]  
-        
+            
         self.env : EnvironmentComponent = self.input["environment"]
-                
-        self.optimization_interval = self.input["optimization_interval"]
-        
+                        
         self.save_in_between = self.input["save_in_between"]
         
         self.configure_device(self.device)
@@ -74,9 +69,6 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         self.setup_trainer()
         
         self.rl_setup_evaluator()
-
-        for agent in self.agents.values(): #connect agents to rl_trainer
-            agent.pass_input({"training_context" : self.rl_trainer}) 
     
     
     def rl_setup_evaluator(self):
@@ -107,17 +99,15 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     def setup_trainer(self):    
         
         '''Setups the trainer, which is rensonsible for executing the training algorithm, agnostic to the learning methods, models and number of agents'''
-        
+                
         rl_trainer_input = {
             "device" : self.device,
             "logger_object" : self.lg,
-            "num_episodes" : self.num_episodes_per_run,
             "environment" : self.env,
-            "optimization_interval" : self.optimization_interval,
             "agents" : self.agents.copy()
         }        
         
-        self.rl_trainer : RLTrainerComponent = self.input["rl_trainer"]
+        self.rl_trainer : RLTrainerComponent = ComponentInputSignature.get_component_from_input(self, "rl_trainer")
         
         self.rl_trainer.pass_input(rl_trainer_input)
             

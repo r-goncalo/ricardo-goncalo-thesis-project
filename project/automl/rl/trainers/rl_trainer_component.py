@@ -16,13 +16,20 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
+        
                         "device" : InputSignature(ignore_at_serialization=True),
+                        
                        "num_episodes" : InputSignature(),
                        "environment" : InputSignature(),
+                       
                        "agents" : InputSignature(),
+                       "agents_trainers_input" : InputSignature(default_value={}),
+                       
                        "limit_steps" : InputSignature(default_value=-1),
                        "optimization_interval" : InputSignature(),
-                       "save_interval" : InputSignature(default_value=100)}
+                       "save_interval" : InputSignature(default_value=100)
+                       
+                       }
     
     exposed_values = {"total_steps" : 0,
                       "episode_steps" : 0,
@@ -62,15 +69,15 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         for key in agents:
             
-            agent_trainer_input = {}
+            agent_trainer_input = {**self.input["agents_trainers_input"], "training_context" : self}
                 
             if isinstance(agents[key], AgentSchema):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
                 
-                agent_trainer_input = {**agent_trainer_input, "agent" : agents[key], "optimization_interval" : self.optimization_interval} 
+                agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agents[key], "optimization_interval" : self.optimization_interval} 
                 
-                agent_trainer = self.initialize_child_component(AgentTrainer, agent_trainer_input)
+                agent_trainer = self.initialize_child_component(AgentTrainer, agent_trainer_input_in_creation)
                 
                 self.agents_in_training[key] = agent_trainer
                 agents[key] = agent_trainer #puts the agent trainer in input too
@@ -78,7 +85,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             elif isinstance(agents[key], AgentTrainer):
                 
                 self.agents_in_training[key] = agents[key]
-                self.agents_in_training[key].pass_input({})
+                self.agents_in_training[key].pass_input(agent_trainer_input)
 
 
     # RESULTS LOGGING --------------------------------------------------------------------------------

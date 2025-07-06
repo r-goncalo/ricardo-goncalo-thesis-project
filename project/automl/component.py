@@ -518,7 +518,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 self.verify_validity(input_key, input_value, parameter_signature.possible_types, parameter_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             elif parameter_signature.mandatory: #if there was no specified value for this attribute in the input
-                raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator")     
+                raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")     
 
 
     def verify_validity(self, input_key, input_value, possible_types, validity_verificator):

@@ -5,25 +5,54 @@
 
 from typing import Dict
 from automl.component import InputSignature, Component, requires_input_proccess
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.ml.memory.memory_components import MemoryComponent
+from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.environment.environment_components import EnvironmentComponent
 
+from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
+from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
+from automl.rl.learners.learner_component import LearnerSchema
+from automl.rl.learners.q_learner import DeepQLearnerSchema
 import torch
 import time
 
 class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
-    '''Describes a trainer specific for an agent, mostly used to control its logging'''
+    '''Describes a trainer specific for an agent, using a learner algorithm, memory and more'''
     
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
-                       "agent" : InputSignature(possible_types=[AgentSchema]),
+        
                        "optimization_interval" : InputSignature(),
-                       "save_interval" : InputSignature(default_value=100)}
+                       "save_interval" : InputSignature(default_value=100),
+                        
+                       "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
+                            
+                        "agent" : ComponentInputSignature(),
+
+                       "batch_size" : InputSignature(default_value=32),
+                    
+                       "discount_factor" : InputSignature(default_value=0.95),
+
+                        "exploration_strategy" : ComponentInputSignature(
+                                                        default_component_definition=(EpsilonGreedyStrategy, {})
+                                                        ),
+
+                       "memory" : ComponentInputSignature(
+                            default_component_definition=(TorchMemoryComponent, {}),
+                       ),
+                       
+                       "learner" : ComponentInputSignature(
+                            default_component_definition=(DeepQLearnerSchema, {})
+                        )
+                       
+                       }
     
     exposed_values = {"total_steps" : 0,
                       "episode_steps" : 0,
@@ -43,16 +72,60 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def proccess_input_internal(self):
         
         super().proccess_input_internal()
-                                
-        self.agent : AgentSchema = self.input["agent"]
         
-        self.agent.pass_input({"training_context" : self})
-        
-        self.agent.proccess_input_internal()
-                
         self.optimization_interval = self.input["optimization_interval"]
-        
+        self.device = self.input["device"]
         self.save_interval = self.input["save_interval"]
+                                
+        self.initialize_agent()
+        self.initialize_exploration_strategy()
+        self.initialize_learner()
+        self.initialize_memory()
+        self.initialize_temp()
+        
+                                
+
+        
+
+    # INITIALIZATION ---------------------------------------------
+    
+    def initialize_agent(self):
+    
+        self.agent : AgentSchema = ComponentInputSignature.get_component_from_input(self, "agent")
+        self.agent.proccess_input_if_not_proccesd()
+        
+        
+    def initialize_exploration_strategy(self):
+                
+        self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
+        self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
+                        
+        self.exploration_strategy : ExplorationStrategySchema = ComponentInputSignature.get_component_from_input(self, "exploration_strategy") 
+        
+        self.exploration_strategy.pass_input(input= {"training_context" : self}) #the exploration strategy has access to the same training context
+        
+        
+    def initialize_learner(self):
+        
+        self.learner : LearnerSchema = ComponentInputSignature.get_component_from_input(self, "learner")
+        self.learner.pass_input({"device" : self.device, "agent" : self.agent})
+        
+
+    def initialize_memory(self):
+        
+        self.memory : MemoryComponent = ComponentInputSignature.get_component_from_input(self, "memory")
+        
+            
+        self.memory.pass_input({"state_dim" : self.agent.model_input_shape, 
+                                    "action_dim" : self.agent.model_output_shape, 
+                                    "device" : self.device}
+                                )
+        
+    def initialize_temp(self):
+        
+        self.state_memory_temp = self.agent.allocate_tensor_for_state()
+        
+
         
     # RESULTS LOGGING --------------------------------------------------------------------------------
     
@@ -85,11 +158,15 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     @requires_input_proccess
     def setup_training_session(self):
         
-        self.lg.writeLine("Setting up training session", file=self.TRAIN_LOG)
+        self.lg.writeLine("Setting up training session")
+        
+        
                 
     @requires_input_proccess
     def end_training(self):        
-        self.lg.writeLine(f"Values of exploraion strategy: {self.agent.exploration_strategy.values}", file=self.TRAIN_LOG)
+        self.lg.writeLine("Ending training session")
+        
+        
     
     @requires_input_proccess
     def setup_episode(self, env : EnvironmentComponent):
@@ -100,6 +177,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.values["episode_score"] = 0
                 
         self.agent.reset_agent_in_environment(env.observe(self.agent.name))
+        
             
         
     @requires_input_proccess
@@ -118,17 +196,22 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     @requires_input_proccess
     def do_training_step(self, i_episode, env : EnvironmentComponent):
         
+            '''
+            Does a step, in which the agent acts and observers the transition
+            Note that any other agents will not notice this change
+            '''
+        
             observation = env.observe(self.name)
                                 
-            action = self.agent.select_action(observation) # decides the next action to take (can be random)
-                                                                 
+            action = self.select_action(observation) # decides the next action to take (can be random)
+                                                                             
             env.step(action.item()) #makes the game proccess the action that was taken
                 
             observation, reward, done, info = env.last()
             
             self.values["episode_score"] = self.values["episode_score"] + reward
                 
-            self.agent.observe_transiction_to(observation, action, reward)
+            self.observe_transiction_to(observation, action, reward)
                     
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
@@ -146,9 +229,31 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         #    self.lg.writeLine("Doing intermedian saving of results during training...", file=self.TRAIN_LOG)
         #    self.saveData()
         
+
+    def observe_transiction_to(self, new_state, action, reward):
+        
+        '''Makes agent observe and remember a transiction from its (current) a state to another'''
+        
+        self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
+        
+        self.agent.update_state_memory(new_state)
+        
+        next_state_memory = self.agent.get_current_state_in_memory()
+                
+        self.memory.push(self.state_memory_temp, action, next_state_memory, reward)
+
+        
+        
     def observe_new_state(self, env : EnvironmentComponent):
         '''Makes the agent observe a new state, remembering it in case it needs that information in future computations'''
-        self.agent.observe_new_state(env.observe(self.name))
+        self.agent.update_state_memory(env.observe(self.name))
+        
+
+    def select_action(self, state):
+        
+         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
+  
+         return self.exploration_strategy.select_action(self.agent, state)  
 
 
     def optimizeAgent(self):
@@ -157,8 +262,21 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         timeBeforeOptimizing = time.time()
                             
-        self.agent.optimize_policy_model() # TODO : Take attention to this, the agents optimization strategy is too strict
+        self.optimize_policy_model() # TODO : Take attention to this, the agents optimization strategy is too strict
         
         duration = time.time() - timeBeforeOptimizing
         
         self.lg.writeLine("Optimization took " + str(duration) + " seconds", file=self.TRAIN_LOG)
+        
+        
+        
+    def optimize_policy_model(self):
+        
+        if len(self.memory) < self.BATCH_SIZE:
+            return
+        
+        #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
+        batch = self.memory.sample_transposed(self.BATCH_SIZE)
+        
+                
+        self.learner.learn(batch, self.discount_factor)

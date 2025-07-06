@@ -175,7 +175,7 @@ def decode_components_input_element(source_component : Component, element):
         
         if "__type__" in keys:
             
-            class_of_component : type = get_class_from_string(element['__type__'])
+            class_of_component : type = get_class_from(element['__type__'])
             
             if issubclass(class_of_component, Component): #if it is a Schema
                 
@@ -257,7 +257,7 @@ def decode_components_from_dict(dict : dict):
     component_type_name = dict["__type__"]
     component_name = dict["name"]
         
-    component_type = get_class_from_string(component_type_name)
+    component_type = get_class_from(component_type_name)
     
     component : Component = component_type()
     component.name = component_name
