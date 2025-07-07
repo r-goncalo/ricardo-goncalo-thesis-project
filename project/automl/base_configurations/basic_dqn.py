@@ -17,7 +17,6 @@ def config_dict(num_episodes=200):
     "__type__": RLPipelineComponent,
     "name": "RLPipelineComponent",
     "input": {
-        "optimization_interval": 100,
         "device" : "cuda",
         "environment": {
             "__type__": PettingZooEnvironmentWrapper,

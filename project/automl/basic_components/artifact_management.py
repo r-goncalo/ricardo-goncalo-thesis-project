@@ -14,6 +14,7 @@ def on_artifact_directory_change(self : Component):
         
         if hasattr(self, "artifact_directory"):
             print(f"Warning: Artifact directory was changed after it already being generated: {self.artifact_directory}, will not automatically change it again")
+            print(f"Warning: Now base directory is {self.base_directory} and relative directory is {self.artifact_relative_directory}")
         
         #else:
         #    print(f"Generating artifact directory due to change in input, instead of inpput procesing")

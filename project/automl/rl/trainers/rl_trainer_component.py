@@ -69,7 +69,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         for key in agents:
             
-            agent_trainer_input = {**self.input["agents_trainers_input"], "training_context" : self}
+            agent_trainer_input = {**self.input["agents_trainers_input"]}
                 
             if isinstance(agents[key], AgentSchema):
                 
@@ -155,9 +155,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                                 
             agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
             
-            print(agent_name)
             reward, done = agent_in_training.do_training_step(i_episode, self.env)
-            print(f"Done: {done}")
             
             for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
