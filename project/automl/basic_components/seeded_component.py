@@ -1,13 +1,14 @@
 
 
 
+from automl.component import Component
 from automl.core.input_management import InputSignature
 from automl.basic_components.state_management import StatefulComponent
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.random_utils import do_full_setup_of_seed, generate_seed
 
 
-class SeededComponent(ComponentWithLogging, StatefulComponent):
+class SeededComponent(Component):
     
     parameters_signature = {
                        "seed" : InputSignature(generator=lambda self : generate_seed()),
