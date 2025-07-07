@@ -98,6 +98,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
                 
         self.disk_files = [os.path.join(self.storage_dir, f"transitions_{i}.pt") for i in range(0, self.number_of_files)]
         
+        self.created_files = 0
+        
 
     @requires_input_proccess
     def push(self, state, action, next_state, reward):
@@ -109,7 +111,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         self.rewards[idx].copy_(reward)
 
         self.position = (self.position + 1) % self.max_in_memory
-        self.total_size += 1
+        self.total_size += 1 #this is correct, we just added one to memory
 
         if self.size_in_memory < self.max_in_memory:
             self.size_in_memory += 1
@@ -127,6 +129,12 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         Save current memory buffer to disk and clear memory.
         """
         file_path = self.disk_files[self.disk_file_position]
+        
+        #print(f"states shape: {self.states.shape}")
+        #print(f"actions shape: {self.states.shape}")
+        #print(f"next_states shape: {self.next_states.shape}")
+        #print(f"Size: {self.size_in_memory}")
+
         
         torch.save({
             "state": self.states.cpu(),
@@ -148,6 +156,9 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         if self.total_size == self.capacity:
         
             self.total_size -= self.size_in_memory #we deleted self.size_in_memory entries previously stored
+            
+        if self.created_files < self.number_of_files:
+            self.created_files += 1
         
     
 
@@ -164,8 +175,10 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
             from_disk = torch.rand(1).item() < prob_disk
 
         if from_disk:
+            self.lg.writeLine("Samplig from disk...")
             return self._sample_from_disk(batch_size)
         else:
+            self.lg.writeLine("Sampling from memory...")
             return self._sample_from_memory(batch_size)
 
     def _sample_from_memory(self, batch_size):
@@ -182,7 +195,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
 
     def _sample_from_disk(self, batch_size):
         
-        file_path = np.random.choice(self.disk_files)
+        #file_path = np.random.choice(self.disk_files)
+        file_path = np.random.choice(self.disk_files[0:self.created_files])
 
         data = torch.load(file_path, map_location="cpu")
         size = data["size"]
@@ -200,3 +214,18 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
     def sample_transposed(self, batch_size):
         batch = self.sample(batch_size)
         return self.Transition(*batch)
+    
+
+    @requires_input_proccess
+    def clear(self):
+        
+        '''Logicaly cleans the memory, without doing any deletion operation'''
+        
+        self.position = 0
+        self.disk_file_position = 0
+        
+        self.created_files = 0
+        
+        
+    def __len__(self):
+        return self.total_size

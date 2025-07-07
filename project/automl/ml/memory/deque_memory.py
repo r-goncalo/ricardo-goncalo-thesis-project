@@ -5,51 +5,47 @@ import random
 
 
 from automl.component import Component, InputSignature, requires_input_proccess
+from automl.ml.memory.memory_components import MemoryComponent
 
-class MemoryComponent(Component):
+class DeqeueMemoryComponent(MemoryComponent):
     
     parameters_signature = {
-                        "capacity" : InputSignature(default_value=1000)
                     }
-    
-    #defines the format used to store states, actions, next_states and rewards
-    Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
 
     def proccess_input_internal(self):
         
         super().proccess_input_internal()
         
-        self.capacity = self.input["capacity"]                  
+        self.memory = deque([], maxlen=self.capacity)
 
     #save a transition
     @requires_input_proccess
     def push(self, *args):
-        raise NotImplementedError()
+        self.memory.append(self.Transition(*args))
 
     @requires_input_proccess
     def sample(self, batch_size):
-        raise NotImplementedError()
+        return random.sample(self.memory, batch_size)
     
     @requires_input_proccess
     def sample_transposed(self, batch_size):
-        raise NotImplementedError()
+        return self.transpose(self.sample(batch_size))    
     
     
     def transpose(self, transitions):
-        raise NotImplementedError()
+        return self.Transition(*zip(*transitions))
     
     @requires_input_proccess
     def clear(self):
-        raise NotImplementedError()
+        self.memory.clear()
         
     @requires_input_proccess
     def get_all(self):
-        raise NotImplementedError()
+        return list(self.memory) 
 
     @requires_input_proccess
     def __len__(self):
-        raise NotImplementedError()
+        return len(self.memory)
     
 
 
