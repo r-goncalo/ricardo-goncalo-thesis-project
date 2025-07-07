@@ -24,6 +24,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                        
                        "agents" : InputSignature(),
                        "agents_trainers_input" : InputSignature(default_value={}),
+                       "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
                        "limit_steps" : InputSignature(default_value=-1),
                        "optimization_interval" : InputSignature(),
@@ -77,7 +78,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 
                 agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agents[key], "optimization_interval" : self.optimization_interval} 
                 
-                agent_trainer = self.initialize_child_component(AgentTrainer, agent_trainer_input_in_creation)
+                agent_trainer = self.initialize_child_component(self.input["default_trainer_class"], agent_trainer_input_in_creation)
                 
                 self.agents_in_training[key] = agent_trainer
                 agents[key] = agent_trainer #puts the agent trainer in input too

@@ -87,6 +87,8 @@ def config_dict(num_episodes=200):
     
 def mockup_config_dict(num_episodes=200):
     
+    raise NotImplementedError("This is not up to date")
+    
     from automl.ml.models.mockups.model_mockup import MockupRandomModel
     from automl.ml.optimizers.mockups.mockup_optimizers import MockupOptimizerSchema
 

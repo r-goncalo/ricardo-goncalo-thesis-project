@@ -40,4 +40,8 @@ class StochasticPolicy(Policy):
     
     @requires_input_proccess
     def random_prediction(self):
-        return random.randint(0, self.model_output_shape.n - 1)
+        return torch.randint(
+                0, #low
+                self.model_output_shape.n, #high
+                (1,) #size
+            )
