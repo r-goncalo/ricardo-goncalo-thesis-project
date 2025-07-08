@@ -61,15 +61,7 @@ def config_dict(num_episodes=200):
             
                 "memory" : (TorchDiskMemoryComponent, {
                     "capacity" : 500
-                }),
-                
-                "exploration_strategy" : (EpsilonGreedyStrategy,
-                                                                  {
-                                            "epsilon_end" : 0.1,
-                                            "epsilon_start" : 0.99,
-                                            "epsilon_decay" : 0.99
-                                                                  }
-                                          )
+                })
                 
             
             }

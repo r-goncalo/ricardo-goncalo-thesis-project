@@ -40,8 +40,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                     
                        "discount_factor" : InputSignature(default_value=0.95),
 
-                        "exploration_strategy" : ComponentInputSignature(
-                                                        default_component_definition=(EpsilonGreedyStrategy, {})
+                        "exploration_strategy" : ComponentInputSignature(mandatory=False
                                                         ),
 
                        "memory" : ComponentInputSignature(
@@ -76,6 +75,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.optimization_interval = self.input["optimization_interval"]
         self.device = self.input["device"]
         self.save_interval = self.input["save_interval"]
+    
+        self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
+        self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
+                   
                                 
         self.initialize_agent()
         self.initialize_exploration_strategy()
@@ -97,13 +100,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
     def initialize_exploration_strategy(self):
                 
-        self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
-        self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
-                        
-        self.exploration_strategy : ExplorationStrategySchema = ComponentInputSignature.get_component_from_input(self, "exploration_strategy") 
+        if "exploration_strategy" in self.input.keys():
+            
+            self.exploration_strategy : ExplorationStrategySchema = ComponentInputSignature.get_component_from_input(self, "exploration_strategy") 
+            self.exploration_strategy.pass_input(input= {"training_context" : self}) #the exploration strategy has access to the same training context
         
-        self.exploration_strategy.pass_input(input= {"training_context" : self}) #the exploration strategy has access to the same training context
-        
+            self.lg.writeLine(f"Using exploration strategy {self.exploration_strategy.name}")
+            
+        else:
+            self.lg.writeLine(f"No exploration strategy defined")
+            
+            self.exploration_strategy = None
         
     def initialize_learner(self):
         
@@ -165,6 +172,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     @requires_input_proccess
     def end_training(self):        
         self.lg.writeLine("Ending training session")
+        self.lg.writeLine(f"Exploration strategy values: \n{self.exploration_strategy.values}\n")
         
         
     
@@ -251,9 +259,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
     def select_action(self, state):
         
-         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
+        '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
+
+        if self.exploration_strategy is not None:
   
-         return self.exploration_strategy.select_action(self.agent, state)  
+            return self.exploration_strategy.select_action(self.agent, state)  
+
+        else:
+            return self.agent.policy_predict(state)
 
 
     def optimizeAgent(self):

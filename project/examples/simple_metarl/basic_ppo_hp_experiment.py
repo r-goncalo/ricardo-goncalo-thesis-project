@@ -42,33 +42,7 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
                             )
                             ]       
     
-    
-    hyperparameters_to_change = [ *hyperparameters_to_change, 
-
-                                 HyperparameterSuggestion(
-                                    name='epsilon_start', 
-                                    hyperparameter_localizations= [
-                                        ([], [*EXPLORATION_STRATEGY_INPUT, "epsilon_start"])
-                                    ],
-                                    value_suggestion = ('float', {'low':0.95, 'high':0.999}) 
-                                ),
-                                 HyperparameterSuggestion(
-                                    name='epsilon_end', 
-                                    hyperparameter_localizations= [
-                                        ([], [*EXPLORATION_STRATEGY_INPUT, "epsilon_end"])
-                                    ],
-                                    value_suggestion = ('float', {'low':0.05, 'high':0.3}) 
-                                ),
-                                 HyperparameterSuggestion(
-                                    name='epsilon_decay', 
-                                    hyperparameter_localizations= [
-                                        ([], [*EXPLORATION_STRATEGY_INPUT, "epsilon_decay"])
-                                    ],
-                                    value_suggestion = ('float', {'low':0.95, 'high':0.9999}) 
-                                 )
-
-    ]
-    
+       
     hyperparameters_to_change = [ *hyperparameters_to_change, 
                              
                              HyperparameterSuggestion(
