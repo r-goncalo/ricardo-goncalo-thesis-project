@@ -38,6 +38,12 @@ class StatefulComponent(ArtifactComponent):
         if save_definition:
             
             self.save_configuration(save_exposed_values=save_definition)
+            
+        self.save_state_internal()
+
+        
+    def save_state_internal(self):
+        pass
         
     @final
     def load_state(self): 
@@ -55,7 +61,10 @@ class StatefulComponent(ArtifactComponent):
         if not os.path.exists(folder_path):
             raise Exception(f"Folder path {folder_path} does not exist, cannot load state of component")
         
-    
+        self.load_state_internal()
+
+    def load_state_internal(self):
+        pass    
     
     
 def __load_state_recursive_child_components(origin_component : Component):
@@ -84,7 +93,11 @@ def load_component_with_state_from_folder(folder_path) -> Component: #note this 
     component_to_return = gen_component_from(json_str)
     
     if not isinstance(component_to_return, ArtifactComponent):
-        raise Exception("Tried to load state of component which is not a ArtifactComponent component")
+        print("Tried to load state of component which is not a ArtifactComponent component")
+        #raise Exception("Tried to load state of component which is not a ArtifactComponent component")
+        
+    if isinstance(component_to_return, StatefulComponent):        
+        component_to_return.load_state_internal()
     
     return component_to_return
 

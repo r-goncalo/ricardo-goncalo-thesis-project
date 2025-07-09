@@ -8,6 +8,7 @@ from automl.rl.policy.qpolicy import QPolicy
 
 from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
+from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 
 def config_dict(num_episodes=200):
@@ -43,6 +44,7 @@ def config_dict(num_episodes=200):
             {
             "num_episodes" : num_episodes,
             "optimization_interval": 300,
+            "default_trainer_class" : AgentTrainerDQN,
             "agents_trainers_input" : { #for each agent trainer
                 
                 "learner" : (DeepQLearnerSchema, {

@@ -94,7 +94,6 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
 
                 
-                
     def __verified_pass_input(self, key, value):
         
         '''for logic of passing the input, already verified'''

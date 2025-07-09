@@ -1,6 +1,9 @@
+from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature
+from automl.loggers.logger_component import ComponentWithLogging
+from automl.ml.models.model_components import ModelComponent
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 
@@ -9,7 +12,7 @@ import torch
 from automl.rl.policy.policy import Policy
 
 
-class DeepQLearnerSchema(LearnerSchema):
+class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
     
     '''
     This represents a Deep Q Learner
@@ -29,9 +32,17 @@ class DeepQLearnerSchema(LearnerSchema):
                                 AdamOptimizer,
                                 {}
                             )
-                            )
+                            ),
+                        
+                        "target_network" : InputSignature(mandatory=False, possible_types=[ModelComponent], description="The target network if it already exists, a clone of the network of the policy")
 
                         }    
+    
+    exposed_values = {
+        
+        "target_network" : 0
+        
+    }
     
     def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
@@ -49,54 +60,50 @@ class DeepQLearnerSchema(LearnerSchema):
         
         self.model = self.policy.model
         
-        self.target_net = self.model.clone() #the target network has the same initial parameters as the policy being trained
-
+        self.initialize_target_network()
         self.initialize_optimizer()
+        
+
+    def initialize_target_network(self):
+        
+        if self.values["target_network"] != 0:
+                        
+            self.lg.writeLine("Target network found already in exposed values, using that...")
+            self.target_net : ModelComponent = self.values["target_network"]
+
+        elif "target_network" in self.input.keys():
+            
+            self.lg.writeLine("There was already a target network defined in the input")
+            self.target_net : ModelComponent  = self.input["target_network"]
+            self.values["target_network"] = self.target_net
+            
+        else:
+            self.lg.writeLine("No target network previously defined, creating a new one...")
+            
+            self.target_net : ModelComponent = self.model.clone() #the target network has the same initial parameters as the policy being trained
+            self.define_component_as_child(self.target_net)
+            
+            self.values["target_network"] = self.target_net
         
         
     def initialize_optimizer(self):
         
-        self.optimizer = ComponentInputSignature.get_component_from_input(self, "optimizer")        
+        self.optimizer : OptimizerSchema = ComponentInputSignature.get_component_from_input(self, "optimizer")        
         self.optimizer.pass_input({"model" : self.model})
 
     
     # EXPOSED METHODS --------------------------------------------------------------------------
+    
     
     @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
         
         super().learn(trajectory, discount_factor)
         
-        if not isinstance(trajectory.state, torch.Tensor):
-            state_batch = torch.stack(trajectory.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
-        
-        else:
-            state_batch = trajectory.state
+        state_batch, _, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
             
-        if not isinstance(trajectory.next_state, torch.Tensor):
-            next_state_batch = torch.stack(trajectory.next_state, dim=0)  # Stack tensors along a new dimension (dimension 0)
-        
-        else:
-            next_state_batch = trajectory.next_state
-            
-        if not isinstance(trajectory.reward, torch.Tensor):
-            
-            reward_batch = torch.stack(trajectory.reward, dim=0)  # Stack tensors along a new dimension (dimension 0)
-    
-        
-        else:
-            reward_batch = trajectory.reward.view(-1) # TODO: This assumes the reward only has one dimension
-            
-        
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                              next_state_batch)), dtype=torch.bool)
-        
-        non_final_next_states = torch.stack([s for s in next_state_batch
-                                                        if s is not None], dim=0)
+        non_final_mask = self._non_final_states_mask(next_state_batch) 
                 
-        
         #predict the action we would take given the current state
         predicted_actions_values = self.model.predict(state_batch)
         predicted_actions_values, predicted_actions = predicted_actions_values.max(1)
@@ -106,7 +113,7 @@ class DeepQLearnerSchema(LearnerSchema):
                 
         next_state_values = torch.zeros(len(trajectory[0]), device=self.device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net.predict(non_final_next_states).max(1).values # it returns the maximum q-action values of the next action
+            next_state_values[non_final_mask] = self.target_net.predict(next_state_batch[non_final_mask]).max(1).values # it returns the maximum q-action values of the next action
             
         # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
         next_state_values.mul_(discount_factor).add_(reward_batch)

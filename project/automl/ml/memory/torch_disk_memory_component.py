@@ -1,6 +1,7 @@
 
 
 from collections import namedtuple
+from typing import Iterable
 from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
@@ -24,23 +25,20 @@ from automl.utils.shapes_util import discrete_output_layer_size_of_space
 from automl.ml.memory.memory_components import MemoryComponent
 
 
-class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulComponent):
+class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     parameters_signature = {
         "capacity": InputSignature(default_value=1_000),
-        "state_dim": InputSignature(),
-        "action_dim": InputSignature(),
         "device": InputSignature(default_value="cuda"),
         "dtype": InputSignature(default_value=torch.float32),
         "max_in_memory": InputSignature(default_value=80),
         "storage_dir": InputSignature(default_value="./memory_storage"),
     }
+    
 
     def proccess_input_internal(self):
         super().proccess_input_internal()
         
-        self.state_dim = self.input["state_dim"]
-        self.action_dim = self.input["action_dim"]
         self.device = self.input["device"]
         self.dtype = self.input["dtype"]
         self.max_in_memory = self.input["max_in_memory"]
@@ -58,6 +56,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         self.initialize_disk_files()
 
         self.lg.writeLine("TorchMemoryComponent initialized.")
+        
 
     def set_capaticy(self):
         
@@ -73,14 +72,18 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         
         '''Allocates the necessary space '''
         
-        self.states = torch.zeros((self.max_in_memory, *self.state_dim),
-                                  device=self.device, dtype=self.dtype)
-        self.actions = torch.zeros((self.max_in_memory, discrete_output_layer_size_of_space(self.action_dim)),
-                                   device=self.device, dtype=self.dtype)
-        self.next_states = torch.zeros((self.max_in_memory, *self.state_dim),
-                                       device=self.device, dtype=self.dtype)
-        self.rewards = torch.zeros((self.max_in_memory, 1),
-                                   device=self.device, dtype=self.dtype)
+        self.transitions : dict[str, torch.Tensor] = {}
+        
+        for field_name, field_shape in self.fields_shapes:
+            
+            if not isinstance(field_shape, Iterable):
+                field_shape = (field_shape,)
+                
+                
+            #normally it would be state, action, next_state and reward        
+            self.transitions[field_name] = torch.zeros((self.max_in_memory, *field_shape),
+                                                       device=self.device, dtype=self.dtype)
+    
         
         
     def initialize_disk_files(self):
@@ -102,13 +105,14 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
         
 
     @requires_input_proccess
-    def push(self, state, action, next_state, reward):
+    def push(self, transition):
+        
         idx = self.position
 
-        self.states[idx].copy_(state)
-        self.actions[idx].copy_(action)
-        self.next_states[idx].copy_(next_state)
-        self.rewards[idx].copy_(reward)
+        for field_name in self.field_names:
+            
+            self.transitions[field_name][idx].copy_(transition[field_name])
+
 
         self.position = (self.position + 1) % self.max_in_memory
         self.total_size += 1 #this is correct, we just added one to memory
@@ -137,10 +141,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
 
         
         torch.save({
-            "state": self.states.cpu(),
-            "action": self.actions.cpu(),
-            "next_state": self.next_states.cpu(),
-            "reward": self.rewards.cpu(),
+            **self.transitions,
             "size": self.size_in_memory
         }, file_path)
 
@@ -184,30 +185,32 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulCo
     def _sample_from_memory(self, batch_size):
         
         indices = torch.randint(0, self.size_in_memory, (batch_size,), device=self.device)
-
-        batch = self.Transition(
-            state=self.states[indices],
-            action=self.actions[indices],
-            next_state=self.next_states[indices],
-            reward=self.rewards[indices]
-        )
+                
+        batch_data = {
+            field_name: self.transitions[field_name][indices].cpu()
+            for field_name in self.field_names
+        }
+    
+        batch = self.Transition(**batch_data)
+        
         return batch
 
     def _sample_from_disk(self, batch_size):
         
-        #file_path = np.random.choice(self.disk_files)
         file_path = np.random.choice(self.disk_files[0:self.created_files])
 
         data = torch.load(file_path, map_location="cpu")
         size = data["size"]
 
         indices = torch.randint(0, size, (batch_size,))
-        batch = self.Transition(
-            state=data["state"][indices].to(self.device, dtype=self.dtype),
-            action=data["action"][indices].to(self.device, dtype=self.dtype),
-            next_state=data["next_state"][indices].to(self.device, dtype=self.dtype),
-            reward=data["reward"][indices].to(self.device, dtype=self.dtype)
-        )
+        
+        batch_data = {
+            field_name: self.transitions[field_name][indices].to(self.device, dtype=self.dtype)
+            for field_name in self.field_names
+        }
+        
+        batch = self.Transition(**batch_data)
+        
         return batch
 
     @requires_input_proccess

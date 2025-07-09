@@ -14,8 +14,6 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.environment.environment_components import EnvironmentComponent
 
-from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
-from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema
 import torch
@@ -39,9 +37,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                        "batch_size" : InputSignature(default_value=32),
                     
                        "discount_factor" : InputSignature(default_value=0.95),
-
-                        "exploration_strategy" : ComponentInputSignature(mandatory=False
-                                                        ),
 
                        "memory" : ComponentInputSignature(
                             default_component_definition=(TorchMemoryComponent, {}),
@@ -78,14 +73,11 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
         self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
         self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
-                   
                                 
         self.initialize_agent()
-        self.initialize_exploration_strategy()
         self.initialize_learner()
         self.initialize_memory()
         self.initialize_temp()
-        
                                 
 
         
@@ -98,35 +90,24 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.agent.proccess_input_if_not_proccesd()
         
         
-    def initialize_exploration_strategy(self):
-                
-        if "exploration_strategy" in self.input.keys():
-            
-            self.exploration_strategy : ExplorationStrategySchema = ComponentInputSignature.get_component_from_input(self, "exploration_strategy") 
-            self.exploration_strategy.pass_input(input= {"training_context" : self}) #the exploration strategy has access to the same training context
-        
-            self.lg.writeLine(f"Using exploration strategy {self.exploration_strategy.name}")
-            
-        else:
-            self.lg.writeLine(f"No exploration strategy defined")
-            
-            self.exploration_strategy = None
-        
     def initialize_learner(self):
         
         self.learner : LearnerSchema = ComponentInputSignature.get_component_from_input(self, "learner")
         self.learner.pass_input({"device" : self.device, "agent" : self.agent})
         
 
+
     def initialize_memory(self):
         
         self.memory : MemoryComponent = ComponentInputSignature.get_component_from_input(self, "memory")
         
+        self.memory_fields_shapes = [] # tuples of (name_of_field, dimension)
             
-        self.memory.pass_input({"state_dim" : self.agent.model_input_shape, 
-                                    "action_dim" : self.agent.model_output_shape, 
-                                    "device" : self.device}
-                                )
+        self.memory.pass_input({
+                                    "device" : self.device,
+                                    "transition_data" : self.memory_fields_shapes
+                                })
+        
         
     def initialize_temp(self):
         
@@ -172,7 +153,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     @requires_input_proccess
     def end_training(self):        
         self.lg.writeLine("Ending training session")
-        self.lg.writeLine(f"Exploration strategy values: \n{self.exploration_strategy.values}\n")
         
         
     
@@ -240,15 +220,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
     def observe_transiction_to(self, new_state, action, reward):
         
-        '''Makes agent observe and remember a transiction from its (current) a state to another'''
+        '''Makes agent observe and remember a transiction from its (current) a state to another'''        
         
-        self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
-        
-        self.agent.update_state_memory(new_state)
-        
-        next_state_memory = self.agent.get_current_state_in_memory()
-                
-        self.memory.push(self.state_memory_temp, action, next_state_memory, reward)
+        raise NotImplementedError("This is not implemented in the base class")
 
         
         
@@ -261,12 +235,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
 
-        if self.exploration_strategy is not None:
-  
-            return self.exploration_strategy.select_action(self.agent, state)  
+        return self.agent.policy_predict(state)
 
-        else:
-            return self.agent.policy_predict(state)
 
 
     def optimizeAgent(self):

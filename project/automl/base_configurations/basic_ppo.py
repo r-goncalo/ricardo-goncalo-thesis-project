@@ -10,7 +10,7 @@ from automl.rl.learners.ppo_learner import PPOLearner
 from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
-from automl.rl.trainers.agent_trainer_no_memory import AgentTrainerNoPreviousMemory
+from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 
 
@@ -45,7 +45,7 @@ def config_dict(num_episodes=200):
         "rl_trainer" : (RLTrainerComponent,
             
             {
-            "default_trainer_class" : AgentTrainerNoPreviousMemory,
+            "default_trainer_class" : AgentTrainerPPO,
             "num_episodes" : num_episodes,
             "optimization_interval": 300,
             "agents_trainers_input" : { #for each agent trainer

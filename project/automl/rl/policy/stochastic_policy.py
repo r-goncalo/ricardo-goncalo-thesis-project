@@ -27,15 +27,55 @@ class StochasticPolicy(Policy):
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
         
         
-    @requires_input_proccess
     def predict(self, state):
         
-        probabilitiesForActions : torch.Tensor = self.model.predict(state)
+        logits = self.predict_logits(state) # real numbers higher the higher probability        
         
-        dist = torch.distributions.Categorical(probabilitiesForActions)
+        probs = self.probabilities_from_logits(logits) # probabilities computed from logits
+        
+        return self.predict_from_probability(probs)
+        
+    
+    @requires_input_proccess
+    def predict_logits(self, state) -> torch.Tensor:
+        
+        probabilitiesForActionsLogits : torch.Tensor = self.model.predict(state)
+        
+        return probabilitiesForActionsLogits
+    
+    
+    def probabilities_from_logits(self, logits) -> torch.Tensor:
+        
+        probs = torch.softmax(logits, dim=-1)
+        
+        return probs
+    
+    
+    def predict_from_probability(self, probs):
+    
+        dist = torch.distributions.Categorical(probs=probs)
         
         return dist.sample()
+    
+    
+    
+    def predict_from_probability_with_log(self, probs):
         
+        dist = torch.distributions.Categorical(probs)
+        
+        action = dist.sample()
+        
+        log_prob = dist.log_prob(action)
+        return action, log_prob    
+
+    
+    def predict_with_log(self, state):
+        
+        logits = self.predict_logits(state) # real numbers higher the higher probability        
+        
+        probs = self.probabilities_from_logits(logits) # probabilities computed from logits
+        
+        return self.predict_from_probability_with_log(probs)
         
     
     @requires_input_proccess

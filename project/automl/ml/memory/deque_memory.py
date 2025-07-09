@@ -9,11 +9,14 @@ from automl.ml.memory.memory_components import MemoryComponent
 
 class DeqeueMemoryComponent(MemoryComponent):
     
+    
     parameters_signature = {
                     }
 
     def proccess_input_internal(self):
         
+        raise NotImplementedError("This is not up to date")
+
         super().proccess_input_internal()
         
         self.memory = deque([], maxlen=self.capacity)
