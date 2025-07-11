@@ -2,27 +2,16 @@
 # DEFAULT COMPONENTS -------------------------------------
 
 from automl.core.advanced_input_management import ComponentInputSignature
-from automl.ml.memory.torch_memory_component import TorchMemoryComponent
-from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
-from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
-from automl.rl.learners.learner_component import LearnerSchema
-from automl.rl.learners.q_learner import DeepQLearnerSchema
-
-from automl.ml.memory.memory_components import MemoryComponent
-
-from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
-
-from automl.rl.environment.environment_components import EnvironmentComponent
 
 from automl.rl.policy.policy import Policy
 
 from automl.basic_components.state_management import StatefulComponent
 
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.loggers.logger_component import ComponentWithLogging
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import InputSignature, requires_input_proccess
 import torch
 from automl.utils.class_util import get_class_from
 
@@ -56,7 +45,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.device = self.input["device"]
     
         self.state_shape = self.input["state_shape"] #shape of the state as the environment sees it
-        
+                
         self.model_input_shape = self.state_shape #shape of the state as it is processed by the model of the policy
         
         self.model_output_shape = self.input["action_shape"] #shape of the action
@@ -79,7 +68,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.lg.writeLine(f"Agent is allocating memory for its computations, using two tensors with shape {self.model_input_shape}")
         
         self.state_memory = self.allocate_tensor_for_state() # makes a list of tensors for the state_memory, using them to store memory of the states
-        self.temp_cache_state_memory = self.allocate_tensor_for_state() # a reserved memory space to store 
         
     
     
@@ -94,7 +82,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.lg.writeLine("Initializing policy...")    
         
         self.policy : Policy = ComponentInputSignature.get_component_from_input(self, "policy")
-        
+                
         self.policy.pass_input({"state_shape" : self.model_input_shape,
                                "action_shape" : self.model_output_shape,})
         
@@ -111,6 +99,13 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         '''makes a prediction based on the new state for a new action, using the current memory'''
         
         return self.policy.predict(state)
+    
+    @requires_input_proccess
+    def call_policy_method(self, policy_method, state):
+        
+        '''calls the method of the policy with this Agent's state management strategy'''
+        
+        return policy_method(state)
                     
     
     @requires_input_proccess
@@ -128,14 +123,17 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
     @requires_input_proccess    
     def update_state_memory(self, new_state): #update memory shared accross agents
-        self.state_memory.copy_(new_state)   
-
+        self.state_memory.copy_(new_state)
+        
 
     @requires_input_proccess
     def get_current_state_in_memory(self):
         
-        '''Gets current state in memory, note the actual tensor of the state memory'''
-        
+        '''
+        Gets current state in memory, note this returns the actual tensor of the state memory
+        It should be cloned if needed
+        '''
+                
         return self.state_memory
              
          

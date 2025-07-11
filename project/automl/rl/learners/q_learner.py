@@ -47,9 +47,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
     def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super().proccess_input_internal()
-        
-        self.agent : Component = self.input["agent"]
-        
+                
         self.device = self.input["device"]
         
         self.TAU = self.input["target_update_rate"] #the update rate of the target network
@@ -100,7 +98,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super().learn(trajectory, discount_factor)
         
-        state_batch, _, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
+        state_batch, action_batch, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
             
         non_final_mask = self._non_final_states_mask(next_state_batch) 
                 

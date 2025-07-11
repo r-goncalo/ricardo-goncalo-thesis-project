@@ -2,9 +2,7 @@
 
 from automl.component import requires_input_proccess
 from automl.core.input_management import InputSignature
-from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
-from automl.utils.shapes_util import torch_zeros_for_space
 import torch
 
 
@@ -35,8 +33,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
             
         self.state_shape = self.input["state_shape"]
         self.state_memory_size = self.input["state_memory_size"]
-        
-        
+                
         if self.state_memory_size <= 1:
             raise Exception("State memory size must be greater than 1 to use this agent schema")
         
@@ -53,6 +50,12 @@ class AgentSchemaWithStateMemory(AgentSchema):
             self.lg.writeLine(f"Initialized state memory, Cuda not available, using CPU memory")
         
         
+    def initialize_necessary_cache(self):
+        
+        super().initialize_necessary_cache()
+
+        self.temp_cache_state_memory = self.allocate_tensor_for_state() # a reserved memory space to store 
+
 
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
@@ -66,8 +69,17 @@ class AgentSchemaWithStateMemory(AgentSchema):
         '''
                 
         possible_state_memory = self._get_state_memory_with_new(state)
-        
+                
         return self.policy.predict(possible_state_memory) #note that this may be a torch element or something
+    
+    @requires_input_proccess
+    def call_policy_method(self, policy_method, state):
+        
+        '''calls the method of the policy with this Agent's state management strategy'''
+        
+        possible_state_memory = self._get_state_memory_with_new(state)
+                
+        return policy_method(possible_state_memory)
         
     
     # STATE MEMORY --------------------------------------------------------------------
@@ -75,8 +87,8 @@ class AgentSchemaWithStateMemory(AgentSchema):
     
     @requires_input_proccess
     def reset_state_in_environment(self, initial_state : torch.Tensor): #setup memory shared accross agents
-        self.state_memory = initial_state.unsqueeze(0).expand(self.state_memory_size, *self.state_shape).clone()
-            
+        self.state_memory = initial_state.unsqueeze(0).expand(self.state_memory_size, *self.state_shape).clone()            
+         
          
     @requires_input_proccess    
     def update_state_memory(self, new_state): #update memory of agent
@@ -91,13 +103,13 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         Note that this tensor is cloned and not used anymore by the agent, so it can be safely used
         '''
-        
+                
         # shift previous memory left by one position
-        self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:])
+        self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:]) #note that this strategy does not work well with autograd, as this can be changed after it was used to compute a tensor
 
         # insert new state into the last position
         self.temp_cache_state_memory[-1].copy_(new_state)
-
+        
         return self.temp_cache_state_memory
     
          

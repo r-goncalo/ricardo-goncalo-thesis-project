@@ -1,8 +1,7 @@
 from automl.component import Component, InputSignature, requires_input_proccess
 
-from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 
-
+from automl.rl.agent.agent_components import AgentSchema
 import torch
 
 class LearnerSchema(Component):
@@ -11,6 +10,12 @@ class LearnerSchema(Component):
         "agent" : InputSignature(),
 
     }
+        
+    def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+        
+        super().proccess_input_internal()
+        
+        self.agent : AgentSchema = self.input["agent"]
         
     def learn(self, trajectory, discount_factor) -> None:
         

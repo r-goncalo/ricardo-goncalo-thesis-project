@@ -40,7 +40,7 @@ class StochasticPolicy(Policy):
     def predict_logits(self, state) -> torch.Tensor:
         
         probabilitiesForActionsLogits : torch.Tensor = self.model.predict(state)
-        
+                
         return probabilitiesForActionsLogits
     
     
@@ -55,16 +55,18 @@ class StochasticPolicy(Policy):
     
         dist = torch.distributions.Categorical(probs=probs)
         
-        return dist.sample()
+        sampled_action = dist.sample()
+                
+        return sampled_action
     
     
     
     def predict_from_probability_with_log(self, probs):
-        
+                
         dist = torch.distributions.Categorical(probs)
         
         action = dist.sample()
-        
+                
         log_prob = dist.log_prob(action)
         return action, log_prob    
 

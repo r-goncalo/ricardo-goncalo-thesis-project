@@ -43,9 +43,6 @@ class ComponentInputSignature(InputSignature):
         
             def generator(self : Component): # will return the component to be saved in 
                 
-                print("generator for evaluater component called")
-                print(default_component_definition)
-
                 component = gen_component_from(default_component_definition)
                 self.define_component_as_child(component)
                 

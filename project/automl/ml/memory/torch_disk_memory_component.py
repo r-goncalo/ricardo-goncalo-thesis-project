@@ -83,8 +83,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
             #normally it would be state, action, next_state and reward        
             self.transitions[field_name] = torch.zeros((self.max_in_memory, *field_shape),
                                                        device=self.device, dtype=self.dtype)
-    
-        
+            
         
     def initialize_disk_files(self):
         
@@ -110,9 +109,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         idx = self.position
 
         for field_name in self.field_names:
-            
+                        
             self.transitions[field_name][idx].copy_(transition[field_name])
-
 
         self.position = (self.position + 1) % self.max_in_memory
         self.total_size += 1 #this is correct, we just added one to memory
@@ -133,11 +131,6 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         Save current memory buffer to disk and clear memory.
         """
         file_path = self.disk_files[self.disk_file_position]
-        
-        #print(f"states shape: {self.states.shape}")
-        #print(f"actions shape: {self.states.shape}")
-        #print(f"next_states shape: {self.next_states.shape}")
-        #print(f"Size: {self.size_in_memory}")
 
         
         torch.save({
@@ -190,7 +183,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
             field_name: self.transitions[field_name][indices].cpu()
             for field_name in self.field_names
         }
-    
+        
+
         batch = self.Transition(**batch_data)
         
         return batch

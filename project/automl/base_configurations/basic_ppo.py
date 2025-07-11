@@ -50,14 +50,7 @@ def config_dict(num_episodes=200):
             "optimization_interval": 300,
             "agents_trainers_input" : { #for each agent trainer
                 
-                "learner" : (PPOLearner, {
-                               "optimizer" :(
-                                   AdamOptimizer,
-                                   {
-                                       "learning_rate" : 0.0001
-                                   }
-                )
-                }),
+                "learner" : (PPOLearner, {}),
             
                 "memory" : (TorchDiskMemoryComponent, {
                     "capacity" : 500

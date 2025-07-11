@@ -1,10 +1,11 @@
-from automl.component import Component, InputSignature
+from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.ml.models.model_components import ModelComponent
 
 from automl.utils.class_util import get_class_from
 
+from automl.utils.shapes_util import single_action_shape
 
 class Policy(Component):
         
@@ -30,9 +31,16 @@ class Policy(Component):
         self.model_input_shape = self.input["state_shape"]
         self.model_output_shape = self.input["action_shape"]
         
-        self.device = self.input["device"]
+        self.policy_output_shape = single_action_shape(self.model_output_shape)
         
+        self.device = self.input["device"]
+                
         self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape}) 
+        
+    
+    @requires_input_proccess
+    def get_policy_shape(self):
+        return self.policy_output_shape
         
         
     def predict(self, state):

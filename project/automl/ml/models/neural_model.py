@@ -44,7 +44,6 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
         def forward(self, x : torch.Tensor):
 
             if isinstance(x, torch.Tensor):
-                #print(x.shape)
                 x = x.view(-1, self.input_size) #the x is reshaped so it has 2 dimensions, the first one is the batch and the second the input size 
                         
             return self.network(x)

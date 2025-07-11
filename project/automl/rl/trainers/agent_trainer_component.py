@@ -190,16 +190,18 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             '''
         
             observation = env.observe(self.name)
-                                
-            action = self.select_action(observation) # decides the next action to take (can be random)
+            
+            with torch.no_grad():                
+                action = self._select_action(observation) # decides the next action to take (can be random)
                                                                                          
             env.step(action.item()) #makes the game proccess the action that was taken
                 
             observation, reward, done, info = env.last()
             
             self.values["episode_score"] = self.values["episode_score"] + reward
-                
-            self.observe_transiction_to(observation, action, reward)
+                            
+            self._observe_transiction_to(observation, action, reward)
+            
                     
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
@@ -218,7 +220,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         #    self.saveData()
         
 
-    def observe_transiction_to(self, new_state, action, reward):
+    def _observe_transiction_to(self, new_state, action, reward):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''        
         
@@ -231,7 +233,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.agent.update_state_memory(env.observe(self.name))
         
 
-    def select_action(self, state):
+    def _select_action(self, state):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
 

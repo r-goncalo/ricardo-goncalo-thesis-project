@@ -48,10 +48,10 @@ class AgentTrainerPPO(AgentTrainer):
     def initialize_memory(self):
         
         super().initialize_memory()
-        
+                
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", discrete_output_layer_size_of_space(self.agent.model_output_shape)),
+                                        ("action", self.agent_poliy.get_policy_shape()),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
                                         ("log_prob", 1) #log probability of chosing the stored action
@@ -91,28 +91,28 @@ class AgentTrainerPPO(AgentTrainer):
     # TRAINING_PROCESS ---------------------
          
 
-    def observe_transiction_to(self, new_state, action, reward):
+    def _observe_transiction_to(self, new_state, action, reward):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
-        
+                
         self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
         
         self.agent.update_state_memory(new_state)
         
         next_state_memory = self.agent.get_current_state_in_memory()
                 
+        #we can push in this way because the pushed tensors are actually cloned into memory
         self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "log_prob" : self.last_log_prob})
+               
         
-        
-    def select_action(self, state):
+    def _select_action(self, state):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
-
-
-        action, log_prob = self.agent_poliy.predict_with_log(state)
-
+                
+        action, log_prob = self.agent.call_policy_method(self.agent_poliy.predict_with_log, state) 
+        
         self.last_log_prob = log_prob
-
+        
         return action
     
 

@@ -2,7 +2,6 @@ from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.ml.models.neural_model import FullyConnectedModelSchema
-from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 
 from automl.rl.policy.stochastic_policy import StochasticPolicy
@@ -14,6 +13,8 @@ from automl.ml.models.model_components import ModelComponent
 from automl.utils.class_util import get_class_from
 
 import torch.nn.functional as F
+
+import torch.optim as optim
 
 
 class PPOLearner(LearnerSchema):
@@ -31,24 +32,22 @@ class PPOLearner(LearnerSchema):
                         "critic_model" : ComponentInputSignature(
                             default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64})    
                         ),
-                        
-                        "optimizer" : ComponentInputSignature(
-                            default_component_definition=( AdamOptimizer, {} ) #the default optimizer is Adam with no specific input
-                        ),
+        
                         
                         "clip_epsilon" : InputSignature(default_value=0.2, description="The clip range"),
                         "entropy_coef" : InputSignature(default_value=0.01, description="How much weight entropy has"),
                         "value_loss_coef" : InputSignature(default_value=0.5, description="The weight given to the critic value loss"),
-                        "lamda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias")
+                        "lamda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias"),
+                        
+                        "critic_learning_rate" : InputSignature(default_value=3e-4),
+                        "model_learning_rate" : InputSignature(default_value=3e-4)
 
                         }    
     
     def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super().proccess_input_internal()
-        
-        self.agent : Component = self.input["agent"]
-        
+                
         self.device = self.input["device"]
                         
         self.policy : StochasticPolicy = self.agent.get_policy()
@@ -65,67 +64,99 @@ class PPOLearner(LearnerSchema):
         self.entropy_coef = self.input["entropy_coef"]
         self.value_loss_coef = self.input["value_loss_coef"]
         self.lamda_gae = self.input["lamda_gae"]
+        
+        self.number_of_times_optimized = 0
 
         
-        
-        
-    def initialize_optimizer(self):
-        self.optimizer : OptimizerSchema = ComponentInputSignature.get_component_from_input(self, "optimizer")
-        self.optimizer.pass_input({"model" : self.model})
 
     
     def initialize_critic_model(self):
         
         self.critic : ModelComponent = ComponentInputSignature.get_component_from_input(self, "critic_model")
         
+        self.critic.pass_input({"name" : "critic"})
         
+        self.critic.pass_input({"input_shape" : self.agent.model_input_shape , "output_shape" :  1})
+        
+        
+    def initialize_optimizer(self):
+        
+        # Policy optimizer
+        self.policy_optimizer = optim.Adam(self.policy.model.get_model_params(), lr=self.input["model_learning_rate"])
+        
+        # Critic optimizer
+        self.critic_optimizer = optim.Adam(self.critic.get_model_params(), lr=self.input["critic_learning_rate"])
     
     # EXPOSED METHODS --------------------------------------------------------------------------
     
-    def evaluate_actions(self, model, states, actions):
+    def _evaluate_actions(self, states, actions):
         """
         Evaluate given actions under the current policy.
         Computes log probabilities of actions and entropy of the policy distribution.
         """
-        action_distribution = self.model.forward(states)
+        
+        action_logits = self.policy.predict_logits(states) #note we can call directly from the policy because we're using states as they were saved in the trajectory
+        action_distribution = torch.distributions.Categorical(logits=action_logits)
+                
         log_probs = action_distribution.log_prob(actions).sum(dim=-1)
         entropy = action_distribution.entropy().mean()
         return log_probs, entropy
+
+
+
+    def _interpret_trajectory(self, trajectory):
+        
+        state_batch, action_batch, next_state_batch, reward_batch = super()._interpret_trajectory(trajectory)
+        
+        if not isinstance(trajectory.log_prob, torch.Tensor):
+            log_prob_batch = torch.stack(trajectory.log_prob, dim=0)  # Stack tensors along a new dimension (dimension 0)
+        
+        else:
+            log_prob_batch = trajectory.log_prob
+        
+            
+        return state_batch, action_batch, next_state_batch, reward_batch, log_prob_batch
     
     
     
     @requires_input_proccess
     def learn(self, trajectory, discount_factor):
         super().learn(trajectory, discount_factor)
-
-        states = torch.stack(trajectory.state).to(self.device)
-        actions = torch.tensor(trajectory.action, device=self.device)
-        rewards = torch.tensor(trajectory.reward, device=self.device)
-        next_states = torch.stack([s for s in trajectory.next_state if s is not None]).to(self.device)
-        dones = torch.tensor([s is None for s in trajectory.next_state], dtype=torch.float, device=self.device)
         
-        old_log_probs = torch.tensor(trajectory.log_prob, device=self.device)
+        self.number_of_times_optimized += 1
         
+        state_batch, action_batch, next_state_batch, reward_batch, log_prob_batch = self._interpret_trajectory(trajectory)
+        non_final_mask = self._non_final_states_mask(next_state_batch) #list of indexes where the next state is not none (state was not terminal)
+        
+                        
         # Compute value estimates
-        values = self.critic.forward(states).squeeze()
+        values = self.critic.predict(state_batch).squeeze()
         next_values = torch.zeros_like(values, device=self.device)
-        next_values[~dones.bool()] = self.critic.forward(next_states).squeeze().detach()
-
+        
+        # separate non final states from final states and compute the values for those
+        next_non_final_states = next_state_batch[non_final_mask]
+        next_values_non_final = self.critic.predict(next_non_final_states).squeeze(-1).detach()
+        next_values[non_final_mask] = next_values_non_final # note that the next values are 0 for final states
+        
         # Compute advantages using Generalized Advantage Estimation (GAE)
-        deltas = rewards + discount_factor * next_values * (1 - dones) - values
+        deltas = reward_batch + discount_factor * next_values - values 
         advantages = torch.zeros_like(deltas, device=self.device)
-        advantage = 0
+        
+        
+        # GAE computation in reverse
+        running_advantage = 0
         for t in reversed(range(len(deltas))):
-            advantage = deltas[t] + discount_factor * self.lambda_gae * (1 - dones[t]) * advantage
-            advantages[t] = advantage
+            running_advantage = deltas[t] + discount_factor * self.lamda_gae * running_advantage
+            advantages[t] = running_advantage
+        
+        
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-
         # Compute new log probabilities from the policy
-        new_log_probs, entropy = self.evaluate_actions(self.model, states, actions)
+        new_log_probs, entropy = self._evaluate_actions(state_batch, action_batch)
 
         # Compute ratio (pi_theta / pi_theta_old)
-        ratio = torch.exp(new_log_probs - old_log_probs)
+        ratio = torch.exp(new_log_probs - log_prob_batch)
 
         # Compute surrogate loss
         surrogate1 = ratio * advantages
@@ -133,11 +164,25 @@ class PPOLearner(LearnerSchema):
         policy_loss = -torch.min(surrogate1, surrogate2).mean()
 
         # Compute value loss
-        values = self.critic.forward(states).squeeze()
-        value_loss = F.mse_loss(values, rewards)
+        values = self.critic.predict(state_batch).squeeze()
+        value_loss = F.mse_loss(values, reward_batch)
 
         # Total loss
-        loss = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy.mean()
+        loss : torch.Tensor = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy.mean()
+
 
         # Optimize the model
-        self.optimizer.optimize_model(loss)
+        # Zero gradients
+        self.policy_optimizer.zero_grad()
+        self.critic_optimizer.zero_grad()
+
+        # Backward pass
+        loss.backward()
+
+        # Gradient clipping (optional but common in PPO)
+        torch.nn.utils.clip_grad_norm_(self.policy.model.get_model_params(), max_norm=0.5)
+        torch.nn.utils.clip_grad_norm_(self.critic.get_model_params(), max_norm=0.5)
+
+        # Optimizer step
+        self.policy_optimizer.step()
+        self.critic_optimizer.step()

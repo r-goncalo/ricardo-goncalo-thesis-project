@@ -65,10 +65,10 @@ def discrete_input_layer_size_of_space(state_space) -> int:
 
 # OUTPUT LAYER SIZE ---------------------------------------------------------------------
 
-def discrete_output_layer_size_of_space(action_space):
+def discrete_output_layer_size_of_space_gym(action_space : gym.Space):
     
     """
-    Determines the number of output nodes needed for a given action space.
+    Determines the number of output nodes needed for a given action gym space.
 
     :param action_space: A Gymnasium action space
     :return: Integer representing the required output layer size
@@ -95,6 +95,52 @@ def discrete_output_layer_size_of_space(action_space):
     else:
         raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
     
+    
+def discrete_output_layer_size_of_space(action_space):
+    
+    """
+    Determines the number of output nodes needed for a given action space.
+    """
+    
+    if isinstance(action_space, gym.spaces.Space):
+        return discrete_output_layer_size_of_space_gym(action_space)
+    
+    elif isinstance(action_space, int):
+        return action_space
+    
+    else:
+        raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
+    
+    
+# ACTION SHAPE SIZE ---------------------------------------------------------------------
+
+def single_action_shape_gym(action_space : gym.Space):
+    
+    """
+    Determines the shape needed to encode single actions
+    """
+    
+    if isinstance(action_space, gym.spaces.Discrete):
+        return 1  # Number of discrete actions (one-hot encoded output)
+    
+    else:
+        raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
+
+    
+def single_action_shape(action_space):
+    
+    """
+    Determines the shape needed to encode single actions
+    """
+    
+    if isinstance(action_space, gym.spaces.Space):
+        return single_action_shape_gym(action_space)
+    
+    elif isinstance(action_space, int):
+        return 1
+    
+    else:
+        raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
 
 # ALLOCATING MEMORY FOR SPACE ------------------------------------------------------------------
 

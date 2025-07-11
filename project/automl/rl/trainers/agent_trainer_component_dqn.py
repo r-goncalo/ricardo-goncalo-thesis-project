@@ -69,7 +69,7 @@ class AgentTrainerDQN(AgentTrainer):
         
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", discrete_output_layer_size_of_space(self.agent.model_output_shape)),
+                                        ("action", self.agent.get_policy().get_policy_shape()),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1)
                                     ]
@@ -87,9 +87,10 @@ class AgentTrainerDQN(AgentTrainer):
             self.lg.writeLine(f"Exploration strategy values: \n{self.exploration_strategy.values}\n")
         
 
-    def observe_transiction_to(self, new_state, action, reward):
+    def _observe_transiction_to(self, new_state, action, reward):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
+        
         
         self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
         
@@ -98,10 +99,11 @@ class AgentTrainerDQN(AgentTrainer):
         next_state_memory = self.agent.get_current_state_in_memory()
                 
         self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward})
+        
 
         
 
-    def select_action(self, state):
+    def _select_action(self, state):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
 

@@ -22,8 +22,6 @@ AGENT_MEMORY_INPUT = [*AGENTS_TRAINER_INPUT, "memory", 1]
 
 AGENT_LEARNER_INPUT = [*AGENTS_TRAINER_INPUT, "learner", 1]
 
-LEARNER_OPTIMIZER_INPUT = [*AGENT_LEARNER_INPUT, "optimizer", 1]
-
 
 
 
@@ -64,12 +62,20 @@ def get_hyperparameters_to_change() -> list[HyperparameterSuggestion]:
     hyperparameters_to_change = [ *hyperparameters_to_change, 
                              
                              HyperparameterSuggestion(
-                                name='learning_rate', 
+                                name='critic_learning_rate', 
                                 hyperparameter_localizations= [
-                                    ([], [*LEARNER_OPTIMIZER_INPUT, "learning_rate"])
+                                    ([], [*AGENT_LEARNER_INPUT, "critic_learning_rate"])
                                 ],
-                                value_suggestion = ('float', {'low':0.000001, 'high':0.1}) 
-                            )            
+                                value_suggestion = ('float', {'low':0.000001, 'high':0.01}) 
+                            ),
+                             
+                                 HyperparameterSuggestion(
+                                name='policy_learning_rate', 
+                                hyperparameter_localizations= [
+                                    ([], [*AGENT_LEARNER_INPUT, "model_learning_rate"])
+                                ],
+                                value_suggestion = ('float', {'low':0.000001, 'high':0.01}) 
+                            )                
     ]
     
     hyperparameters_to_change = [ *hyperparameters_to_change, 

@@ -289,7 +289,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         for step in range(self.n_steps):
             
-            try:
+            #try:
                 
                 component_to_test.run()
 
@@ -302,11 +302,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                 
-            except:
-                
-                self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
-                trial.set_user_attr("prune_reason", "error")
-                raise optuna.TrialPruned("error")
+            #except:
+            #    
+            #    self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
+            #    trial.set_user_attr("prune_reason", "error")
+            #    raise optuna.TrialPruned("error")
                 
         
         return evaluation_results["result"]
@@ -331,14 +331,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                     
     @requires_input_proccess
-    def algorithm(self):
-                
-        print(f"Sampler: {self.sampler}")
-        print(f"storage: {self.storage}")
-        print(f"database_study_name: {self.input['database_study_name']}")
-        print(f"direction: {self.input['direction']}")
-        
-        
+    def algorithm(self):        
 
         study = optuna.create_study(sampler=self.sampler, 
                                     storage=self.storage, 
