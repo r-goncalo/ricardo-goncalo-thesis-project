@@ -98,26 +98,38 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super().learn(trajectory, discount_factor)
         
+        bacth_size = len(trajectory[0])
+        
         state_batch, action_batch, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
             
-        non_final_mask = self._non_final_states_mask(next_state_batch) 
+        non_final_mask = self._non_final_states_mask(next_state_batch) # tensor of indexes with non final states
+        
                 
         #predict the action we would take given the current state
-        predicted_actions_values = self.model.predict(state_batch)
-        predicted_actions_values, predicted_actions = predicted_actions_values.max(1)
         
-        #compute the q values our target net predicts for the next_state (perceived reward)
-        #if there is no next_state, we can use 0
-                
-        next_state_values = torch.zeros(len(trajectory[0]), device=self.device)
+        #predict, for each state, what the current policy would evaluate Q(s_t, a)
+        #remember the output of the policy, for a given state, is the Q-values for each possible action
+        predicted_actions_values = self.model.predict(state_batch) #what the current model would predict as the q values for
+        
+        #for each state s_t and chosen action a_t, what was the Q(s_t, a_t) our current policy gave that pair
+        state_action_values = predicted_actions_values.gather(1, action_batch) 
+
+        
+        #compute the V-values our target net predicts for the next_state (perceived reward)
+        #note this can be computed with the Q-values by simply chossing the max Q-values(s, a) for a given s
+        #if there is no next_state, we can use 0             
+        
+        next_state_values = torch.zeros(bacth_size, device=self.device)
         with torch.no_grad():
             next_state_values[non_final_mask] = self.target_net.predict(next_state_batch[non_final_mask]).max(1).values # it returns the maximum q-action values of the next action
             
-        # Compute the expected Q values (the current reward of this state and the perceived reward we would get in the future)
+        # Compute the expected Q values
+        # Target_network prediction * dicount_factor + reward got from chossing the action a_t for the state s_t
+        # This is the "correct" value that Q(s_t, a_t) should take
         next_state_values.mul_(discount_factor).add_(reward_batch)
                 
         #Optimizes the model given the optimizer defined
-        self.optimizer.optimize_model(predicted_actions_values, next_state_values)        
+        self.optimizer.optimize_model(state_action_values, next_state_values)        
         
         if self.update_target_at_optimization:
             self.update_target_model()
