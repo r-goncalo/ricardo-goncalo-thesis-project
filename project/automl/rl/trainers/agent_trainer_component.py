@@ -105,7 +105,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             
         self.memory.pass_input({
                                     "device" : self.device,
-                                    "transition_data" : self.memory_fields_shapes
                                 })
         
         

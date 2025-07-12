@@ -33,7 +33,7 @@ class QPolicy(Policy):
         
         #tensor of max values and tensor of indexes
         _, max_indexes = valuesForActions.max(dim=1)
-                
+                        
         return max_indexes
     
     

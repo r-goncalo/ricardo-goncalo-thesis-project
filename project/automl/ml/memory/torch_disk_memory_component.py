@@ -30,7 +30,6 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
     parameters_signature = {
         "capacity": InputSignature(default_value=1_000),
         "device": InputSignature(default_value="cuda"),
-        "dtype": InputSignature(default_value=torch.float32),
         "max_in_memory": InputSignature(default_value=80),
         "storage_dir": InputSignature(default_value="./memory_storage"),
     }
@@ -40,7 +39,6 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         super().proccess_input_internal()
         
         self.device = self.input["device"]
-        self.dtype = self.input["dtype"]
         self.max_in_memory = self.input["max_in_memory"]
 
         self.set_capaticy()
@@ -68,21 +66,38 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
             self.lg.writeLine(f"Capacity of {self.input['capacity']} was changed to {self.capacity} due to it not being a multiple of max in memory ({self.max_in_memory})")
 
         
+        
+        
     def allocate_computer_memory_to_transitions(self):
         
         '''Allocates the necessary space '''
         
-        self.transitions : dict[str, torch.Tensor] = {}
+        self.transitions = self._allocate_computer_memory_to_transitions_dictionary() # transitions saved in memory        
         
-        for field_name, field_shape in self.fields_shapes:
+            
+            
+    def _allocate_computer_memory_to_transitions_dictionary(self):
+            
+        transitions : dict[str, torch.Tensor] = {}
+        
+        for field_name, field_shape, data_type in self.fields_shapes:
             
             if not isinstance(field_shape, Iterable):
                 field_shape = (field_shape,)
                 
+            
                 
-            #normally it would be state, action, next_state and reward        
-            self.transitions[field_name] = torch.zeros((self.max_in_memory, *field_shape),
-                                                       device=self.device, dtype=self.dtype)
+            #normally it would be state, action, next_state and reward 
+            
+            if data_type == None:
+                   
+                transitions[field_name] = torch.zeros((self.max_in_memory, *field_shape),
+                                                       device=self.device)
+            else:
+                transitions[field_name] = torch.zeros((self.max_in_memory, *field_shape),
+                                                       device=self.device, dtype=data_type)
+            
+        return transitions
             
         
     def initialize_disk_files(self):
@@ -193,25 +208,53 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         
         file_path = np.random.choice(self.disk_files[0:self.created_files])
 
-        data = torch.load(file_path, map_location="cpu")
-        size = data["size"]
+        data, size = self._load_data_from_file(file_path)
 
         indices = torch.randint(0, size, (batch_size,))
         
         batch_data = {
-            field_name: self.transitions[field_name][indices].to(self.device, dtype=self.dtype)
+            field_name: data[field_name][indices].to(self.device)
             for field_name in self.field_names
         }
         
         batch = self.Transition(**batch_data)
         
         return batch
+    
+    def _load_data_from_file(self, file_path):
+        
+        data = torch.load(file_path, map_location="cpu")
+        size = data["size"]
+        
+        return data, size
 
     @requires_input_proccess
     def sample_transposed(self, batch_size):
         batch = self.sample(batch_size)
         return self.Transition(*batch)
     
+
+    def write_to_file(self):
+        #self.lg.writeLine(, file="readable.txt")
+        pass #TODO: do this
+        
+        
+    def _transitions_to_str(self, transitions_dict : dict[str, torch.Tensor], size, transitions_to_save):
+        
+        str_to_return = "" 
+        
+        for i in range(size): # for each row
+        
+            for field_name in transitions_to_save:    
+            
+                str_to_return += f"{field_name}: {transitions_dict[field_name][i]} "
+                
+            str_to_return += "\n"
+            
+        return str_to_return
+            
+            
+         
 
     @requires_input_proccess
     def clear(self):

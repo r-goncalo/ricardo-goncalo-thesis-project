@@ -69,7 +69,7 @@ class AgentTrainerDQN(AgentTrainer):
         
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", self.agent.get_policy().get_policy_shape()),
+                                        ("action", self.agent.get_policy().get_policy_shape(), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1)
                                     ]
