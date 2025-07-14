@@ -150,6 +150,9 @@ class StatefulComponentLoader(ArtifactComponent):
         
         super().proccess_input_internal()    
         
+        if not hasattr(self, 'component_to_save_load'):
+            raise Exception("Component to save / load was not defined, use define_component_to_save_load method")
+        
         self.pass_input({"artifact_relative_directory" : str(self.component_to_save_load.input["artifact_relative_directory"])}) #str is used to clone the string
         self.pass_input({"base_directory" : str(self.component_to_save_load.input["base_directory"])})
         
@@ -160,7 +163,7 @@ class StatefulComponentLoader(ArtifactComponent):
     
     @requires_input_proccess
     def unload_component(self):
-        
+                
         weak_ref = weakref.ref(self.component_to_save_load)
 
         del self.component_to_save_load
