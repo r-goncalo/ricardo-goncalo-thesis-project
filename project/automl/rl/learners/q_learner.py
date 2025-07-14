@@ -127,9 +127,9 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         # Target_network prediction * dicount_factor + reward got from chossing the action a_t for the state s_t
         # This is the "correct" value that Q(s_t, a_t) should take
         next_state_values.mul_(discount_factor).add_(reward_batch)
-                
+                        
         #Optimizes the model given the optimizer defined
-        self.optimizer.optimize_model(state_action_values, next_state_values)        
+        self.optimizer.optimize_model(state_action_values.squeeze(-1), next_state_values)        
         
         if self.update_target_at_optimization:
             self.update_target_model()
