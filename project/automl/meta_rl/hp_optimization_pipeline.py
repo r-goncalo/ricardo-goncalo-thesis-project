@@ -24,6 +24,8 @@ from automl.basic_components.state_management import StatefulComponent, Stateful
 import torch
 
 Component_to_opt_type = Union[ExecComponent, StatefulComponent]
+
+MEMORY_REPORT_FILE = "memory_report.txt"
  
 import copy
 
@@ -217,6 +219,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Creates the component to optimize and and saver / loader for it, returning the component to optimize itself'''
         
+        self.lg.writeLine(f"\Creating component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
+
+        
         component_to_opt = self.create_component_to_optimize(trial)
         
         component_to_opt.pass_input({"base_directory" : self.get_artifact_directory(), "artifact_relative_directory" : component_to_opt.name, "create_new_directory" : True})
@@ -229,18 +234,33 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         return component_to_opt
     
     
+    def load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+
+        self.lg.writeLine(f"\nLoading component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
+        
+        component_saver_loader = self.trial_loaders[trial.number]
+        component_to_opt = component_saver_loader.load_component()
+        
+        return component_to_opt    
+    
     
     def create_or_load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
         
         if trial.number in self.trial_loaders.keys():
-            component_saver_loader = self.trial_loaders[trial.number]
-            component_to_opt = component_saver_loader.load_component()
+            component_to_opt = self.load_component_to_test(trial)
             
         else:
             component_to_opt = self.create_component_to_test(trial)
         
         return component_to_opt
 
+
+    def unload_component_to_test(self, trial : optuna.Trial):
+
+        self.lg.writeLine(f"\nUnloading component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
+        
+        component_saver_loader = self.trial_loaders[trial.number]
+        component_saver_loader.unload_component()
 
     def setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Union[Component, dict]):
         
@@ -289,7 +309,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         for step in range(self.n_steps):
             
-            #try:
+            try:
                 
                 component_to_test.run()
 
@@ -302,12 +322,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                 
-            #except:
-            #    
-            #    self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
-            #    trial.set_user_attr("prune_reason", "error")
-            #    raise optuna.TrialPruned("error")
+            except:
                 
+                self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
+                trial.set_user_attr("prune_reason", "error")
+                raise optuna.TrialPruned("error")
+                            
         
         return evaluation_results["result"]
     
@@ -315,17 +335,17 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
         
-        '''Called when a trial is over'''
-        
+        '''Called when a trial is over'''        
                 
         result = trial.value
         
         results_to_log = {'experiment' : trial.number, **self.suggested_values, "result" : [result]}
         
         self.log_results(results_to_log)
-                
-        self.trial_loaders[trial.number].unload_component()
-    
+        
+        self.unload_component_to_test(trial)
+
+                    
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------
                     
