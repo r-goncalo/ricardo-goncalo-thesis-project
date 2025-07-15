@@ -77,8 +77,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
         
-        self.results_lg : ResultLogger = self.initialize_child_component(ResultLogger, { "artifact_relative_directory" : "",
-            "results_columns" : ['experiment', *parameter_names, "result"]})
+        #self.results_lg : ResultLogger = self.initialize_child_component(ResultLogger, { "artifact_relative_directory" : "",
+        #    "results_columns" : ['experiment', *parameter_names, "result"]})
+        
+        self.add_to_columns_of_results_logger([*parameter_names, "result"])
                 
         self.suggested_values = { parameter_name : 0 for parameter_name in parameter_names}
         
@@ -308,12 +310,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         
         for step in range(self.n_steps):
-            
-            try:
+                        
+            #try:
                 
                 component_to_test.run()
 
                 evaluation_results = self.evaluate_component(component_to_test)
+                
+                self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: \n{evaluation_results}")
 
                 trial.report(evaluation_results["result"], step)
 
@@ -322,11 +326,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                 
-            except:
+            #except:
                 
-                self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
-                trial.set_user_attr("prune_reason", "error")
-                raise optuna.TrialPruned("error")
+            #    self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
+            #    trial.set_user_attr("prune_reason", "error")
+            #    raise optuna.TrialPruned("error")
                             
         
         return evaluation_results["result"]
@@ -341,6 +345,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         results_to_log = {'experiment' : trial.number, **self.suggested_values, "result" : [result]}
         
+        print(f"Logging results for trial {trial.number}: {results_to_log}")
+               
         self.log_results(results_to_log)
         
         self.unload_component_to_test(trial)

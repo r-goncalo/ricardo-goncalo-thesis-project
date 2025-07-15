@@ -68,7 +68,7 @@ class ResultLogger(LoggerSchema):
  
     @requires_input_proccess           
     def log_results(self, results : Dict[str, list]):
-        
+                
         for key, value in results.items(): # TODO: WE SHOULD JUST MAKE results = [results] and it would work
             if not isinstance(value, list):
                 results[key] = [results[key]]
