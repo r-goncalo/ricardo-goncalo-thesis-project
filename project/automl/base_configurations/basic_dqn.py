@@ -11,7 +11,14 @@ from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 
-def config_dict(num_episodes=200):
+DEFAULT_ENV_DEFINITION = (PettingZooEnvironmentWrapper, {
+    "environment": "cooperative_pong"})
+
+
+def config_dict(num_episodes=200, env=None):
+
+    if env is None:
+        env = DEFAULT_ENV_DEFINITION
 
     return {
     
@@ -19,10 +26,7 @@ def config_dict(num_episodes=200):
     "name": "RLPipelineComponent",
     "input": {
         "device" : "cuda",
-        "environment": {
-            "__type__": PettingZooEnvironmentWrapper,
-            "name": "PettingZooEnvironmentLoader"        
-        },
+        "environment": env,
         "agents_input": {
             "state_memory_size" : 2,
 
@@ -75,16 +79,7 @@ def config_dict(num_episodes=200):
             }
         )
         
-    },
-    "child_components": [
-        {
-            "__type__": str(PettingZooEnvironmentWrapper),
-            "name": "PettingZooEnvironmentLoader",
-            "input": {
-                "environment": "cooperative_pong"
-            }
-        }
-    ]
+    }
 }
     
 def mockup_config_dict(num_episodes=200):

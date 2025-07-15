@@ -153,11 +153,11 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             
                 
         for agent_name in self.env.agent_iter(): #iterates infinitely over the agents that should be acting in the environment
-                                
+                                            
             agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
             
             reward, done = agent_in_training.do_training_step(i_episode, self.env)
-            
+                        
             for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
                     self.agents_in_training[other_agent_name].observe_new_state(self.env)

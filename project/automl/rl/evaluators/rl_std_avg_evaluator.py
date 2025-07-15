@@ -17,7 +17,8 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     
     parameters_signature = {
         "n_results_to_use" : InputSignature(default_value=10),
-        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation")
+        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
+        "value_to_use" : InputSignature(default_value="total_reward", description="The value to use for evaluation")
     }
     
 
@@ -27,7 +28,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         
         self.n_results_to_use = self.input["n_results_to_use"]
         self.std_deviation_factor = self.input["std_deviation_factor"]
-        
+        self.value_to_use = self.input["value_to_use"]
 
 
     # EVALUATION -------------------------------------------------------------------------------
@@ -46,7 +47,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         if n_results_to_use > n_rows:
             n_results_to_use = n_rows
 
-        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, 'total_reward')
+        avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, self.value_to_use)
 
         result = avg_result - (std_result / self.std_deviation_factor)
         

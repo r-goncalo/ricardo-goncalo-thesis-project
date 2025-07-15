@@ -12,44 +12,50 @@ class EnvironmentComponent(Component):
         
     @requires_input_proccess    
     def reset(self):
-        pass
+        raise NotImplementedError()
         
     @requires_input_proccess   
     def observe(self, *args):
-        pass
+        raise NotImplementedError()
         
     @requires_input_proccess   
     def agents(self):
-        pass
+        raise NotImplementedError()
     
+    @requires_input_proccess
+    def get_agent_action_space(self, agent):
+        '''returns the action space for the given agent'''
+        raise NotImplementedError()
     
-    @requires_input_proccess  
-    def action_space(self, *args):
-        pass
+    @requires_input_proccess
+    def get_agent_state_space(self, agent):
+        '''returns the state space for the environment'''
+        raise NotImplementedError()
     
     @requires_input_proccess   
     def last(self):
-        pass
+        raise NotImplementedError()
     
     @requires_input_proccess   
     def agent_iter(self):
-        pass
+        raise NotImplementedError()
     
     @requires_input_proccess    
     def step(self, *args):
-        pass
+        raise NotImplementedError()
         
     @requires_input_proccess    
     def rewards(self):
-        pass    
+        raise NotImplementedError()    
     
     @requires_input_proccess
     def render(self):
-        pass
+        raise NotImplementedError()
     
     @requires_input_proccess
     def close(self):
-        pass
+        raise NotImplementedError()
+    
      
     
 

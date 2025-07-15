@@ -62,6 +62,26 @@ def discrete_input_layer_size_of_space(state_space) -> int:
     else:
         raise NotImplementedError(f"Unkown space type: {type(state_space)}")
     
+    
+
+# TORCH STATE SHAPE FROM SPACE ------------------------------------------------------
+
+def torch_state_shape_from_space_gym(state_space : gym.Space) -> torch.Size:
+    
+    if isinstance(state_space, gym.spaces.Box):
+        return torch.Size(state_space.shape)
+    
+    else:
+        raise NotImplementedError(f"Unknown state space type: {type(state_space)}")
+    
+    
+def torch_state_shape_from_space(state_space) -> torch.Size:
+
+    if isinstance(state_space, gym.Space):
+        return torch_state_shape_from_space_gym(state_space)
+    
+    else:
+        raise NotImplementedError(f"Unknown state space type: {type(state_space)}")
 
 # OUTPUT LAYER SIZE ---------------------------------------------------------------------
 

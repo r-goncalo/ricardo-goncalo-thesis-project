@@ -62,9 +62,18 @@ class StatefulComponent(ArtifactComponent):
             raise Exception(f"Folder path {folder_path} does not exist, cannot load state of component")
         
         self.load_state_internal()
+        
+
 
     def load_state_internal(self):
         pass    
+    
+
+    def on_unload(self):
+        '''
+        This method is called when the component is unloaded, it should be used to clean up resources
+        '''
+        pass
     
     
 def __load_state_recursive_child_components(origin_component : Component):
@@ -117,6 +126,29 @@ def save_component_with_state_to_folder(component : ArtifactComponent, folder_pa
             if isinstance(child_component, StatefulComponent):
 
                 child_component.save_state(False)
+                
+                
+        if isinstance(component, StatefulComponent):
+            component.save_state(save_definition)
+            
+
+def unload_component(component : Component) -> None:
+
+        '''
+        Saves the state of this component and child components        
+        '''
+        
+        for child_component in component.child_components:
+            
+            if isinstance(child_component, StatefulComponent):
+                child_component.on_unload()
+                        
+            save_component_with_state_to_folder(child_component, False)
+            
+            if isinstance(child_component, StatefulComponent):
+
+                child_component.save_state(False)
+                
                 
                 
         if isinstance(component, StatefulComponent):
@@ -177,10 +209,16 @@ class StatefulComponentLoader(ArtifactComponent):
             device = torch.device("cuda")
             # Get memory before
             before = torch.cuda.memory_allocated(device)
+            
+            print(f"Memory allocated before freeing: {before} bytes, {before / (1024 * 1024)} MB")
     
             # Clean memory
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()  # Optional: Collect unused IPC memor
+            
+            after = torch.cuda.memory_allocated(device)
+            
+            print(f"Memory allocated freed: {before - after} bytes, {(before - after) / (1024 * 1024)} MB")
             
         
     @requires_input_proccess

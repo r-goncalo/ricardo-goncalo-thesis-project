@@ -1,17 +1,17 @@
 
 
+from automl.basic_components.seeded_component import SeededComponent
 from automl.component import Component, InputSignature, requires_input_proccess
 from automl.rl.environment.environment_components import EnvironmentComponent
 
 import torch
-import random
-import math
-import numpy as nn
+
+from pettingzoo import ParallelEnv
 
 
-class PettingZooEnvironmentWrapper(EnvironmentComponent):
-    
-    
+# TODO: This should probably extend Gymnasium
+class PettingZooEnvironmentWrapper(EnvironmentComponent, SeededComponent):
+        
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = { 
@@ -38,14 +38,12 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent):
         
     
     def setup_environment(self):
-        
-        from pettingzoo import ParallelEnv
-        
+                
         if isinstance(self.input["environment"], str):
             self.load_environment(self.input["environment"])
             
         elif isinstance(self.input["environment"], ParallelEnv):
-            self.env = self.input["environment"]
+            self.env : ParallelEnv = self.input["environment"]
             
         else:
             raise Exception("No valid environment or environment name passed to PettingZoo Wrapper")
@@ -56,52 +54,46 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent):
         if environment_name == "cooperative_pong":
             
             from pettingzoo.butterfly import cooperative_pong_v5
-            self.env = cooperative_pong_v5.env(render_mode=self.input["render_mode"])
+            self.env : ParallelEnv = cooperative_pong_v5.env(render_mode=self.input["render_mode"])
             
         else:
             raise Exception(f"{self.name}: No valid petting zoo environment specified")
         
-        
-    
-    def reset(self):
-        
-        super().reset()
-        
-        return self.env.reset()
     
         
     def observe(self, *args):
-        super().reset()
         return PettingZooEnvironmentWrapper.state_translator(self.env.observe(*args), self.device)
     
-        
+    
+    @requires_input_proccess
+    def get_agent_action_space(self, agent):
+        '''returns the action space for the given agent'''
+        return self.env.action_space(agent)
+    
+    @requires_input_proccess
+    def get_agent_state_space(self, agent):
+        '''returns the state space for the environment'''
+        raise NotImplementedError()
+    
+    
+    @requires_input_proccess
     def agents(self):
-        super().reset()
         return self.env.agents
     
     
-    def action_space(self, *args):
-        super().reset()
-        return self.env.action_space(*args)
-    
-    
     def last(self):
-        super().reset()
         observation, reward, termination, truncation, info = self.env.last()
         
         #returns state, reward, done, info
         return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, truncation or termination, info
     
     def agent_iter(self):
-        super().reset()
         return self.env.agent_iter()
     
     def step(self, *args):
-        super().reset()
         return self.env.step(*args)
     
     def rewards(self):
-        super().reset()
         return self.env.rewards    
 
     def render(self):
@@ -110,3 +102,6 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent):
 
     def close(self):
         self.env.close()
+        
+    def reset(self):
+        self.env.reset(seed=self._seed)

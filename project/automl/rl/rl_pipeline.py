@@ -32,7 +32,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
                         "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
                                                                                
-                       "environment" : InputSignature(generator= lambda self : self.initialize_child_component(PettingZooEnvironmentWrapper)),
+                       "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {})),
                        
                        "agents" : InputSignature(default_value={}),
                        "agents_input" : InputSignature(default_value={}),
@@ -53,20 +53,26 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         super().proccess_input_internal()
                 
         self.device = self.input["device"]
-            
-        self.env : EnvironmentComponent = self.input["environment"]
-                        
-        self.save_in_between = self.input["save_in_between"]
         
         self.configure_device(self.device)
-
-        self.env.pass_input({"device" : self.device})
+        
+        self.setup_environment()
+                        
+        self.save_in_between = self.input["save_in_between"]
         
         self.initialize_agents_components()
     
         self.setup_trainer()
         
         self.rl_setup_evaluator()
+        
+    def setup_environment(self):
+        self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
+        
+        self.env.pass_input({"device" : self.device})
+        
+        self.env.proccess_input_if_not_proccesd()
+
     
     
     def rl_setup_evaluator(self):
@@ -136,15 +142,15 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         '''Setups the agent state space and action shape'''
          
-        state = self.env.observe(agent_name)
-        
-        self.lg.writeLine(f"State for agent {agent.name} has shape: {state.shape}")
+        state_shape = self.env.get_agent_state_space(agent_name)
                 
-        action_shape = self.env.action_space(agent_name)
-        
+        self.lg.writeLine(f"State for agent {agent.name} has shape state: {state_shape}")
+
+        action_shape = self.env.get_agent_action_space(agent_name)
+
         self.lg.writeLine(f"Action space of agent {agent.name} has shape: {action_shape}")
-        
-        agent.pass_input({"state_shape" : state.shape })
+
+        agent.pass_input({"state_shape" : state_shape })
         agent.pass_input({"action_shape" : action_shape })
             
             

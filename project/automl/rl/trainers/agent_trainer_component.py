@@ -196,7 +196,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             env.step(action.item()) #makes the game proccess the action that was taken
                 
             observation, reward, done, info = env.last()
-            
+                        
             self.values["episode_score"] = self.values["episode_score"] + reward
                             
             self._observe_transiction_to(observation, action, reward)
