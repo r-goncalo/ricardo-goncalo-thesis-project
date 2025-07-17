@@ -132,4 +132,24 @@ class HyperparameterSuggestion():
         else:
             
             self.pass_input_to_component_input(component_to_change.input, hyperparameter_localizer, suggested_value)
+            
+            
+            
+    def to_dict(self):
+        
+        dict_to_return = {
+            "name" : self.name,
+            "localizations" : self.hyperparameter_localizations,
+            "suggestion" : self.value_suggestion
+            
+            }
+        
+        return dict_to_return
+            
+            
+    def from_dict(dict):
+        
+        return HyperparameterSuggestion(dict["name"], dict["localizations"], dict["suggestion"])
+        
+        
         

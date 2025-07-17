@@ -1,4 +1,4 @@
 
 
 
-CONFIGURATION_FILE_NAME = 'configuration'
+CONFIGURATION_FILE_NAME = 'configuration.json'

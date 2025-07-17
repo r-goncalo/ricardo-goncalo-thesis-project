@@ -72,7 +72,7 @@ class ResultLogger(LoggerSchema):
         for key, value in results.items(): # TODO: WE SHOULD JUST MAKE results = [results] and it would work
             if not isinstance(value, list):
                 results[key] = [results[key]]
-        
+                
         results_df = pandas.DataFrame(results, columns=self.columns)
         
         self.dataframe = pandas.concat((self.dataframe, results_df), ignore_index=True) 

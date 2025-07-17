@@ -1,5 +1,6 @@
 import itertools
 from automl.basic_components.seeded_component import SeededComponent
+from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, InputSignature, requires_input_proccess
 from automl.rl.environment.environment_components import EnvironmentComponent
 
@@ -10,7 +11,7 @@ import gymnasium as gym
 import torch
 
 
-class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent):
+class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, StatefulComponent):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -33,12 +34,14 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent):
         
         self.device = self.input["device"]
         self.setup_environment()
-        self.env.reset()
+        self.reset()
         
         self.last_observation = None
         self.last_reward = 0
         self.last_done = False
         self.last_info = {}
+        
+        self.reset_info = {}
         
 
     def setup_environment(self):
@@ -78,7 +81,12 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent):
     
     def reset(self):
         
-        observation, _ = self.env.reset(seed=self._seed)
+        # TODO: Check if this is well done (in regards to seeds, should it not be the same)
+        observation, info = self.env.reset()
+        
+        self.reset_info = info
+        
+        #observation, _ = self.env.reset(seed=self._seed)
         self.last_observation = observation
     
         return self.state_translator(observation, self.device)
@@ -124,3 +132,15 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent):
     
     def observe(self, *args):
         return self.state_translator(self.last_observation, self.device)
+    
+    def get_env_info(self):
+        return self.reset_info
+    
+
+    # STATE MANAGEMENT -------------------------------------------------------------------
+    
+    def on_unload(self):
+        
+        super().on_unload()
+        
+        self.env.close()

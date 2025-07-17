@@ -4,13 +4,14 @@ from automl.basic_components.seeded_component import SeededComponent
 from automl.component import Component, InputSignature, requires_input_proccess
 from automl.rl.environment.environment_components import EnvironmentComponent
 
+from automl.rl.environment.gymnasium_env import GymnasiumEnvironmentWrapper
 import torch
 
 from pettingzoo import ParallelEnv
 
 
 # TODO: This should probably extend Gymnasium
-class PettingZooEnvironmentWrapper(EnvironmentComponent, SeededComponent):
+class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
         
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -20,6 +21,8 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent, SeededComponent):
                        "device" : InputSignature(ignore_at_serialization=True)
                        }    
     
+    
+    @staticmethod
     def state_translator(state, device):
         
         with torch.no_grad():
@@ -104,4 +107,6 @@ class PettingZooEnvironmentWrapper(EnvironmentComponent, SeededComponent):
         self.env.close()
         
     def reset(self):
-        self.env.reset(seed=self._seed)
+        observations, info = self.env.reset()
+        self.reset_info = info
+        return observations

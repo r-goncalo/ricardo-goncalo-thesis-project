@@ -42,7 +42,6 @@ class ArtifactComponent(Component):
                         
                         "base_directory" : InputSignature(
                             priority=2,
-                            ignore_at_serialization=True,
                             default_value='',
                             on_pass=on_artifact_directory_change,
                             description='This path is used as basis to calculate the artifact directory of a component'
@@ -68,7 +67,7 @@ class ArtifactComponent(Component):
     def __generate_artifact_directory(self):
         
         if not all(key in self.input.keys() for key in ["artifact_relative_directory", "base_directory", "create_new_directory"]):
-            raise Exception(f"Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters")
+            raise Exception(f'Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters')
         
         self.artifact_relative_directory = self.input["artifact_relative_directory"]
         
@@ -117,4 +116,4 @@ class ArtifactComponent(Component):
         
         json_str = json_string_of_component(self, save_exposed_values=save_exposed_values)
         
-        write_text_to_file(self.artifact_directory, f'{CONFIGURATION_FILE_NAME}.json', json_str)  
+        write_text_to_file(self.artifact_directory, CONFIGURATION_FILE_NAME, json_str)  

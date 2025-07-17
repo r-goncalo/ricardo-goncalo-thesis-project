@@ -1,18 +1,20 @@
 import json
+import os
 from typing import Union
 
 from automl.component import Component, InputSignature, InputMetaData
 
 
+from automl.consts import CONFIGURATION_FILE_NAME
 from automl.utils.class_util import get_class_from, get_class_from_string
 
 from enum import Enum
 
 # ENCODING --------------------------------------------------
 
-class ComponentInputElementsEncoder(json.JSONEncoder):
+class ComponentValuesElementsEncoder(json.JSONEncoder):
     
-    '''Encodes elements of a component input, which can be a component (defined by its localization) or a primitive type'''
+    '''Encodes elements of a component input or exposed value, which can be a component (defined by its localization) or a primitive type'''
     
     def __init__(self, *args, source_component, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,8 +40,17 @@ class ComponentInputElementsEncoder(json.JSONEncoder):
         elif isinstance(obj, Enum):
             return obj.value
         
+        elif isinstance(obj, type):
+            return str(obj)
         
-        try:    
+        elif hasattr(obj, "to_dict"): # if it has a custom to_dict method
+            
+            if not hasattr(type(obj), "from_dict"):
+                raise Exception(f"Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}, so it cannot be serialized")
+
+            return {"__type__": str(type(obj)), "object" : self.default(obj.to_dict())}
+
+        try:
             return super().default(obj)
         
         except:
@@ -72,7 +83,7 @@ class ComponentInputEncoder(json.JSONEncoder):
                                 
                 if ( not parameters_signature.ignore_at_serialization ) and (not ( ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults )):
                     
-                    serialized_value = json.dumps(input[key], cls=ComponentInputElementsEncoder, source_component=self.source_component) #for each value in input, loads
+                    serialized_value = json.dumps(input[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in input, loads
                     
                     if serialized_value != 'null':
                         toReturn[key]  = json.loads(serialized_value)
@@ -106,7 +117,7 @@ class ComponentExposedValuesEncoder(json.JSONEncoder):
             
             for key in exposed_values.keys():
                 
-                serialized_value = json.dumps(exposed_values[key], cls=ComponentInputElementsEncoder, source_component=self.source_component) #for each value in exposed_value, loads
+                serialized_value = json.dumps(exposed_values[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in exposed_value, loads
                    
                 if serialized_value != 'null':
                     toReturn[key]  = json.loads(serialized_value)
@@ -123,7 +134,7 @@ class ComponentEncoder(json.JSONEncoder):
     
     '''Encodes the definition of a component, focusing on its child components'''
     
-    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, source_component, **kwargs):
+    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, source_component : Component, **kwargs):
         
         super().__init__(*args, **kwargs)
         self.ignore_defaults = ignore_defaults
@@ -153,15 +164,62 @@ class ComponentEncoder(json.JSONEncoder):
             
         elif isinstance(obj, (int, float, str, dict, list)):
             return obj
+        
+        
             
         return None
 
+def json_string_of_component_dict(component_dict : dict, ignore_defaults = True, save_exposed_values = False):
+    
+    component_from_dict = gen_component_from_dict(component_dict)
+    
+    return json_string_of_component(component_from_dict, ignore_defaults=ignore_defaults, save_exposed_values=save_exposed_values)
 
+
+# TODO: maybe it should be source_component.get_source_component()?
 def json_string_of_component(component, ignore_defaults = False, save_exposed_values = False):
-    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values)
+    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values, source_component=component)
 
 # DECODING --------------------------------------------------------------------------
+
+def decode_a_component_element(source_component : Component, component_element_dict : dict):
     
+    keys = component_element_dict.keys()
+    
+    if "localization" in keys:
+            
+        component_to_return = source_component.get_child_by_localization(component_element_dict["localization"])
+        
+    elif "name" in keys: # if it does not have localization and has name
+        
+        component_to_return = source_component.get_child_by_name(component_element_dict["name"])
+        
+    if "name" in keys:
+        component_to_return.name = component_element_dict["name"]
+        
+    return component_to_return
+    
+
+def decode_a_non_component_element(element_dict : dict):
+    
+    element_type_str = element_dict["__type__"]
+    
+    element_type = get_class_from(element_type_str)
+    
+    if hasattr(element_type, "from_dict"):
+        
+        if "object" in element_dict.keys():
+            
+            instanced_object = element_type.from_dict(element_dict["object"])
+            return instanced_object
+        
+        else:
+            raise Exception("No object defined when decoding element of type " + element_type_str)
+        
+    else:
+        raise Exception("No from_dict method defined for type " + element_type_str)
+    
+
 
 def decode_components_input_element(source_component : Component, element):
     
@@ -175,20 +233,15 @@ def decode_components_input_element(source_component : Component, element):
         
         if "__type__" in keys:
             
-            class_of_component : type = get_class_from(element['__type__'])
+            class_of_element : type = get_class_from(element['__type__'])
             
-            if issubclass(class_of_component, Component): #if it is a Schema
+            if issubclass(class_of_element, Component): #if it is a Schema
                 
-                if "localization" in keys:
-                        
-                    component_to_return = source_component.get_child_by_localization(element["localization"])
-                    
-                elif "name" in keys:
-                    
-                    component_to_return = source_component.get_child_by_name(element["name"])
-                        
-            return component_to_return
-        
+                return decode_a_component_element(source_component, element)
+            
+            else:
+                return decode_a_non_component_element(element)
+            
         else:
             
             dict_to_return = {}
@@ -360,12 +413,40 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple]) -> Comp
     elif isinstance(definition, str):
         return component_from_json_string(definition)
     
-    elif isinstance(definition, tuple):
+    elif isinstance(definition, tuple) or isinstance(definition, list):
         
         return component_from_tuple_definition(definition)
     
     else:
-        raise Exception(f"Definition is not a Component, dict, str or tuple, but {type(definition)}")
+        raise Exception(f"Definition is not a Component, dict, str or tuple | list, but {type(definition)}")
+    
+
+def gen_component_from_path(path):
+    
+    if os.path.isdir(path):
+        return gen_component_in_directory(path)
+    
+    elif os.path.isfile(path):
+        return gen_component_in_file_path(path)
+    
+    else:
+        raise ValueError(f"Path '{path}' is neither a file nor a directory.")
+
+def gen_component_in_directory(dir_path):
+    
+    configuration_file = os.path.join(dir_path, CONFIGURATION_FILE_NAME)
+    
+    return gen_component_in_file_path(configuration_file)
+
+def gen_component_in_file_path(file_path):
+
+    with open(file_path, 'r') as f:
+        str_to_gen_from = f.read()
+    
+    return gen_component_from(str_to_gen_from)
+    
+    
+    
         
     
 # OTHER METHODS ---------------------------------------------------------------------------------

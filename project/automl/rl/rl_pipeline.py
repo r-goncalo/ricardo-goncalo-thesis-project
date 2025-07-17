@@ -32,7 +32,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
                         "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
                                                                                
-                       "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {})),
+                       "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {}), possible_types=[EnvironmentComponent]),
                        
                        "agents" : InputSignature(default_value={}),
                        "agents_input" : InputSignature(default_value={}),
@@ -40,7 +40,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                        "save_in_between" : InputSignature(default_value=True),
                        
                        "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
-                                              
+                
                        }
     
     
@@ -49,6 +49,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     # INITIALIZATION -----------------------------------------------------------------------------
 
     def proccess_input_internal(self): #this is the best method to have initialization done right after
+        
+        print(f"Environment: {self.input['environment']}")
         
         super().proccess_input_internal()
                 
@@ -68,7 +70,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
     def setup_environment(self):
         self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
-        
+                
         self.env.pass_input({"device" : self.device})
         
         self.env.proccess_input_if_not_proccesd()
@@ -79,9 +81,11 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         '''Setups custom logic for '''
         
-        evaluation_columns = self.component_evaluator.get_metrics_strings()
+        if self.component_evaluator is not None:
+                
+            evaluation_columns = self.component_evaluator.get_metrics_strings()
         
-        self.add_to_columns_of_results_logger(evaluation_columns)
+            self.add_to_columns_of_results_logger(evaluation_columns)
     
         
     def configure_device(self, str_device_str):
@@ -186,6 +190,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         self.agents : dict[str, AgentSchema] = agents  
         self.input["agents"] = agents #this is done because we want to save these agents in the configuration  
         
+    
         
     # TRAINING_PROCCESS ----------------------
     
@@ -227,13 +232,23 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         self.train() #trains the agents in the reinforcement learning pipeline
         
-        evaluation_results = self.evaluate_this_component() # evaluates the resulting model and saves the results
         
-        self.log_results({
+        if self.component_evaluator is not None:
+            
+            self.lg.writeLine("Evaluating the trained agents...")
+            
+            evaluation_results = self.evaluate_this_component() # evaluates the resulting model and saves the results
+
+            self.log_results({
             "episodes_done" : self.rl_trainer.values["episodes_done"],
                           **evaluation_results})
+            
+        else:
+            self.log_results({
+                "episodes_done" : self.rl_trainer.values["episodes_done"],
+            })
         
-        self.output = self.get_last_Results()
+        
     
         
     # RESULTS --------------------------------------
@@ -244,7 +259,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     
     
     
-    @requires_input_proccess    
-    def get_last_Results(self):
-        
-        return self.rl_trainer.get_last_results()
+    #@requires_input_proccess    
+    #def get_last_Results(self):
+    #    
+    #    return self.rl_trainer.get_last_results()

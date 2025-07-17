@@ -3,6 +3,8 @@ from types import FunctionType
 import copy
 from abc import ABCMeta
 
+from automl.utils.class_util import get_class_from
+
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
 def on_name_pass(self):
@@ -92,6 +94,54 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 
             else:
                 print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
+        
+        
+                
+    def setup_default_value_if_no_value(self, key):
+        
+        parameter_signature = self.get_parameter_signature(key)
+            
+        if parameter_signature != None:
+            
+            if not self.__input_meta[key].was_custom_value_passed():        
+        
+                self.__verified_setup_default_value(key)
+                
+        else:
+            print(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+                
+            
+                
+                    
+                   
+
+    def setup_default_value(self, key):
+                
+        parameter_signature = self.get_parameter_signature(key)
+            
+        if parameter_signature != None:
+                
+            self.__verified_setup_default_value(key)
+                
+        else:
+            print(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+                
+    
+    def remove_input(self, key):
+        
+           
+        self._input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
+        
+        parameter_signature = self.get_parameter_signature(key)
+        
+        if parameter_signature != None:
+            
+            self.__verified_remove_input(key)
+            
+        else:
+            print(f"WARNING: input with key {key} tried to remove from component {self.name} but not in its input signature, will be ignored")
+        
+        
 
                 
     def __verified_pass_input(self, key, value):
@@ -113,8 +163,33 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
 
                 except:
                     raise Exception(f"In component of type {type(self)}, when passing input: Exception while using the on_pass for {key}, named {parameter_signature.on_pass.__name__}")
+               
+               
+    def __verified_setup_default_value(self, key):
                 
             
+        parameter_signature = self.get_parameter_signature(key)
+        
+        if parameter_signature.default_value != None:
+            self.input[key] = parameter_signature.default_value
+            self.__input_meta[key].default_value_was_set()
+        
+        elif parameter_signature.generator != None:
+            self.input[key] = parameter_signature.generator(self)
+            self.__input_meta[key].generator_value_was_set()
+            
+        else:
+            raise Exception(f"In component of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
+
+            
+               
+    def __verified_remove_input(self, key):
+        
+        '''for logic of passing the input, already verified'''
+        
+        self.input[key] = None
+        self.__input_meta[key].custom_value_removed()
+    
 
     def proccess_input_internal(self): #verify the input to this component
         '''
@@ -170,6 +245,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     def initialize_child_component(self, component_type : type, input : dict ={}):
         
         '''Explicitly initializes a component of a certain type as a child component of this one'''
+        
+        component_type = get_class_from(component_type)
         
         initialized_component : Component = component_type(input)
         
@@ -472,8 +549,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                     try:
                         self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
                     
-                    except:
-                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}")
+                    except Exception as e:
+                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}")
                     
     
     # INPUT META DATA ----------------------------------------------------------------

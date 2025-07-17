@@ -9,7 +9,10 @@ from automl.core.input_management import InputSignature
 from automl.utils.json_component_utils import gen_component_from
 
 
+
 class ComponentInputSignature(InputSignature):
+    
+    possible_types = [Component, type, dict, str, tuple, list]
     
     '''Abstracts the passage of components in other components inputs'''
     
@@ -34,6 +37,12 @@ class ComponentInputSignature(InputSignature):
     def __init__(self, default_component_definition = None, **kwargs):
         
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
+        
+        if "possible_types" in kwargs.keys():
+            kwargs["possible_types"] = [*ComponentInputSignature.possible_types, *kwargs["possible_types"]]
+
+        else:
+            kwargs["possible_types"] = ComponentInputSignature.possible_types
     
         if default_component_definition is not None and "generator" in kwargs.keys():
             raise Exception("Geneator in arguments of Component Input Signature when there is a default component definition")
@@ -48,10 +57,10 @@ class ComponentInputSignature(InputSignature):
                 
                 return component
             
-            super().__init__(possible_types=[Component, type, dict, str, tuple], generator=generator, **kwargs)
+            super().__init__(generator=generator, **kwargs)
         
         else:
-            super().__init__(possible_types=[Component, type, dict, str, tuple], **kwargs)
+            super().__init__(**kwargs)
             
             
 

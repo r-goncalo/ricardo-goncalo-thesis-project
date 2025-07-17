@@ -93,11 +93,11 @@ def __load_state_recursive_child_components(origin_component : Component):
         origin_component.load_state(recursive=False)
             
                 
-def load_component_with_state_from_folder(folder_path) -> Component: #note this is not a method 
+def load_component_from_folder(folder_path) -> Component: #note this is not a method 
     
     '''Loads the state of a component from a folder path'''
     
-    json_str = read_text_from_file(folder_path, f'{CONFIGURATION_FILE_NAME}.json')
+    json_str = read_text_from_file(folder_path, CONFIGURATION_FILE_NAME)
     
     component_to_return = gen_component_from(json_str)
     
@@ -108,11 +108,30 @@ def load_component_with_state_from_folder(folder_path) -> Component: #note this 
     if isinstance(component_to_return, StatefulComponent):        
         component_to_return.load_state_internal()
     
+    component_to_return.pass_input({"artifact_relative_directory" : ''})
+    component_to_return.pass_input({"base_directory" : folder_path})
+    
     return component_to_return
 
 
+def save_state(component : Component) -> None:
 
+    '''
+    Saves the state of this component and child components        
+    '''
+    
+    for child_component in component.child_components:
+        
+        save_state(child_component)
+        
+        if isinstance(child_component, StatefulComponent):
+            child_component.save_state(save_definition=True)
 
+    if isinstance(component, StatefulComponent):
+        component.save_state(save_definition=True)
+        
+
+# TODO: This is wrong
 def save_component_with_state_to_folder(component : ArtifactComponent, folder_path, save_definition=True) -> None:
 
         '''
@@ -134,25 +153,25 @@ def save_component_with_state_to_folder(component : ArtifactComponent, folder_pa
 
 def unload_component(component : Component) -> None:
 
-        '''
-        Saves the state of this component and child components        
-        '''
+    '''
+    Saves the state of this component and child components        
+    '''
+    
+    for child_component in component.child_components:
         
-        for child_component in component.child_components:
+        unload_component(child_component)
+        
+        if isinstance(child_component, StatefulComponent):
+            child_component.on_unload()
             
-            if isinstance(child_component, StatefulComponent):
-                child_component.on_unload()
+    if isinstance(component, StatefulComponent):
+        component.on_unload()
+                
+        
                         
-            save_component_with_state_to_folder(child_component, False)
             
-            if isinstance(child_component, StatefulComponent):
-
-                child_component.save_state(False)
                 
                 
-                
-        if isinstance(component, StatefulComponent):
-            component.save_state(save_definition)
     
 
 
@@ -248,6 +267,6 @@ class StatefulComponentLoader(ArtifactComponent):
         if hasattr(self, 'component_to_save_load'):
             raise Exception("Component is already loaded, cannot load it again")
         
-        self.component_to_save_load = load_component_with_state_from_folder(self.artifact_directory)
+        self.component_to_save_load = load_component_from_folder(self.artifact_directory)
         
         return self.component_to_save_load

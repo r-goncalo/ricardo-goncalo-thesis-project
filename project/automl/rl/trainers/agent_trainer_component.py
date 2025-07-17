@@ -127,7 +127,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             }
         
     
-    # TRAINING_PROCESS ---------------------
+    # TRAINING_PROCESS ----------------------
     
     def reset_training(self):
         
@@ -201,7 +201,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                             
             self._observe_transiction_to(observation, action, reward)
             
-                    
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
             

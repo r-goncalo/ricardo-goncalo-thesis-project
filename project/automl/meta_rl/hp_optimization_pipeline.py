@@ -1,5 +1,7 @@
 import gc
+import os
 from typing import Union
+from unittest import result
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.basic_components.artifact_management import ArtifactComponent
 from automl.basic_components.exec_component import ExecComponent
@@ -12,7 +14,8 @@ from automl.rl.rl_pipeline import RLPipelineComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
-from automl.utils.json_component_utils import gen_component_from_dict,  dict_from_json_string
+from automl.utils.files_utils import write_text_to_file
+from automl.utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, gen_component_from
 
 import optuna
 
@@ -23,11 +26,18 @@ from automl.utils.random_utils import generate_and_setup_a_seed
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 import torch
 
-Component_to_opt_type = Union[ExecComponent, StatefulComponent]
-
-MEMORY_REPORT_FILE = "memory_report.txt"
+from automl.basic_components.state_management import save_state
  
 import copy
+
+from automl.consts import CONFIGURATION_FILE_NAME
+
+TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
+
+MEMORY_REPORT_FILE = "memory_report.txt"
+
+Component_to_opt_type = Union[ExecComponent, StatefulComponent]
+
 
 class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
     
@@ -58,7 +68,49 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                        }
             
 
+    # PARTIAL INITIALIZATION -----------------------------------------------------------------------------
+    
+    
+    def setup_files(self):
+        '''Set ups partially an HP experiment for manual change before usage'''  
+        
+        self._setup_hp_to_optimize_config_file()
+        self._setup_hp_config_file()
+        
+    
+    def _setup_hp_to_optimize_config_file(self):
+        
+        # make sure values for artifact directory generation are set
+        self.setup_default_value_if_no_value("artifact_relative_directory")
+        self.setup_default_value_if_no_value("base_directory")
+        self.setup_default_value_if_no_value("create_new_directory")
+        
+        
+        self.initialize_config_dict() # initializes self.config_dict from the input
+        
+        self_artifact_directory = self.get_artifact_directory() #
+        
+        json_str_of_exp = json_string_of_component_dict(self.config_dict, ignore_defaults=True, save_exposed_values=False)
+        
+        configuration_path = os.path.join(self_artifact_directory, TO_OPTIMIZE_CONFIG_FILE)
+
+        write_text_to_file(self_artifact_directory, TO_OPTIMIZE_CONFIG_FILE, json_str_of_exp, create_new=True)
+            
+        # remove input not supposed to be used
+        self.remove_input("configuration_dict")
+        self.remove_input("configuration_string")
+        self.pass_input({"base_component_configuration_path" : configuration_path})
+            
+    
+    def _setup_hp_config_file(self):
+        
+        self.save_configuration(save_exposed_values=True) 
+        
+        
+                
+    
     # INITIALIZATION -----------------------------------------------------------------------------
+
 
     def proccess_input_internal(self): # this is the best method to have initialization done right after
                 
@@ -80,7 +132,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         #self.results_lg : ResultLogger = self.initialize_child_component(ResultLogger, { "artifact_relative_directory" : "",
         #    "results_columns" : ['experiment', *parameter_names, "result"]})
         
-        self.add_to_columns_of_results_logger([*parameter_names, "result"])
+        self.add_to_columns_of_results_logger(["experiment", "step", *parameter_names, "result"])
                 
         self.suggested_values = { parameter_name : 0 for parameter_name in parameter_names}
         
@@ -201,9 +253,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         component_to_opt.pass_input({"name" : name, "base_directory" : self.artifact_directory})  
         
-        if isinstance(component_to_opt, ComponentWithEvaluator):
-            component_to_opt.pass_input({"component_evaluator" : self.evaluator_component})
-        
         self.lg.writeLine(f"Created component with name {name}")
         
         return component_to_opt
@@ -319,7 +368,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: \n{evaluation_results}")
 
-                trial.report(evaluation_results["result"], step)
+                result = evaluation_results["result"]
+
+                trial.report(result, step)
+                
+                results_to_log = {'experiment' : trial.number, "step" : step, **self.suggested_values, "result" : [result]}
+                       
+                self.log_results(results_to_log)                
 
                 if trial.should_prune():
                     self.lg.writeLine("Prunning current experiment dues to pruner...")
@@ -340,15 +395,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
         
         '''Called when a trial is over'''        
-                
-        result = trial.value
-        
-        results_to_log = {'experiment' : trial.number, **self.suggested_values, "result" : [result]}
-        
-        print(f"Logging results for trial {trial.number}: {results_to_log}")
-               
-        self.log_results(results_to_log)
-        
+                        
         self.unload_component_to_test(trial)
 
                     

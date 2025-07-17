@@ -1,19 +1,14 @@
 import os
 import traceback
-from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import InputSignature, Component, requires_input_proccess
-from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
+from automl.component import InputSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
-from automl.ml.optimizers.optimizer_components import AdamOptimizer
-from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
-from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.environment_components import EnvironmentComponent
-from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
-from automl.utils.files_utils import open_or_create_folder
 from automl.basic_components.state_management import StatefulComponent
 
+from pyparsing import Dict
 import torch
 
 import gc
@@ -23,5 +18,140 @@ from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
 
 # TODO this is missing the evaluation component on a RLPipeline
-class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator):
-    pass
+class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
+    
+    
+    parameters_signature = {
+                                                                                       
+                       "environment" :  ComponentInputSignature(),
+                       "agents" : InputSignature(),
+                       "num_episodes" : InputSignature(default_value=1),
+                       "limit_steps" : InputSignature(default_value=-1),
+
+                       
+                       }
+    
+
+    exposed_values = {"total_steps" : 0,
+                      "episode_steps" : 0,
+                      "episodes_done" : 0,
+                      "total_score" : 0,
+                      "episode_score" : 0
+                      } 
+    
+    results_columns = ["episode", "total_reward", "episode_steps", "avg_reward"]
+
+    
+    def proccess_input_internal(self): #this is the best method to have initialization done right after
+        
+        super().proccess_input_internal()
+
+        self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
+        self.num_episodes = self.input["num_episodes"]
+        
+        self.limit_steps = self.input["limit_steps"]
+
+        self.__setup_agents()
+
+        
+    def __setup_agents(self):
+        
+        self.agents : Dict[str, AgentSchema] = self.input["agents"]
+        
+    
+    def __setup_episode(self):
+
+        self.values["episode_steps"] = 0
+        self.values["episode_score"] = 0
+        self.env.reset()
+        
+        self.lg.writeLine("Starting episode " + str(self.values["episodes_done"] + 1) + " with agents: " + str(self.agents.keys()))
+        
+        self.lg.writeLine(f"The environment is: {self.env.name} with info: {self.env.get_env_info()}")
+                
+        for agent in self.agents.values():
+            agent.reset_agent_in_environment(self.env.observe(agent.name))
+
+    def __end_episode(self):
+        self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]
+        self.values["total_score"] = self.values["total_score"] +  self.values["episode_score"]
+        self.values["episodes_done"] = self.values["episodes_done"] + 1
+        
+        self.lg.writeLine(f"Finished episode {self.values['episodes_done']} with results: {self.values}")
+        
+        self.calculate_and_log_results()
+
+
+    def __run_episode(self):
+        
+        for agent_name in self.env.agent_iter():
+            
+            reward, done = self.__do_agent_step(agent_name)
+            
+            for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
+                if other_agent_name != agent_name:
+                    self.agents[other_agent_name].observe_new_state(self.env)
+                    
+            self.values["episode_steps"] = self.values["episode_steps"] + 1
+            self.values["episode_score"] = self.values["episode_score"] + reward
+                            
+            if done:
+                break
+            if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
+                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+                break
+            
+            
+    def __do_agent_step(self, agent_name):
+        
+        agent : AgentSchema = self.agents[agent_name]
+        
+        observation = self.env.observe(agent_name)
+        
+        with torch.no_grad():                
+            action = agent.policy_predict(observation) # decides the next action to take (can be random)
+                
+        self.env.step(action.item()) #makes the game proccess the action that was taken
+                
+        observation, reward, done, info = self.env.last()
+                        
+        self.values["episode_score"] = self.values["episode_score"] + reward
+                      
+        self.values["episode_steps"] = self.values["episode_steps"] + 1
+        self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step
+        
+        return reward, done
+    
+    
+    @requires_input_proccess
+    def play(self):
+        
+        for ep in range(self.num_episodes):
+
+            self.__setup_episode()
+
+            self.__run_episode()
+
+            self.__end_episode()
+
+
+    # RESULTS LOGGING --------------------------------------------------------------------------------
+    
+    def calculate_results(self):
+                
+        return {
+            "episode" : [self.values["episodes_done"]],
+            "total_reward" : [self.values["episode_score"]],
+            "episode_steps" : [self.values["episode_steps"]], 
+            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
+            }
+        
+
+
+
+    def algorithm(self):
+        self.play()        
+        
+    
+
+        

@@ -112,6 +112,7 @@ class ComponentWithResults(ArtifactComponent):
         '''
             Used internally to log the results of a component with results
         '''
+                
         self.__results_loggers[key].log_results(results)
         
         

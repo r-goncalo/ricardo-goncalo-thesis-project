@@ -39,10 +39,16 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
 
 
 def write_text_to_file(dir, filename, text : str, create_new=True):
+    
     full_path = os.path.join(dir, filename)
+    
+    dir = os.path.dirname(full_path)
+    
+    os.makedirs(dir, exist_ok=True)
 
     # If the file doesn't exist and create_new is True, create it
     if not os.path.exists(full_path):
+        
         if create_new:
             with open(full_path, 'w') as f:
                 f.write("")
@@ -51,7 +57,7 @@ def write_text_to_file(dir, filename, text : str, create_new=True):
 
     # Append the text to the file
     with open(full_path, 'a') as f:
-        f.write(text + "\n")
+        f.write(text)
 
 
     

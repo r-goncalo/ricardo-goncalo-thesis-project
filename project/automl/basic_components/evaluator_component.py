@@ -1,6 +1,7 @@
 
 
 from automl.component import Component, requires_input_proccess
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.core.input_management import InputSignature
 
 from abc import abstractmethod
@@ -47,7 +48,7 @@ class ComponentWithEvaluator(Component):
     '''
     
     parameters_signature = {
-        "component_evaluator" : InputSignature(mandatory=True),
+        "component_evaluator" : ComponentInputSignature(mandatory=False),
     }
     
     def __init__(self, *args, **kwargs):
@@ -59,17 +60,31 @@ class ComponentWithEvaluator(Component):
         
         super().proccess_input_internal()
         
-        self.component_evaluator : EvaluatorComponent = self.input["component_evaluator"]
+        if "component_evaluator" not in self.input.keys():
+            self.component_evaluator = None
         
+        else:
+            self.component_evaluator : EvaluatorComponent = ComponentInputSignature.get_component_from_input(self, "component_evaluator")        
     
     def evaluate_this_component(self) -> dict:
         
         '''
         Evaluates this component using its evaluator
         '''
+        
+        if self.component_evaluator is None:
+            raise Exception("This component does not have an evaluator")
+        
         self.last_evaluation = self.component_evaluator.evaluate(self)
         
         return self.last_evaluation
     
     def get_last_evaluation(self):
+        
+        if self.component_evaluator is None:
+            raise Exception("This component does not have an evaluator")
+        
+        elif not self.last_evaluation:
+            raise Exception("This component has not been evaluated yet")
+        
         return self.last_evaluation

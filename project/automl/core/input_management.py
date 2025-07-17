@@ -55,6 +55,15 @@ class InputMetaData():
     def custom_value_passed(self):
         self.origin = InputMetaData.InputOrigin.PASSED
         
+    def custom_value_removed(self):
+        self.origin = InputMetaData.InputOrigin.DEFAULT
+        
+    def default_value_was_set(self):
+        self.origin = InputMetaData.InputOrigin.DEFAULT
+        
+    def generator_value_was_set(self):
+        self.origin = InputMetaData.InputOrigin.DEFAULT
+        
     def was_custom_value_passed(self):
         return self.origin == InputMetaData.InputOrigin.PASSED
     
