@@ -19,7 +19,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
                         "device" : InputSignature(ignore_at_serialization=True),
                         
-                       "num_episodes" : InputSignature(),
+                       "num_episodes" : InputSignature(default_value=-1),
+                       "limit_total_steps" : InputSignature(default_value=-1),
                        "environment" : InputSignature(),
                        
                        "agents" : InputSignature(),
@@ -27,7 +28,6 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                        "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
                        "limit_steps" : InputSignature(default_value=-1),
-                       "optimization_interval" : InputSignature(),
                        "save_interval" : InputSignature(default_value=100)
                        
                        }
@@ -38,7 +38,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                       "episode_score" : 0
                       } #this means we'll have a dic "values" with this starting values
     
-    results_columns = ["episode", "episode_steps", "avg_reward", "total_reward"]
+    results_columns = ["episode", "episode_steps", "avg_reward", "total_reward", "total_steps"]
 
     def proccess_input_internal(self): #this is the best method to have initialization done right after
         
@@ -47,18 +47,26 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         self.device = self.input["device"]
     
         self.limit_steps = self.input["limit_steps"]
-        self.num_episodes = self.input["num_episodes"]  
+        
+        self._initialize_limit_numbers()
         
         self.env : EnvironmentComponent = self.input["environment"]
-        
-        self.optimization_interval = self.input["optimization_interval"]
-    
+            
         self.save_interval = self.input["save_interval"]
 
         self.values["episodes_done"] = 0
         self.values["total_steps"] = 0
         
         self.setup_agents()
+        
+        
+    def _initialize_limit_numbers(self):
+        
+        self.limit_total_steps = self.input["limit_total_steps"]
+        self.num_episodes = self.input["num_episodes"]  
+        
+        if self.limit_total_steps <= 0 and self.num_episodes <= 0:
+            raise Exception("No stop condition defined")
         
         
     
@@ -76,7 +84,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
                 
-                agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agents[key], "optimization_interval" : self.optimization_interval} 
+                agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agents[key]} 
                 
                 agent_trainer = self.initialize_child_component(self.input["default_trainer_class"], agent_trainer_input_in_creation)
                 
@@ -97,7 +105,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             "episode" : [self.values["episodes_done"]],
             "total_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
+            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
+            "total_steps" : [self.values["total_steps"]]
             }
     
 
@@ -121,9 +130,10 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_training_session() 
             
-                    
-        #each episode is an instance of playing the game
-        for _ in range(self.num_episodes):
+            
+        current_episode_internal = 0
+        
+        while True: # loop of episodes and check end conditions
             
             self.__run_episode(self.values["episodes_done"])
             
@@ -133,6 +143,15 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             self.values["episodes_done"] = self.values["episodes_done"] + 1
             
             self.calculate_and_log_results()
+            
+            current_episode_internal += 1
+            
+            if self.num_episodes >= 1 and current_episode_internal >= self.num_episodes:
+                self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
+                break
+            
+            if self.limit_total_steps >= 1 and self.values["total_steps"] >= self.limit_total_steps:
+                break
                 
             
         for agent_in_training in self.agents_in_training.values():
@@ -163,13 +182,19 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                     self.agents_in_training[other_agent_name].observe_new_state(self.env)
                     
             self.values["episode_steps"] = self.values["episode_steps"] + 1
+            self.values["total_steps"] = self.values["total_steps"] + 1
+            
             self.values["episode_score"] = self.values["episode_score"] + reward
                             
             if done:
                 break
+            
             if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
                 self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
                 break
+            
+            if self.limit_total_steps >= 1 and self.values["total_steps"] >= self.limit_total_steps:
+                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached total step " + str(self.values["total_steps"]) + " that is beyond the current limit, " + str(self.limit_total_steps))
             
         
                    

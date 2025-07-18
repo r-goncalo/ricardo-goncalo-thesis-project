@@ -28,6 +28,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     parameters_signature = {
         
                        "optimization_interval" : InputSignature(),
+                       
+                       "times_to_learn" : InputSignature(default_value=1), 
+                       
+                       "learning_start_ep_delay" : InputSignature(default_value=-1),
                        "save_interval" : InputSignature(default_value=100),
                         
                        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
@@ -52,7 +56,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                       "episode_steps" : 0,
                       "episodes_done" : 0,
                       "total_score" : 0,
-                      "episode_score" : 0
+                      "episode_score" : 0,
                       } #this means we'll have a dic "values" with this starting values
     
     results_columns = ["episode", "total_reward", "episode_steps", "avg_reward"]
@@ -73,6 +77,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
         self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
         self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
+                              
+        self.times_to_learn = self.input["times_to_learn"]    
+        
+        self._initialize_delays()                  
                                 
         self.initialize_agent()
         self.initialize_learner()
@@ -83,6 +91,11 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
 
     # INITIALIZATION ---------------------------------------------
+    
+    def _initialize_delays(self):
+        
+        self.learning_start_ep_delay = self.input["learning_start_ep_delay"]
+        
     
     def initialize_agent(self):
     
@@ -178,7 +191,20 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.lg.writeLine("Ended episode: " + str(self.values["episodes_done"]) + " with duration: " + str(self.values["episode_steps"]) + ", total reward: " + str(self.values["episode_score"]), file=self.TRAIN_LOG)
         
         self.calculate_and_log_results()
+    
+    def _learn_if_needed(self, i_episode):
         
+        can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or i_episode >= self.learning_start_ep_delay
+        
+        if can_learn_by_ep_delay:          
+        
+            if self.values["total_steps"] % self.optimization_interval == 0:
+                
+                self.lg.writeLine(f"In episode {i_episode}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
+                
+                for _ in range(self.times_to_learn):
+                    self.optimizeAgent()
+            
         
     @requires_input_proccess
     def do_training_step(self, i_episode, env : EnvironmentComponent):
@@ -204,10 +230,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
             
-            if self.values["total_steps"] % self.optimization_interval == 0:
-                
-                self.lg.writeLine(f"In episode {i_episode}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
-                self.optimizeAgent()
+            self._learn_if_needed(i_episode) # uses the learning strategy to learn if it verifies the conditions to do so
                 
             return reward, done
          

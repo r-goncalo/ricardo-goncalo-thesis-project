@@ -24,7 +24,8 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
     parameters_signature = {
                                
                         "target_update_rate" : InputSignature(default_value=0.05),
-                        "update_target_at_optimization" : InputSignature(default_value=True),
+                        "target_update_learn_interval" : InputSignature(default_value=1),
+                        
                         "device" : InputSignature(ignore_at_serialization=True),
                         
                         "optimizer" : ComponentInputSignature(
@@ -52,11 +53,13 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         self.TAU = self.input["target_update_rate"] #the update rate of the target network
         
-        self.update_target_at_optimization = self.input["update_target_at_optimization"]
+        self.target_update_learn_interval = self.input["target_update_learn_interval"]
         
         self.policy : Policy = self.agent.get_policy()
         
         self.model = self.policy.model
+        
+        self.number_optimizations_done = 0
         
         self.initialize_target_network()
         self.initialize_optimizer()
@@ -131,7 +134,9 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         #Optimizes the model given the optimizer defined
         self.optimizer.optimize_model(state_action_values.squeeze(-1), next_state_values)        
         
-        if self.update_target_at_optimization:
+        self.number_optimizations_done += 1
+        
+        if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()
         
         

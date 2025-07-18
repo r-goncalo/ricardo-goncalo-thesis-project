@@ -42,6 +42,7 @@ class ArtifactComponent(Component):
                         
                         "base_directory" : InputSignature(
                             priority=2,
+                            ignore_at_serialization=True,
                             default_value='',
                             on_pass=on_artifact_directory_change,
                             description='This path is used as basis to calculate the artifact directory of a component'
