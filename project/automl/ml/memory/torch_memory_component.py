@@ -1,131 +1,156 @@
 
 
 from collections import namedtuple
+from typing import Iterable
 from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
+from automl.utils.maths import nearest_highest_multiple, nearest_multiple
 from automl.utils.shapes_util import discrete_output_layer_size_of_space
 import torch
 from automl.ml.memory.memory_components import MemoryComponent
 
 
-class TorchMemoryComponent(MemoryComponent, ComponentWithLogging, StatefulComponent):
-    pass
+import os
+import torch
+import numpy as np
+from pathlib import Path
+
+from automl.basic_components.state_management import StatefulComponent
+from automl.component import Component, requires_input_proccess
+from automl.core.input_management import InputSignature
+from automl.loggers.logger_component import ComponentWithLogging
+from automl.utils.shapes_util import discrete_output_layer_size_of_space
+from automl.ml.memory.memory_components import MemoryComponent
+
+
+class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
+
+    parameters_signature = {
+        "capacity": InputSignature(default_value=1_000),
+        "device": InputSignature(default_value="cuda"),
+    }
     
-#    parameters_signature = {
-#        "capacity": InputSignature(default_value=1000),
-#        "state_dim": InputSignature(),      # e.g. 4
-#        "action_dim": InputSignature(),     # e.g. 1
-#        "device": InputSignature(default_value="cuda"),
-#        "dtype": InputSignature(default_value=torch.float32)
-#    }
-#
-#
-#    def proccess_input_internal(self):
-#        super().proccess_input_internal()
-#        
-#        self.capacity = self.input["capacity"]
-#        self.state_dim = self.input["state_dim"]
-#        self.action_dim = self.input["action_dim"]
-#        self.device = self.input["device"]
-#        self.dtype = self.input["dtype"]
-#        
-#        print(f"State dim: {self.state_dim}")
-#        print(f"Action dim: {self.action_dim}")
-#        
-#        self.lg.writeLine("Initializing torch memory component...")
-#        
-#        if torch.cuda.is_available():
-#            mem_alloc = torch.cuda.memory_allocated(device=self.device)
-#            mem_reserved = torch.cuda.memory_reserved(device=self.device)
-#            
-#            self.lg.writeLine(f"Current memory allocated in device: {mem_alloc} MB")
-#            self.lg.writeLine(f"Current memory reserved in the device: {mem_reserved} MB")
-#        
-#
-#        # Pre-allocate memory on GPU
-#        self.states = torch.zeros((self.capacity, *self.state_dim), 
-#                                  device=self.device, dtype=self.dtype)
-#        self.actions = torch.zeros((self.capacity, discrete_output_layer_size_of_space(self.action_dim)), # TODO: this assumes a single value comming from this function
-#                                   device=self.device, dtype=self.dtype)
-#        self.next_states = torch.zeros((self.capacity, *self.state_dim), 
-#                                       device=self.device, dtype=self.dtype)
-#        self.rewards = torch.zeros((self.capacity, 1), 
-#                                   device=self.device, dtype=self.dtype)
-#        
-#        self.position = 0
-#        self.size = 0
-#        
-#
-#        self.lg.writeLine("Finished initializing torch memory component...")
-#        
-#        if torch.cuda.is_available():
-#            new_mem_alloc = torch.cuda.memory_allocated(device=self.device)
-#            new_mem_reserved = torch.cuda.memory_reserved(device=self.device)
-#            
-#            dif_mem_alloc = new_mem_alloc - mem_alloc
-#            dif_mem_reserved = new_mem_reserved - mem_reserved
-#            
-#            self.lg.writeLine(f"Current memory allocated in device: {new_mem_alloc} B, difference of {dif_mem_alloc / 1024 / 1024} MB")
-#            self.lg.writeLine(f"Current memory reserved in the device: {new_mem_reserved} B, difference of {dif_mem_reserved / 1024 / 1024} MB")
-#
-#    @requires_input_proccess
-#    def push(self, state, action, next_state, reward):
-#        idx = self.position
-#
-#        self.states[idx].copy_(state)
-#        self.actions[idx] = action
-#        self.next_states[idx].copy_(next_state)
-#        self.rewards[idx] = reward
-#
-#        self.position = (self.position + 1) % self.capacity
-#        if self.size < self.capacity:
-#            self.size += 1
-#
-#    @requires_input_proccess
-#    def sample(self, batch_size):
-#        indices = torch.randint(0, self.size, (batch_size - 1,), device=self.device)
-#
-#        batch = self.Transition(
-#            state=self.states[indices],
-#            action=self.actions[indices],
-#            next_state=self.next_states[indices],
-#            reward=self.rewards[indices],
-#        )
-#        return batch # TODO: this has a different form of normal memory sample, it is wrong
-#    
-#    @requires_input_proccess
-#    def sample_transposed(self, batch_size):
-#        indices = torch.randint(0, self.size, (batch_size - 1,), device=self.device)
-#
-#        batch = self.Transition(
-#            state=self.states[indices],
-#            action=self.actions[indices],
-#            next_state=self.next_states[indices],
-#            reward=self.rewards[indices],
-#        )
-#        return batch
-#        
-#
-#    @requires_input_proccess
-#    def clear(self):
-#        self.position = 0
-#        self.size = 0
-#
-#    @requires_input_proccess
-#    def get_all(self):
-#        """
-#        Return all stored transitions as a Transition tuple of tensors.
-#        """
-#        idxs = torch.arange(0, self.size, device=self.device)
-#        return self.Transition(
-#            state=self.states[idxs],
-#            action=self.actions[idxs],
-#            next_state=self.next_states[idxs],
-#            reward=self.rewards[idxs]
-#        )
-#
-#    @requires_input_proccess
-#    def __len__(self):
-#        return self.size
+
+    def proccess_input_internal(self):
+        super().proccess_input_internal()
+        
+        self.device = self.input["device"]
+
+        self.lg.writeLine("Initializing TorchMemoryComponent...")
+
+        self.allocate_computer_memory_to_transitions()
+        
+        self.capacity = self.input["capacity"]
+
+        self.position = 0
+        self.total_size = 0
+        
+        self.lg.writeLine("TorchMemoryComponent initialized.")
+        
+        
+        
+    def allocate_computer_memory_to_transitions(self):
+        
+        '''Allocates the necessary space '''
+        
+        self.transitions = self._allocate_computer_memory_to_transitions_dictionary() # transitions saved in memory        
+        
+            
+            
+    def _allocate_computer_memory_to_transitions_dictionary(self):
+            
+        transitions : dict[str, torch.Tensor] = {}
+        
+        for field_name, field_shape, data_type in self.fields_shapes:
+            
+            if not isinstance(field_shape, Iterable):
+                field_shape = (field_shape,)
+                
+            #normally it would be state, action, next_state and reward 
+            
+            if data_type == None:
+                   
+                transitions[field_name] = torch.zeros((self.capacity, *field_shape),
+                                                       device=self.device)
+            else:
+                transitions[field_name] = torch.zeros((self.capacity, *field_shape),
+                                                       device=self.device, dtype=data_type)
+            
+        return transitions
+            
+        
+
+    @requires_input_proccess
+    def push(self, transition):
+        
+        idx = self.position
+
+        for field_name in self.field_names:
+                        
+            self.transitions[field_name][idx].copy_(transition[field_name])
+
+        self.position = (self.position + 1) % self.capacity
+        
+        if self.total_size < self.capacity:
+             self.total_size += 1
+        
+    
+
+    @requires_input_proccess
+    def sample(self, batch_size):
+        
+        if len(self) < batch_size:
+            raise ValueError("Not enough transitions to sample.")
+        
+        indices = torch.randint(0, self.total_size, (batch_size,), device=self.device)
+                
+        batch_data = {
+            field_name: self.transitions[field_name][indices].cpu()
+            for field_name in self.field_names
+        }
+        
+
+        batch = self.Transition(**batch_data)
+        
+        return batch
+
+
+
+    @requires_input_proccess
+    def sample_transposed(self, batch_size):
+        batch = self.sample(batch_size)
+        return self.Transition(*batch)
+        
+        
+    def _transitions_to_str(self, transitions_dict : dict[str, torch.Tensor], size, transitions_to_save):
+        
+        str_to_return = "" 
+        
+        for i in range(size): # for each row
+        
+            for field_name in transitions_to_save:    
+            
+                str_to_return += f"{field_name}: {transitions_dict[field_name][i]} "
+                
+            str_to_return += "\n"
+            
+        return str_to_return
+            
+            
+         
+
+    @requires_input_proccess
+    def clear(self):
+        
+        '''Logicaly cleans the memory, without doing any deletion operation'''
+        
+        self.position = 0
+        self.disk_file_position = 0
+        
+        self.created_files = 0
+        
+        
+    def __len__(self):
+        return self.total_size
