@@ -192,15 +192,15 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         self.calculate_and_log_results()
     
-    def _learn_if_needed(self, i_episode):
+    def _learn_if_needed(self):
         
-        can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or i_episode >= self.learning_start_ep_delay
+        can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episode_done"] >= self.learning_start_ep_delay
         
         if can_learn_by_ep_delay:          
         
             if self.values["total_steps"] % self.optimization_interval == 0:
                 
-                self.lg.writeLine(f"In episode {i_episode}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
+                self.lg.writeLine(f"In episode (total) {self.values['episode_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
                 
                 for _ in range(self.times_to_learn):
                     self.optimizeAgent()
@@ -230,7 +230,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
             
-            self._learn_if_needed(i_episode) # uses the learning strategy to learn if it verifies the conditions to do so
+            self._learn_if_needed() # uses the learning strategy to learn if it verifies the conditions to do so
                 
             return reward, done
          
