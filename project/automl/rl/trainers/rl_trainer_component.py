@@ -35,7 +35,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     exposed_values = {"total_steps" : 0,
                       "episode_steps" : 0,
                       "episodes_done" : 0,
-                      "episode_score" : 0
+                      "episode_score" : 0,
+                      "episode_done_in_session" : 0,
+                      "steps_done_in_session" : 0
                       } #this means we'll have a dic "values" with this starting values
     
     results_columns = ["episode", "episode_steps", "avg_reward", "total_reward", "total_steps"]
@@ -112,6 +114,33 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
     # TRAINING_PROCESS -------------------------------------------------------------------------------
 
+    def _check_if_to_end_episode(self):
+
+        
+        if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
+            
+            self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+            return True
+            
+        if self.limit_total_steps >= 1 and self.values["steps_done_in_session"] >= self.limit_total_steps:
+            return True
+            
+        
+        return False
+    
+
+    def _check_if_to_end_training_session(self):
+
+        
+        if self.num_episodes >= 1 and self.input["episode_done_in_session"] >= self.num_episodes:
+            self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
+            return True
+        
+        if self.limit_total_steps >= 1 and self.values["steps_done_in_session"] >= self.limit_total_steps:
+            return True
+        
+        return False
+
 
     @requires_input_proccess
     def run_episodes(self):
@@ -131,7 +160,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             agent_in_training.setup_training_session() 
             
             
-        current_episode_internal = 0
+        self.values["episode_done_in_session"] = 0
+        self.values["steps_done_in_session"] = 0
         
         while True: # loop of episodes and check end conditions
             
@@ -144,14 +174,11 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             
             self.calculate_and_log_results()
             
-            current_episode_internal += 1
+            self.values["episode_done_in_session"]
             
-            if self.num_episodes >= 1 and current_episode_internal >= self.num_episodes:
-                self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
+            if self._check_if_to_end_training_session():
                 break
-            
-            if self.limit_total_steps >= 1 and self.values["total_steps"] >= self.limit_total_steps:
-                break
+        
                 
             
         for agent_in_training in self.agents_in_training.values():
@@ -183,18 +210,12 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                     
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1
+            self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
             
             self.values["episode_score"] = self.values["episode_score"] + reward
-                            
-            if done:
-                break
             
-            if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
-                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+            if done or self._check_if_to_end_episode():
                 break
-            
-            if self.limit_total_steps >= 1 and self.values["total_steps"] >= self.limit_total_steps:
-                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached total step " + str(self.values["total_steps"]) + " that is beyond the current limit, " + str(self.limit_total_steps))
             
         
                    

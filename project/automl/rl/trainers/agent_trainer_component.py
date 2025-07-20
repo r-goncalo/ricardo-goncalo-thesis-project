@@ -194,7 +194,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     def _learn_if_needed(self):
         
-        can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episode_done"] >= self.learning_start_ep_delay
+        can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episodes_done"] >= self.learning_start_ep_delay
         
         if can_learn_by_ep_delay:          
         
