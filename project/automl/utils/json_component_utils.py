@@ -201,7 +201,7 @@ def decode_a_component_element(source_component : Component, component_element_d
     
 
 def decode_a_non_component_element(element_dict : dict):
-    
+        
     element_type_str = element_dict["__type__"]
     
     element_type = get_class_from(element_type_str)
@@ -211,6 +211,7 @@ def decode_a_non_component_element(element_dict : dict):
         if "object" in element_dict.keys():
             
             instanced_object = element_type.from_dict(element_dict["object"])
+                        
             return instanced_object
         
         else:
@@ -254,9 +255,9 @@ def decode_components_input_element(source_component : Component, element):
                 
     
     elif isinstance(element, list):
-        
+                
         return [decode_components_input_element(source_component, value) for value in element]
-    
+            
     else:
         return element
     
@@ -301,7 +302,7 @@ def decode_components_input(component : Component, source_component : Component,
         child_component = component.child_components[i]
             
         decode_components_input(child_component, source_component, component_dict["child_components"][i])
-        
+                
 
 def decode_components_from_dict(dict : dict):
     
@@ -328,7 +329,6 @@ def decode_components_from_dict(dict : dict):
                 component.define_component_as_child(decoded_child_component)
     
     except Exception as e:
-        print(f"Exception on decoding child components of component named {component_name} with type {component_type_name}")
         raise e
             
     return component
@@ -368,7 +368,7 @@ def component_from_json_string(json_string) -> Component:
     '''Returns a component, reading it from a json_string'''
     
     dict_representation = dict_from_json_string(json_string)
-    
+        
     return gen_component_from_dict(dict_representation)
 
 
@@ -442,7 +442,7 @@ def gen_component_in_file_path(file_path):
 
     with open(file_path, 'r') as f:
         str_to_gen_from = f.read()
-    
+            
     return gen_component_from(str_to_gen_from)
     
     

@@ -129,16 +129,18 @@ def get_configuration_dict(*args, mockup, **kwargs):
         return load_configuration_dict('basic_dqn', *args, **kwargs)
 
 
-def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict, num_trials=20, directory='data\\experiments', evaluator=None, mockup=False):
+def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict=None, num_trials=20, directory='data\\experiments', evaluator=None, mockup=False):
 
     hp_opt_input = {
-    "configuration_dict" : configuration_dict,
     "hyperparameters_range_list" : hyperparameters_to_change,
     "n_trials" : num_trials,
     "steps" : 2,
     "pruner" : optuna.pruners.PercentilePruner(percentile=25.0),
     "base_directory" :  directory,
     }
+    
+    if configuration_dict != None:
+        hp_opt_input["configuration_dict"] = configuration_dict
     
     if evaluator is not None:
         hp_opt_input["evaluator_component"] = evaluator

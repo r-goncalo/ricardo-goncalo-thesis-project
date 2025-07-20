@@ -148,7 +148,7 @@ class HyperparameterSuggestion():
             
             
     def from_dict(dict):
-        
+                
         return HyperparameterSuggestion(dict["name"], dict["localizations"], dict["suggestion"])
         
         

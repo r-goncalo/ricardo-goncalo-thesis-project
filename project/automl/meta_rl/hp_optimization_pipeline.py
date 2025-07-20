@@ -72,7 +72,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
     def setup_files(self):
+        
         '''Set ups partially an HP experiment for manual change before usage'''  
+        
+        print(f"Setting up files with input: \n{self.input}")
         
         self._setup_hp_to_optimize_config_file()
         self._setup_hp_config_file()
