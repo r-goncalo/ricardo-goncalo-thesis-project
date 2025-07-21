@@ -230,11 +230,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         if passed_pruner_str == "Median":
             
-                self.pruning_strategy = optuna.pruners.MedianPruner(pruner_input)
+                self.pruning_strategy = optuna.pruners.MedianPruner(**pruner_input)
                 
         elif passed_pruner_str == "PercentilePruner":
             
-                self.pruning_strategy = optuna.pruners.PercentilePruner(pruner_input)
+                self.pruning_strategy = optuna.pruners.PercentilePruner(**pruner_input)
         
         else:
             raise NotImplementedError(f"Pruner '{passed_pruner_str}' is not implemented")
