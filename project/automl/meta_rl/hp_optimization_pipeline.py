@@ -59,6 +59,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         
                         "steps" : InputSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
                         "pruner" : InputSignature(mandatory=False),
+                        "pruner_input" : InputSignature(mandatory=False),
                         
                         "evaluator_component" : ComponentInputSignature(
                             default_component_definition=(LastValuesAvgStdEvaluator, {}),
@@ -194,24 +195,47 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
         
-        
     def initialize_pruning_strategy(self):
+        
+        passed_pruner = self.input["pruner"]
         
         if 'pruner' in self.input.keys():
                         
-            if isinstance(self.input["pruner"], optuna.pruners.BasePruner):
+            if isinstance(passed_pruner, optuna.pruners.BasePruner):
+                
+                self.lg.writeLine(f"Passed instanced pruner of type: {type(passed_pruner)}")
+                self.pruning_strategy = passed_pruner
             
-                self.pruning_strategy = self.input["pruner"]
+            elif isinstance(passed_pruner, str):
             
-            elif self.input["pruner"] == "Median":
-            
-                self.pruning_strategy = optuna.pruners.MedianPruner()
+                self._initialize_pruner_from_string(passed_pruner)
+                self.lg.writeLine(f"Passed pruner string: {passed_pruner}")
         
             else:
-                raise NotImplementedError(f"Pruner '{self.input['pruner']}' is not implemented")
+                raise NotImplementedError(f"Pruner type {type(passed_pruner)} is not implemented")
         
         else:
-            self.lg.writeLine("Won't use prunning strategy")
+            self.lg.writeLine("Won't use prunning strategy, none passed")
+            
+            
+        
+    def _initialize_pruner_from_string(self, passed_pruner_str : str):
+        
+        pruner_input = {}
+        
+        if "pruner_input" in self.input.keys():
+            pruner_input = {**pruner_input, **self.input["pruner_input"]}
+        
+        if passed_pruner_str == "Median":
+            
+                self.pruning_strategy = optuna.pruners.MedianPruner(pruner_input)
+                
+        elif passed_pruner_str == "PercentilePruner":
+            
+                self.pruning_strategy = optuna.pruners.PercentilePruner(pruner_input)
+        
+        else:
+            raise NotImplementedError(f"Pruner '{passed_pruner_str}' is not implemented")
     
     
         

@@ -1,0 +1,49 @@
+
+from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
+from automl.utils.json_component_utils import gen_component_from_path
+
+
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_episodes=1000, num_trials=20, num_steps=2):
+    
+    # the input for the hp optimization pipeline component
+    hp_pipeline_input = {}
+    
+    if to_optimize_configuration_path != None:
+        hp_pipeline_input["base_component_configuration_path"] = to_optimize_configuration_path
+    
+    hp_pipeline_input["base_directory"] = path_to_store_experiment
+    
+    
+    # generate hp optimization pipeline component
+    hp_optimization_pipeline : HyperparameterOptimizationPipeline = gen_component_from_path(hp_configuration_path)
+    
+    #pass the defined input
+    hp_optimization_pipeline.pass_input(hp_pipeline_input)
+    
+    hp_optimization_pipeline.run()
+    
+    
+
+if __name__ == "__main__":
+
+    import argparse
+    parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
+    
+    parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
+    parser.add_argument("--num_trials", type=int, default=20, help="Number of trials to run.")
+    parser.add_argument("--num_steps", type=int, default=4, help="Number of trials to run.")
+    
+    parser.add_argument("--path_to_store_experiment", type=str, default='.\\data\\experiments', help="Directory to save results.")
+
+    parser.add_argument("--hp_configuration_path", type=str, default='.\\configuration.json', help="Path to config of hp experiment.")
+    parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
+
+
+    args = parser.parse_args()
+
+    main(num_episodes=args.num_episodes, num_trials=args.num_trials, num_steps=args.num_steps, 
+         path_to_store_experiment=args.path_to_store_experiment, 
+         hp_configuration_path = args.hp_configuration_path,
+         to_optimize_configuration_path = args.to_optimize_configuration_path
+         )
+    
