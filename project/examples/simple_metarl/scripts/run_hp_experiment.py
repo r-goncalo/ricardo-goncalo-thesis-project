@@ -3,7 +3,7 @@ from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPi
 from automl.utils.json_component_utils import gen_component_from_path
 
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_episodes=1000, num_trials=20, num_steps=2):
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
@@ -12,6 +12,12 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
         hp_pipeline_input["base_component_configuration_path"] = to_optimize_configuration_path
     
     hp_pipeline_input["base_directory"] = path_to_store_experiment
+    
+    if num_steps != None:
+        hp_pipeline_input["steps"] = num_steps
+    
+    if num_trials != None:
+        hp_pipeline_input["trials"] = num_trials
     
     
     # generate hp optimization pipeline component
@@ -29,9 +35,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
     
-    parser.add_argument("--num_episodes", type=int, default=12, help="Number of episodes to run.")
-    parser.add_argument("--num_trials", type=int, default=20, help="Number of trials to run.")
-    parser.add_argument("--num_steps", type=int, default=4, help="Number of trials to run.")
+    parser.add_argument("--num_trials", type=int, default=None, help="Number of trials to run.")
+    parser.add_argument("--num_steps", type=int, default=None, help="Number of trials to run.")
     
     parser.add_argument("--path_to_store_experiment", type=str, default='.\\data\\experiments', help="Directory to save results.")
 
