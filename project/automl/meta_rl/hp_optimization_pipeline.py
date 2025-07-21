@@ -197,9 +197,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
     def initialize_pruning_strategy(self):
         
-        passed_pruner = self.input["pruner"]
         
         if 'pruner' in self.input.keys():
+            
+            passed_pruner = self.input["pruner"]
+
                         
             if isinstance(passed_pruner, optuna.pruners.BasePruner):
                 
@@ -297,7 +299,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Creates the component to optimize and and saver / loader for it, returning the component to optimize itself'''
         
-        self.lg.writeLine(f"\Creating component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
+        self.lg.writeLine(f"Creating component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
 
         
         component_to_opt = self.create_component_to_optimize(trial)
