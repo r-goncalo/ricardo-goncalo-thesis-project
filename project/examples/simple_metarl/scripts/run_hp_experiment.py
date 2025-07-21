@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(num_episodes=args.num_episodes, num_trials=args.num_trials, num_steps=args.num_steps, 
+    main(num_trials=args.num_trials, num_steps=args.num_steps, 
          path_to_store_experiment=args.path_to_store_experiment, 
          hp_configuration_path = args.hp_configuration_path,
          to_optimize_configuration_path = args.to_optimize_configuration_path
