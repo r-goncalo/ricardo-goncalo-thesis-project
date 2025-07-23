@@ -51,8 +51,7 @@ def config_dict():
         "device" : "cuda",
         "environment": (GymnasiumEnvironmentWrapper, {"environment" : "MountainCar-v0"}),
         "agents_input": {
-            "state_memory_size" : 2,
-
+            
             "policy" : ( QPolicy,
                         {
                         "model" : (
