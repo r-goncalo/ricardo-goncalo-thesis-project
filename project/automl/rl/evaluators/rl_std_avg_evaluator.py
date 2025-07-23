@@ -18,7 +18,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     parameters_signature = {
         "n_results_to_use" : InputSignature(default_value=10),
         "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
-        "value_to_use" : InputSignature(default_value="total_reward", description="The value to use for evaluation")
+        "value_to_use" : InputSignature(default_value="total_reward", description="The value to use for evaluation, note that a higher value is expected to be a better value")
     }
     
 

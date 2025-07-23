@@ -200,7 +200,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
             if self.values["total_steps"] % self.optimization_interval == 0:
                 
-                self.lg.writeLine(f"In episode (total) {self.values['episode_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
+                self.lg.writeLine(f"In episode (total) {self.values['episodes_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
                 
                 for _ in range(self.times_to_learn):
                     self.optimizeAgent()
