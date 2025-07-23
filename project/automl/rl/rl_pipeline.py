@@ -75,7 +75,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         self.env.proccess_input_if_not_proccesd()
         
-        self.lg.writeLine(f"Starting RL pipeline with environment: {self.env.get_env_name()}")
+        self.lg.writeLine(f"Setting up RL pipeline with environment: {self.env.get_env_name()}")
 
     
     

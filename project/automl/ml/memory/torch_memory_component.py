@@ -107,7 +107,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         indices = torch.randint(0, self.total_size, (batch_size,), device=self.device)
                 
         batch_data = {
-            field_name: self.transitions[field_name][indices].cpu()
+            field_name: self.transitions[field_name][indices]
             for field_name in self.field_names
         }
         

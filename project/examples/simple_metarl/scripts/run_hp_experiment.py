@@ -28,7 +28,7 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     
     hp_optimization_pipeline.run()
     
-    
+
 
 if __name__ == "__main__":
 
