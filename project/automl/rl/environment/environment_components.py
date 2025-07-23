@@ -56,6 +56,10 @@ class EnvironmentComponent(Component):
     def close(self):
         raise NotImplementedError()
     
+    @requires_input_proccess
+    def get_env_name(self):
+        raise NotImplementedError()
+    
      
     
 

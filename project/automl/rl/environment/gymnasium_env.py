@@ -63,6 +63,10 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         
         except Exception as e:
             raise Exception(f"{self.name}: Failed to load gym environment '{environment_name}': {str(e)}")
+        
+        
+    def get_env_name(self):
+        return self.env.spec.id
 
 
     @requires_input_proccess
