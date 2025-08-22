@@ -7,7 +7,26 @@ from automl.utils.class_util import get_class_from
 
 from automl.utils.shapes_util import single_action_shape
 
-class Policy(Component):
+
+class PolicyInterface(Component):
+    
+    '''
+    A policy interface, defining only the methods necessary for a policy
+    This abstracts wrappers and our own implemented strategies
+    '''
+        
+    def get_policy_shape(self):
+        raise NotImplementedError()
+        
+    def predict(self, state):
+        raise NotImplementedError()
+    
+    def random_prediction(self, state):
+        raise NotImplementedError()
+
+
+
+class Policy(PolicyInterface):
         
     '''
     It abstracts the usage of a model for the agent in determining its actions

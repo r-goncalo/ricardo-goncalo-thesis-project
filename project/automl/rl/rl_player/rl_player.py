@@ -8,6 +8,8 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.basic_components.state_management import StatefulComponent
 
+from automl.rl.rl_setup_util import initialize_agents_components
+
 from pyparsing import Dict
 import torch
 
@@ -25,6 +27,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                                                                                        
                        "environment" :  ComponentInputSignature(),
                        "agents" : InputSignature(),
+                       "agents_input" : InputSignature(default_value={}),
                        "num_episodes" : InputSignature(default_value=1),
                        "limit_steps" : InputSignature(default_value=-1),
 
@@ -56,7 +59,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
     def __setup_agents(self):
         
-        self.agents : Dict[str, AgentSchema] = self.input["agents"]
+        self.agents : Dict[str, AgentSchema] = initialize_agents_components(self.input["agents"], self.env, self.input["agents_input"], self)
         
     
     def __setup_episode(self):
@@ -111,7 +114,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         with torch.no_grad():                
             action = agent.policy_predict(observation) # decides the next action to take (can be random)
                 
-        self.env.step(action.item()) #makes the game proccess the action that was taken
+        self.env.step(action) #makes the game proccess the action that was taken
                 
         observation, reward, done, info = self.env.last()
                         

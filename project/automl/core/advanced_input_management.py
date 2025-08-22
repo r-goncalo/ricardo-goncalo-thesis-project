@@ -22,13 +22,7 @@ class ComponentInputSignature(InputSignature):
         
         value = component_with_input.input[key]
         
-        if isinstance(value, Component):
-            component = value
-        
-        else:
-        
-            component = gen_component_from(value)
-            component_with_input.define_component_as_child(component)
+        component = gen_component_from(value, component_with_input)
 
         return component
     

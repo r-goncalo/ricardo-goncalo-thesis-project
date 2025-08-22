@@ -1,0 +1,105 @@
+{
+    "__type__": "<class 'automl.meta_rl.hp_optimization_pipeline.HyperparameterOptimizationPipeline'>",
+    "name": "HyperparameterOptimizationPipeline",
+    "input": {
+        "hyperparameters_range_list": [
+            {
+                "__type__": "<class 'automl.meta_rl.hyperparameter_suggestion.HyperparameterSuggestion'>",
+                "object": {
+                    "name": "discount_factor",
+                    "localizations": [
+                        [
+                            [],
+                            [
+                                "rl_trainer",
+                                1,
+                                "agents_trainers_input",
+                                "discount_factor"
+                            ]
+                        ]
+                    ],
+                    "suggestion": [
+                        "float",
+                        {
+                            "low": 0.98,
+                            "high": 0.999
+                        }
+                    ]
+                }
+            },
+            {
+                "__type__": "<class 'automl.meta_rl.hyperparameter_suggestion.HyperparameterSuggestion'>",
+                "object": {
+                    "name": "hidden_layers",
+                    "localizations": [
+                        [
+                            [],
+                            [
+                                "agents_input",
+                                "policy",
+                                1,
+                                "model",
+                                1,
+                                "hidden_layers"
+                            ]
+                        ]
+                    ],
+                    "suggestion": [
+                        "int",
+                        {
+                            "low": 2,
+                            "high": 3
+                        }
+                    ]
+                }
+            },
+            {
+                "__type__": "<class 'automl.meta_rl.hyperparameter_suggestion.HyperparameterSuggestion'>",
+                "object": {
+                    "name": "learning_rate",
+                    "localizations": [
+                        [
+                            [],
+                            [
+                                "rl_trainer",
+                                1,
+                                "agents_trainers_input",
+                                "learner",
+                                1,
+                                "optimizer",
+                                1,
+                                "learning_rate"
+                            ]
+                        ]
+                    ],
+                    "suggestion": [
+                        "float",
+                        {
+                            "low": 1.5e-3,
+                            "high": 3e-3
+                        }
+                    ]
+                }
+            }
+        ],
+        "n_trials": 40,
+        "steps": 5,
+        "evaluator_component": [
+            "<class 'automl.rl.evaluators.rl_evaluator_player.EvaluatorWithPlayer'>",
+            {
+                "base_evaluator": [
+                    "<class 'automl.rl.evaluators.rl_std_avg_evaluator.LastValuesAvgStdEvaluator'>",
+                    {
+                        "value_to_use": "total_reward" 
+                    }
+                ]
+            }
+        ],
+        "pruner" : "PercentilePruner",
+        "pruner_input" : {"percentile" : 0.25}
+    },
+    "exposed_values": {
+        "running_state": 0,
+        "times_ran": 0
+    }
+}

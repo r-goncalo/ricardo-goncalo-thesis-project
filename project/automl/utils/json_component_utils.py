@@ -400,25 +400,33 @@ def component_from_tuple_definition(tuple_definition) -> Component:
         
         
 
-def gen_component_from(definition :  Union[Component, dict, str, tuple]) -> Component:
+def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_component_for_generated : Component = None) -> Component:
     
-    '''Generates a component from a definition'''
+    '''Generates a component from a definition or returns it if it is already a component'''
 
     if isinstance(definition, Component):
         return definition
     
-    elif isinstance(definition, dict):
-        return gen_component_from_dict(definition)
+    else: # gen component if it was a definition
     
-    elif isinstance(definition, str):
-        return component_from_json_string(definition)
-    
-    elif isinstance(definition, tuple) or isinstance(definition, list):
+        if isinstance(definition, dict):
+            generated_component = gen_component_from_dict(definition)
+
+        elif isinstance(definition, str):
+            generated_component =  component_from_json_string(definition)
+
+        elif isinstance(definition, tuple) or isinstance(definition, list):
+
+            generated_component =  component_from_tuple_definition(definition)
+
+        else:
+            raise Exception(f"Definition is not a Component, dict, str or tuple | list, but {type(definition)}")
         
-        return component_from_tuple_definition(definition)
+        if parent_component_for_generated is not None:
+            parent_component_for_generated.define_component_as_child(generated_component)
     
-    else:
-        raise Exception(f"Definition is not a Component, dict, str or tuple | list, but {type(definition)}")
+        return generated_component
+    
     
 
 def gen_component_from_path(path):
@@ -444,7 +452,6 @@ def gen_component_in_file_path(file_path):
         str_to_gen_from = f.read()
             
     return gen_component_from(str_to_gen_from)
-    
     
     
         

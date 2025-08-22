@@ -31,7 +31,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        "action_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
                                               
                        "policy" : ComponentInputSignature(
-                            priority=100, mandatory=False, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
+                            priority=100, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
                        ),
                        
                     }

@@ -109,6 +109,9 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
 
 
     def step(self, action):
+        
+        if isinstance(action, torch.Tensor):
+            action = action.item()
 
         obs, reward, terminated, truncated, info = self.env.step(action)        
         

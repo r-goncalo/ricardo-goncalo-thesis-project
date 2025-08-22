@@ -68,3 +68,40 @@ class AdamOptimizer(OptimizerSchema):
         # In-place gradient clipping
         nn.utils.clip_grad_value_(self.params, 100) #clips gradients to prevent them from reaching values over 100, trying to resolve explosive gradients problem
         self.torch_adam_opt.step()
+        
+        
+
+class SimpleSGDOptimizer(OptimizerSchema):
+
+    parameters_signature = {
+        "learning_rate": InputSignature(default_value=0.01)
+    }
+
+    def proccess_input_internal(self):
+        super().proccess_input_internal()
+
+        # Get model parameters
+        self.params = self.model.get_model_params()
+
+        # Define SGD optimizer
+        self.sgd_optimizer = optim.SGD(self.params, lr=self.input["learning_rate"])
+
+    @requires_input_proccess
+    def optimize_model(self, predicted, correct) -> None:
+        super().optimize_model(predicted, correct)
+
+        # Use simple Mean Squared Error loss
+        criterion = nn.MSELoss()
+        loss = criterion(predicted, correct)
+
+        # Zero previous gradients
+        self.sgd_optimizer.zero_grad()
+
+        # Backpropagation
+        loss.backward()
+
+        # Optional gradient clipping to prevent instability
+        nn.utils.clip_grad_norm_(self.params, max_norm=10)
+
+        # Update model parameters
+        self.sgd_optimizer.step()
