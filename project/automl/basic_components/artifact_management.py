@@ -1,6 +1,6 @@
 
 from automl.component import Component, requires_input_proccess
-from automl.utils.json_component_utils import json_string_of_component, component_from_json_string
+from automl.utils.json_component_utils import json_string_of_component, component_from_json_string, save_configuration
 from automl.utils.files_utils import open_or_create_folder, write_text_to_file
 from automl.core.input_management import InputSignature
 from automl.consts import CONFIGURATION_FILE_NAME
@@ -9,7 +9,7 @@ import os
 
 def on_artifact_directory_change(self : Component):
         
-    if all(key in self.input.keys() for key in ["artifact_relative_directory", "base_directory", "create_new_directory"]): #if there is enough to create an artifact directory   
+    if self.has_artifact_directory_defined_or_created(): #if there is enough to create an artifact directory   
 
         
         if hasattr(self, "artifact_directory"):
@@ -79,8 +79,6 @@ class ArtifactComponent(Component):
         
         
         try:
-            print(self.base_directory)
-            print(self.artifact_relative_directory)
             full_path = os.path.join(self.base_directory, self.artifact_relative_directory)
             self.artifact_directory = open_or_create_folder(full_path, create_new=self.input["create_new_directory"])
             
@@ -99,10 +97,17 @@ class ArtifactComponent(Component):
         self.__generate_artifact_directory()
         
     
+    def has_artifact_directory_defined_or_created(self) -> bool:
+        return self.has_artifact_directory() or all(key in self.input.keys() for key in ["artifact_relative_directory", "base_directory", "create_new_directory"])
+
+    def has_artifact_directory(self) -> bool:
+        return not hasattr(self, "artifact_directory")
+    
+                
     def get_artifact_directory(self):
         '''Gets (and sets if needed) the artifact directory'''      
         
-        if not hasattr(self, "artifact_directory"):
+        if self.has_artifact_directory():
             self.__generate_artifact_directory()
             
         return self.artifact_directory
@@ -117,6 +122,5 @@ class ArtifactComponent(Component):
     
     def save_configuration(self, save_exposed_values=False):
         
-        json_str = json_string_of_component(self, save_exposed_values=save_exposed_values)
+        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values)
         
-        write_text_to_file(self.artifact_directory, CONFIGURATION_FILE_NAME, json_str)  

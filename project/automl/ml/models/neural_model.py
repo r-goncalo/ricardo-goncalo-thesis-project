@@ -1,5 +1,6 @@
 import os
 from automl.basic_components.state_management import StatefulComponent
+from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
 import torch.nn.functional as F    
@@ -11,7 +12,7 @@ from automl.utils.shapes_util import discrete_input_layer_size_of_space, discret
 
 from automl.ml.models.model_components import ModelComponent
 
-class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
+class FullyConnectedModelSchema(TorchModelComponent, StatefulComponent):
     
     
     '''
@@ -60,69 +61,37 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
         
         super().proccess_input_internal()
         
+
+            
+    def _setup_values(self):
+        super()._setup_values()    
+
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
         self.hidden_size: int = self.input["hidden_size"]
         self.hidden_layers: int = self.input["hidden_layers"]
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
-                
-        self.initialize_model()
+                       
+
         
-        if "device" in self.input.keys():
-            self.model.to(self.input["device"])
-            
-        
-    def initialize_model(self):
-        
-        if not hasattr(self, "model") or self.model is None: #if the model is not already loaded
-            
-            self.model = type(self).Model_Class(
-                input_size=self.input_size, 
+    def _initialize_model(self):
+
+        self.model : nn.Module = type(self).Model_Class(
+            input_size=self.input_size,
                 hidden_size=self.hidden_size, 
                 output_size=self.output_size,
                 hidden_layers=self.hidden_layers
             )
-            
-        else: #the model could be already loaded from a state, in which case we just need to check if the input and output sizes are compatible
-            
-            #TODO: check if the model is compatible with the input and output sizes
-            pass
+        
+    def _is_model_well_formed(self):
+        super()._is_model_well_formed()
+        
+        # TODO: verify if size and so on are coherent
         
                             
     # EXPOSED METHODS --------------------------------------------
     
-    @requires_input_proccess
-    def get_model_params(self):
-        '''returns a list of model parameters'''
-        return list(self.model.parameters())
-    
-    @requires_input_proccess
-    def predict(self, state):
-        super().predict(state)
-        return self.model(state)
-
-    
-    @requires_input_proccess            
-    def update_model_with_target(self, target_model, target_model_weight):
-        
-        '''
-        Updates the weights of this model with the weights of the target model
-        
-        @param target_model_weight is the relevance of the target model, 1 will mean a total copy, 0 will do nothing, 0.5 will be an average between the models
-        '''
-        
-        with torch.no_grad():
-            this_model_state_dict = self.model.state_dict()
-            target_model_state_dict = target_model.model.state_dict()
-
-            for key in target_model_state_dict:
-                this_model_state_dict[key] = (
-                    target_model_state_dict[key] * target_model_weight + 
-                    this_model_state_dict[key] * (1 - target_model_weight)
-                )
-            
-            self.model.load_state_dict(this_model_state_dict)
     
     # UTIL -----------------------------------------------------
     
@@ -156,7 +125,7 @@ class FullyConnectedModelSchema(ModelComponent, StatefulComponent):
                 
         state_dict = torch.load(model_path, map_location=torch.device('cpu'))
         
-        self.initialize_model()  # Ensure the model is initialized before loading weights
+        self._initialize_model()  # Ensure the model is initialized before loading weights
         
         self.model.load_state_dict(state_dict) #loads the saved weights into the model
                 

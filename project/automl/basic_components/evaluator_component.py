@@ -16,6 +16,12 @@ class EvaluatorComponent(Component):
     
     parameters_signature = {
                     }    
+    
+    exposed_values = {
+        
+        "last_evaluation" : {}
+    
+    }
 
     def proccess_input_internal(self):
         
@@ -25,18 +31,24 @@ class EvaluatorComponent(Component):
     # EVALUATION -------------------------------------------------------------------------------
 
     
-    @requires_input_proccess
-    @abstractmethod
+    @requires_input_proccess # needs to be extended
     def get_metrics_strings(self) -> list[str]:
         return []
     
     @requires_input_proccess
-    @abstractmethod
     def evaluate(self, component_to_evaluate : Component) -> dict:
         '''
         Returns a dictionary with the results of the evaluation
         A value for the key "result" will always exist
         '''
+        results = self._evaluate(component_to_evaluate)
+
+        self.values["last_evaluation"] = results
+
+        return results
+
+    #needs to be extended
+    def _evaluate(self, component_to_evaluate : Component) -> dict:
         return {}
 
 

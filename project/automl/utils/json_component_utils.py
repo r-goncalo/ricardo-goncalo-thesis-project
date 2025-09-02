@@ -10,6 +10,8 @@ from automl.utils.class_util import get_class_from, get_class_from_string
 
 from enum import Enum
 
+from automl.utils.files_utils import write_text_to_file
+
 # ENCODING --------------------------------------------------
 
 class ComponentValuesElementsEncoder(json.JSONEncoder):
@@ -516,3 +518,18 @@ def get_child_dict_from_localization(component_dict, localization) -> dict:
     
     else:
         raise Exception(f"Localization is not an int or a str, but {type(localization)}")
+    
+    
+    
+
+
+# COMPONENT CONFIGURATION UTILS ------------------------------------
+
+
+def save_configuration(component : Component, config_directory, config_filename=CONFIGURATION_FILE_NAME, save_exposed_values=False, ignore_defaults=True):
+        
+        json_str = json_string_of_component(component, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults)
+        
+        path_to_save_configuration = os.path.join(config_directory, config_filename)
+
+        write_text_to_file(filename=path_to_save_configuration, text=json_str)  

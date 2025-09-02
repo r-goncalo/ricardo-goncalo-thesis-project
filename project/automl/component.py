@@ -71,6 +71,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         self.output = {} #output, if any, will be a dictionary
         
         self._input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
+        self.__input_is_being_processed = False
                 
             
     
@@ -130,7 +131,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     def remove_input(self, key):
         
            
-        self._input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
+        self.__some_updated_input() #when we pass new input, it means that we need to proccess it again
         
         parameter_signature = self.get_parameter_signature(key)
         
@@ -142,7 +143,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
             print(f"WARNING: input with key {key} tried to remove from component {self.name} but not in its input signature, will be ignored")
         
         
-
+    def __some_updated_input(self): # some input was changed
+        self._input_was_proccessed = False
                 
     def __verified_pass_input(self, key, value):
         
@@ -197,6 +199,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         This can and should be extended by child Schemas
         ''' 
         
+        self.__input_is_being_processed = True
         
         #get input signature priorities specified, sorted
         #and the input signatures organized by priorities
@@ -211,7 +214,6 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
             
             self.__verify_input(passed_keys, organized_parameters_signature[priority])            
             
-        self._input_was_proccessed = True
         
     def proccess_input(self):
         '''
@@ -219,6 +221,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         Instead of extending it, extend proccess_input_internal
         '''
         self.proccess_input_internal()
+        self._input_was_proccessed = True
+        self.__input_is_being_processed = False
         self.post_proccess_input()
         
     
@@ -231,6 +235,9 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     def proccess_input_if_not_proccesd(self): 
            
         if not self._input_was_proccessed:
+            
+            if self.__input_is_being_processed:
+                raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Input is already being processed, there is probably a recursive call to proccess_input")
             
             self.proccess_input()
 
@@ -636,11 +643,11 @@ def requires_input_proccess(func : FunctionType):
     Note that if a method has its super method with this annotation, adding it will be redundant
     '''
         
-    def wrapper(self : Component, *args, **kwargs):
+    def process_input_if_not_processed_wrapper(self : Component, *args, **kwargs):
         self.proccess_input_if_not_proccesd()
         return func(self, *args, **kwargs)
     
-    return wrapper
+    return process_input_if_not_processed_wrapper
 
 
 def uses_component_exception(func):
@@ -657,7 +664,10 @@ def uses_component_exception(func):
             raise e
             
     return wrapper
-        
+
+
+
+
         
 
 

@@ -41,3 +41,8 @@ class ModelComponent(Component):
     @requires_input_proccess
     def clone(self):
         pass
+    
+    
+    
+    
+    

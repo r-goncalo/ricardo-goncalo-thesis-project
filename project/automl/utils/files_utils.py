@@ -25,7 +25,7 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
     full_path = os.path.join(dir, folder_name)
     
     if folder_exists and create_new: 
-    
+            
         number_of_versioned_folders = len([l for l in folders_in_dir if l.startswith(f"{folder_name}_")]) #counts the number of dirs that start with specified name
     
         folder_name = f"{folder_name}_{number_of_versioned_folders}"
@@ -38,7 +38,7 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
 
 
 
-def write_text_to_file(dir, filename, text : str, create_new=True):
+def write_text_to_file(dir = '', filename = '', text : str = '', create_new=True):
     
     full_path = os.path.join(dir, filename)
     

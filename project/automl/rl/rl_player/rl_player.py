@@ -10,6 +10,7 @@ from automl.basic_components.state_management import StatefulComponent
 
 from automl.rl.rl_setup_util import initialize_agents_components
 
+from automl.utils.json_component_utils import save_configuration
 from pyparsing import Dict
 import torch
 
@@ -30,6 +31,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                        "agents_input" : InputSignature(default_value={}),
                        "num_episodes" : InputSignature(default_value=1),
                        "limit_steps" : InputSignature(default_value=-1),
+                       "store_env_at_end" : InputSignature(default_value=False)
 
                        
                        }
@@ -54,12 +56,18 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         self.limit_steps = self.input["limit_steps"]
 
+        self.store_env_at_end = self.input["store_env_at_end"]
+
         self.__setup_agents()
 
         
     def __setup_agents(self):
         
         self.agents : Dict[str, AgentSchema] = initialize_agents_components(self.input["agents"], self.env, self.input["agents_input"], self)
+        
+        for agent in self.agents.values():
+            if not "base_directory" in agent.input.keys():
+                agent.pass_input({"base_directory" : self.get_artifact_directory()})
         
     
     def __setup_episode(self):
@@ -94,9 +102,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
                     self.agents[other_agent_name].observe_new_state(self.env)
-                    
-            self.values["episode_steps"] = self.values["episode_steps"] + 1
-            self.values["episode_score"] = self.values["episode_score"] + reward
                             
             if done:
                 break
@@ -136,6 +141,13 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             self.__run_episode()
 
             self.__end_episode()
+            
+        if self.store_env_at_end:
+            print("saving configuration")
+            save_configuration(self.env, self.get_artifact_directory(), "env_config.json", save_exposed_values=True, ignore_defaults=False)
+            
+                    
+        self.env.close()
 
 
     # RESULTS LOGGING --------------------------------------------------------------------------------

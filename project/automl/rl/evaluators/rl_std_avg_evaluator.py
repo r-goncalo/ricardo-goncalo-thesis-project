@@ -34,15 +34,28 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     # EVALUATION -------------------------------------------------------------------------------
     
     def get_metrics_strings(self) -> list[str]:
-        return [*super().get_metrics_strings(), "result"]
+        return [*super().get_metrics_strings(), "result", "avg", "std"]
     
     @requires_input_proccess
-    def evaluate(self, component_to_evaluate : RLPipelineComponent):
+    def _evaluate(self, component_to_evaluate : RLPipelineComponent | ResultLogger):
         
-        results_logger : ResultLogger = component_to_evaluate.get_results_logger() 
+        if isinstance(component_to_evaluate, ResultLogger):
+            results_logger = component_to_evaluate
+        else:
+            results_logger : ResultLogger = component_to_evaluate.get_results_logger() 
+        
+        return self._evaluate_from_results(results_logger)
+    
+
+    @requires_input_proccess
+    def _evaluate_from_results(self, results_logger : ResultLogger):
+        
+        print("HERE 1")
         
         n_results_to_use = self.n_results_to_use
         n_rows = results_logger.get_number_of_rows()
+        
+        print("HERE 2")
         
         if n_results_to_use > n_rows:
             n_results_to_use = n_rows
@@ -50,6 +63,5 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, self.value_to_use)
 
         result = avg_result - (std_result / self.std_deviation_factor)
-        
-        return {"result" : result, **super().evaluate(component_to_evaluate)}
-        
+
+        return {"result" : result, "avg" : avg_result, "std" : std_result}

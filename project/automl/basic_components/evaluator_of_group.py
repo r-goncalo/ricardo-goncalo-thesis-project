@@ -42,7 +42,7 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
     # EVALUATION -------------------------------------------------------------------------------
     
     @requires_input_proccess
-    def evaluate(self, component_to_evaluate : RunnableComponentGroup) -> dict:
+    def _evaluate(self, component_to_evaluate : RunnableComponentGroup) -> dict:
         '''
         Evaluates a component group
         '''

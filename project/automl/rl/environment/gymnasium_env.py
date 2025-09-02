@@ -5,6 +5,7 @@ from automl.component import Component, InputSignature, requires_input_proccess
 from automl.rl.environment.environment_components import EnvironmentComponent
 
 
+from automl.rl.environment.environment_sampler import EnvironmentSampler
 from automl.utils.shapes_util import torch_state_shape_from_space
 
 import gymnasium as gym
@@ -27,15 +28,15 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         with torch.no_grad():
             
             return torch.tensor(state, dtype=torch.float32, device=device)
-
+        
+        
 
     def proccess_input_internal(self):
         super().proccess_input_internal()
         
         self.device = self.input["device"]
         self.setup_environment()
-        self.reset()
-        
+        self.reset()        
         self.last_observation = None
         self.last_reward = 0
         self.last_done = False
@@ -92,7 +93,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         
         #observation, _ = self.env.reset(seed=self._seed)
         self.last_observation = observation
-    
+            
         return self.state_translator(observation, self.device)
     
 
@@ -113,7 +114,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         if isinstance(action, torch.Tensor):
             action = action.item()
 
-        obs, reward, terminated, truncated, info = self.env.step(action)        
+        obs, reward, terminated, truncated, info = self.env.step(action)       
         
         done = terminated or truncated
         
@@ -151,3 +152,15 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         super().on_unload()
         
         self.env.close()
+
+
+class GymnasiumEnvironmentWrapperSampler(EnvironmentSampler):
+    
+    # INITIALIZATION --------------------------------------------------------------------------
+
+    parameters_signature = {
+    }
+
+    @requires_input_proccess
+    def sample(self) -> EnvironmentComponent:
+        return GymnasiumEnvironmentWrapper(self.environment_input)

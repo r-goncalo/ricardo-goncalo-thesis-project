@@ -27,6 +27,7 @@ class ResultLogger(LoggerSchema):
             "results_columns" : InputSignature(possible_types=[list], description="The columns (metrics) of the results"),
             "save_results_on_log" : InputSignature(default_value=True, description="If the results should be save on the disk after each log")
         } 
+    
 
     # INITIALIZATION --------------------------------------------------------
 
@@ -36,13 +37,12 @@ class ResultLogger(LoggerSchema):
         
         self.results_filename = self.input["results_filename"]
         
-        self.initialize_dataframe()
+        self._initialize_dataframe()
         
         self.save_on_log = self.input["save_results_on_log"]
     
     
-    @requires_input_proccess
-    def initialize_dataframe(self):
+    def _initialize_dataframe(self):
         
         try:
         
@@ -50,13 +50,13 @@ class ResultLogger(LoggerSchema):
 
             self.dataframe = dataframe_on_folder
             self.columns = self.dataframe.columns
-            self.writeLine(f"Results dataframe with filename {self.results_filename} already existed with columns {self.columns}")
+            self._writeLine(f"Results dataframe with filename {self.results_filename} already existed with columns {self.columns}")
         
-        except:
-            
+        except Exception as e:
+                        
             self.columns = self.input["results_columns"]
             self.dataframe = pandas.DataFrame(columns=self.columns)
-            self.save_dataframe()
+            self._save_dataframe()
             
         
 
@@ -78,12 +78,17 @@ class ResultLogger(LoggerSchema):
         self.dataframe = pandas.concat((self.dataframe, results_df), ignore_index=True) 
         
         if self.save_on_log:
-            self.save_dataframe()
+            self._save_dataframe()
               
         
     
     @requires_input_proccess    
     def save_dataframe(self):
+        self._save_dataframe()
+                
+    def _save_dataframe(self):
+        
+        '''For internal use, does not trigger input processing'''
         
         self.saveDataframe(self.dataframe, filename=self.results_filename)
         
@@ -95,38 +100,43 @@ class ResultLogger(LoggerSchema):
 
    # RETURN RESULTS ------------------------------------------------------------------------------------------------
     
+    @requires_input_proccess
     def get_number_of_rows(self):
         
         return len(self.dataframe)
         
+    @requires_input_proccess
     def get_last_results(self):
                         
         return self.dataframe.tail(1).to_dict(orient="records")[0]
     
-    
+    @requires_input_proccess
     def get_n_last_results(self, n_results):
         
         return self.dataframe.tail(n_results).to_dict(orient="records")[0]
     
-
+    @requires_input_proccess
     def get_avg_n_last_results(self, n_results, column):
         
         return self.dataframe[column].tail(n_results).mean()
     
     
+    @requires_input_proccess
     def get_std_n_last_results(self, n_results, column):
         
         return self.dataframe[column].tail(n_results).std()
     
-    
+    @requires_input_proccess
     def get_avg_and_std_n_last_results(self, n_results, column):
         
         return self.get_avg_n_last_results(n_results, column), self.get_std_n_last_results(n_results, column)
     
+    @requires_input_proccess
     def get_sorted_dataframe(self, column, ascending):
         
         return self.dataframe.sort_values(by=column, ascending=ascending)
     
+    @requires_input_proccess
     def get_n_last_ordered_results(self, n, column, ascending = True):
         
         '''Returns the best n results'''
@@ -367,8 +377,53 @@ def get_results_logger_from_file(folder_path, results_filename=RESULTS_FILENAME)
     
     return resuls_logger
         
+            
+def aggregate_results_logger(paths, new_directory, new_column=None, results_filename=RESULTS_FILENAME) -> ResultLogger:
+    
+    '''
+    new_column is a tuple (column_name, [values for each dataframe loaded])
+    '''
+    
+    datafrane = None
+    
+    for folder_path_index in range(len(paths)):
         
+        folder_path = paths[folder_path_index]
         
+        artifact_base_directory = folder_path
+        artifact_relative_directory = ''
+
+        if datafrane is None:
+            datafrane = pd.read_csv(os.path.join(artifact_base_directory, artifact_relative_directory, results_filename))
+            
+            if new_column is not None:
+                datafrane[new_column[0]] = new_column[1][folder_path_index]
+                            
+        else:
+            
+            loaded_dataframe = pd.read_csv(os.path.join(artifact_base_directory, artifact_relative_directory, results_filename))
+
+            if new_column is not None:
+                loaded_dataframe[new_column[0]] = new_column[1][folder_path_index]
+                            
+            datafrane = pd.concat([datafrane, loaded_dataframe])
+
+    results_columns = datafrane.columns.tolist() 
+    
+    resuls_logger = ResultLogger(
+        {
+            "artifact_relative_directory": '',
+            "base_directory": new_directory,
+            "create_new_directory": False,
+            "results_filename": results_filename,
+            "results_columns": results_columns
+        }
+    )
+    
+    resuls_logger.saveDataframe(datafrane, filename=results_filename)
+    
+    return resuls_logger
+    
         
     
     ## WANDB --------------------------------

@@ -58,6 +58,8 @@ class LoggerSchema(ArtifactComponent):
     def __init__(self, *args, **kwargs):
         
         super().__init__(*args, **kwargs)
+        
+        self.__logger_object_initialized = False
                 
     
     # INITIALIZATION --------------------------------------------------------
@@ -80,6 +82,11 @@ class LoggerSchema(ArtifactComponent):
 
     @requires_input_proccess
     def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None):
+    
+        return self._writeLine(string, file, level, toPrint, use_time_stamp)
+    
+            
+    def _writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None):
         
         
         if self.default_logger_level.value <= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
@@ -111,28 +118,35 @@ class LoggerSchema(ArtifactComponent):
             fd.close()
         
         
-        
-    @requires_input_proccess
+    # note this does not necessary needs all input to be processed
     def saveFile(self, data, directory='', filename='data'): #saves a file using the directory of this log object as a point of reference
         
         if(directory != ''):
             self.createDirIfNotExistent(directory)
         
-        fd = open(os.path.join(self.artifact_directory, directory, filename), 'wb') 
+        fd = open(os.path.join(self.get_artifact_directory(), directory, filename), 'wb') 
         pickle.dump(data, fd)
         fd.close()
     
-    @requires_input_proccess
+    # note this does not necessary needs all input to be processed
     def saveDataframe(self, df, directory='', filename='dataframe.csv'): #saves a dataframe using this log object as a reference
+        
+        '''
+        Saves dataframe in artifact directory
+        This does not trigger input processing
+        '''
         
         if(directory != ''):
             self.createDirIfNotExistent(directory)
 
-        df.to_csv(os.path.join(self.artifact_directory, directory, filename), index=False)
+        df.to_csv(os.path.join(self.get_artifact_directory(), directory, filename), index=False)
 
-    @requires_input_proccess
     def loadDataframe(self, directory='', filename='dataframe.csv'):
-        return pd.read_csv(os.path.join(self.artifact_directory, directory, filename))
+        '''
+        Loads dataframe in artifact directory
+        This does not trigger input processing
+        '''
+        return pd.read_csv(os.path.join(self.get_artifact_directory(), directory, filename))
     
     @requires_input_proccess
     def openFile(self, *args, **kargs):
@@ -141,7 +155,7 @@ class LoggerSchema(ArtifactComponent):
                 
     def createDirIfNotExistent(self, dir): #creates a dir if it does no exist
         
-        dir = os.path.join(self.artifact_directory, dir)
+        dir = os.path.join(self.get_artifact_directory(), dir)
         
         try:
             os.listdir(dir)

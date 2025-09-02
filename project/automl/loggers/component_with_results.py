@@ -89,7 +89,6 @@ class ComponentWithResults(ArtifactComponent):
         self.__results_loggers[key] = logger_object
     
     
-    @requires_input_proccess    
     def add_to_columns_of_results_logger(self, new_columns : list, key=DEFAULT_RESULTS_LOGGER_KEY):
         
         results_logger = self.__results_loggers[key]
