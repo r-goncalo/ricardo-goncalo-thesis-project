@@ -30,12 +30,6 @@ def load_sb3_q_net(model_name: str):
     # Load the state_dict and metadata without creating a full DQN object
     data, params, pytorch_variables = load_from_zip_file(checkpoint)
 
-    print(f"Observation space in model: {data['observation_space']} of type {type(data['observation_space'])}")
-
-
-    print(f"data: \n{data}")
-    print(f"kwargs: \n{data['policy_kwargs']}")
-
     # Rebuild just the policy (with the right architecture)
     policy = DQNPolicy(
         observation_space=gym_to_gymnasium_space(data["observation_space"]),

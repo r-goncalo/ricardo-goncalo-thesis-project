@@ -194,8 +194,6 @@ def torch_zeros_for_space(state_space, device) -> torch.Tensor:
 
 def gymnasium_to_gym_space(space):
     """Convert gymnasium or gym spaces into gym spaces (for SB3)."""
-    print(f"Converting space of type {type(space)}")
-
     import gym
 
     # If it's already a gym space, just return
@@ -219,8 +217,6 @@ def gymnasium_to_gym_space(space):
 
 def gym_to_gymnasium_space(space):
     """Convert gym spaces into gymnasium spaces."""
-    print(f"Converting space of type {type(space)}")
-
     import gym
 
     # If it's already a gym space, just return

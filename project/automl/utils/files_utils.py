@@ -45,19 +45,23 @@ def write_text_to_file(dir = '', filename = '', text : str = '', create_new=True
     dir = os.path.dirname(full_path)
     
     os.makedirs(dir, exist_ok=True)
-
-    # If the file doesn't exist and create_new is True, create it
-    if not os.path.exists(full_path):
+    
+    # If the file exists and create_new is True, delete old and write new
+    if os.path.exists(full_path):
         
         if create_new:
+                        
             with open(full_path, 'w') as f:
-                f.write("")
+                f.write(text)
+        
         else:
-            raise FileNotFoundError(f"{full_path} does not exist and create_new is False.")
+            
+            with open(full_path, 'a') as f:
+                f.write(text)
 
-    # Append the text to the file
-    with open(full_path, 'a') as f:
-        f.write(text)
+    else:
+        with open(full_path, 'w') as f: # write to file
+            f.write(text)
 
 
     
