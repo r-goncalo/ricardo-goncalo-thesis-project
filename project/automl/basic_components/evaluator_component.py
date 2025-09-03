@@ -44,6 +44,8 @@ class EvaluatorComponent(Component):
         results = self._evaluate(component_to_evaluate)
 
         self.values["last_evaluation"] = results
+        
+        print(f"RESULTS: {results}")
 
         return results
 

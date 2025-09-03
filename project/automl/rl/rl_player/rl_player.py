@@ -40,11 +40,10 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
     exposed_values = {"total_steps" : 0,
                       "episode_steps" : 0,
                       "episodes_done" : 0,
-                      "total_score" : 0,
                       "episode_score" : 0
                       } 
     
-    results_columns = ["episode", "total_reward", "episode_steps", "avg_reward"]
+    results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
 
     
     def proccess_input_internal(self): #this is the best method to have initialization done right after
@@ -85,7 +84,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
     def __end_episode(self):
         self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]
-        self.values["total_score"] = self.values["total_score"] +  self.values["episode_score"]
         self.values["episodes_done"] = self.values["episodes_done"] + 1
         
         self.lg.writeLine(f"Finished episode {self.values['episodes_done']} with results: {self.values}")
@@ -156,7 +154,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                 
         return {
             "episode" : [self.values["episodes_done"]],
-            "total_reward" : [self.values["episode_score"]],
+            "episode_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
             "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
             }

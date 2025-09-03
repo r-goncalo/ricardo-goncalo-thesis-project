@@ -40,7 +40,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                       "steps_done_in_session" : 0
                       } #this means we'll have a dic "values" with this starting values
     
-    results_columns = ["episode", "episode_steps", "avg_reward", "total_reward", "total_steps"]
+    results_columns = ["episode", "episode_steps", "avg_reward", "episode_reward", "total_steps"]
 
     def proccess_input_internal(self): #this is the best method to have initialization done right after
         
@@ -105,7 +105,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 
         return {
             "episode" : [self.values["episodes_done"]],
-            "total_reward" : [self.values["episode_score"]],
+            "episode_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
             "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
             "total_steps" : [self.values["total_steps"]]

@@ -18,7 +18,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     parameters_signature = {
         "n_results_to_use" : InputSignature(default_value=10),
         "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
-        "value_to_use" : InputSignature(default_value="total_reward", description="The value to use for evaluation, note that a higher value is expected to be a better value")
+        "value_to_use" : InputSignature(default_value="episode_reward", description="The value to use for evaluation, note that a higher value is expected to be a better value")
     }
     
 
@@ -49,6 +49,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
 
     @requires_input_proccess
     def _evaluate_from_results(self, results_logger : ResultLogger):
+        
+        if not self.value_to_use in results_logger.get_results_columns():
+            raise Exception(f"The value to use '{self.value_to_use}' is not in the results columns of the results logger")
                 
         n_results_to_use = self.n_results_to_use
         n_rows = results_logger.get_number_of_rows()

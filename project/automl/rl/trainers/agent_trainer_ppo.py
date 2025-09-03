@@ -75,18 +75,6 @@ class AgentTrainerPPO(AgentTrainer):
             raise Exception("PPO trainer needs a stochastic policy")
 
         
-    # RESULTS LOGGING --------------------------------------------------------------------------------
-    
-    @requires_input_proccess
-    def calculate_results(self):
-        
-        return {
-            "episode" : [self.values["episodes_done"]],
-            "total_reward" : [self.values["total_score"]],
-            "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["total_score"] / self.values["total_steps"]]
-            }
-        
     
     # TRAINING_PROCESS ---------------------
          

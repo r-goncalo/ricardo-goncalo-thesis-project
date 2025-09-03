@@ -55,11 +55,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     exposed_values = {"total_steps" : 0,
                       "episode_steps" : 0,
                       "episodes_done" : 0,
-                      "total_score" : 0,
                       "episode_score" : 0,
                       } #this means we'll have a dic "values" with this starting values
     
-    results_columns = ["episode", "total_reward", "episode_steps", "avg_reward"]
+    results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
     
     def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
         super().__init__(*args, **kwargs)
@@ -134,9 +133,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         return {
             "episode" : [self.values["episodes_done"]],
-            "total_reward" : [self.values["total_score"]],
+            "episode_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["total_score"] / self.values["total_steps"]]
+            "avg_reward" : [self.values["episode_score"] / self.values["total_steps"]]
             }
         
     
@@ -147,7 +146,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         '''Resets the training values, such as the total number of episodes'''
         
         self.values["total_steps"] = 0
-        self.values["total_score"] = 0
         self.values["episodes_done"] = 0
         
         self.values["episode_steps"] = 0
@@ -184,7 +182,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def end_episode(self):
         
         self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]
-        self.values["total_score"] = self.values["total_score"] +  self.values["episode_score"]
         self.values["episodes_done"] = self.values["episodes_done"] + 1
         
         
