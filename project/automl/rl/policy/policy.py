@@ -54,7 +54,7 @@ class Policy(PolicyInterface):
         
         self.device = self.input["device"]
                 
-        self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape}) 
+        self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape, "device" : self.device}) 
         
     
     @requires_input_proccess

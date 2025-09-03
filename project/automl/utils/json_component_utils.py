@@ -3,9 +3,9 @@ import os
 from typing import Union
 
 from automl.component import Component, InputSignature, InputMetaData
+import pickle
 
-
-from automl.consts import CONFIGURATION_FILE_NAME
+from automl.consts import CONFIGURATION_FILE_NAME, LOADED_COMPONENT_FILE_NAME
 from automl.utils.class_util import get_class_from, get_class_from_string
 
 from enum import Enum
@@ -415,7 +415,12 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
             generated_component = gen_component_from_dict(definition)
 
         elif isinstance(definition, str):
-            generated_component =  component_from_json_string(definition)
+
+            if os.path.exists(definition):
+                return gen_component_from_path(definition)
+
+            else: # is json
+                generated_component =  component_from_json_string(definition)
 
         elif isinstance(definition, tuple) or isinstance(definition, list):
 
@@ -441,23 +446,38 @@ def gen_component_from_path(path):
     
     else:
         raise ValueError(f"Path '{path}' is neither a file nor a directory.")
+    
+    
 
 def gen_component_in_directory(dir_path):
     
     configuration_file = os.path.join(dir_path, CONFIGURATION_FILE_NAME)
+
+    if os.path.exists(configuration_file):
+        return gen_component_in_file_path(configuration_file)
     
-    return gen_component_in_file_path(configuration_file)
+    component_loaded_file = os.path.join(dir_path, LOADED_COMPONENT_FILE_NAME)
+    
+    if os.path.exists(component_loaded_file):
+        return gen_component_in_file_path(component_loaded_file)
+
+    raise Exception("No component defined in folder")
 
 def gen_component_in_file_path(file_path):
-
-    with open(file_path, 'r') as f:
-        str_to_gen_from = f.read()
-            
-    return gen_component_from(str_to_gen_from)
     
-    
+    if file_path.endswith('.json'):
         
-    
+        with open(file_path, 'r') as f:
+            str_to_gen_from = f.read()
+            return component_from_json_string(str_to_gen_from)
+
+    elif file_path.endswith('.pkl'):
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+
+
+    raise Exception("Not supported file to generate component from")
+
 # OTHER METHODS ---------------------------------------------------------------------------------
 
 def get_child_dict_from_index_localization(component_dict, localization : int) -> dict:

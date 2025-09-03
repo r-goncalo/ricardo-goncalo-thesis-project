@@ -29,7 +29,6 @@ class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPip
                                                     
                        }
             
-
     # INITIALIZATION -----------------------------------------------------------------------------
 
     def proccess_input_internal(self): # this is the best method to have initialization done right after
