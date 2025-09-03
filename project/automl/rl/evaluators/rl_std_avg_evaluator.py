@@ -49,14 +49,10 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
 
     @requires_input_proccess
     def _evaluate_from_results(self, results_logger : ResultLogger):
-        
-        print("HERE 1")
-        
+                
         n_results_to_use = self.n_results_to_use
         n_rows = results_logger.get_number_of_rows()
-        
-        print("HERE 2")
-        
+                
         if n_results_to_use > n_rows:
             n_results_to_use = n_rows
 

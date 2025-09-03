@@ -74,7 +74,7 @@ def config_dict():
                 
                 "optimization_interval" : 256,
                 
-                "dicount_factor" : 0.99,
+                "discount_factor" : 0.99,
                 
                 "learning_start_ep_delay" : 1000,
                 

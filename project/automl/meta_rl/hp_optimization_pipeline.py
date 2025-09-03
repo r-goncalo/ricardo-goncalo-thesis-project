@@ -391,7 +391,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         
             #try:
                 
-                component_to_test.run()
+                try:
+                    component_to_test.run()
+                
+                except Exception as e:
+                    component_to_test.save_configuration(save_exposed_values=True)
+                    raise e
 
                 evaluation_results = self.evaluate_component(component_to_test)
                 

@@ -1,14 +1,14 @@
 
 
 import numpy as np
-import gymnasium as gym
+import gymnasium
 import torch
 
 from math import prod
 
 # INPUT LAYER SIZE --------------------------------------------------------------------------
 
-def discrete_input_layer_size_of_space_gym(state_space : gym.spaces.Space) -> int:
+def discrete_input_layer_size_of_space_gym(state_space : gymnasium.spaces.Space) -> int:
     
     """
     Determines the number of input nodes needed for a given state space.
@@ -17,22 +17,22 @@ def discrete_input_layer_size_of_space_gym(state_space : gym.spaces.Space) -> in
     :return: Integer representing the required input layer size
     """
     
-    if isinstance(state_space, gym.spaces.Box):
+    if isinstance(state_space, gymnasium.spaces.Box):
         return int(np.prod(state_space.shape))  # Flatten Box spaces (e.g., images, continuous vectors)
     
-    elif isinstance(state_space, gym.spaces.Discrete):
+    elif isinstance(state_space, gymnasium.spaces.Discrete):
         return 1  # Discrete space is a single integer (can be used as an index or one-hot encoded)
     
-    elif isinstance(state_space, gym.spaces.MultiDiscrete):
+    elif isinstance(state_space, gymnasium.spaces.MultiDiscrete):
         return len(state_space.nvec)  # Number of discrete dimensions
     
-    elif isinstance(state_space, gym.spaces.MultiBinary):
+    elif isinstance(state_space, gymnasium.spaces.MultiBinary):
         return state_space.n  # Number of binary values
 
-    elif isinstance(state_space, gym.spaces.Tuple):
+    elif isinstance(state_space, gymnasium.spaces.Tuple):
         return sum(discrete_input_layer_size_of_space_gym(s) for s in state_space.spaces)  # Sum of all subspaces
     
-    elif isinstance(state_space, gym.spaces.Dict):
+    elif isinstance(state_space, gymnasium.spaces.Dict):
         return sum(discrete_input_layer_size_of_space_gym(s) for s in state_space.spaces.values())  # Sum of all dictionary subspaces
 
     
@@ -52,7 +52,7 @@ def discrete_input_layer_size_of_space(state_space) -> int:
     if isinstance(state_space, torch.Size):
         return discrete_input_layer_size_of_space_torch(state_space)
     
-    elif isinstance(state_space, gym.spaces.Space):
+    elif isinstance(state_space, gymnasium.spaces.Space):
         return discrete_input_layer_size_of_space_gym(state_space)
     
     elif isinstance(state_space, tuple):
@@ -66,9 +66,9 @@ def discrete_input_layer_size_of_space(state_space) -> int:
 
 # TORCH STATE SHAPE FROM SPACE ------------------------------------------------------
 
-def torch_state_shape_from_space_gym(state_space : gym.Space) -> torch.Size:
+def torch_state_shape_from_space_gym(state_space : gymnasium.Space) -> torch.Size:
     
-    if isinstance(state_space, gym.spaces.Box):
+    if isinstance(state_space, gymnasium.spaces.Box):
         return torch.Size(state_space.shape)
     
     else:
@@ -77,7 +77,7 @@ def torch_state_shape_from_space_gym(state_space : gym.Space) -> torch.Size:
     
 def torch_state_shape_from_space(state_space) -> torch.Size:
 
-    if isinstance(state_space, gym.Space):
+    if isinstance(state_space, gymnasium.Space):
         return torch_state_shape_from_space_gym(state_space)
     
     else:
@@ -85,7 +85,7 @@ def torch_state_shape_from_space(state_space) -> torch.Size:
 
 # OUTPUT LAYER SIZE ---------------------------------------------------------------------
 
-def discrete_output_layer_size_of_space_gym(action_space : gym.Space):
+def discrete_output_layer_size_of_space_gym(action_space : gymnasium.Space):
     
     """
     Determines the number of output nodes needed for a given action gym space.
@@ -94,22 +94,22 @@ def discrete_output_layer_size_of_space_gym(action_space : gym.Space):
     :return: Integer representing the required output layer size
     """
     
-    if isinstance(action_space, gym.spaces.Discrete):
+    if isinstance(action_space, gymnasium.spaces.Discrete):
         return action_space.n  # Number of discrete actions (one-hot encoded output)
     
-    elif isinstance(action_space, gym.spaces.Box):
+    elif isinstance(action_space, gymnasium.spaces.Box):
         return int(np.prod(action_space.shape))  # Continuous action space (vector output)
     
-    elif isinstance(action_space, gym.spaces.MultiDiscrete):
+    elif isinstance(action_space, gymnasium.spaces.MultiDiscrete):
         return len(action_space.nvec)  # Number of discrete action dimensions
     
-    elif isinstance(action_space, gym.spaces.MultiBinary):
+    elif isinstance(action_space, gymnasium.spaces.MultiBinary):
         return action_space.n  # Number of binary actions
     
-    elif isinstance(action_space, gym.spaces.Tuple):
+    elif isinstance(action_space, gymnasium.spaces.Tuple):
         return sum(discrete_output_layer_size_of_space(s) for s in action_space.spaces)  # Sum of all subspaces
     
-    elif isinstance(action_space, gym.spaces.Dict):
+    elif isinstance(action_space, gymnasium.spaces.Dict):
         return sum(discrete_output_layer_size_of_space(s) for s in action_space.spaces.values())  # Sum of all dictionary subspaces
     
     else:
@@ -122,7 +122,7 @@ def discrete_output_layer_size_of_space(action_space):
     Determines the number of output nodes needed for a given action space.
     """
     
-    if isinstance(action_space, gym.spaces.Space):
+    if isinstance(action_space, gymnasium.spaces.Space):
         return discrete_output_layer_size_of_space_gym(action_space)
     
     elif isinstance(action_space, int):
@@ -134,13 +134,13 @@ def discrete_output_layer_size_of_space(action_space):
     
 # ACTION SHAPE SIZE ---------------------------------------------------------------------
 
-def single_action_shape_gym(action_space : gym.Space):
+def single_action_shape_gym(action_space : gymnasium.Space):
     
     """
     Determines the shape needed to encode single actions
     """
     
-    if isinstance(action_space, gym.spaces.Discrete):
+    if isinstance(action_space, gymnasium.spaces.Discrete):
         return 1  # Number of discrete actions (one-hot encoded output)
     
     else:
@@ -153,7 +153,7 @@ def single_action_shape(action_space):
     Determines the shape needed to encode single actions
     """
     
-    if isinstance(action_space, gym.spaces.Space):
+    if isinstance(action_space, gymnasium.spaces.Space):
         return single_action_shape_gym(action_space)
     
     elif isinstance(action_space, int):
@@ -179,7 +179,7 @@ def torch_zeros_for_space(state_space, device) -> torch.Tensor:
     if isinstance(state_space, torch.Size):
         return torch_zeros_for_space_torch(state_space, device=device)
     
-    elif isinstance(state_space, gym.spaces.Space):
+    elif isinstance(state_space, gymnasium.spaces.Space):
         return torch_zeros_for_space_gym(state_space, device=device)
     
     elif isinstance(state_space, tuple):
@@ -188,3 +188,55 @@ def torch_zeros_for_space(state_space, device) -> torch.Tensor:
     else:
         raise NotImplementedError(f"Unkown space type: {type(state_space)}")
     
+
+
+# GYM AND NOT GYMNASIUM??? GYMNASIUM IS NEWER, A FORK OF GYM ####################################
+
+def gymnasium_to_gym_space(space):
+    """Convert gymnasium or gym spaces into gym spaces (for SB3)."""
+    print(f"Converting space of type {type(space)}")
+
+    import gym
+
+    # If it's already a gym space, just return
+    if isinstance(space, gym.spaces.Space):
+        return space
+
+    # If it's a gymnasium space, convert manually
+    if isinstance(space, gymnasium.spaces.Box):
+        return gym.spaces.Box(
+            low=np.array(space.low, dtype=np.float32),
+            high=np.array(space.high, dtype=np.float32),
+            shape=space.shape,
+            dtype=np.float32,
+        )
+
+    if isinstance(space, gymnasium.spaces.Discrete):
+        return gym.spaces.Discrete(space.n)
+
+    raise NotImplementedError(f"Unsupported space type: {space}")
+
+
+def gym_to_gymnasium_space(space):
+    """Convert gym spaces into gymnasium spaces."""
+    print(f"Converting space of type {type(space)}")
+
+    import gym
+
+    # If it's already a gym space, just return
+    if isinstance(space, gymnasium.spaces.Space):
+        return space
+
+    # If it's a gymnasium space, convert manually
+    if isinstance(space, gym.spaces.Box):
+        return gymnasium.spaces.Box(
+            low=np.array(space.low, dtype=np.float32),
+            high=np.array(space.high, dtype=np.float32),
+            shape=space.shape,
+            dtype=np.float32,
+        )
+
+    if isinstance(space, gym.spaces.Discrete):
+        return gymnasium.spaces.Discrete(space.n)
+
+    raise NotImplementedError(f"Unsupported space type: {space}")

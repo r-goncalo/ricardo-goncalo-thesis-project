@@ -1,14 +1,7 @@
-import os
-from automl.basic_components.state_management import StatefulComponent
 import torch
 import torch.nn as nn
-import torch.nn.functional as F    
 
-from automl.component import Component, InputSignature, requires_input_proccess
-import random
-
-from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
-
+from automl.component import InputSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
 class TorchModelComponent(ModelComponent):

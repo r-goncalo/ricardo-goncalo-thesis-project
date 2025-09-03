@@ -4,6 +4,7 @@ from automl.component import  InputSignature, requires_input_proccess
 
 
 
+from automl.external_support.sb3.sb3_utils import load_sb3_dqn_model
 from automl.rl.policy.policy import PolicyInterface
 
 
@@ -19,7 +20,7 @@ class SB3Wrapper(PolicyInterface):
         self.sb3_model = self.input["sb3_model"]
         
         if isinstance(self.sb3_model, str):
-            self.sb3_model = self.__load_sb3_model(self.sb3_model)
+            self.sb3_model = load_sb3_dqn_model(self.sb3_model)
     
     
     @requires_input_proccess
@@ -39,19 +40,5 @@ class SB3Wrapper(PolicyInterface):
         return action
     
     
-    def __load_sb3_model(self, model_name : str):
-        
-        from huggingface_sb3 import load_from_hub
 
-        checkpoint = load_from_hub(
-        	repo_id=f"sb3/{model_name}",
-        	filename=f"{model_name}.zip",
-        )
-
-        from stable_baselines3 import DQN
-
-        model_sb3 = DQN.load(checkpoint)
-        
-        return model_sb3
-    
     
