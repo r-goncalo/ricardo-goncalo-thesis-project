@@ -24,7 +24,7 @@ class ResultLogger(LoggerSchema):
     # TODO: verify order at which keys are verified
     parameters_signature = {
             "results_filename" : InputSignature(default_value=RESULTS_FILENAME, description="The filename of the results file, in this case a csv file"),
-            "results_columns" : InputSignature(possible_types=[list], description="The columns (metrics) of the results"),
+            "results_columns" : InputSignature(possible_types=[list], description="The columns (metrics) of the results", mandatory=False),
             "save_results_on_log" : InputSignature(default_value=True, description="If the results should be save on the disk after each log")
         } 
     
@@ -253,7 +253,7 @@ class ResultLogger(LoggerSchema):
             plt.show()
             
 
-    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, aggregate_number = 5, title : str = '', save_path: str = None, to_show=True, y_label=''):
+    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, aggregate_number = None, title : str = '', save_path: str = None, to_show=True, y_label='', x_slice_range=None):
 
         if self.dataframe.empty:
             raise ValueError("Dataframe is empty. Log results before plotting.")
@@ -264,20 +264,33 @@ class ResultLogger(LoggerSchema):
         if y_column not in self.dataframe.columns:
             raise KeyError(f"Column '{y_column}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
 
+        x_values = self.dataframe[x_axis]
         values = self.dataframe[y_column]
 
-        aggregated_values = [ [ values[u - aggregate_number + i] for i in range(0, aggregate_number * 2) ] for u in range(aggregate_number, len(values) - aggregate_number) ]
-        x_values = self.dataframe[x_axis][aggregate_number:(len(self.dataframe[x_axis]) - aggregate_number)]
+        if x_slice_range is not None:
+            x_values = x_values[x_slice_range[0]:max(x_slice_range[1], len(x_values))]
+            values = values[x_slice_range[0]:max(x_slice_range[1], len(x_values))]
 
-        mean_values = np.mean(aggregated_values, axis=1)
+        if aggregate_number is not None:
+
+            aggregated_values = [ [ values[u - aggregate_number + i] for i in range(0, aggregate_number * 2) ] for u in range(aggregate_number, len(values) - aggregate_number) ]
+            x_values = x_values[aggregate_number:(len(x_values) - aggregate_number)]
+
+            mean_values = np.mean(aggregated_values, axis=1)
         
-        if show_std:
-            std_values = np.std(aggregated_values, axis=1)
+            if show_std:
+                std_values = np.std(aggregated_values, axis=1)
+
+        else: # aggregate number is None
+            mean_values = values
+            std_values = None
+        
 
         plt.plot(x_values, mean_values, label=y_values_label)
         
-        if show_std:
+        if show_std and std_values is not None:
             plt.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=0.3)
+
 
         plt.xlabel(x_axis)
         plt.ylabel(y_label)
@@ -289,7 +302,7 @@ class ResultLogger(LoggerSchema):
         plt.grid(True)
 
         if save_path:
-            plt.savefig(self.logDir + '\\' + save_path)
+            plt.savefig(self.get_artifact_directory() + '\\' + save_path)
 
         if to_show:
             plt.show()
