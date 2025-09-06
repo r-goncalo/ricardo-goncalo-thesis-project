@@ -3,7 +3,7 @@ from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPi
 from automl.utils.json_component_utils import gen_component_from_path
 
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None):
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, experiment_relative_path=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
@@ -12,6 +12,9 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
         hp_pipeline_input["base_component_configuration_path"] = to_optimize_configuration_path
     
     hp_pipeline_input["base_directory"] = path_to_store_experiment
+
+    if experiment_relative_path is not None:
+        hp_pipeline_input["artifact_relative_directory"] = experiment_relative_path
     
     if num_steps != None:
         hp_pipeline_input["steps"] = num_steps
@@ -39,6 +42,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_steps", type=int, default=None, help="Number of trials to run.")
     
     parser.add_argument("--path_to_store_experiment", type=str, default='.\\data\\experiments', help="Directory to save results.")
+    parser.add_argument("--experiment_relative_path", type=str, default=None, help="Relative directory to save results.")
+
 
     parser.add_argument("--hp_configuration_path", type=str, default='.\\configuration.json', help="Path to config of hp experiment.")
     parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
@@ -48,7 +53,8 @@ if __name__ == "__main__":
 
     main(num_trials=args.num_trials, num_steps=args.num_steps, 
          path_to_store_experiment=args.path_to_store_experiment, 
+         experiment_relative_path=args.experiment_relative_path,
          hp_configuration_path = args.hp_configuration_path,
-         to_optimize_configuration_path = args.to_optimize_configuration_path
+         to_optimize_configuration_path = args.to_optimize_configuration_path,
          )
     
