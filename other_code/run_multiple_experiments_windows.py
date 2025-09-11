@@ -69,6 +69,9 @@ def run_job(command):
 
 # === Using multiprocessing to run jobs concurrently ===
 def run_jobs_concurrently():
+
+    print(f"Max jobs value is: {MAX_JOBS}")
+
     # Create a pool of processes
     with multiprocessing.Pool(processes=MAX_JOBS) as pool:
         # Use map to apply the run_job function to each command in the list
