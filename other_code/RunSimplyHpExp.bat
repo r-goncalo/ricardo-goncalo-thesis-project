@@ -49,6 +49,8 @@ for /f %%A in ('powershell -NoProfile -Command "Get-Date -Format yyyy_MM_dd_HH_m
 REM === Set log file path with timestamp ===
 set LOGFILE=%LOGDIR%\%LOGBASENAME%_%TIMESTAMP%.txt
 
+set EXPERIMENT_RUN_PATH=C:\rgoncalo\ricardo-goncalo-thesis-project\project\examples\simple_metarl\scripts\run_hp_experiment.py
+
 REM === Activate Conda environment ===
 CALL "C:\Users\ricar\anaconda3\Scripts\activate.bat" "C:\Users\ricar\anaconda3\envs\rl"
 
@@ -57,6 +59,6 @@ CALL pip install -e C:\rgoncalo\ricardo-goncalo-thesis-project\project
 
 echo Starting experiment at %TIME% >> %LOGFILE%
 
-python C:\rgoncalo\ricardo-goncalo-thesis-project\project\examples\simple_metarl\scripts\run_hp_experiment.py --path_to_store_experiment %BASEEXPTOSTORE%\%EXPSTOREPATH% --hp_configuration_path %EXPDEF%\%CONFIG% --to_optimize_configuration_path %EXPDEF%\%TOOPTIMIZECONFIG% --experiment_relative_path %RELPATH% >> %LOGFILE% 2>&1
+python %EXPERIMENT_RUN_PATH% --path_to_store_experiment %BASEEXPTOSTORE%\%EXPSTOREPATH% --hp_configuration_path %EXPDEF%\%CONFIG% --to_optimize_configuration_path %EXPDEF%\%TOOPTIMIZECONFIG% --experiment_relative_path %RELPATH% >> %LOGFILE% 2>&1
 
 echo Finished at %TIME% >> %LOGFILE%
