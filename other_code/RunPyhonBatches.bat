@@ -14,11 +14,9 @@ for /f %%A in ('powershell -NoProfile -Command "Get-Date -Format yyyy_MM_dd_HH_m
 REM === Set log file path with timestamp ===
 set LOGFILE=%LOGDIR%\%LOGBASENAME%_%TIMESTAMP%.txt
 
-set PYTHONTORUN=C:/rgoncalo/ricardo-goncalo-thesis-project/.conda/python.exe
+echo Starting at %TIME% >> %LOGFILE%
 
-set multiple_experiments_script = C:\rgoncalo\ricardo-goncalo-thesis-project\other_code\run_multiple_experiments_windows.py 
-
-CALL %PYTHONTORUN% %multiple_experiments_script% >> %LOGFILE% 2>&1
+CALL C:/rgoncalo/ricardo-goncalo-thesis-project/.conda/python.exe C:\rgoncalo\ricardo-goncalo-thesis-project\other_code\run_multiple_experiments_windows.py  >> %LOGFILE% 2>&1
 
 echo Finished at %TIME% >> %LOGFILE%
 
