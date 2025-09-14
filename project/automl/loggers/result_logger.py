@@ -308,7 +308,7 @@ class ResultLogger(LoggerSchema):
             plt.show()
 
     
-    requires_input_proccess
+    @requires_input_proccess
     def plot_linear_regression(self, x_axis: str, y_axis: list, title: str = '', save_path: str = None, to_show=True, y_label=''):
        """
        Plots a graph with linear regression lines for the given columns in the dataframe.
