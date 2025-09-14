@@ -10,6 +10,7 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.utils.shapes_util import torch_state_shape_from_space
 
 import gymnasium as gym
+from project.automl.core.advanced_input_management import ComponentListInputSignature
 import torch
 
 
@@ -105,3 +106,43 @@ class EnvironmentSampler(Sampler, EnvironmentComponent):
     def get_env_name(self):
         pass
     
+class EnvironmentCycler(EnvironmentSampler):
+    
+    '''
+    A component which samples environments and also works as a wrapper for them
+    This means it can be used as an environment it is able to sample
+    
+    '''
+    
+    # INITIALIZATION --------------------------------------------------------------------------
+
+    parameters_signature = {
+        "environments": ComponentListInputSignature(),
+        "generate_name" : InputSignature(default_value=False)
+    }
+
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(*args, **kwargs)
+        
+        self.sampled_environment = None
+
+    def proccess_input_internal(self):
+        super().proccess_input_internal()
+
+        self.environments : EnvironmentComponent = ComponentListInputSignature.get_component_list_from_input(self, "environments") 
+        self.generate_name = self.input["generate_name"]
+        self.next_index = 0
+
+        if self.generate_name:
+            for index in range(len(self.environments)):
+                env = self.environments[index]
+                env.pass_input({"name" : f"{env.name}_{index}"})
+
+        
+    def sample(self) -> EnvironmentComponent:
+
+        to_return = self.environments[self.next_index]
+        self.next_index = ( self.next_index + 1 ) % len(self.environments)
+
+        return to_return

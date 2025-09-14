@@ -127,8 +127,17 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         environment_names = []
                 
         for i in range(self.number_of_evaluations): # evaluate plays and store their paths 
-            path_of_players.append(self._run_play_to_evaluate(agents, device, evaluations_directory, env))
-            environment_names.append(f"environment_{i}")
+
+            rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env) 
+
+            path_of_players.append(rl_player_of_run.get_artifact_directory())
+
+            environment_name = rl_player_of_run.env.name
+
+            if environment_name in environment_names:
+                environment_name = f"{environment_name}_{i}"
+
+            environment_names.append(environment_name)
 
         results_logger = aggregate_results_logger(path_of_players, evaluations_directory, ("environment", environment_names))
         
@@ -154,10 +163,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         env = self.__generalize_get_environment(env, rl_player)
         
         if env is not None:
-            rl_player.pass_input({"environment" : env})    
-        
-        
+            rl_player.pass_input({"environment" : env})            
         
         rl_player.run()
         
-        return rl_player.get_artifact_directory()
+        return rl_player

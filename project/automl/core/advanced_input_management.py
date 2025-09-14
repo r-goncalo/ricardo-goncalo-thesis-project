@@ -77,13 +77,11 @@ class ComponentListInputSignature(InputSignature):
                 to_return.append(value)
 
             else:
-            
-                component = gen_component_from(value)
-                component_with_input.define_component_as_child(component)
 
+                component = gen_component_from(value, component_with_input)
                 to_return.append(component)
 
-        return list_of_components
+        return to_return
     
     
     
