@@ -140,9 +140,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             environment_names.append(environment_name)
 
         results_logger = aggregate_results_logger(path_of_players, evaluations_directory, ("environment", environment_names))
-        
-        print("HERE")
-        
+                
         return self.base_evaluator.evaluate(results_logger)
     
 
