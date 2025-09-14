@@ -44,14 +44,30 @@ def new_path_if_exists(specific_path, dir = ''):
 
 
     if os.path.exists(full_path): #file with that name already existed
+
+        paths_in_dir = os.listdir(dir)
+
+        if os.path.isfile(full_path):
+            
+            filename, ext = os.path.splitext(specific_path)
+
+            # find existing versions like filename_1.ext, filename_2.ext, ...
+            existing_versions = [
+                f for f in paths_in_dir
+                if f.startswith(filename + "_") and f.endswith(ext)
+            ]
+
+            version_number = len(existing_versions) + 1
+            specific_path = f"{filename}_{version_number}{ext}"
+            full_path = os.path.join(dir, specific_path)
+
+        else: # if is dir
         
-        paths_in_dir = os.listdir(full_path)
+            number_of_versioned_paths = len([l for l in paths_in_dir if l.startswith(f"{specific_path}_")])
 
-        number_of_versioned_paths = len([l for l in paths_in_dir if l.startswith(f"{specific_path}_")])
+            specific_path = f"{specific_path}_{number_of_versioned_paths}"
 
-        specific_path = f"{specific_path}_{number_of_versioned_paths}"
-
-        full_path = os.path.join(dir, specific_path)
+            full_path = os.path.join(dir, specific_path)
 
     return full_path
 
