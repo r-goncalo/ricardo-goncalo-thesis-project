@@ -36,6 +36,26 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
     
     return full_path
 
+def new_path_if_exists(specific_path, dir = ''):
+
+    '''Generates a string for a path, the specific path is what is used to version the path'''
+
+    full_path = os.path.join(dir, specific_path)
+
+
+    if os.path.exists(full_path): #file with that name already existed
+        
+        paths_in_dir = os.listdir(full_path)
+
+        number_of_versioned_paths = len([l for l in paths_in_dir if l.startswith(f"{specific_path}_")])
+
+        specific_path = f"{specific_path}_{number_of_versioned_paths}"
+
+        full_path = os.path.join(dir, specific_path)
+
+    return full_path
+
+
 
 
 def write_text_to_file(dir = '', filename = '', text : str = '', create_new=True):
