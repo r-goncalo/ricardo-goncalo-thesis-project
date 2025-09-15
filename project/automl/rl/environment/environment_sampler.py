@@ -10,7 +10,7 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.utils.shapes_util import torch_state_shape_from_space
 
 import gymnasium as gym
-from project.automl.core.advanced_input_management import ComponentListInputSignature
+from automl.core.advanced_input_management import ComponentListInputSignature
 import torch
 
 
@@ -139,7 +139,8 @@ class EnvironmentCycler(EnvironmentSampler):
                 env = self.environments[index]
                 env.pass_input({"name" : f"{env.name}_{index}"})
 
-        
+    
+    @requires_input_proccess
     def sample(self) -> EnvironmentComponent:
 
         to_return = self.environments[self.next_index]

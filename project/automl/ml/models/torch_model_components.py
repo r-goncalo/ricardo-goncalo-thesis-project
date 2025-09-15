@@ -113,30 +113,39 @@ class TorchModelComponent(ModelComponent):
 
     
     
-def perturb_model_parameters(torch_model : TorchModelComponent, percentage: float):
+def perturb_model_parameters(
+    torch_model: TorchModelComponent,
+    min_percentage: float,
+    max_percentage: float
+):
     """
     Randomly perturbs model parameters within a given percentage range.
-    @param percentage: float, e.g., 0.1 for 10%, means each parameter will be multiplied
-                       by a random factor in [0.9, 1.1].
-    """
-    
-    if percentage < 0:
-        raise ValueError("Percentage must be positive or 0")
-    
-    elif percentage == 0:
-        pass
-    
-    else: # if percentage > 0
 
-        if "perturbed_percentage" in torch_model.values.keys():
-            print("WARNING: model has already had its parameters perturbed")
-            
-        torch_model.proccess_input_if_not_proccesd()
-    
-        torch_model.values["perturbed_percentage"] = percentage # TODO: this should be multiplicative
-    
-        with torch.no_grad():
-            for param in torch_model.model.parameters():
-                # Generate random multiplier in [1 - percentage, 1 + percentage]
-                factor = torch.empty_like(param).uniform_(1 - percentage, 1 + percentage)
-                param.mul_(factor)
+    @param min_percentage: float, e.g., 0.05 means perturbations will be at least ±5%.
+    @param max_percentage: float, e.g., 0.1 means perturbations will be at most ±10%.
+                           Each parameter will be multiplied by a random factor in
+                           [0.9, 0.95] ∪ [1.05, 1.1] if min=0.05 and max=0.1.
+    """
+
+    if min_percentage < 0 or max_percentage < 0:
+        raise ValueError("Percentages must be non-negative")
+    if min_percentage > max_percentage:
+        raise ValueError("min_percentage cannot be greater than max_percentage")
+
+    if max_percentage == 0:
+        return  # nothing to do
+
+    if "perturbed_percentage" in torch_model.values.keys():
+        print("WARNING: model has already had its parameters perturbed")
+
+    torch_model.proccess_input_if_not_proccesd()
+
+    torch_model.values["perturbed_percentage"] = (min_percentage, max_percentage)
+
+    with torch.no_grad():
+        for param in torch_model.model.parameters():
+            # Generate random multipliers that enforce min_percentage
+            random_sign = torch.randint(0, 2, param.shape, device=param.device) * 2 - 1
+            random_magnitude = torch.empty_like(param).uniform_(min_percentage, max_percentage)
+            factor = 1.0 + random_sign * random_magnitude
+            param.mul_(factor)

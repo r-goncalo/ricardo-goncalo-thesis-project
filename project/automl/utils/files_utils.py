@@ -109,7 +109,7 @@ def read_text_from_file(dir, filename):
         return f.read()
 
 
-def saveDataframe(self, df, directory='', filename='dataframe.csv'): #saves a dataframe using this log object as a reference
+def saveDataframe(df, directory='', filename='dataframe.csv'): #saves a dataframe using this log object as a reference
         
         '''
         Saves dataframe in artifact directory
@@ -117,6 +117,6 @@ def saveDataframe(self, df, directory='', filename='dataframe.csv'): #saves a da
         '''
         
         if(directory != ''):
-            self.createDirIfNotExistent(directory)
+            open_or_create_folder(directory, create_new=False)
 
         df.to_csv(os.path.join(directory, filename), index=False)

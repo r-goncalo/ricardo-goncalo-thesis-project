@@ -391,12 +391,15 @@ def get_results_logger_from_file(folder_path, results_filename=RESULTS_FILENAME)
     return resuls_logger
         
             
-def aggregate_results_logger(paths, new_directory, new_column=None, results_filename=RESULTS_FILENAME) -> ResultLogger:
+def aggregate_results_logger(paths, new_directory, new_column=None, results_filename=RESULTS_FILENAME, new_results_filename=None) -> ResultLogger:
     
     '''
     new_column is a tuple (column_name, [values for each dataframe loaded])
     '''
-    
+    if new_results_filename == None:
+        new_results_filename = results_filename
+
+
     datafrane = None
     
     for folder_path_index in range(len(paths)):
@@ -428,12 +431,12 @@ def aggregate_results_logger(paths, new_directory, new_column=None, results_file
             "artifact_relative_directory": '',
             "base_directory": new_directory,
             "create_new_directory": False,
-            "results_filename": results_filename,
+            "results_filename": new_results_filename,
             "results_columns": results_columns
         }
     )
     
-    resuls_logger.saveDataframe(datafrane, filename=results_filename)
+    resuls_logger.saveDataframe(datafrane, filename=new_results_filename)
     
     return resuls_logger
     

@@ -28,13 +28,16 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
         if isinstance(obj, Component):
             
             if obj.get_source_component() != self.source_component: # TODO: Optimize this
+                return "__outside_component"
                 raise Exception(f"Component {obj.name} is not in the same tree as the source component")
+            
+            else:
 
-            return {
-                "__type__": str(type(obj)),
-                "name" : obj.name,
-                "localization" : obj.get_index_localization()
-            }
+                return {
+                    "__type__": str(type(obj)),
+                    "name" : obj.name,
+                    "localization" : obj.get_index_localization()
+                }
             
         elif isinstance(obj, (int, float, str, dict, list)):
             return obj
@@ -259,6 +262,13 @@ def decode_components_input_element(source_component : Component, element):
     elif isinstance(element, list):
                 
         return [decode_components_input_element(source_component, value) for value in element]
+    
+    elif isinstance(element, str):
+
+        if element == "__outside_component":
+            raise Exception("Outside component, can't get it")
+        else:
+            return element
             
     else:
         return element
@@ -271,7 +281,11 @@ def decode_components_exposed_values(component : Component, source_component : C
         saved_exposed_values = component_dict["exposed_values"]
 
         for exposed_values_key, exposed_value in saved_exposed_values.items():
-            component.values[exposed_values_key] = decode_components_input_element(source_component, exposed_value)
+            try:
+                component.values[exposed_values_key] = decode_components_input_element(source_component, exposed_value)
+            
+            except:
+                pass
 
     for i in range(0, len(component.child_components)):
         
@@ -295,7 +309,10 @@ def decode_components_input(component : Component, source_component : Component,
     component_dict_input = component_dict["input"]
     
     for key in component_dict_input.keys():
-        input_to_pass[key] = decode_components_input_element(source_component, component_dict_input[key])
+        try:
+            input_to_pass[key] = decode_components_input_element(source_component, component_dict_input[key])
+        except:
+            pass
         
     component.pass_input(input_to_pass)
     
@@ -417,7 +434,7 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
         elif isinstance(definition, str):
 
             if os.path.exists(definition):
-                return gen_component_from_path(definition)
+                generated_component =  gen_component_from_path(definition)
 
             else: # is json
                 generated_component =  component_from_json_string(definition)
@@ -427,7 +444,7 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
             generated_component =  component_from_tuple_definition(definition)
 
         else:
-            raise Exception(f"Definition is not a Component, dict, str or tuple | list, but {type(definition)}")
+            raise Exception(f"Definition for key is not a Component, dict, str or tuple | list, but {type(definition)} with name {definition.__name__}")
         
         if parent_component_for_generated is not None:
             parent_component_for_generated.define_component_as_child(generated_component)
@@ -439,13 +456,15 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
 def gen_component_from_path(path):
     
     if os.path.isdir(path):
-        return gen_component_in_directory(path)
+        generated_component =  gen_component_in_directory(path)
     
     elif os.path.isfile(path):
-        return gen_component_in_file_path(path)
+        generated_component =  gen_component_in_file_path(path)
     
     else:
         raise ValueError(f"Path '{path}' is neither a file nor a directory.")
+    
+    return generated_component
     
     
 

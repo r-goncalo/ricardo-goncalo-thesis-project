@@ -1,9 +1,11 @@
 
 import os
+
+import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.rl.environment.environment_sampler import EnvironmentSampler
-from automl.utils.json_component_utils import gen_component_from
+from automl.utils.json_component_utils import gen_component_from, save_configuration
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
@@ -13,6 +15,7 @@ from automl.core.input_management import InputSignature
 
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
+from automl.utils.files_utils import saveDataframe
 
 class EvaluatorWithPlayer(RLPipelineEvaluator):
     
@@ -130,6 +133,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
             rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env) 
 
+
+
             path_of_players.append(rl_player_of_run.get_artifact_directory())
 
             environment_name = rl_player_of_run.env.name
@@ -141,10 +146,16 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         results_logger = aggregate_results_logger(path_of_players, evaluations_directory, ("environment", environment_names))
                 
-        return self.base_evaluator.evaluate(results_logger)
+        evaluation_to_return = self.base_evaluator.evaluate(results_logger)
+
+        saveDataframe(pandas.DataFrame([evaluation_to_return]), evaluations_directory, "evaluation.csv")
+
+        return evaluation_to_return
     
 
     def _run_play_to_evaluate(self, agents, device, evaluations_directory, env):
+
+        rl_player_will_be_generated = not isinstance(self.input["rl_player_definition"], Component)
                 
         rl_player : RLPlayer = gen_component_from(self.input["rl_player_definition"])
 
@@ -164,5 +175,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             rl_player.pass_input({"environment" : env})            
         
         rl_player.run()
+
+        if rl_player_will_be_generated: # if the player will be generated, might as well save the configuration for later consultation of it
+            save_configuration(rl_player, rl_player.get_artifact_directory(), "config.json", save_exposed_values=True, ignore_defaults=False)
         
         return rl_player

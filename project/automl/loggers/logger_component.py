@@ -4,7 +4,7 @@ from automl.component import InputSignature, Component, requires_input_proccess
 
 from automl.utils.json_component_utils import json_string_of_component, component_from_json_string
 
-from automl.utils.files_utils import open_or_create_folder
+from automl.utils.files_utils import open_or_create_folder, saveDataframe
 
 from enum import Enum
 
@@ -139,7 +139,7 @@ class LoggerSchema(ArtifactComponent):
         if(directory != ''):
             self.createDirIfNotExistent(directory)
 
-        df.to_csv(os.path.join(self.get_artifact_directory(), directory, filename), index=False)
+        saveDataframe(df, os.path.join(self.get_artifact_directory(), directory), filename)
 
     def loadDataframe(self, directory='', filename='dataframe.csv'):
         '''

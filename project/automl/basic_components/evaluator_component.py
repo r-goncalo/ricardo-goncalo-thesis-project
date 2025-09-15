@@ -1,10 +1,13 @@
 
 
+import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.core.input_management import InputSignature
 
 from abc import abstractmethod
+
+from automl.loggers.logger_component import ComponentWithLogging
 
 class EvaluatorComponent(Component):
     
@@ -44,8 +47,6 @@ class EvaluatorComponent(Component):
         results = self._evaluate(component_to_evaluate)
 
         self.values["last_evaluation"] = results
-        
-        print(f"RESULTS: {results}")
 
         return results
 
