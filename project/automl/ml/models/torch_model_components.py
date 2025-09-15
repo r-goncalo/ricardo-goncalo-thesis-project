@@ -149,3 +149,37 @@ def perturb_model_parameters(
             random_magnitude = torch.empty_like(param).uniform_(min_percentage, max_percentage)
             factor = 1.0 + random_sign * random_magnitude
             param.mul_(factor)
+
+
+
+def perturb_model_parameters_gaussian(
+    torch_model: TorchModelComponent,
+    mean: float = 0.0,
+    std: float = 0.1,
+    fraction: float = 1.0
+):
+    """
+    Perturbs model parameters by adding Gaussian noise.
+
+    @param mean: Mean of the Gaussian noise (default = 0.0).
+    @param std: Standard deviation of the Gaussian noise (default = 0.1).
+    @param fraction: Fraction of parameters to perturb (default = 1.0, i.e. all).
+                     For example, 0.1 perturbs 10% of parameters.
+    """
+
+    if std < 0:
+        raise ValueError("Standard deviation must be non-negative")
+    if not (0 < fraction <= 1.0):
+        raise ValueError("Fraction must be in (0,1]")
+
+    if "perturbed_gaussian" in torch_model.values.keys():
+        print("WARNING: model has already had Gaussian noise added")
+
+    torch_model.proccess_input_if_not_proccesd()
+    torch_model.values["perturbed_gaussian"] = (mean, std, fraction)
+
+    with torch.no_grad():
+        for param in torch_model.model.parameters():
+            if torch.rand(1).item() < fraction:
+                noise = torch.randn_like(param) * std + mean
+                param.add_(noise)
