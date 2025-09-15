@@ -78,6 +78,36 @@ def perturb_model_parameters_gaussian(
                 param.add_(noise)
 
 
+
+def perturb_model_parameters_partial_forgetting(
+    torch_model: TorchModelComponent,
+    fraction: float = 0.1,
+    std: float = 0.1
+):
+    """
+    Perturbs model parameters by randomly reinitializing a fraction of them.
+
+    @param fraction: Fraction of parameters to 'forget' (default = 0.1, i.e. 10%).
+    @param std: Standard deviation of the reinitialized values (default = 0.1).
+    """
+
+    if not (0.0 < fraction <= 1.0):
+        raise ValueError("fraction must be in (0, 1].")
+    if std <= 0:
+        raise ValueError("std must be positive.")
+
+    if "perturbed_partial_forgetting" in torch_model.values.keys():
+        print("WARNING: model has already had partial forgetting applied")
+
+    torch_model.proccess_input_if_not_proccesd()
+    torch_model.values["perturbed_partial_forgetting"] = (fraction, std)
+
+    with torch.no_grad():
+        for param in torch_model.model.parameters():
+            mask = torch.rand_like(param) < fraction
+            param[mask] = torch.randn_like(param[mask]) * std
+
+
 def model_parameter_distance(model_a : TorchModelComponent, model_b : TorchModelComponent):
     """Compute L2 distance and cosine similarity between two models."""
     params_a = torch.cat([p.flatten() for p in model_a.model.parameters()])

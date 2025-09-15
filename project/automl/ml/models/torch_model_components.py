@@ -13,10 +13,16 @@ class TorchModelComponent(ModelComponent):
         "device": InputSignature(get_from_parent=True, ignore_at_serialization=True),
         "model" : InputSignature(mandatory=False, possible_types=[nn.Module])
     }    
+
+    exposed_values = {
+        "model" : None
+    }
     
     def proccess_input_internal(self):
         
         super().proccess_input_internal()
+
+        self.__synchro_model_value_attr()
         
         self._setup_values()
                 
@@ -24,6 +30,13 @@ class TorchModelComponent(ModelComponent):
         
         if "device" in self.input.keys():
             self.model.to(self.input["device"])
+
+    def __synchro_model_value_attr(self):
+        if self.values["model"] is not None: # if a model is already present in the exposed values, use it
+            self.model = self.values["model"]
+        
+        elif self.values["model"] is None and hasattr(self, "model"): # if a model is already present as an attribute, use it
+            self.values["model"] = self.model
         
         
     def _setup_values(self):
@@ -36,12 +49,15 @@ class TorchModelComponent(ModelComponent):
         if self._should_load_model():
             
             if model_loaded:
-                print("WARNING: LOADING A TORCH MODEL WHEN A MODEL WAS ALREADY LOADED")
-        
-            self._load_model()
-            
+                print("WARNING: LOADING A TORCH MODEL WHEN A MODEL WAS ALREADY LOADED, WILL NOT LOAD NEW MODEL AND KEEP THE OLD ONE")
+
+            else:
+                self._load_model()
+
         else:
             self._initialize_model() # initializes the model using passed values
+
+        self.__synchro_model_value_attr()
 
         self._is_model_well_formed() # throws exception if model is not well formed
 
@@ -56,12 +72,12 @@ class TorchModelComponent(ModelComponent):
     
     def _should_load_model(self):
         return "model" in self.input.keys()
-                
-
+    
     def _load_model(self):
         
         if "model" in self.input.keys():
             self.model : nn.Module = self.input["model"]
+            self.values["model"] = self.model
         
     def _initialize_model(self):
         raise Exception("Model initialization not implemented in base TorchModelComponent")
@@ -105,7 +121,7 @@ class TorchModelComponent(ModelComponent):
     @requires_input_proccess
     def clone(self):
         toReturn = type(self)(input=self.input) # initializes the component
-        toReturn.proccess_input_internal()
+        toReturn.proccess_input_if_not_proccesd()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn
                 

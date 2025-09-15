@@ -7,6 +7,8 @@ from automl.ml.models.model_components import ModelComponent
 from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 
+SUPPORTED_MODELS = ["dqn-MountainCar-v0", "dqn-CartPole-v1"]
+
 class SB3WrapperTorch(TorchModelComponent):
     
     parameters_signature = {
@@ -23,10 +25,9 @@ class SB3WrapperTorch(TorchModelComponent):
         # TODO: nn model from sb3 model if needed
     
     def _initialize_model(self):
+
         if not "sb3_model" in self.input.keys():
             Exception("No sb3_model_provided")
-            
-        
             
         # Clone q_net
         #sb3_model = load_sb3_dqn_model(self.input["sb3_model"])
