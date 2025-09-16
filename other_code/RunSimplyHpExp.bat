@@ -19,25 +19,29 @@ if "%~1"=="" goto done
 
 if "%~1"=="--LOGDIR" (
     set LOGDIR=%~2
+    shift
 
 ) else if "%~1"=="--LOGBASENAME" (
     set LOGBASENAME=%~2
+    shift
 
 ) else if "%~1"=="--EXPSTOREPATH" (
     set EXPSTOREPATH=%~2
-
+    shift
 ) else if "%~1"=="--TOOPTIMIZECONFIG" (
     set TOOPTIMIZECONFIG=%~2
-
-) else if "%~1"=="--CONFIG"(
-    set CONFIG=%~2    
+    shift
+) else if "%~1"=="--CONFIG" (
+    set CONFIG=%~2
+    shift    
 
 ) else if "%~1"=="--RELPATH" (
     set RELPATH=%~2   
+    shift
 )
 
 REM == REM Parameter Identifier and then Parameter value
-shift
+
 shift
 
 REM == GO TO BEGINING OF THE LOOP ==
@@ -45,6 +49,8 @@ goto parse_args
 
 REM == LOOP OVER ==
 :done
+
+echo AFTER LOOP %TIME% >> %LOGFILE%
 
 REM === Create logs directory if it doesn't exist ===
 if not exist "%LOGDIR%" mkdir "%LOGDIR%"

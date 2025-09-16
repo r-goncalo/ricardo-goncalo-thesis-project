@@ -45,7 +45,7 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
                                  base_to_opt_config_path, 
                                  hp_opt_config_path):
     
-    print(f"Running experiment sb3_montaincar_semi_trained_2\n")
+    print(f"Running experiment sb3_montaincar_semi_trained_v2\n")
 
     print(f"Base configuration to optimize path: {base_to_opt_config_path}")
 
@@ -65,7 +65,7 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
 
     print(f"Models found: {model_names}")
 
-    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment, folder_name="sb3_montaincar_semi_trained_2")
+    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment, folder_name="sb3_montaincar_semi_trained_v2")
     print(f"\nDirectory to store experiment: {directory_to_store_experiment}")
 
     directory_to_store_definition = open_or_create_folder(directory_to_store_experiment, "definitions", create_new=False)
