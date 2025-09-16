@@ -18,6 +18,10 @@ echo Starting at %TIME% >> %LOGFILE%
 
 CALL C:/rgoncalo/ricardo-goncalo-thesis-project/.conda/python.exe C:\rgoncalo\ricardo-goncalo-thesis-project\other_code\run_multiple_experiments_windows.py  >> %LOGFILE% 2>&1
 
+REM === Capture exit code ===
+set EXITCODE=%ERRORLEVEL%
+echo Exit code: %EXITCODE% >> %LOGFILE%
+
 echo Finished at %TIME% >> %LOGFILE%
 
 

@@ -7,7 +7,7 @@ import os
 def open_or_create_folder(dir, folder_name='', create_new=True):
     
     ''''''
-    
+
     if folder_name == '':
         dir, folder_name = os.path.split(dir) #if the last folder/file name is not defined, extract it from dir
     
@@ -31,6 +31,10 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
         folder_name = f"{folder_name}_{number_of_versioned_folders}"
     
         full_path = f"{dir}\\{folder_name}"
+    
+        os.makedirs(full_path)
+
+    elif not folder_exists:
 
         os.makedirs(full_path)
     

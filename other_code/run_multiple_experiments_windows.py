@@ -6,8 +6,6 @@ import experiments
 MAX_JOBS = 3
 
 
-commands = experiments.sb3_montaincar_semi_trained_1()
-
 
 # --- Create a global Job Object ---
 job = win32job.CreateJobObject(None, "")
@@ -21,11 +19,11 @@ win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation
 # Function to execute a command
 def run_job(command):
     if isinstance(command, str):
-        print(f"Starting string job: {command}")
+        print(f"Starting string job: {command}", flush=True)
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     elif isinstance(command, list):
-        print(f"Starting job with args: {command}")
+        print(f"Starting job with args: {command}", flush=True)
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     else:
@@ -46,7 +44,7 @@ def run_job(command):
     return proc.returncode
 
 # === Using multiprocessing to run jobs concurrently ===
-def run_jobs_concurrently():
+def run_jobs_concurrently(commands):
 
     print(f"Max jobs value is: {MAX_JOBS}")
 
@@ -59,5 +57,14 @@ def run_jobs_concurrently():
 
 # === Run the jobs ===
 if __name__ == "__main__":
-    print("Running multiple experiments on windows as main")
-    run_jobs_concurrently()
+    print("Running multiple experiments on windows as main", flush=True)
+
+
+    commands = experiments.sb3_montaincar_semi_trained_2(directory_of_models="C:\\rgoncalo\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\models", 
+                                 directory_to_store_experiment="C:\\rgoncalo\\experiments",
+                                 base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\to_optimize_configuration.json", 
+                                 hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\configuration.json")
+
+
+
+    run_jobs_concurrently(commands)

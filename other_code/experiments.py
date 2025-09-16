@@ -3,8 +3,8 @@
 
 import os
 
-from project.automl.utils.files_utils import open_or_create_folder
-from project.automl.utils.json_component_utils import dict_from_json_string, json_string_of_component_dict
+from automl.utils.files_utils import open_or_create_folder
+from automl.utils.json_component_utils import dict_from_json_string, json_string_of_component_dict
 
 
 SCRIPT_PATH = "C:\\rgoncalo\\ricardo-goncalo-thesis-project\\other_code\\RunSimplyHpExp.bat"
@@ -44,6 +44,15 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
                                  directory_to_store_experiment,
                                  base_to_opt_config_path, 
                                  hp_opt_config_path):
+    
+    print(f"Running experiment sb3_montaincar_semi_trained_2\n")
+
+    print(f"Base configuration to optimize path: {base_to_opt_config_path}")
+
+    print(f"Base configuration of Hyperparameter Optimization pipeline: {hp_opt_config_path}")
+
+    print(f"\nDirectory of models: {directory_of_models}")
+
 
     # get model paths
     model_paths = [
@@ -54,16 +63,22 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
 
     model_names = [os.path.splitext(os.path.basename(path))[0] for path in model_paths]
 
-    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment)
+    print(f"Models found: {model_names}")
+
+    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment, folder_name="sb3_montaincar_semi_trained_2")
+    print(f"\nDirectory to store experiment: {directory_to_store_experiment}")
 
     directory_to_store_definition = open_or_create_folder(directory_to_store_experiment, "definitions", create_new=False)
+    print(f"Directory to store definition: {directory_to_store_definition}")
 
-    directory_to_store_experiments = open_or_create_folder(directory_to_store_experiment, "experiments", create_new=False)
+    directory_to_store_experiments = os.path.join(directory_to_store_experiment, "experiments")
+    print(f"Directory to store experiments: {directory_to_store_experiments}")
 
     commands = []
 
     # for each model, setup a configuration to optimize with that model
 
+    print()
     for model_index in range(len(model_paths)):
 
         model_name = model_names[model_index]
@@ -99,6 +114,19 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
         # SETUP EXPERIMENT COMMAND
 
         commands.append(
-            f'{SCRIPT_PATH} --LOGBASENAME {model_name} --EXPSTOREPATH {to_store_experiment} --TOOPTIMIZECONFIG {to_optimize_config_path} --CONFIG {hp_opt_config_path}',
-
+            ' '.join(
+            [SCRIPT_PATH,
+            "--LOGBASENAME", f'"{model_name}"',
+            "--EXPSTOREPATH", f'"{to_store_experiment}"',
+            "--TOOPTIMIZECONFIG", f'"{to_optimize_config_path}"',
+            "--CONFIG", f'"{hp_opt_config_path}"',
+            "--RELPATH", f'"{model_name}"',
+            ]
+            )
         )
+
+        print(f"Made command for model {model_name}:\n    {commands[len(commands) - 1]}\n")
+
+    print()
+
+    return commands
