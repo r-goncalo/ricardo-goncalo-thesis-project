@@ -454,8 +454,11 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
     
 
 def gen_component_from_path(path):
+
+    if not os.path.exists(path):
+        raise Exception(f"Path does not exist: {path}")
     
-    if os.path.isdir(path):
+    elif os.path.isdir(path):
         generated_component =  gen_component_in_directory(path)
     
     elif os.path.isfile(path):
