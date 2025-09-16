@@ -98,7 +98,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         
                 
-    def setup_default_value_if_no_value(self, key):
+    def _setup_default_value_if_no_value(self, key):
         
         parameter_signature = self.get_parameter_signature(key)
             

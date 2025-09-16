@@ -85,12 +85,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _setup_hp_to_optimize_config_file(self):
         
         # make sure values for artifact directory generation are set
-        self.setup_default_value_if_no_value("artifact_relative_directory")
-        self.setup_default_value_if_no_value("base_directory")
-        self.setup_default_value_if_no_value("create_new_directory")
+        self._setup_default_value_if_no_value("artifact_relative_directory")
+        self._setup_default_value_if_no_value("base_directory")
+        self._setup_default_value_if_no_value("create_new_directory")
         
         
-        self.initialize_config_dict() # initializes self.config_dict from the input
+        self._initialize_config_dict() # initializes self.config_dict from the input
         
         self_artifact_directory = self.get_artifact_directory() #
         
@@ -120,7 +120,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
         super().proccess_input_internal()
                 
-        self.initialize_config_dict()
+        self._initialize_config_dict()
         self.initialize_sampler()
         self.initialize_database()
         self.initialize_pruning_strategy()
@@ -147,10 +147,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_component_from_input(self, "evaluator_component")
                 
         
-    def initialize_config_dict(self):
+    def _initialize_config_dict(self):
         
         if "base_component_configuration_path" in self.input.keys():
-            self.load_configuration_str_from_path()
+            self.load_configuration_dict_from_path()
   
         elif "configuration_dict" in self.input.keys():
             
@@ -241,7 +241,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
         
-    def load_configuration_str_from_path(self):
+    def load_configuration_dict_from_path(self):
         
         self.rl_pipeline_config_path : str = self.input["base_component_configuration_path"]
         
