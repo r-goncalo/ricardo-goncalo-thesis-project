@@ -2,6 +2,7 @@
 
 
 import os
+import shutil
 
 from automl.utils.files_utils import open_or_create_folder
 from automl.utils.json_component_utils import dict_from_json_string, json_string_of_component_dict
@@ -133,5 +134,42 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
         print(f"Made command for model {model_name}:\n    {commands[len(commands) - 1]}\n")
 
     print()
+
+    return commands
+
+
+def sb3_montaincar_semi_trained_3(directory_of_models, 
+                                 directory_to_store_experiment,
+                                 base_to_opt_config_path, 
+                                 hp_opt_config_paths):
+    
+    experiment_name = "sb3_montaincar_semi_trained_3"
+
+    print(f"Running experiment {experiment_name}, which abstracts to multiple configurations for multiple models\n")
+
+    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment, folder_name=experiment_name)
+    print(f"\nDirectory to store experiment: {directory_to_store_experiment}")
+
+    commands = []
+
+    for hp_opt_config_path in hp_opt_config_paths:
+
+        print(f"Doing experiment for base configuration of Hyperparameter Optimization pipeline: {hp_opt_config_path}\n")
+
+        directory_to_store_experiment_for_config = open_or_create_folder(directory_to_store_experiment, folder_name="config")
+        print(f"\nDirectory to store experiment: {directory_to_store_experiment_for_config}")
+
+        hp_opt_config_path = shutil.copy(hp_opt_config_path, directory_to_store_experiment_for_config)
+
+
+        commands=[
+            *commands,
+            *sb3_montaincar_semi_trained_2(
+                directory_of_models,
+                directory_to_store_experiment_for_config,
+                base_to_opt_config_path,
+                hp_opt_config_path
+            )
+        ]
 
     return commands
