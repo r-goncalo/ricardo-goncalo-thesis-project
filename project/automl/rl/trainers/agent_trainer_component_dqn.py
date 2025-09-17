@@ -112,4 +112,4 @@ class AgentTrainerDQN(AgentTrainer):
             return self.exploration_strategy.select_action(self.agent, state)  
 
         else:
-            return super().select_action(self.agent, state)
+            return super()._select_action(self.agent, state)

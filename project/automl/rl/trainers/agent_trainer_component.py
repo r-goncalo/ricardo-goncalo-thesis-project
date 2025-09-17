@@ -27,11 +27,13 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     parameters_signature = {
         
-                       "optimization_interval" : InputSignature(),
+                       "optimization_interval" : InputSignature(description="How many steps between optimizations", default_value=1),
                        
-                       "times_to_learn" : InputSignature(default_value=1), 
+                       "times_to_learn" : InputSignature(default_value=1, description="How many times to optimize at learning time"), 
                        
                        "learning_start_ep_delay" : InputSignature(default_value=-1),
+                        "learning_start_step_delay" : InputSignature(default_value=-1),
+
                        "save_interval" : InputSignature(default_value=100),
                         
                        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
@@ -56,6 +58,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                       "episode_steps" : 0,
                       "episodes_done" : 0,
                       "episode_score" : 0,
+                      "optimizations_done" : 0
                       } #this means we'll have a dic "values" with this starting values
     
     results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
@@ -94,6 +97,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def _initialize_delays(self):
         
         self.learning_start_ep_delay = self.input["learning_start_ep_delay"]
+        self.learning_start_step_delay = self.input["learning_start_step_delay"]
         
     
     def initialize_agent(self):
@@ -192,8 +196,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def _learn_if_needed(self):
         
         can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episodes_done"] >= self.learning_start_ep_delay
-        
-        if can_learn_by_ep_delay:          
+        can_learn_by_step_delay = self.learning_start_step_delay < 1 or self.values["total_steps"] >= self.learning_start_step_delay
+
+        if can_learn_by_ep_delay and can_learn_by_step_delay:          
         
             if self.values["total_steps"] % self.optimization_interval == 0:
                 
@@ -201,6 +206,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                 
                 for _ in range(self.times_to_learn):
                     self.optimizeAgent()
+                    self.values["optimizations_done"] += 1
             
         
     @requires_input_proccess

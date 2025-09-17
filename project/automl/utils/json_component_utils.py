@@ -158,9 +158,9 @@ class ComponentEncoder(json.JSONEncoder):
             
             if self.save_exposed_values:
                 
-                toReturn["exposed_values"] = json.loads(json.dumps(obj, cls= ComponentExposedValuesEncoder, source_component=self.source_component))
+                if obj.values != {}:
+                    toReturn["exposed_values"] = json.loads(json.dumps(obj, cls= ComponentExposedValuesEncoder, source_component=self.source_component))
 
-            
             if len(obj.child_components) > 0:
                 
                 toReturn["child_components"] = self.default(obj.child_components)

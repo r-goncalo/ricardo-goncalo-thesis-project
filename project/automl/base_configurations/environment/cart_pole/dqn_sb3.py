@@ -76,14 +76,14 @@ def config_dict():
                 
                 "discount_factor" : 0.99,
                 
-                "learning_start_ep_delay" : 1000,
+                "learning_start_step_delay" : 1000,
                 
                 "batch_size" : 64,
                 
-                "times_to_learn" : 128,
+                "times_to_learn" : 128, # how many times to optimize at learning time
                 
                 "learner" : (DeepQLearnerSchema, {
-                                "target_update_learn_interval" : 5,
+                                "target_update_learn_interval" : 5, # how many optimization steps before updating the target model
                                "target_update_rate" : 1.0, # the target model is totally replaced
                                "optimizer" :(
                                    AdamOptimizer,

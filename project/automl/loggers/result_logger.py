@@ -252,7 +252,7 @@ class ResultLogger(LoggerSchema):
         if to_show:
             plt.show()
             
-
+    @requires_input_proccess
     def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, aggregate_number = None, title : str = '', save_path: str = None, to_show=True, y_label='', x_slice_range=None):
 
         if self.dataframe.empty:
