@@ -74,6 +74,10 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
     directory_to_store_experiments = os.path.join(directory_to_store_experiment, "experiments")
     print(f"Directory to store experiments: {directory_to_store_experiments}")
 
+    directory_to_store_logs = os.path.join(directory_to_store_experiment, "logs")
+    print(f"Directory to store experiments: {directory_to_store_logs}")
+
+
     commands = []
 
     # for each model, setup a configuration to optimize with that model
@@ -116,6 +120,7 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
         commands.append(
             ' '.join(
             [SCRIPT_PATH,
+            "--LOGDIR", f'"{directory_to_store_logs}"',
             "--LOGBASENAME", f'"{model_name}"',
             "--EXPSTOREPATH", f'"{to_store_experiment}"',
             "--TOOPTIMIZECONFIG", f'"{to_optimize_config_path}"',

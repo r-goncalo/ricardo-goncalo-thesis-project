@@ -1,5 +1,9 @@
 @echo on
 
+
+REM === Set timestamp for log file ===
+for /f %%A in ('powershell -NoProfile -Command "Get-Date -Format yyyy_MM_dd_HH_mm_ss"') do set TIMESTAMP=%%A
+
 REM === Default Values ===
 set LOGDIR=C:\rgoncalo\logs
 set LOGBASENAME=experiment_log
@@ -54,9 +58,6 @@ echo AFTER LOOP %TIME% >> %LOGFILE%
 
 REM === Create logs directory if it doesn't exist ===
 if not exist "%LOGDIR%" mkdir "%LOGDIR%"
-
-REM === Set timestamp for log file ===
-for /f %%A in ('powershell -NoProfile -Command "Get-Date -Format yyyy_MM_dd_HH_mm_ss"') do set TIMESTAMP=%%A
 
 REM === Set log file path with timestamp ===
 set LOGFILE=%LOGDIR%\%LOGBASENAME%_%TIMESTAMP%.txt

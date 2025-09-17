@@ -80,11 +80,12 @@ class ArtifactComponent(Component):
         
         try:
             full_path = os.path.join(self.base_directory, self.artifact_relative_directory)
+            print(f"Create new: {self.input['create_new_directory']}")
             self.artifact_directory = open_or_create_folder(full_path, create_new=self.input["create_new_directory"])
             
         except Exception as e:
             
-            raise Exception(f"Could not open or create folder with base directory \'{self.base_directory}\' and artifact relative directory \'{self.artifact_relative_directory}\', full directory {full_path} due to exception:\n{e}")
+            raise Exception(f"Component {self.name} could not open or create folder with base directory \'{self.base_directory}\' and artifact relative directory \'{self.artifact_relative_directory}\', full directory {full_path} due to exception:\n{e}")
                 
     
     def generate_artifact_directory(self):

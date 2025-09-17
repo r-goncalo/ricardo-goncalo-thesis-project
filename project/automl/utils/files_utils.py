@@ -11,7 +11,8 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
     if folder_name == '':
         dir, folder_name = os.path.split(dir) #if the last folder/file name is not defined, extract it from dir
     
-            
+    full_path = os.path.join(dir, folder_name)        
+
     try:
         folders_in_dir = os.listdir(dir) #is the dir already created? if not, error
         
@@ -19,14 +20,16 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
         os.makedirs(dir)
         folders_in_dir = os.listdir(dir) #now 
     
-    
-    folder_exists = len([l for l in folders_in_dir if l == (f"{folder_name}")]) > 0
-    
+    print(f"Looking to see if folder with name {folder_name} exists in dir {dir}... Folders in dir: {folders_in_dir}")
+    folder_exists = os.path.exists(full_path) and os.path.isdir(full_path)
+    print(f"Exists: {folder_exists}")
+
+
     full_path = os.path.join(dir, folder_name)
     
     if folder_exists and create_new: 
             
-        number_of_versioned_folders = len([l for l in folders_in_dir if l.startswith(f"{folder_name}_")]) #counts the number of dirs that start with specified name
+        number_of_versioned_folders = len([l for l in folders_in_dir if l.startswith(f"{folder_name}_") and os.path.isdir(os.path.join(dir, l))]) #counts the number of dirs that start with specified name
     
         folder_name = f"{folder_name}_{number_of_versioned_folders}"
     
@@ -36,7 +39,10 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
 
     elif not folder_exists:
 
+        print(f"Folder with full path {full_path} does not exist")
         os.makedirs(full_path)
+
+    # else folder exists and create_new is False
     
     return full_path
 
