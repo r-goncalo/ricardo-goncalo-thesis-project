@@ -20,10 +20,7 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
         os.makedirs(dir)
         folders_in_dir = os.listdir(dir) #now 
     
-    print(f"Looking to see if folder with name {folder_name} exists in dir {dir}... Folders in dir: {folders_in_dir}")
     folder_exists = os.path.exists(full_path) and os.path.isdir(full_path)
-    print(f"Exists: {folder_exists}")
-
 
     full_path = os.path.join(dir, folder_name)
     
@@ -39,7 +36,6 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
 
     elif not folder_exists:
 
-        print(f"Folder with full path {full_path} does not exist")
         os.makedirs(full_path)
 
     # else folder exists and create_new is False
