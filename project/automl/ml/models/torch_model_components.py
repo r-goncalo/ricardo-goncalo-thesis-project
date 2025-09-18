@@ -1,10 +1,12 @@
+import os
+from automl.basic_components.state_management import StatefulComponent
 import torch
 import torch.nn as nn
 
 from automl.component import InputSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
-class TorchModelComponent(ModelComponent):
+class TorchModelComponent(ModelComponent, StatefulComponent):
     
     
     # INITIALIZATION --------------------------------------------------------------------------
@@ -124,4 +126,28 @@ class TorchModelComponent(ModelComponent):
         toReturn.proccess_input_if_not_proccesd()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn
+    
+    # STATE MANAGEMENT -----------------------------------------------------
+
+    def _save_state_internal(self):
+        
+        super()._save_state_internal()
+        
+        torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
+    
+    
+    
+    def _load_state_internal(self) -> None:
+        
+        super()._load_state_internal()
                 
+        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
+        
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model weights file not found at {model_path}")
+                
+        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        
+        self._initialize_model()  # Ensure the model is initialized before loading weights
+        
+        self.model.load_state_dict(state_dict) #loads the saved weights into the model

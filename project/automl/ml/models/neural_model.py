@@ -1,5 +1,4 @@
 import os
-from automl.basic_components.state_management import StatefulComponent
 from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
@@ -10,9 +9,8 @@ import random
 
 from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
 
-from automl.ml.models.model_components import ModelComponent
 
-class FullyConnectedModelSchema(TorchModelComponent, StatefulComponent):
+class FullyConnectedModelSchema(TorchModelComponent):
     
     
     '''
@@ -91,41 +89,3 @@ class FullyConnectedModelSchema(TorchModelComponent, StatefulComponent):
         
                             
     # EXPOSED METHODS --------------------------------------------
-    
-    
-    # UTIL -----------------------------------------------------
-    
-    @requires_input_proccess
-    def clone(self):
-        toReturn = FullyConnectedModelSchema(input=self.input)
-        toReturn.proccess_input_internal()
-        toReturn.model.load_state_dict(self.model.state_dict())
-        return toReturn
-    
-    
-
-    # STATE MANAGEMENT -----------------------------------------------------
-    
-    def save_state(self):
-        
-        super().save_state()
-        
-        torch.save(self.model.state_dict(), os.path.join(self.artifact_relative_directory, "model_weights.pth"))
-    
-    
-    
-    def load_state(self) -> None:
-        
-        super().load_state()
-                
-        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
-        
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model weights file not found at {model_path}")
-                
-        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
-        
-        self._initialize_model()  # Ensure the model is initialized before loading weights
-        
-        self.model.load_state_dict(state_dict) #loads the saved weights into the model
-                

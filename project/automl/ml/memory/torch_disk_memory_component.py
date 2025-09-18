@@ -102,7 +102,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         
     def initialize_disk_files(self):
         
-        self.storage_dir = Path(os.path.join(self.artifact_directory, self.input["storage_dir"]))
+        self.storage_dir = Path(os.path.join(self.get_artifact_directory(), self.input["storage_dir"]))
 
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.disk_file_position = 0

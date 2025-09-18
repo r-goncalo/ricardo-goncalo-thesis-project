@@ -1,11 +1,12 @@
 
 
 
+import shutil
 from typing import final
 from automl.component import Component, requires_input_proccess
 from automl.utils.json_component_utils import decode_components_from_dict, dict_from_json_string, gen_component_from, json_string_of_component, component_from_json_string, set_values_of_dict_in_component
 from automl.utils.files_utils import write_text_to_file, read_text_from_file
-from automl.basic_components.artifact_management import ArtifactComponent
+from automl.basic_components.artifact_management import ArtifactComponent, find_artifact_component_first_parent_directory
 import os
 
 from automl.consts import CONFIGURATION_FILE_NAME
@@ -39,10 +40,10 @@ class StatefulComponent(ArtifactComponent):
             
             self.save_configuration(save_exposed_values=True)
             
-        self.save_state_internal()
+        self._save_state_internal()
 
         
-    def save_state_internal(self):
+    def _save_state_internal(self):
         pass
         
     @final
@@ -61,11 +62,26 @@ class StatefulComponent(ArtifactComponent):
         if not os.path.exists(folder_path):
             raise Exception(f"Folder path {folder_path} does not exist, cannot load state of component")
         
-        self.load_state_internal()
+        self._load_state_internal()
         
 
+    def _change_to_new_artifact_directory_internal(self, new_folder_path):
+        
+        super()._change_to_new_artifact_directory_internal(new_folder_path)
 
-    def load_state_internal(self):
+        current_artifact_directory = self.get_artifact_directory()
+
+        # copy all files (not folders) from current_artifact_directory to new_folder_path
+        for item in os.listdir(current_artifact_directory):
+        
+            src_path = os.path.join(current_artifact_directory, item)
+            dst_path = os.path.join(new_folder_path, item)
+            if os.path.isfile(src_path):  # copy only files
+                shutil.copy2(src_path, dst_path)
+    
+
+
+    def _load_state_internal(self):
         pass    
     
 
@@ -91,25 +107,64 @@ def __load_state_recursive_child_components(origin_component : Component):
     
     if isinstance(origin_component, StatefulComponent):
         origin_component.load_state(recursive=False)
-            
-                
-def load_component_from_folder(folder_path) -> Component: #note this is not a method 
-    
+
+# TODO: Complete this
+def __change_artifact_directory_recursive_child_components(origin_component : ArtifactComponent):
+    pass
+
+
+
+def change_artifact_directory_and_child_components(origin_component : ArtifactComponent, new_folder_path):
+
+    origin_component.change_to_new_artifact_directory(new_folder_path)
+
+    __change_artifact_directory_recursive_child_components(origin_component)
+
+
+
+def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FILE_NAME, new_folder_path=None, parent_component_to_be : Component =None) -> Component: #note this is not a method
+
     '''Loads the state of a component from a folder path'''
     
-    json_str = read_text_from_file(folder_path, CONFIGURATION_FILE_NAME)
+    json_str = read_text_from_file(folder_path, configuration_file)
+
+    old_folder_last_directory = os.path.basename(folder_path)
     
     component_to_return = gen_component_from(json_str)
     
     if not isinstance(component_to_return, ArtifactComponent):
-        print("Tried to load state of component which is not a ArtifactComponent component")
+        print("WARNING: Tried to load state of component which is not a ArtifactComponent component")
         #raise Exception("Tried to load state of component which is not a ArtifactComponent component")
+
+    else: # is instance of ArtifactComponent
+
+        if new_folder_path is None and parent_component_to_be is None:
+            component_to_return.pass_input({"artifact_relative_directory" : '',
+                                        "base_directory" : folder_path,
+                                        "create_new_directory" : False})
+            
         
-    if isinstance(component_to_return, StatefulComponent):        
-        component_to_return.load_state_internal()
-    
-    component_to_return.pass_input({"artifact_relative_directory" : ''})
-    component_to_return.pass_input({"base_directory" : folder_path})
+        if isinstance(component_to_return, StatefulComponent):
+
+            if new_folder_path is not None:
+
+                change_artifact_directory_and_child_components(component_to_return, new_folder_path)
+
+            # if there is a parent component and no defined new folder path
+            elif new_folder_path is None and parent_component_to_be is not None:
+
+                first_parent_artifact_component_directory = find_artifact_component_first_parent_directory(parent_component_to_be)
+
+                if first_parent_artifact_component_directory is not None:
+
+                    change_artifact_directory_and_child_components(component_to_return, os.path.join(first_parent_artifact_component_directory, old_folder_last_directory))
+
+
+
+            component_to_return.load_state()
+
+            __load_state_recursive_child_components(component_to_return) # load state of children
+
     
     return component_to_return
 
@@ -267,6 +322,6 @@ class StatefulComponentLoader(ArtifactComponent):
         if hasattr(self, 'component_to_save_load'):
             raise Exception("Component is already loaded, cannot load it again")
         
-        self.component_to_save_load = load_component_from_folder(self.artifact_directory)
+        self.component_to_save_load = load_component_from_folder(self.get_artifact_directory())
         
         return self.component_to_save_load

@@ -169,7 +169,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
     def initialize_database(self):
         
-        self.database_path = self.artifact_directory + "\\study_results.db"  # Path to the SQLite database file
+        self.database_path = self.get_artifact_directory() + "\\study_results.db"  # Path to the SQLite database file
         
         self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
         
@@ -280,7 +280,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
         name = self.gen_trial_name(trial)  
         
-        component_to_opt.pass_input({"name" : name, "base_directory" : self.artifact_directory})  
+        component_to_opt.pass_input({"name" : name, "base_directory" : self.get_artifact_directory()})  
         
         self.lg.writeLine(f"Created component with name {name}")
         

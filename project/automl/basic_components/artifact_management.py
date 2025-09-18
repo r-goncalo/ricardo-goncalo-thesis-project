@@ -86,7 +86,9 @@ class ArtifactComponent(Component):
             
             raise Exception(f"Component {self.name} could not open or create folder with base directory \'{self.base_directory}\' and artifact relative directory \'{self.artifact_relative_directory}\', full directory {full_path} due to exception:\n{e}")
                 
-    
+    def _force_generate_artifact_directory(self):
+        self.__generate_artifact_directory()
+
     def generate_artifact_directory(self):
         
         '''Forces generation of artifact directory for this component and raises an exception if it already has it generated'''
@@ -101,26 +103,63 @@ class ArtifactComponent(Component):
         return self.has_artifact_directory() or all(key in self.input.keys() for key in ["artifact_relative_directory", "base_directory", "create_new_directory"])
 
     def has_artifact_directory(self) -> bool:
-        return not hasattr(self, "artifact_directory")
+        return hasattr(self, "artifact_directory")
     
                 
     def get_artifact_directory(self):
         '''Gets (and sets if needed) the artifact directory'''      
         
-        if self.has_artifact_directory():
+        if not self.has_artifact_directory():
             self.__generate_artifact_directory()
             
         return self.artifact_directory
-  
+    
+    # CHANGE ARTIFACT DIRECTORY -------------------------------------------------
+
+    def change_to_new_artifact_directory(self, new_folder_path):
+
+        # check if new_folder_path is empty, if not, raise error
+        if os.path.exists(new_folder_path) and os.listdir(new_folder_path):
+            raise ValueError(f"Target folder '{new_folder_path}' is not empty.")
         
+        # create new_folder in path if it does not exist
+        os.makedirs(new_folder_path, exist_ok=True)
+
+        self._change_to_new_artifact_directory_internal(new_folder_path)
+
+        self.pass_input({"base_directory" : new_folder_path, 
+                         "artifact_relative_directory" : '', 
+                         "create_new_directory" : False})
+
+        self._force_generate_artifact_directory()
+
+
+    def _change_to_new_artifact_directory_internal(self, new_folder_path):
+        '''What happens between the creation of the folder and the actual change of the directory'''
+        pass # to be implemented by subclasses if needed
+
+
     def proccess_input_internal(self): #this is the best method to have initialization done right after
         
         super().proccess_input_internal()
         
-        self.get_artifact_directory()
+        # self.get_artifact_directory()
         
     
     def save_configuration(self, save_exposed_values=False):
         
         save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values)
         
+
+def find_artifact_component_first_parent_directory(component : Component):
+    
+    current_parent_component = component
+    
+    while current_parent_component != None: #looks for a parent component which is an Artifact Component and sets its directory based on it
+        
+        if isinstance(current_parent_component, ArtifactComponent):
+            return current_parent_component.get_artifact_directory()
+        
+        current_parent_component = current_parent_component.parent_component
+        
+    return None

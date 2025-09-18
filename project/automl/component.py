@@ -151,8 +151,13 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         '''for logic of passing the input, already verified'''
         
         self.input[key] = value
-        self.__input_meta[key].custom_value_passed()
+
+        try:
+            self.__input_meta[key].custom_value_passed()
         
+        except KeyError as e:
+            raise Exception(f"In component of type {type(self)}, when passing input: Tried to pass input for key {key}, with internal inconsistency, as it does not exist in the meta of inputs: {self.__input_meta.keys()} but exists in parameter signature: {self.__get_organized_parameters_signature()})") from e
+
         parameters_signatures_of_key : list[InputSignature] = self.get_list_of_parameter_signatures_for_key(key)
         
         for parameter_signature in parameters_signatures_of_key: # TODO: this should all be defined in the creation of the Scheme, not computed every time an input is passed

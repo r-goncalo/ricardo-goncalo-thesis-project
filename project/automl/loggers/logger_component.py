@@ -113,7 +113,7 @@ class LoggerSchema(ArtifactComponent):
             if toPrint:
                 print(string)
 
-            fd = open(os.path.join(self.artifact_directory, file), 'a')
+            fd = open(os.path.join(self.get_artifact_directory(), file), 'a')
             fd.write(f'{string}\n')
             fd.close()
         
@@ -165,7 +165,7 @@ class LoggerSchema(ArtifactComponent):
             
     @requires_input_proccess
     def openFile(self, fileRelativePath): #reads and returns a file
-        fd = open(os.path.join(self.artifact_directory, fileRelativePath), 'rb')
+        fd = open(os.path.join(self.get_artifact_directory(), fileRelativePath), 'rb')
         toReturn = pickle.load(fd)
         fd.close()
         return toReturn
