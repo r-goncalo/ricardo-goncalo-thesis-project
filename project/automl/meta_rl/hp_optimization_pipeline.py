@@ -389,14 +389,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         for step in range(self.n_steps):
                         
-            #try:
+            try:
                 
                 try:
                     component_to_test.run()
-                    component_to_test.save_configuration(save_exposed_values=True)
+                    save_state(component_to_test, save_definition=True)
                 
                 except Exception as e:
-                    component_to_test.save_configuration(save_exposed_values=True)
+                    save_state(component_to_test, save_definition=True)
                     raise e
 
                 evaluation_results = self.evaluate_component(component_to_test)
@@ -416,11 +416,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                 
-            #except:
+            except:
                 
-            #    self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
-            #    trial.set_user_attr("prune_reason", "error")
-            #    raise optuna.TrialPruned("error")
+                self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
+                trial.set_user_attr("prune_reason", "error")
+                raise optuna.TrialPruned("error")
                             
         
         return evaluation_results["result"]
