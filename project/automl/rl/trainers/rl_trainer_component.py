@@ -131,8 +131,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
     def _check_if_to_end_training_session(self):
 
-        
-        if self.num_episodes >= 1 and self.input["episode_done_in_session"] >= self.num_episodes:
+        if self.num_episodes >= 1 and self.values["episode_done_in_session"] >= self.num_episodes:
             self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
             return True
         
@@ -171,10 +170,10 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 agent_in_training.end_episode() 
             
             self.values["episodes_done"] = self.values["episodes_done"] + 1
+            self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
             
             self.calculate_and_log_results()
             
-            self.values["episode_done_in_session"]
             
             if self._check_if_to_end_training_session():
                 break

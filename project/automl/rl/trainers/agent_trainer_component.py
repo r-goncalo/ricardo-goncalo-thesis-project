@@ -192,6 +192,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.lg.writeLine("Ended episode: " + str(self.values["episodes_done"]) + " with duration: " + str(self.values["episode_steps"]) + ", total reward: " + str(self.values["episode_score"]), file=self.TRAIN_LOG)
         
         self.calculate_and_log_results()
+
+        
     
     def _learn_if_needed(self):
         

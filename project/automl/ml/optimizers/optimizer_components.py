@@ -38,7 +38,10 @@ class AdamOptimizer(OptimizerSchema):
 
     parameters_signature = {
                        "learning_rate" : InputSignature(default_value=0.001),
-                       "amsgrad" : InputSignature(default_value=True)}    
+                       "amsgrad" : InputSignature(default_value=True),
+                       "clip_grad_value" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given value"),
+                       "clip_grad_norm" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given norm")
+                       }    
     
     
     def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
@@ -49,7 +52,14 @@ class AdamOptimizer(OptimizerSchema):
                 
         self.torch_adam_opt = optim.AdamW(params=self.params,lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
 
-    
+        self.clip_grad_value = None
+        if "clip_grad_value" in self.input:
+            self.clip_grad_value = self.input["clip_grad_value"]
+        
+        self.clip_grad_norm = None
+        if "clip_grad_norm" in self.input:  
+            self.clip_grad_norm = self.input["clip_grad_norm"]
+
     # EXPOSED METHODS --------------------------------------------------------------------------
     
     @requires_input_proccess
@@ -66,7 +76,12 @@ class AdamOptimizer(OptimizerSchema):
         loss.backward()
         
         # In-place gradient clipping
-        nn.utils.clip_grad_value_(self.params, 100) #clips gradients to prevent them from reaching values over 100, trying to resolve explosive gradients problem
+        if self.clip_grad_value is not None:
+            nn.utils.clip_grad_value_(self.params, self.clip_grad_value)
+        
+        if self.clip_grad_norm is not None:
+            nn.utils.clip_grad_norm_(self.params, self.clip_grad_norm)
+        
         self.torch_adam_opt.step()
         
         

@@ -7,6 +7,7 @@ from automl.ml.models.model_components import ModelComponent
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 
+from automl.ml.models.torch_model_utils import model_parameter_distance
 import torch
 
 from automl.rl.policy.policy import Policy
@@ -100,9 +101,13 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
     def learn(self, trajectory, discount_factor) -> None:
         
         super().learn(trajectory, discount_factor)
-        
-        bacth_size = len(trajectory[0])
-        
+
+        model_before_learn = self.model.clone()
+
+        batch_size = len(trajectory[0])
+
+        #print(f"Computed batch size: {batch_size}")
+
         state_batch, action_batch, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
             
         non_final_mask = self._non_final_states_mask(next_state_batch) # tensor of indexes with non final states
@@ -121,8 +126,8 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         #compute the V-values our target net predicts for the next_state (perceived reward)
         #note this can be computed with the Q-values by simply chossing the max Q-values(s, a) for a given s
         #if there is no next_state, we can use 0             
-        
-        next_state_values = torch.zeros(bacth_size, device=self.device)
+
+        next_state_values = torch.zeros(batch_size, device=self.device)
         with torch.no_grad():
             next_state_values[non_final_mask] = self.target_net.predict(next_state_batch[non_final_mask]).max(1).values # it returns the maximum q-action values of the next action
             
@@ -138,6 +143,9 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()
+
+        #l2_distance, avg_distance, cosine_sim = model_parameter_distance(model_before_learn, self.model)
+        #print(f"Comparison between model before and after learn step: L2 distance {l2_distance}, avg distance {avg_distance}, cosine similarity {cosine_sim}")
         
         
     @requires_input_proccess            

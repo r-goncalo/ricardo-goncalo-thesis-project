@@ -32,12 +32,12 @@ class StatefulComponent(ArtifactComponent):
     def save_state(self, save_definition=False):
         '''
         Saves the state of this component        
-        This method should not typically be called directly, but rather through the save_component_with_state_to_folder function
+        This method should not typically be called directly, as it does not save the state of child components
         '''
             
         if save_definition:
             
-            self.save_configuration(save_exposed_values=save_definition)
+            self.save_configuration(save_exposed_values=True)
             
         self.save_state_internal()
 
@@ -114,7 +114,7 @@ def load_component_from_folder(folder_path) -> Component: #note this is not a me
     return component_to_return
 
 
-def save_state(component : Component) -> None:
+def save_state(component : Component, save_definition=True) -> None:
 
     '''
     Saves the state of this component and child components        
@@ -125,10 +125,10 @@ def save_state(component : Component) -> None:
         save_state(child_component)
         
         if isinstance(child_component, StatefulComponent):
-            child_component.save_state(save_definition=True)
+            child_component.save_state(save_definition=False)
 
     if isinstance(component, StatefulComponent):
-        component.save_state(save_definition=True)
+        component.save_state(save_definition=save_definition)
         
 
 # TODO: This is wrong

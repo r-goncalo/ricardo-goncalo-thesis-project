@@ -47,7 +47,7 @@ def component_from_tuple_definition_with_look_for_class(tuple_definition) -> Com
 
 
 
-def get_sub_class_with_correct_parameter_signature(cls, input) -> type[Component]:
+def get_sub_class_with_correct_parameter_signature(cls, input : dict) -> type[Component]:
     
     all_subclasses = get_all_subclasses(cls)
 
@@ -55,7 +55,7 @@ def get_sub_class_with_correct_parameter_signature(cls, input) -> type[Component
         if class_has_correct_parameter_signature(sub_cls, input):
             return sub_cls
 
-    raise Exception(f"No subclass of {cls} has the correct parameter signature for input {input}. Subclasses: {all_subclasses}")
+    raise Exception(f"No subclass of {cls} has the correct parameter signature for input with keys {input.keys()}. Subclasses: {all_subclasses}")
 
 
 

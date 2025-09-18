@@ -574,4 +574,4 @@ def save_configuration(component : Component, config_directory, config_filename=
         
         path_to_save_configuration = os.path.join(config_directory, config_filename)
 
-        write_text_to_file(filename=path_to_save_configuration, text=json_str)  
+        write_text_to_file(filename=path_to_save_configuration, text=json_str, create_new=True)  

@@ -367,6 +367,86 @@ class ResultLogger(LoggerSchema):
            plt.show()
 
 
+    @requires_input_proccess
+    def plot_piecewise_linear_regression(self, x_axis: str, y_axis: list, n_segments: int,
+                                     title: str = '', save_path: str = None, to_show=True, y_label='', plot_with_segment_names=False):
+        """
+        Plots a graph with piecewise linear regression lines for the given columns in the dataframe.
+
+        :param x_axis: The column key for the X-axis.
+        :param y_axis: A list of column keys for the Y-axis.
+        :param n_segments: Number of segments to split the data into.
+        :param title: Optional title for the plot.
+        :param save_path: Optional path to save the plot as an image.
+        :param to_show: Whether to display the plot.
+        :param y_label: Label for the Y-axis.
+        """
+        if self.dataframe.empty:
+            raise ValueError("Dataframe is empty. Log results before plotting.")
+
+        if x_axis not in self.dataframe.columns:
+            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: {self.dataframe.columns}")
+
+        if isinstance(y_axis, str):
+            y_axis = [y_axis]
+
+        for i in range(len(y_axis)):
+            if isinstance(y_axis[i], str):
+                y_axis[i] = (y_axis[i], y_axis[i])
+
+            if y_axis[i][0] not in self.dataframe.columns:
+                raise KeyError(f"Column '{y_axis[i][0]}' not found in dataframe.")
+
+        # Sort by x_axis to make clean splits
+        df_sorted = self.dataframe.sort_values(by=x_axis).reset_index(drop=True)
+        X_all = df_sorted[[x_axis]].values
+
+        x_min, x_max = df_sorted[x_axis].min(), df_sorted[x_axis].max()
+        segment_bounds = np.linspace(x_min, x_max, n_segments + 1)
+
+        for (column_name, name_to_plot) in y_axis:
+            Y_all = df_sorted[column_name].values
+
+            ax = plt.gca()
+            next_color = ax._get_lines.get_next_color()
+
+            for i in range(n_segments):
+                seg_mask = (df_sorted[x_axis] >= segment_bounds[i]) & (df_sorted[x_axis] < segment_bounds[i+1])
+                X_seg = df_sorted.loc[seg_mask, [x_axis]].values
+                Y_seg = df_sorted.loc[seg_mask, column_name].values
+
+                if len(X_seg) < 2:
+                    continue  # Skip segments without enough points
+
+                # Fit linear regression for the segment
+                model = LinearRegression()
+                model.fit(X_seg, Y_seg)
+
+                # Predict on the segment
+                Y_pred = model.predict(X_seg)
+
+                # Plot regression line
+                if plot_with_segment_names:
+                    plt.plot(X_seg, Y_pred, color=next_color, label=f'{name_to_plot} Seg {i+1}')
+                else:   
+                    plt.plot(X_seg, Y_pred, color=next_color)
+
+        plt.xlabel(x_axis)
+        plt.ylabel(y_label)
+
+        if title:
+            plt.title(title)
+
+        plt.legend()
+        plt.grid(True)
+
+        if save_path:
+            plt.savefig(self.logDir + '/' + save_path)
+
+        if to_show:
+            plt.show()
+
+
 
  
 def get_results_logger_from_file(folder_path, results_filename=RESULTS_FILENAME) -> ResultLogger:
