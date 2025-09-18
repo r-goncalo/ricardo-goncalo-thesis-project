@@ -106,12 +106,11 @@ def __load_state_recursive_child_components(origin_component : Component):
             
     
     if isinstance(origin_component, StatefulComponent):
-        origin_component.load_state(recursive=False)
+        origin_component.load_state()
 
 # TODO: Complete this
 def __change_artifact_directory_recursive_child_components(origin_component : ArtifactComponent):
     pass
-
 
 
 def change_artifact_directory_and_child_components(origin_component : ArtifactComponent, new_folder_path):
@@ -138,8 +137,7 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
 
     else: # is instance of ArtifactComponent
 
-        if new_folder_path is None and parent_component_to_be is None:
-            component_to_return.pass_input({"artifact_relative_directory" : '',
+        component_to_return.pass_input({"artifact_relative_directory" : '',
                                         "base_directory" : folder_path,
                                         "create_new_directory" : False})
             

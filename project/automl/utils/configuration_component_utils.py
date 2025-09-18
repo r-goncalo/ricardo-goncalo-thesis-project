@@ -1,0 +1,17 @@
+
+    
+
+import os
+from automl.component import Component
+from automl.consts import CONFIGURATION_FILE_NAME
+from automl.utils.files_utils import write_text_to_file
+from automl.utils.json_component_utils import json_string_of_component
+
+
+def save_configuration(component : Component, config_directory, config_filename=CONFIGURATION_FILE_NAME, save_exposed_values=False, ignore_defaults=True):
+        
+        json_str = json_string_of_component(component, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults)
+        
+        path_to_save_configuration = os.path.join(config_directory, config_filename)
+
+        write_text_to_file(filename=path_to_save_configuration, text=json_str, create_new=True)  

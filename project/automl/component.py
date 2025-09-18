@@ -270,12 +270,16 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     def define_component_as_child(self, new_child_component):
         
         '''Defines target component as being child component of this one'''
+
+        if new_child_component.parent_component == self:
+            print("WARNING: Tried to add a child component that is already a child of this component")
+
+        else:
+            self.child_components.append(new_child_component)
+
+            new_child_component.parent_component = self
         
-        self.child_components.append(new_child_component)
-        
-        new_child_component.parent_component = self
-        
-        new_child_component.on_parent_component_defined()
+            new_child_component.on_parent_component_defined()
         
     def on_parent_component_defined(self):
         '''called after this component as another parent component defined'''

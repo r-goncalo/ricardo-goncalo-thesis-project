@@ -3,14 +3,10 @@ import os
 from typing import Union
 
 from automl.component import Component, InputSignature, InputMetaData
-import pickle
 
-from automl.consts import CONFIGURATION_FILE_NAME, LOADED_COMPONENT_FILE_NAME
-from automl.utils.class_util import get_class_from, get_class_from_string
+from automl.utils.class_util import get_class_from
 
 from enum import Enum
-
-from automl.utils.files_utils import write_text_to_file
 
 # ENCODING --------------------------------------------------
 
@@ -434,10 +430,14 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
         elif isinstance(definition, str):
 
             if os.path.exists(definition):
-                generated_component =  gen_component_from_path(definition)
+                generated_component = gen_component_from_path(definition, parent_component_for_generated)
 
             else: # is json
-                generated_component =  component_from_json_string(definition)
+                try:
+                    generated_component = component_from_json_string(definition)
+
+                except Exception as e:
+                    raise Exception(f"Could not decode string as json and is not a path: \n{definition}\nException:\n{e}") from e
 
         elif isinstance(definition, tuple) or isinstance(definition, list):
 
@@ -453,13 +453,15 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
     
     
 
-def gen_component_from_path(path):
+def gen_component_from_path(path, parent_component_for_generated : Component = None) -> Component:
+
+    from automl.utils.file_component_utils import gen_component_in_directory, gen_component_in_file_path
 
     if not os.path.exists(path):
         raise Exception(f"Path does not exist: {path}")
     
     elif os.path.isdir(path):
-        generated_component =  gen_component_in_directory(path)
+        generated_component =  gen_component_in_directory(path, parent_component_for_generated)
     
     elif os.path.isfile(path):
         generated_component =  gen_component_in_file_path(path)
@@ -469,36 +471,6 @@ def gen_component_from_path(path):
     
     return generated_component
     
-    
-
-def gen_component_in_directory(dir_path):
-    
-    configuration_file = os.path.join(dir_path, CONFIGURATION_FILE_NAME)
-
-    if os.path.exists(configuration_file):
-        return gen_component_in_file_path(configuration_file)
-    
-    component_loaded_file = os.path.join(dir_path, LOADED_COMPONENT_FILE_NAME)
-    
-    if os.path.exists(component_loaded_file):
-        return gen_component_in_file_path(component_loaded_file)
-
-    raise Exception("No component defined in folder")
-
-def gen_component_in_file_path(file_path):
-    
-    if file_path.endswith('.json'):
-        
-        with open(file_path, 'r') as f:
-            str_to_gen_from = f.read()
-            return component_from_json_string(str_to_gen_from)
-
-    elif file_path.endswith('.pkl'):
-        with open(file_path, 'rb') as f:
-            return pickle.load(f)
-
-
-    raise Exception("Not supported file to generate component from")
 
 # OTHER METHODS ---------------------------------------------------------------------------------
 
@@ -562,16 +534,3 @@ def get_child_dict_from_localization(component_dict, localization) -> dict:
         raise Exception(f"Localization is not an int or a str, but {type(localization)}")
     
     
-    
-
-
-# COMPONENT CONFIGURATION UTILS ------------------------------------
-
-
-def save_configuration(component : Component, config_directory, config_filename=CONFIGURATION_FILE_NAME, save_exposed_values=False, ignore_defaults=True):
-        
-        json_str = json_string_of_component(component, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults)
-        
-        path_to_save_configuration = os.path.join(config_directory, config_filename)
-
-        write_text_to_file(filename=path_to_save_configuration, text=json_str, create_new=True)  

@@ -1,11 +1,13 @@
 
 from automl.component import Component, requires_input_proccess
-from automl.utils.json_component_utils import json_string_of_component, component_from_json_string, save_configuration
+from automl.utils.json_component_utils import json_string_of_component, component_from_json_string
 from automl.utils.files_utils import open_or_create_folder, write_text_to_file
 from automl.core.input_management import InputSignature
 from automl.consts import CONFIGURATION_FILE_NAME
 
 import os
+
+from automl.utils.configuration_component_utils import save_configuration
 
 def on_artifact_directory_change(self : Component):
         

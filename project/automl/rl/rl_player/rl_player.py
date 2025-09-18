@@ -10,7 +10,7 @@ from automl.basic_components.state_management import StatefulComponent
 
 from automl.rl.rl_setup_util import initialize_agents_components
 
-from automl.utils.json_component_utils import save_configuration
+from automl.utils.configuration_component_utils import save_configuration
 from pyparsing import Dict
 import torch
 
@@ -141,7 +141,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             self.__end_episode()
             
         if self.store_env_at_end:
-            print("saving configuration")
             save_configuration(self.env, self.get_artifact_directory(), "env_config.json", save_exposed_values=True, ignore_defaults=False)
             
                     
