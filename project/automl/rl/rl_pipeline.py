@@ -208,6 +208,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         self.lg.writeLine("\nFull traceback:")
         self.lg.writeLine(full_traceback, file="error_report.txt")
+
+        raise exception
         
         
     @requires_input_proccess

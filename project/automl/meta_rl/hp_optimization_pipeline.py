@@ -378,7 +378,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
         return result
     
+    def try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, trial = optuna.Trial):
     
+        try:                 
+            save_state(component_to_test, save_definition=True)
+        except Exception as e:
+            self.on_exception_saving_trial(e, component_to_test, trial)
+
                 
     def objective(self, trial : optuna.Trial):
         
@@ -392,14 +398,23 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         for step in range(self.n_steps):
                         
             try:
-                
+
                 try:
                     component_to_test.run()
-                    save_state(component_to_test, save_definition=True)
-                
+
                 except Exception as e:
-                    save_state(component_to_test, save_definition=True)
-                    raise e
+
+                    print(f"EXCEPTION TESTING COMPONENT IN TRIAL {trial.number}")
+
+                    try:
+                        self.try_save_stat_of_trial(component_to_test, trial)
+                    
+                    except Exception as saving_exception:
+                        print(f"EXCEPTION TRYING SAVING TRIAL AFTER ORIGINAL EXCEPTION")
+                        raise e
+
+                self.try_save_stat_of_trial(component_to_test, trial)
+                
 
                 evaluation_results = self.evaluate_component(component_to_test)
                 
@@ -420,7 +435,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                 
-            except:
+            except Exception as e:
                 
                 self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
                 trial.set_user_attr("prune_reason", "error")
@@ -437,6 +452,23 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         
         self.unload_component_to_test(trial)
 
+
+    def onException(self, exception : Exception):
+
+        import traceback
+        
+        super().onException(exception)
+        
+        error_message = str(exception)
+        full_traceback = traceback.format_exc()
+
+        self.lg.writeLine("Error message:", file="error_report.txt")
+        self.lg.writeLine(error_message, file="error_report.txt")
+
+        self.lg.writeLine("\nFull traceback:")
+        self.lg.writeLine(full_traceback, file="error_report.txt")
+
+        raise exception
                     
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------
@@ -458,5 +490,28 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.lg.writeLine(f"Best parameters: {study.best_params}") 
         
         
+    # TRIAL ERROR HANDLING -------------------------------------------
+
+
+    
+    def on_exception_saving_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
+
+        import traceback
+
+        print(f"ERROR: CAN'T SAVE TRIAL {trial.number}")
+        
+        error_message = str(exception)
+        full_traceback = traceback.format_exc()
+
+        error_report_specific_path = "on_save_error_report.txt"
+        error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
+
+        self.lg.writeLine("Error message:", file=os.path.joinerror_report_path)
+        self.lg.writeLine(error_message, file=error_report_path)
+
+        self.lg.writeLine("\nFull traceback:")
+        self.lg.writeLine(full_traceback, file=error_report_path)
+
+        raise exception
         
         
