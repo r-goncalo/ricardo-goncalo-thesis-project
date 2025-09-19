@@ -522,9 +522,15 @@ class ResultLogger(LoggerSchema):
         if to_show:
             plt.show()
 
-    def plot_current_graph(self):
-        plt.show()
 
+    def plot_current_graph(self, title: str = None, y_label : str = None):
+        if title is not None:
+            plt.title(title)
+
+        if y_label != None:
+            plt.ylabel(ylabel=y_label)
+
+        plt.show()
 
 
  
