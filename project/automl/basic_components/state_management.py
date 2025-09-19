@@ -257,6 +257,8 @@ class StatefulComponentLoader(ArtifactComponent):
     
     @requires_input_proccess
     def unload_component(self):
+
+        '''Unloads component, note that it does not implicitly save it first'''
                 
         weak_ref = weakref.ref(self.component_to_save_load)
 
