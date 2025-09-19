@@ -68,9 +68,11 @@ class ArtifactComponent(Component):
             
     
     def __generate_artifact_directory(self):
+
+        necessary_parameters = ["artifact_relative_directory", "base_directory", "create_new_directory"]
         
-        if not all(key in self.input.keys() for key in ["artifact_relative_directory", "base_directory", "create_new_directory"]):
-            raise Exception(f'Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters')
+        if not all(key in self.input.keys() for key in necessary_parameters):
+            raise Exception(f'Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters, needs {necessary_parameters} and has {self.input.keys()}')
         
         self.artifact_relative_directory = self.input["artifact_relative_directory"]
         

@@ -380,8 +380,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, trial = optuna.Trial):
     
-        try:                 
+        try:
+            self.lg.writeLine(f"Trying to save state of trial {trial.number}")                 
             save_state(component_to_test, save_definition=True)
+
         except Exception as e:
             self.on_exception_saving_trial(e, component_to_test, trial)
 
@@ -400,6 +402,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             try:
 
                 try:
+                    self.lg.writeLine(f"Running trial {trial.number}")
                     component_to_test.run()
 
                 except Exception as e:
@@ -415,8 +418,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 self.try_save_stat_of_trial(component_to_test, trial)
                 
+                self.lg.writeLine(f"Evaluating trial {trial.number}...")
 
-                evaluation_results = self.evaluate_component(component_to_test)
+                try:
+
+                    evaluation_results = self.evaluate_component(component_to_test)
+
+                except Exception as e:
+
+                    self.on_exception_evaluating_trial(e, component_to_test, trial)
                 
                 self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: \n{evaluation_results}")
 
@@ -505,15 +515,36 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         error_report_specific_path = "on_save_error_report.txt"
         error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
 
-        self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}, storing error report in int, path {error_report_path}")
+        self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}, storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-
-        self.lg.writeLine("Error message:", file=os.path.joinerror_report_path)
+        self.lg.writeLine("Error message:", file=error_report_path)
         self.lg.writeLine(error_message, file=error_report_path)
 
-        self.lg.writeLine("\nFull traceback:")
+        self.lg.writeLine("\nFull traceback:", file=error_report_path)
         self.lg.writeLine(full_traceback, file=error_report_path)
+
 
         raise exception
         
+    def on_exception_evaluating_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
+
+        import traceback
+
+        
+        error_message = str(exception)
+        full_traceback = traceback.format_exc()
+
+        error_report_specific_path = "on_evaluate_error_report.txt"
+        error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
+
+        self.lg.writeLine(f"ERROR: CAN'T EVALUATE TRIAL {trial.number}, storing error report in configuration, path {error_report_path}\nError: {exception}")
+
+        self.lg.writeLine("Error message:", file=error_report_path)
+        self.lg.writeLine(error_message, file=error_report_path)
+
+        self.lg.writeLine("\nFull traceback:", file=error_report_path)
+        self.lg.writeLine(full_traceback, file=error_report_path)
+
+
+        raise exception
         
