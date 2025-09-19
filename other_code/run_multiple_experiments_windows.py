@@ -3,7 +3,7 @@ import multiprocessing
 import experiments
 
 # === Define Maximum Concurrent Jobs ===
-MAX_JOBS = 3
+MAX_JOBS = 2
 
 
 
