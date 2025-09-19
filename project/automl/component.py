@@ -72,6 +72,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         self._input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
         self.__input_is_being_processed = False
+
+        self.__notes = [] #notes are a list of strings
                 
             
     
@@ -642,6 +644,25 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
             #if we reach the end of the function, then the value is of none of the types
             raise Exception(f"In component of type {type(self)}: No validity verificator specified for key '{input_key}' and its type ({type(input_key)}) is of none of the possible types: {possible_types}")
           
+
+    # NOTES --------------------------------
+
+
+    def write_line_to_notes(self, string : str = '', use_datetime=False):
+
+        from datetime import datetime
+
+        if use_datetime:
+            string = f"{[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]}: {string}"
+
+        self.__notes.append(string)
+
+    # TODO: maybe this should clone the notes
+    def get_notes(self):
+        return self.__notes
+
+    def get_notes_as_text(self):
+        return '\n'.join(self.__notes)
 
 # VALIDITY VERIFICATION (static methods for validating input) -----------------------------          
 

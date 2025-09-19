@@ -2,6 +2,9 @@ import os
 import pandas as pd
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import PolynomialFeatures
+
 
 import wandb
 
@@ -367,6 +370,79 @@ class ResultLogger(LoggerSchema):
            plt.show()
 
 
+    def plot_polynomial_regression(
+        self,
+        x_axis: str,
+        y_axis: list,
+        degrees: int | list = 2,
+        title: str = '',
+        save_path: str = None,
+        to_show=True,
+        y_label=''
+    ):
+        """
+        Plots polynomial regression curves for the given columns in the dataframe.
+
+        :param x_axis: The column key for the X-axis.
+        :param y_axis: A list of column keys for the Y-axis. Can be str or [(col_name, plot_label)].
+        :param degrees: Polynomial degree or list of degrees (int or list[int]).
+        :param title: Optional title for the plot.
+        :param save_path: Optional path to save the plot as an image.
+        :param to_show: Whether to display the plot.
+        :param y_label: Label for the Y-axis.
+        """
+        if self.dataframe.empty:
+            raise ValueError("Dataframe is empty. Log results before plotting.")
+
+        if x_axis not in self.dataframe.columns:
+            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: {list(self.dataframe.columns)}")
+
+        if isinstance(y_axis, str):
+            y_axis = [y_axis]
+
+        for i in range(len(y_axis)):
+            if isinstance(y_axis[i], str):
+                y_axis[i] = (y_axis[i], y_axis[i])
+
+            if y_axis[i][0] not in self.dataframe.columns:
+                raise KeyError(f"Column '{y_axis[i][0]}' not found in dataframe.")
+
+        if isinstance(degrees, int):
+            degrees = [degrees]  # normalize to list
+
+        X = self.dataframe[[x_axis]].values
+        X_sorted = np.sort(X, axis=0)  # ensures smooth curves
+
+        for (column_name, name_to_plot) in y_axis:
+            Y = self.dataframe[column_name].values
+
+            for deg in degrees:
+                # Create polynomial regression pipeline
+                model = make_pipeline(PolynomialFeatures(deg), LinearRegression())
+                model.fit(X, Y)
+
+                # Predict on sorted X for smooth curve
+                Y_pred = model.predict(X_sorted)
+
+                # Plot regression curve
+                plt.plot(X_sorted, Y_pred, label=f'{name_to_plot} (degree {deg})')
+
+
+        plt.xlabel(x_axis)
+        plt.ylabel(y_label)
+
+        if title:
+            plt.title(title)
+
+        plt.legend()
+        plt.grid(True)
+
+        if save_path:
+            plt.savefig(self.logDir + '\\' + save_path)
+
+        if to_show:
+            plt.show()
+
     @requires_input_proccess
     def plot_piecewise_linear_regression(self, x_axis: str, y_axis: list, n_segments: int,
                                      title: str = '', save_path: str = None, to_show=True, y_label='', plot_with_segment_names=False):
@@ -445,6 +521,9 @@ class ResultLogger(LoggerSchema):
 
         if to_show:
             plt.show()
+
+    def plot_current_graph(self):
+        plt.show()
 
 
 

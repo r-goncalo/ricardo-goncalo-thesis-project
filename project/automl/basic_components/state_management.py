@@ -182,26 +182,15 @@ def save_state(component : Component, save_definition=True) -> None:
 
     if isinstance(component, StatefulComponent):
         component.save_state(save_definition=save_definition)
+
+    elif isinstance(component, ArtifactComponent):
+        if save_definition:
+            component.save_configuration(True)
         
 
 # TODO: This is wrong
 def save_component_with_state_to_folder(component : ArtifactComponent, folder_path, save_definition=True) -> None:
-
-        '''
-        Saves the state of this component and child components        
-        '''
-        
-        for child_component in component.child_components:
-                        
-            save_component_with_state_to_folder(child_component, False)
-            
-            if isinstance(child_component, StatefulComponent):
-
-                child_component.save_state(False)
-                
-                
-        if isinstance(component, StatefulComponent):
-            component.save_state(save_definition)
+        pass
             
 
 def unload_component(component : Component) -> None:
@@ -263,7 +252,8 @@ class StatefulComponentLoader(ArtifactComponent):
         
     @requires_input_proccess
     def save_component(self):
-        save_component_with_state_to_folder(self.component_to_save_load, self.component_to_save_load.get_artifact_directory(), save_definition=True)
+        '''Saves component to its folder'''
+        save_state(self.component_to_save_load, save_definition=True)
     
     @requires_input_proccess
     def unload_component(self):

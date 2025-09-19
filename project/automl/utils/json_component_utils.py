@@ -149,8 +149,17 @@ class ComponentEncoder(json.JSONEncoder):
             toReturn = {
                 "__type__": str(type(obj)),
                 "name": obj.name,
-                "input": json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults, source_component=self.source_component)),
                 }
+            
+            #load input if it exists
+            component_input = json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults, source_component=self.source_component))
+            if component_input != {}:
+                toReturn["input"] = component_input
+
+            #load notes if they exist
+            component_notes = obj.get_notes()
+            if component_notes != '':
+                toReturn["__notes__"] = component_notes
             
             if self.save_exposed_values:
                 
@@ -299,25 +308,45 @@ def decode_components_input(component : Component, source_component : Component,
         And a dictionary which specifies the component and its children
     '''
     
+    # if there was input specified in the component
+    if "input" in component_dict.keys():
+
+        input_to_pass = {}
+
+        component_dict_input = component_dict["input"]
+
+        for key in component_dict_input.keys():
+            try:
+                input_to_pass[key] = decode_components_input_element(source_component, component_dict_input[key])
+            except:
+                pass
+            
+        component.pass_input(input_to_pass)
     
-    input_to_pass = {}
-    
-    component_dict_input = component_dict["input"]
-    
-    for key in component_dict_input.keys():
-        try:
-            input_to_pass[key] = decode_components_input_element(source_component, component_dict_input[key])
-        except:
-            pass
-        
-    component.pass_input(input_to_pass)
-    
+    # for each child component, also decode input
     for i in range(0, len(component.child_components)):
         
         child_component = component.child_components[i]
             
         decode_components_input(child_component, source_component, component_dict["child_components"][i])
+
+
+
+def decode_components_notes(component : Component, source_component : Component, component_dict : dict):
+        
+    component_notes : list[str] = component_dict["__notes__"]
+    
+    for note in component_notes:
+        component.write_line_to_notes(note)
+    
+    for i in range(0, len(component.child_components)): # for each child component. also decode notes
+        
+        child_component = component.child_components[i]
+            
+        decode_components_notes(child_component, source_component, component_dict["child_components"][i])
                 
+
+
 
 def decode_components_from_dict(dict : dict):
     
@@ -358,6 +387,9 @@ def set_values_of_dict_in_component(component : Component, dict_representation :
 
     decode_components_input(component, source_component, dict_representation)
     decode_components_exposed_values(component, source_component, dict_representation)
+    
+    # decode notes:
+
     
     
     

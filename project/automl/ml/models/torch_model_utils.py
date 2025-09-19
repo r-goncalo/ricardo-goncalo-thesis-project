@@ -33,8 +33,6 @@ def perturb_model_parameters(
 
     torch_model.proccess_input_if_not_proccesd()
 
-    torch_model.values["perturbed_percentage"] = (min_percentage, max_percentage)
-
     with torch.no_grad():
         for param in torch_model.model.parameters():
             # Generate random multipliers that enforce min_percentage
@@ -65,11 +63,7 @@ def perturb_model_parameters_gaussian(
     if not (0 < fraction <= 1.0):
         raise ValueError("Fraction must be in (0,1]")
 
-    if "perturbed_gaussian" in torch_model.values.keys():
-        print("WARNING: model has already had Gaussian noise added")
-
     torch_model.proccess_input_if_not_proccesd()
-    torch_model.values["perturbed_gaussian"] = (mean, std, fraction)
 
     with torch.no_grad():
         for param in torch_model.model.parameters():
@@ -100,7 +94,6 @@ def perturb_model_parameters_partial_forgetting(
         print("WARNING: model has already had partial forgetting applied")
 
     torch_model.proccess_input_if_not_proccesd()
-    torch_model.values["perturbed_partial_forgetting"] = (fraction, std)
 
     with torch.no_grad():
         for param in torch_model.model.parameters():

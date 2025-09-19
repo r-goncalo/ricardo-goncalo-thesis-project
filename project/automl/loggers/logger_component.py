@@ -98,7 +98,7 @@ class LoggerSchema(ArtifactComponent):
                 string = f'{self.object_with_name.name}: {string}'
             
             if use_time_stamp == None: #if it was not specified, we use the default value
-                use_time_stamp = self.input["user_timestamp_in_logs"]
+                use_time_stamp = self.default_use_timestamp
                 
             if use_time_stamp: #if we want to use the timestamp, we add it to the string
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
