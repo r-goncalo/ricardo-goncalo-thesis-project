@@ -404,13 +404,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 except Exception as e:
 
-                    print(f"EXCEPTION TESTING COMPONENT IN TRIAL {trial.number}")
+                    self.lg.writeLine(f"EXCEPTION TESTING COMPONENT IN TRIAL {trial.number}")
 
                     try:
                         self.try_save_stat_of_trial(component_to_test, trial)
                     
                     except Exception as saving_exception:
-                        print(f"EXCEPTION TRYING SAVING TRIAL AFTER ORIGINAL EXCEPTION")
+                        self.lg.writeLine(f"EXCEPTION TRYING SAVING TRIAL AFTER ORIGINAL EXCEPTION")
                         raise e
 
                 self.try_save_stat_of_trial(component_to_test, trial)
