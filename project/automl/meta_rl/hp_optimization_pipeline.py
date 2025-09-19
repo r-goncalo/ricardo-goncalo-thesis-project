@@ -138,7 +138,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.add_to_columns_of_results_logger(["experiment", "step", *parameter_names, "result"])
                 
-        self.suggested_values = { parameter_name : 0 for parameter_name in parameter_names}
+        self.__suggested_values_by_trials = {}  
         
         self.n_trials = self.input["n_trials"]
                 
@@ -347,12 +347,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         '''Generated the configuration for the trial, making suggestions for the hyperparameters'''
         
         self.lg.writeLine("Generating configuration for trial " + str(trial.number))
+
+        self.__suggested_values_by_trials[trial] = {}
         
         for hyperparameter_suggestion in self.hyperparameters_range_list:
             
             suggested_value = hyperparameter_suggestion.make_suggestion(source_component=base_component, trial=trial)
             
-            self.suggested_values[hyperparameter_suggestion.name] = [suggested_value]
+            self.__suggested_values_by_trials[trial][hyperparameter_suggestion.name] = [suggested_value]
             
             self.lg.writeLine(f"{hyperparameter_suggestion.name}: {suggested_value}")
             
@@ -407,8 +409,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 trial.report(result, step)
                 
-                results_to_log = {'experiment' : trial.number, "step" : step, **self.suggested_values, "result" : [result]}
-                       
+                results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial], "result" : [result]}
+                
+                print(f"Logging results: {results_to_log}")
+
                 self.log_results(results_to_log)                
 
                 if trial.should_prune():

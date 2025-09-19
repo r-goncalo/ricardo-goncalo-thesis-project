@@ -111,9 +111,6 @@ def hp_opt_for_models(directory_of_models,
         fd.write(json_str_to_opt)
         fd.close()
 
-        # directory where to store experiment
-        to_store_experiment = os.path.join(directory_to_store_experiments, f'experiment_{model_name}')
-
         # SETUP EXPERIMENT COMMAND
 
         commands.append(
@@ -121,7 +118,7 @@ def hp_opt_for_models(directory_of_models,
             [SCRIPT_PATH,
             "--LOGDIR", f'"{directory_to_store_logs}"',
             "--LOGBASENAME", f'"{model_name}"',
-            "--EXPSTOREPATH", f'"{to_store_experiment}"',
+            "--EXPSTOREPATH", f'"{directory_to_store_experiments}"',
             "--TOOPTIMIZECONFIG", f'"{to_optimize_config_path}"',
             "--CONFIG", f'"{hp_opt_config_path}"',
             "--RELPATH", f'"{model_name}"',
