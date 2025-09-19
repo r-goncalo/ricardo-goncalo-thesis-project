@@ -498,7 +498,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         import traceback
 
-        print(f"ERROR: CAN'T SAVE TRIAL {trial.number}")
+        self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}, storing error report in it")
         
         error_message = str(exception)
         full_traceback = traceback.format_exc()
