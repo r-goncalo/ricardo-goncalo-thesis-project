@@ -41,13 +41,12 @@ def sb3_montaincar_semi_trained_1():
     return commands
 
 
-def sb3_montaincar_semi_trained_2(directory_of_models, 
+def hp_opt_for_models(directory_of_models, 
                                  directory_to_store_experiment,
                                  base_to_opt_config_path, 
-                                 hp_opt_config_path):
+                                 hp_opt_config_path,
+                                 experiment_name = "hp_opt_for_models"):
     
-    print(f"Running experiment sb3_montaincar_semi_trained_v2\n")
-
     print(f"Base configuration to optimize path: {base_to_opt_config_path}")
 
     print(f"Base configuration of Hyperparameter Optimization pipeline: {hp_opt_config_path}")
@@ -59,14 +58,13 @@ def sb3_montaincar_semi_trained_2(directory_of_models,
     model_paths = [
         os.path.join(directory_of_models, f)
         for f in os.listdir(directory_of_models)
-        if os.path.isfile(os.path.join(directory_of_models, f))
     ]
 
-    model_names = [os.path.splitext(os.path.basename(path))[0] for path in model_paths]
+    model_names = [os.path.basename(path) for path in model_paths]
 
     print(f"Models found: {model_names}")
 
-    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment, folder_name="sb3_montaincar_semi_trained_v2")
+    directory_to_store_experiment = open_or_create_folder(directory_to_store_experiment, folder_name=f"{experiment_name}")
     print(f"\nDirectory to store experiment: {directory_to_store_experiment}")
 
     directory_to_store_definition = open_or_create_folder(directory_to_store_experiment, "definitions", create_new=False)
@@ -164,7 +162,7 @@ def sb3_montaincar_semi_trained_3(directory_of_models,
 
         commands=[
             *commands,
-            *sb3_montaincar_semi_trained_2(
+            *hp_opt_for_models(
                 directory_of_models,
                 directory_to_store_experiment_for_config,
                 base_to_opt_config_path,
@@ -173,3 +171,4 @@ def sb3_montaincar_semi_trained_3(directory_of_models,
         ]
 
     return commands
+

@@ -60,10 +60,18 @@ if __name__ == "__main__":
     print("Running multiple experiments on windows as main", flush=True)
 
 
-    commands = experiments.sb3_montaincar_semi_trained_2(directory_of_models="C:\\rgoncalo\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\models", 
-                                 directory_to_store_experiment="C:\\rgoncalo\\experiments",
-                                 base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\to_optimize_configuration.json", 
-                                 hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\configuration.json")
+    #commands = experiments.hp_opt_for_models(directory_of_models="C:\\rgoncalo\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\models", 
+    #                             directory_to_store_experiment="C:\\rgoncalo\\experiments",
+    #                             base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\to_optimize_configuration.json", 
+    #                             hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_montaincar_sb3_zoo_semi_trained_2\\configuration.json")
+
+    commands = experiments.hp_opt_for_models(
+                            directory_of_models="C:\\rgoncalo\experiment_definitions\\dqn_cartpole_sb3_zoo\\models", 
+                            directory_to_store_experiment="C:\\rgoncalo\\experiments",
+                            base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\to_optimize_configuration.json", 
+                            hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration.json",
+                            experiment_name="sb3_zoo_dqn_cartpole_hp_opt"
+                            )
 
 
 
