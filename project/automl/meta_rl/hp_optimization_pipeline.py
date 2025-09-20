@@ -441,11 +441,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.log_results(results_to_log)                
 
                 if trial.should_prune():
-                    self.lg.writeLine("Prunning current experiment dues to pruner...")
+                    self.lg.writeLine("Prunning current experiment due to pruner...")
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                 
             except Exception as e:
+
+                if isinstance(e, optuna.TrialPruned):
+                    raise # don't consume exception, let it pass
                 
                 self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
                 trial.set_user_attr("prune_reason", "error")

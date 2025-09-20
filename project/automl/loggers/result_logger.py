@@ -53,7 +53,7 @@ class ResultLogger(LoggerSchema):
 
             self.dataframe = dataframe_on_folder
             self.columns = self.dataframe.columns
-            self._writeLine(f"Results dataframe with filename {self.results_filename} already existed with columns {self.columns}")
+            self._writeLine(f"INITIALIZING DATAFRAME OF {self.name}: Results dataframe with filename {self.results_filename} already existed with columns {self.columns}, using it...")
         
         except Exception as e:
                         
