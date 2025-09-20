@@ -64,9 +64,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "evaluator_component" : ComponentInputSignature(
                             default_component_definition=(LastValuesAvgStdEvaluator, {}),
                             description="The evaluator component to be used for evaluating the components to optimize in their training process"
-                            )
+                            ),
+
+                        "start_with_given_values" : InputSignature(default_value=False),
                                                     
                        }
+    
+    exposed_values = {
+        "n_trials_done" : 0
+    }
             
 
     # PARTIAL INITIALIZATION -----------------------------------------------------------------------------
@@ -121,9 +127,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         super().proccess_input_internal()
                 
         self._initialize_config_dict()
-        self.initialize_sampler()
-        self.initialize_database()
-        self.initialize_pruning_strategy()
+        self._initialize_sampler()
+        self._initialize_database()
+        self._initialize_pruning_strategy()
+
+        self.start_with_given_values = self.input["start_with_given_values"]
         
         self.n_steps = self.input["steps"]
         
@@ -167,7 +175,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         
             
-    def initialize_database(self):
+    def _initialize_database(self):
         
         self.database_path = self.get_artifact_directory() + "\\study_results.db"  # Path to the SQLite database file
         
@@ -177,7 +185,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
     
-    def initialize_sampler(self):
+    def _initialize_sampler(self):
         
         if self.input["sampler"] == "TreeParzen":
             
@@ -189,13 +197,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
         
-    def initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
+    def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
         
         self.sampler : sampler_class(seed=self.input["seed"])
     
     
         
-    def initialize_pruning_strategy(self):
+    def _initialize_pruning_strategy(self):
         
         
         if 'pruner' in self.input.keys():
@@ -255,26 +263,26 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     # OPTIMIZATION -------------------------------------------------------------------------
     
     
-    def create_component_to_optimize_configuration(self, trial : optuna.Trial) -> dict:
+    def _create_component_to_optimize_configuration(self, trial : optuna.Trial) -> dict:
         
         '''Creates the configuration dictionary and making the hyperparameter suggestions'''
                 
         config_of_opt = copy.deepcopy(self.config_dict)
         
-        self.setup_trial_component_with_suggestion(trial, config_of_opt)
+        self._setup_trial_component_with_suggestion(trial, config_of_opt)
         
         return config_of_opt
         
         
         
     
-    def create_component_to_optimize(self, trial : optuna.Trial) -> Component_to_opt_type:
+    def _create_component_to_optimize(self, trial : optuna.Trial) -> Component_to_opt_type:
         
         '''Creates the actual component to optimize, using the configuration dictionary and making the hyperparameter suggestions'''
         
         self.lg.writeLine(f"Creating component to test for trial {trial.number}...")
         
-        config_of_opt = self.create_component_to_optimize_configuration(trial)
+        config_of_opt = self._create_component_to_optimize_configuration(trial)
                 
         component_to_opt : Component_to_opt_type = gen_component_from_dict(config_of_opt)
                 
@@ -295,14 +303,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
 
 
-    def create_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+    def _create_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
         
         '''Creates the component to optimize and and saver / loader for it, returning the component to optimize itself'''
         
         self.lg.writeLine(f"Creating component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
 
         
-        component_to_opt = self.create_component_to_optimize(trial)
+        component_to_opt = self._create_component_to_optimize(trial)
         
         component_to_opt.pass_input({"base_directory" : self.get_artifact_directory(), "artifact_relative_directory" : component_to_opt.name, "create_new_directory" : True})
         
@@ -314,7 +322,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         return component_to_opt
     
     
-    def load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+    def _load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
 
         self.lg.writeLine(f"\nLoading component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
         
@@ -324,44 +332,79 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         return component_to_opt    
     
     
-    def create_or_load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+    def _create_or_load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
         
         if trial.number in self.trial_loaders.keys():
-            component_to_opt = self.load_component_to_test(trial)
+            component_to_opt = self._load_component_to_test(trial)
             
         else:
-            component_to_opt = self.create_component_to_test(trial)
+            component_to_opt = self._create_component_to_test(trial)
         
         return component_to_opt
 
 
-    def unload_component_to_test(self, trial : optuna.Trial):
+    def _unload_component_to_test(self, trial : optuna.Trial):
 
         self.lg.writeLine(f"\nUnloading component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
         
         component_saver_loader = self.trial_loaders[trial.number]
         component_saver_loader.unload_component()
 
-    def setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Union[Component, dict]):
+
+    # SETUP TRIALS AND SUGGESTIONS -------------------------------------------------------------------------
+
+
+    def _queue_trial_with_suggestion(self, suggestion_dict):
+        self.study.enqueue_trial(suggestion_dict)
+
+    def _queue_trial_with_initial_suggestion(self):
+
+        initial_suggestion = {}
+
+        for hp_suggestion in self.hyperparameters_range_list:
+
+            initial_value = hp_suggestion.try_get_suggested_value(self.config_dict)
+
+            if initial_value != None:
+                initial_suggestion[hp_suggestion.name] = initial_value
+
+        if initial_suggestion != {}:
+            self._queue_trial_with_suggestion(initial_suggestion)
+
+
+    def _setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Union[Component, dict]):
         
         '''Generated the configuration for the trial, making suggestions for the hyperparameters'''
         
         self.lg.writeLine("Generating configuration for trial " + str(trial.number))
 
-        self.__suggested_values_by_trials[trial] = {}
+        if trial.number in self.__suggested_values_by_trials.keys():
+            raise Exception(f"Trial {trial.number} already had value(s) in suggested values: {self.__suggested_values_by_trials[trial.number]}")
+
+        self.__suggested_values_by_trials[trial.number] = {}
         
         for hyperparameter_suggestion in self.hyperparameters_range_list:
+
+            # if the trial was created with a specification of the value
+            if hyperparameter_suggestion.name in trial.params.keys():
+                suggested_value = trial.params[hyperparameter_suggestion.name]
+
+            # if we should use the hp_suggestion object to suggest a value to the trial
+            else:
+                suggested_value = hyperparameter_suggestion.make_suggestion(source_component=base_component, trial=trial)
             
-            suggested_value = hyperparameter_suggestion.make_suggestion(source_component=base_component, trial=trial)
-            
-            self.__suggested_values_by_trials[trial][hyperparameter_suggestion.name] = [suggested_value]
+            #save suggestion value in our internal dict
+            self.__suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
+
+            hyperparameter_suggestion.set_suggested_value(suggested_value, base_component) # set suggested value in component
             
             self.lg.writeLine(f"{hyperparameter_suggestion.name}: {suggested_value}")
             
-            
-                
-                
-    def evaluate_component(self, component_to_test : Component_to_opt_type) -> float:
+
+
+    #  POST PROCESSING OF RUN TRIAL ---------------------------------------------------------------------------------            
+    
+    def _try_evaluate_component(self, component_to_test : Component_to_opt_type) -> float:
         
         if self.evaluator_component is None: # TODO: Implement this, right now, the evaluator component is mandatory
             
@@ -378,7 +421,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
         return result
     
-    def try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, trial = optuna.Trial):
+
+    def _try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, trial = optuna.Trial):
     
         try:
             self.lg.writeLine(f"Trying to save state of trial {trial.number}")                 
@@ -387,15 +431,16 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         except Exception as e:
             self.on_exception_saving_trial(e, component_to_test, trial)
 
-                
+
+    # RUNNING A TRIAL -----------------------------------------------------------------------
+
     def objective(self, trial : optuna.Trial):
         
         '''Responsible for running the optimization trial and evaluating the component to test'''
         
         self.lg.writeLine("\nStarting new training with hyperparameter cofiguration")
                 
-        component_to_test  = self.create_or_load_component_to_test(trial)
-
+        component_to_test = self._create_or_load_component_to_test(trial)
         
         for step in range(self.n_steps):
                         
@@ -410,19 +455,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     self.lg.writeLine(f"EXCEPTION TESTING COMPONENT IN TRIAL {trial.number}")
 
                     try:
-                        self.try_save_stat_of_trial(component_to_test, trial)
+                        self._try_save_stat_of_trial(component_to_test, trial)
                     
                     except Exception as saving_exception:
                         self.lg.writeLine(f"EXCEPTION TRYING SAVING TRIAL AFTER ORIGINAL EXCEPTION")
                         raise e
 
-                self.try_save_stat_of_trial(component_to_test, trial)
+                self._try_save_stat_of_trial(component_to_test, trial)
                 
                 self.lg.writeLine(f"Evaluating trial {trial.number}...")
 
                 try:
 
-                    evaluation_results = self.evaluate_component(component_to_test)
+                    evaluation_results = self._try_evaluate_component(component_to_test)
 
                 except Exception as e:
 
@@ -463,7 +508,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Called when a trial is over'''        
                         
-        self.unload_component_to_test(trial)
+        self._unload_component_to_test(trial)
 
 
     def onException(self, exception : Exception):
@@ -490,18 +535,22 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     @requires_input_proccess
     def algorithm(self):        
 
-        study = optuna.create_study(sampler=self.sampler, 
+        if not hasattr(self, "study"):
+            self.study = optuna.create_study(sampler=self.sampler, 
                                     storage=self.storage, 
                                     study_name=self.input["database_study_name"], 
                                     load_if_exists=True,
                                     direction=self.input['direction'])
+            
+            if self.start_with_given_values:
+                self._queue_trial_with_initial_suggestion()
 
-        study.optimize( lambda trial : self.objective(trial), 
+        self.study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,
                        callbacks=[self.after_trial])
 
         try:
-            self.lg.writeLine(f"Best parameters: {study.best_params}") 
+            self.lg.writeLine(f"Best parameters: {self.study.best_params}") 
         
         except Exception as e:
             self.lg.writeLine(f"Error getting best parameters: {e}")

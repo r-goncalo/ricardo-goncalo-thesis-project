@@ -18,7 +18,7 @@ class HyperparameterSuggestion():
         self.value_suggestion = value_suggestion
         
     
-    def set_suggested_value_in_component(self, suggested_value, component : Component):
+    def _set_suggested_value_in_component(self, suggested_value, component : Component):
         
         '''Sets the suggested value in the component, using the localization'''
     
@@ -29,12 +29,12 @@ class HyperparameterSuggestion():
             if component_to_change == None:
                 raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   
             
-            self.pass_input(component_to_change, hyperparameter_localizer, suggested_value)
+            self._pass_input(component_to_change, hyperparameter_localizer, suggested_value)
 
 
 
     
-    def set_suggested_value_in_dict(self, suggested_value, component_dict : dict):
+    def _set_suggested_value_in_dict(self, suggested_value, component_dict : dict):
     
         '''Sets the suggested value in the dictionary representing a component, using the localization'''
 
@@ -51,7 +51,7 @@ class HyperparameterSuggestion():
             if component_dict == None:
                 raise Exception(f"Could not find component with localization <{component_localizer}>")   
 
-            self.pass_input_to_component_input(component_input_dict, hyperparameter_localizer, suggested_value)
+            self._pass_input_to_component_input(component_input_dict, hyperparameter_localizer, suggested_value)
         
     
     
@@ -61,20 +61,17 @@ class HyperparameterSuggestion():
         '''Sets the suggested value in the component (or component input), using the localization'''
         
         if isinstance(component_definition, Component):
-            self.set_suggested_value_in_component(suggested_value, component_definition)
+            self._set_suggested_value_in_component(suggested_value, component_definition)
             
         elif isinstance(component_definition, dict):
-            self.set_suggested_value_in_dict(suggested_value, component_definition)
+            self._set_suggested_value_in_dict(suggested_value, component_definition)
             
         else:   
             raise Exception(f"Component definition is not a Component or a dict, but {type(component_definition)}") 
         
         
         
-        
-        
-        
-    def make_suggestion(self, source_component : Union[Component, dict], trial : optuna.Trial):
+    def make_suggestion(self, trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         
@@ -90,16 +87,12 @@ class HyperparameterSuggestion():
             suggested_value = trial.suggest_categorical(self.name, **kwargs)
         
         else:
-            raise Exception(f"Invalid value suggestion with name {self.name}")
-        
-        
-        self.set_suggested_value(suggested_value, source_component)
-            
+            raise Exception(f"Invalid value suggestion with name {self.name}")            
                 
             
         return suggested_value
     
-    def pass_input_to_component_input(self, component_input, hyperparameter_localizer, suggested_value):
+    def _pass_input_to_component_input(self, component_input, hyperparameter_localizer, suggested_value):
         
         '''Passes the suggested value to the component input, using the localization'''
         
@@ -117,7 +110,7 @@ class HyperparameterSuggestion():
         
         
     
-    def pass_input(self, component_to_change : Component, hyperparameter_localizer, suggested_value):
+    def _pass_input(self, component_to_change : Component, hyperparameter_localizer, suggested_value):
                         
         '''Passes the suggested value to the component, using the localization'''
                         
@@ -131,7 +124,126 @@ class HyperparameterSuggestion():
         
         else:
             
-            self.pass_input_to_component_input(component_to_change.input, hyperparameter_localizer, suggested_value)
+            self._pass_input_to_component_input(component_to_change.input, hyperparameter_localizer, suggested_value)
+
+
+    def _try_get_already_suggested_value_in_component(self, component : Component):
+        
+        '''Gets the suggested value in the component, using the localization'''
+
+        suggested_value = None
+
+        for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
+            
+            component_to_change : Component = component.get_child_component(component_localizer) 
+            
+            if component_to_change == None:
+                raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   
+            
+            localization_suggested_value = self._try_get_already_passed_input(component_to_change, hyperparameter_localizer)
+
+            if suggested_value != None and localization_suggested_value != suggested_value:
+                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
+                return None
+
+            if localization_suggested_value == None:
+                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and one of localizations does not have any value. This is still not implemented, and the value will be treated as if it is non existent")
+                return None
+            
+            if suggested_value == None:
+                suggested_value = localization_suggested_value
+
+            #if we reach here, localization suggested value exists and is equal to previous value
+
+        return suggested_value
+
+
+    
+    def _try_get_suggested_value_in_dict(self, component_dict : dict):
+    
+        '''Sets the suggested value in the dictionary representing a component, using the localization'''
+
+        suggested_value = None
+
+        for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
+            
+            component_dict : dict = get_child_dict_from_localization(component_dict, component_localizer)
+            
+            if not "input" in component_dict:
+                component_input_dict = {}
+            
+            else:
+                component_input_dict = component_dict["input"]
+
+            if component_dict == None:
+                raise Exception(f"Could not find component with localization <{component_localizer}>")   
+
+
+            localization_suggested_value = self._try_get_already_passed_input_to_component_input(component_input_dict, hyperparameter_localizer)
+        
+
+            if suggested_value != None and localization_suggested_value != suggested_value:
+                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
+                return None
+
+            if localization_suggested_value == None:
+                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and one of localizations does not have any value. This is still not implemented, and the value will be treated as if it is non existent")
+                return None
+            
+            if suggested_value == None:
+                suggested_value = localization_suggested_value
+
+            #if we reach here, localization suggested value exists and is equal to previous value
+
+        return suggested_value
+
+    
+    def try_get_suggested_value(self, component_definition : Union[Component, dict]):
+        
+        '''Sets the suggested value in the component (or component input), using the localization'''
+        
+        if isinstance(component_definition, Component):
+            return self._try_get_already_suggested_value_in_component(component_definition)
+            
+        elif isinstance(component_definition, dict):
+            return self._try_get_suggested_value_in_dict(component_definition)
+            
+        else:   
+            raise Exception(f"Component definition is not a Component or a dict, but {type(component_definition)}") 
+
+    
+    def _try_get_already_passed_input_to_component_input(self, component_input, hyperparameter_localizer):
+        
+        '''Passes the suggested value to the component input, using the localization'''
+        
+        current_input_dict = component_input
+        
+        for i in range(0, len(hyperparameter_localizer) - 1):
+        
+            try:
+                current_input_dict = current_input_dict[hyperparameter_localizer[i]]
+    
+            except KeyError as e:
+                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
+        
+        return current_input_dict.get(hyperparameter_localizer[len(hyperparameter_localizer) - 1], None)
+        
+        
+    
+    def _try_get_already_passed_input(self, component_to_change : Component, hyperparameter_localizer):
+                        
+        '''Passes the suggested value to the component, using the localization'''
+                        
+        if isinstance(hyperparameter_localizer, str):
+
+            return component_to_change.input.get(hyperparameter_localizer, None)     
+        
+        elif len(hyperparameter_localizer) == 1:
+            return component_to_change.input.get(hyperparameter_localizer[0], None)   
+        
+        else:
+            
+            return self._try_get_already_passed_input_to_component_input(component_to_change.input, hyperparameter_localizer)
             
             
             

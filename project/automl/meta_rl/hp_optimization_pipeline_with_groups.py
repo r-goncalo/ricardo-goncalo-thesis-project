@@ -38,11 +38,11 @@ class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPip
         self.number_of_opt_per_group = self.input["number_of_opt_per_group"]
         
 
-    def create_component_to_optimize_configuration(self, trial : optuna.Trial) -> dict:
+    def _create_component_to_optimize_configuration(self, trial : optuna.Trial) -> dict:
         
         '''Returns the configuration of the group of components that are being optimized with this hyperparameter configuration'''
         
-        config_of_opt = super().create_component_to_optimize_configuration(trial)
+        config_of_opt = super()._create_component_to_optimize_configuration(trial)
         
         config_of_opt = BaseComponentGroupConfig.config_dict(config_of_opt, self.evaluator_component, self.number_of_opt_per_group)
         
@@ -50,7 +50,7 @@ class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPip
         
     
         
-    def evaluate_component(self, component_to_test : Component_to_opt_type | RunnableComponentGroup) -> float:
+    def _try_evaluate_component(self, component_to_test : Component_to_opt_type | RunnableComponentGroup) -> float:
         
         if self.evaluator_component is None:
             raise NotImplementedError("The evaluator component is not set. Please set an evaluator component before evaluating the component.")
@@ -58,7 +58,7 @@ class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPip
         
             
         
-        return super().evaluate_component(component_to_test)
+        return super()._try_evaluate_component(component_to_test)
         
 
         
