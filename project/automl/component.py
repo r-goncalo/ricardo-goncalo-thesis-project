@@ -356,30 +356,40 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         raise Exception(f"Could not find component in source_component {self.name} given localization {component_localizer}")
                 
     
-    def get_index_localization(self):
+    def get_index_localization(self, target_parent_components = [], accept_source_component_besides_targets=False):
         
         '''Gets localization of this component, stopping the definition of localization when it finds a source componen (without parent)'''
         
         current_component = self
         
         full_localization = [] # where we'll store the full localization of the component
+
+        if not isinstance(target_parent_components, list):
+            target_parent_components = [target_parent_components] #if it was only an element
                         
         while True: #while we have not reached the source component
+
+            # if we reached a target parent component, we return the localization and whose it is from
+            if current_component in target_parent_components:
+                return full_localization, current_component 
                         
-            if current_component.parent_component != None:
+            elif current_component.parent_component != None:
                 
                 child_components_of_parent : list = current_component.parent_component.child_components
             
                 index_of_this_in_parent = child_components_of_parent.index(current_component)
             
-                full_localization.insert(0, index_of_this_in_parent)
+                full_localization.insert(0, index_of_this_in_parent) #inserts index
             
                 current_component = current_component.parent_component
                 
-            else:
+            else: # parent_commponent is None
                 break #we reached the source component
             
-        return full_localization 
+        if target_parent_components != [] and not accept_source_component_besides_targets:
+            raise Exception(f"Localization could not be computed from component {self.name} to one of target components {[targ_com.name for targ_com in target_parent_components]}")
+
+        return full_localization, current_component 
     
     
     def get_source_component(self):
@@ -393,7 +403,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 current_component = current_component.parent_component
             else:
                 return current_component
-    
+
     # CLONING -------------------------------------------------
     
     def clone(self):

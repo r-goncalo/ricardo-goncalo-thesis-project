@@ -22,17 +22,18 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
     def default(self, obj):
                         
         if isinstance(obj, Component):
-            
-            if obj.get_source_component() != self.source_component: # TODO: Optimize this
+
+            localization_from_source_to_obj, origin_of_computed_loc = obj.get_index_localization(self.source_component, accept_source_component_besides_targets=True)
+
+            if origin_of_computed_loc != self.source_component:
                 return "__outside_component"
-                raise Exception(f"Component {obj.name} is not in the same tree as the source component")
             
             else:
 
                 return {
                     "__type__": str(type(obj)),
                     "name" : obj.name,
-                    "localization" : obj.get_index_localization()
+                    "localization" : localization_from_source_to_obj
                 }
             
         elif isinstance(obj, (int, float, str, dict, list)):
