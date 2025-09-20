@@ -158,7 +158,7 @@ class ComponentEncoder(json.JSONEncoder):
 
             #load notes if they exist
             component_notes = obj.get_notes()
-            if component_notes != '':
+            if component_notes != []:
                 toReturn["__notes__"] = component_notes
             
             if self.save_exposed_values:
