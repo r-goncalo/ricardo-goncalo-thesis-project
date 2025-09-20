@@ -28,7 +28,7 @@ def gen_component_from_path(path, parent_component_for_generated : Component = N
     
     
 
-def gen_component_in_directory(dir_path, parent_component_for_generated : Component = None):
+def gen_component_in_directory(dir_path, parent_component_for_generated : Component = None) -> Component:
     
     configuration_file = os.path.join(dir_path, CONFIGURATION_FILE_NAME)
 
@@ -42,17 +42,27 @@ def gen_component_in_directory(dir_path, parent_component_for_generated : Compon
 
     raise Exception("No component defined in folder")
 
-def gen_component_in_file_path(file_path):
+
+
+def gen_component_in_file_path(file_path) -> Component:
+
+    component_to_return = None
     
     if file_path.endswith('.json'):
+
+        print(f"WARNING: Generating component from file {file_path}, if you want to load the enterity of its state, you should use the base folder instead of the configuration path")
         
         with open(file_path, 'r') as f:
             str_to_gen_from = f.read()
-            return component_from_json_string(str_to_gen_from)
+            component_to_return = component_from_json_string(str_to_gen_from)
 
     elif file_path.endswith('.pkl'):
         with open(file_path, 'rb') as f:
-            return pickle.load(f)
+            component_to_return =  pickle.load(f)
 
+    else:
+        raise Exception("Not supported file to generate component from")
 
-    raise Exception("Not supported file to generate component from")
+    component_to_return.write_line_to_notes(f"Component was generated from path {file_path}", use_datetime=True)
+
+    return component_to_return

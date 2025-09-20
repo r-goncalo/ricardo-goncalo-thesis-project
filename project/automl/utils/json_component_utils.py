@@ -337,7 +337,7 @@ def decode_components_notes(component : Component, source_component : Component,
     component_notes : list[str] = component_dict["__notes__"]
     
     for note in component_notes:
-        component.write_line_to_notes(note)
+        component.write_line_to_notes(note, use_datetime=False) # timestamp should not be used here, as it would be false
     
     for i in range(0, len(component.child_components)): # for each child component. also decode notes
         
@@ -487,6 +487,8 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
 
 def gen_component_from_path(path, parent_component_for_generated : Component = None) -> Component:
 
+    '''Gens a component from a path, either a file or a directory'''
+
     from automl.utils.file_component_utils import gen_component_in_directory, gen_component_in_file_path
 
     if not os.path.exists(path):
@@ -507,24 +509,25 @@ def gen_component_from_path(path, parent_component_for_generated : Component = N
 # OTHER METHODS ---------------------------------------------------------------------------------
 
 def get_child_dict_from_index_localization(component_dict, localization : int) -> dict:
+
+    '''Receives a component dict with child components and looks for the one corresponding to the int in the localization (the index of the child component)'''
     
     if "child_components" in component_dict:
         
         try:
-        
             child_components : list = component_dict["child_components"]
+            return child_components[localization]  
         
         except IndexError:
             
             raise IndexError(f"Localization index {localization} out of range for component with children: {child_components}")
             
             
-        
-        return child_components[localization]        
-
     return None
 
 def get_child_dict_from_str_localization(component_dict, localization : str) -> dict:
+
+    '''Receives a component dict with child components and looks for the one corresponding to the string in the localization (the name of the child component)'''
     
     if "child_components" in component_dict:
         
@@ -541,6 +544,8 @@ def get_child_dict_from_str_localization(component_dict, localization : str) -> 
 
 
 def get_child_dict_from_localization(component_dict, localization) -> dict:
+
+    '''Gets a child dictionary from either the localization or the list'''
     
     if isinstance(localization, int):
         return get_child_dict_from_index_localization(component_dict, localization)

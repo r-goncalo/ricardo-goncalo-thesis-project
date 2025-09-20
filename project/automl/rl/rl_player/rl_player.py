@@ -64,8 +64,10 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         self.agents : Dict[str, AgentSchema] = initialize_agents_components(self.input["agents"], self.env, self.input["agents_input"], self)
         
+        # if the agents have no base directory associated with it, use RL player's
         for agent in self.agents.values():
             if not "base_directory" in agent.input.keys():
+                self.lg.writeLine(f"Agent {agent.name} has no base directory, passing player's directory to it")
                 agent.pass_input({"base_directory" : self.get_artifact_directory()})
         
     

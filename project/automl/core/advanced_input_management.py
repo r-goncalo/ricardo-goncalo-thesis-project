@@ -9,6 +9,8 @@ from automl.core.input_management import InputSignature
 from automl.utils.json_component_utils import gen_component_from
 
 
+CHANGE_INPUT = True
+
 
 class ComponentInputSignature(InputSignature):
     
@@ -23,6 +25,9 @@ class ComponentInputSignature(InputSignature):
         value = component_with_input.input[key]
         
         component = gen_component_from(value, component_with_input)
+
+        if CHANGE_INPUT:
+            component_with_input.input[key] = component
 
         return component
     
@@ -80,6 +85,9 @@ class ComponentListInputSignature(InputSignature):
 
                 component = gen_component_from(value, component_with_input)
                 to_return.append(component)
+
+        if CHANGE_INPUT:
+            component_with_input.input[key] = to_return
 
         return to_return
     
@@ -141,6 +149,9 @@ class ComponentDictInputSignature(InputSignature):
                 component_with_input.define_component_as_child(component)
 
                 to_return[key] = component
+
+        if CHANGE_INPUT:
+            component_with_input.input[key] = dict_of_components
 
         return dict_of_components
     

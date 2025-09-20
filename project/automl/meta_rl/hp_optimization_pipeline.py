@@ -497,7 +497,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                        n_trials=self.n_trials,
                        callbacks=[self.after_trial])
 
-        self.lg.writeLine(f"Best parameters: {study.best_params}") 
+        try:
+            self.lg.writeLine(f"Best parameters: {study.best_params}") 
+        
+        except Exception as e:
+            self.lg.writeLine(f"Error getting best parameters: {e}")
+
         
         
     # TRIAL ERROR HANDLING -------------------------------------------

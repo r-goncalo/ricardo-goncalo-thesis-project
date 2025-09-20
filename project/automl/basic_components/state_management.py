@@ -130,6 +130,8 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
     old_folder_last_directory = os.path.basename(folder_path)
     
     component_to_return = gen_component_from(json_str)
+
+    component_to_return.write_line_to_notes(f"Component generated from folder {folder_path}", use_datetime=True)
     
     if not isinstance(component_to_return, ArtifactComponent):
         print("WARNING: Tried to load state of component which is not a ArtifactComponent component")

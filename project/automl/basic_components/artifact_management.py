@@ -137,6 +137,8 @@ class ArtifactComponent(Component):
 
         self._force_generate_artifact_directory()
 
+        self.write_line_to_notes(f"Component had its path changed to {new_folder_path}", use_datetime=True)
+
 
     def _change_to_new_artifact_directory_internal(self, new_folder_path):
         '''What happens between the creation of the folder and the actual change of the directory'''

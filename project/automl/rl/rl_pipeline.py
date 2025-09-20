@@ -114,7 +114,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             "device" : self.device,
             "logger_object" : self.lg,
             "environment" : self.env,
-            "agents" : self.agents.copy()
+            "agents" : self.agents.copy() # so changes to the rl trainer dict do not translate to the agents passed
         }        
         
         self.rl_trainer : RLTrainerComponent = ComponentInputSignature.get_component_from_input(self, "rl_trainer")
@@ -183,7 +183,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
             agents[agent] = self.initialize_child_component(agent_class, input=agent_input)
 
-            self.lg.writeLine("Created agent in training " + agent_name)
+            self.lg.writeLine("Created agent in training " + agent_name + "with base directory " + agents[agent].input["base_directory"])
 
             agentId += 1
 

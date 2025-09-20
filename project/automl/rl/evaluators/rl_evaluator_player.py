@@ -17,6 +17,7 @@ from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 from automl.utils.files_utils import saveDataframe
 from automl.utils.configuration_component_utils import save_configuration
+from automl.rl.agent.agent_components import AgentSchema
 
 class EvaluatorWithPlayer(RLPipelineEvaluator):
     
@@ -47,6 +48,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         super().proccess_input_internal()
         
         self.base_evaluator : RLPipelineEvaluator = ComponentInputSignature.get_component_from_input(self, "base_evaluator")
+
         self.number_of_episodes = self.input["number_of_episodes"]
         self.number_of_evaluations = self.input["number_of_evaluations"]
         
@@ -134,8 +136,6 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
             rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env) 
 
-
-
             path_of_players.append(rl_player_of_run.get_artifact_directory())
 
             environment_name = rl_player_of_run.env.name
@@ -154,12 +154,19 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         return evaluation_to_return
     
 
-    def _run_play_to_evaluate(self, agents, device, evaluations_directory, env):
+    def _run_play_to_evaluate(self, agents : dict[str, AgentSchema], device, evaluations_directory, env):
 
         rl_player_will_be_generated = not isinstance(self.input["rl_player_definition"], Component)
                 
         rl_player : RLPlayer = gen_component_from(self.input["rl_player_definition"])
 
+        print(f"RLPlayer will be generated: {rl_player_will_be_generated}")
+
+        from automl.utils.json_component_utils import json_string_of_component
+
+        for agent in agents.values():
+            string =json_string_of_component(agent)
+            print(string)
 
         rl_player.pass_input({
             "agents" : agents,
@@ -178,6 +185,6 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         rl_player.run()
 
         if rl_player_will_be_generated: # if the player will be generated, might as well save the configuration for later consultation of it
-            save_configuration(rl_player, rl_player.get_artifact_directory(), "config.json", save_exposed_values=True, ignore_defaults=False)
+            save_configuration(rl_player, rl_player.get_artifact_directory(), save_exposed_values=True, ignore_defaults=False)
         
         return rl_player
