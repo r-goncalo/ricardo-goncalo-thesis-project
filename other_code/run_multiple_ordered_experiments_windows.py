@@ -1,6 +1,5 @@
 import subprocess, win32job, win32process, win32con, win32api
 import multiprocessing
-import experiments
 import experiments_sequence
 
 # === Define Maximum Concurrent Jobs ===

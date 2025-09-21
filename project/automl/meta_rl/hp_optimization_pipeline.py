@@ -66,7 +66,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                             description="The evaluator component to be used for evaluating the components to optimize in their training process"
                             ),
 
-                        "start_with_given_values" : InputSignature(default_value=False),
+                        "start_with_given_values" : InputSignature(default_value=True),
                                                     
                        }
             
@@ -193,8 +193,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         else:
             raise Exception("Non valid type for sampler")
         
+        
+
+        
     
     def _initialize_sampler_from_str(self):
+
+        self.lg.writeLine(f"Initializing sampler with string {self.input["sampler"]}")
         
         if self.input["sampler"] == "TreeParzen":
             
@@ -209,6 +214,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
         
     def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
+
+        self.lg.writeLine(f"Initializing sampler with class {self.input["sampler"]}")
+
 
         try:
         
@@ -247,11 +255,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
         
     def _initialize_pruner_from_string(self, passed_pruner_str : str):
+
+        self.lg.writeLine(f"Initializing pruner from string {passed_pruner_str}")
         
         pruner_input = {}
         
         if "pruner_input" in self.input.keys():
             pruner_input = {**pruner_input, **self.input["pruner_input"]}
+            self.lg.writeLine(f"Pruner input passed: {pruner_input}")
+
         
         if passed_pruner_str == "Median":
             
@@ -372,6 +384,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
 
     def _queue_trial_with_suggestion(self, suggestion_dict):
+
+        self.lg.writeLine(f"Queued trial with values: {suggestion_dict}")
+
         self.study.enqueue_trial(suggestion_dict)
 
     def _queue_trial_with_initial_suggestion(self):
@@ -564,6 +579,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 )
                 self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
 
+                try:
+                    self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials")
+
+                except:
+                    self.lg.writeLine(f"Could not read trials in optuna study")
+                
+
             except KeyError:
                 # If not found, create a new study
                 self.study = optuna.create_study(
@@ -575,6 +597,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"Created new study '{self.study_name}'")
 
                 if self.start_with_given_values:
+                    self.lg.writeLine("Starting the study with given values")
                     self._queue_trial_with_initial_suggestion()
 
         
@@ -585,7 +608,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                     
     @requires_input_proccess
-    def algorithm(self):        
+    def algorithm(self):  
+
+        self.lg.writeLine(f"Optimizing with {self.n_trials} trials")      
 
         self.study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,

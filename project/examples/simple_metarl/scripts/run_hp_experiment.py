@@ -20,7 +20,7 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
         hp_pipeline_input["steps"] = num_steps
     
     if num_trials != None:
-        hp_pipeline_input["trials"] = num_trials
+        hp_pipeline_input["n_trials"] = num_trials
     
     if create_new_directory != None:
         if isinstance(create_new_directory, str):
