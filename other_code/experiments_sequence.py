@@ -23,7 +23,7 @@ def hp_opt_command_sequence(
     
     command_args_list = [*BASE_COMMAND]
 
-    for key, value in parameter_dict.values():
+    for key, value in parameter_dict.items():
         command_args_list.append(f"--{key}")
         command_args_list.append(value)
 
@@ -36,6 +36,8 @@ def hp_opt_for_models(directory_of_models,
                                  hp_opt_config_path,
                                  parameter_dict_list  : list [dict] = [{}],
                                  experiment_name = "hp_opt_for_models"):
+    
+    print("\nCREATING COMMAND SEQUENCES FOR MODELS ------------------------------------------------")
     
     print(f"Base configuration to optimize path: {base_to_opt_config_path}")
 
@@ -77,6 +79,8 @@ def hp_opt_for_models(directory_of_models,
         model_name = model_names[model_index]
         model_path = model_paths[model_index]
 
+        print(f"Dealing with model {model_name} in {model_path}")
+
         # SETUP CONFIGURATION TO OPTIMIZE
 
         fd = open(base_to_opt_config_path, 'r') 
@@ -97,6 +101,8 @@ def hp_opt_for_models(directory_of_models,
 
         to_optimize_config_path = os.path.join(directory_to_store_definition, f'to_optimize_configuration_{model_name}.json')
 
+        print(f"Model will have its optimization config in {to_optimize_config_path}")
+
         fd = open(to_optimize_config_path, 'w')
         fd.write(json_str_to_opt)
         fd.close()
@@ -111,18 +117,20 @@ def hp_opt_for_models(directory_of_models,
             "experiment_relative_path" : model_name
         }
 
+        print(f"Creating commands for HP optimization\n")
+
         for parameter_dict in parameter_dict_list:
 
             command_to_add = hp_opt_command_sequence({**parameter_dict, **base_parameter_dict})
             
-            print(f"Adding command:\n    {command_to_add}")
+            print(f"For parameter dict {parameter_dict}, creating command:\n    {command_to_add}\n")
 
             command_sequence_list.append(
                 command_to_add
             )
 
 
-    print()
+    print("END CREATION OF COMMAND SEQUENCES FOR MODELS ----------------------------------------------\n")
 
     return command_sequence_list
 

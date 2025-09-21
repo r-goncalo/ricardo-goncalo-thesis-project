@@ -17,12 +17,15 @@ win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation
 
 # Function to execute a single command
 def run_command(command):
+
     if isinstance(command, str):
         print(f"Starting string job: {command}", flush=True)
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
     elif isinstance(command, list):
         print(f"Starting job with args: {command}", flush=True)
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
     else:
         print("WARNING: JOB WILL BE IGNORED, NOT IN SUPPORTED FORMAT")
         return 1  # error return code
@@ -42,8 +45,11 @@ def run_command(command):
 
 
 # Function to execute a sequence of commands (synchronously, in order)
+
 def run_command_sequence(command_list):
-    print(f"Starting command sequence: {command_list}", flush=True)
+    
+    print(f"Starting command sequence: \n    {'\n    '.join([str(command) for command in command_list])}", flush=True)
+    
     for cmd in command_list:
         ret = run_command(cmd)
         if ret != 0:  # Stop if one fails
@@ -89,12 +95,12 @@ if __name__ == "__main__":
 
         parameter_dict_list=[
             {
-                "n_trials" : 20,
+                "num_trials" : 20,
                 "sampler" : "Random", # this is to gain some knowledge first
                 
             },
             {
-                "n_trials" : 80,
+                "num_trials" : 80,
                 "sampler": "TreeParzen"
             }
         ]

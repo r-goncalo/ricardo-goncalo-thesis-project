@@ -24,5 +24,7 @@ echo Exit code: %EXITCODE% >> %LOGFILE%
 
 echo Finished at %TIME% >> %LOGFILE%
 
+exit()
+
 
 

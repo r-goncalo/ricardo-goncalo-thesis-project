@@ -23,6 +23,8 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
         hp_pipeline_input["trials"] = num_trials
     
     if create_new_directory != None:
+        if isinstance(create_new_directory, str):
+            create_new_directory = True if create_new_directory.lower() in ["true", "yes", "t", "y"] else False
         hp_pipeline_input["create_new_directory"] = create_new_directory
     
     if sampler != None:
@@ -48,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_trials", type=int, default=None, help="Number of trials to run.")
     parser.add_argument("--num_steps", type=int, default=None, help="Number of steps to run.")
     parser.add_argument("--sampler", type=str, default=None, help="Number of trials to run.")
-    parser.add_argument("--create_new_directory", type=bool, default=None, help="Number of trials to run.")
+    parser.add_argument("--create_new_directory", type=str, default=None, help="Number of trials to run.")
 
     parser.add_argument("--path_to_store_experiment", type=str, default='.\\data\\experiments', help="Directory to save results.")
     parser.add_argument("--experiment_relative_path", type=str, default=None, help="Relative directory to save results.")
