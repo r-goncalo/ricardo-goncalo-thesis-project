@@ -3,7 +3,7 @@ from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPi
 from automl.utils.json_component_utils import gen_component_from_path
 
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, experiment_relative_path=None):
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
@@ -22,6 +22,11 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     if num_trials != None:
         hp_pipeline_input["trials"] = num_trials
     
+    if create_new_directory != None:
+        hp_pipeline_input["create_new_directory"] = create_new_directory
+    
+    if sampler != None:
+        hp_pipeline_input["sampler"] = sampler
     
     # generate hp optimization pipeline component
     hp_optimization_pipeline : HyperparameterOptimizationPipeline = gen_component_from_path(hp_configuration_path)
@@ -41,19 +46,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
     
     parser.add_argument("--num_trials", type=int, default=None, help="Number of trials to run.")
-    parser.add_argument("--num_steps", type=int, default=None, help="Number of trials to run.")
-    
+    parser.add_argument("--num_steps", type=int, default=None, help="Number of steps to run.")
+    parser.add_argument("--sampler", type=str, default=None, help="Number of trials to run.")
+    parser.add_argument("--create_new_directory", type=bool, default=None, help="Number of trials to run.")
+
     parser.add_argument("--path_to_store_experiment", type=str, default='.\\data\\experiments', help="Directory to save results.")
     parser.add_argument("--experiment_relative_path", type=str, default=None, help="Relative directory to save results.")
-
 
     parser.add_argument("--hp_configuration_path", type=str, default='.\\configuration.json', help="Path to config of hp experiment.")
     parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
 
-
     args = parser.parse_args()
 
-    main(num_trials=args.num_trials, num_steps=args.num_steps, 
+    main(num_trials=args.num_trials, num_steps=args.num_steps,
+         create_new_directory=args.create_new_directory, sampler=args.sampler,
          path_to_store_experiment=args.path_to_store_experiment, 
          experiment_relative_path=args.experiment_relative_path,
          hp_configuration_path = args.hp_configuration_path,

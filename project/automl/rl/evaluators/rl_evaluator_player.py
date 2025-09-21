@@ -160,14 +160,6 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
                 
         rl_player : RLPlayer = gen_component_from(self.input["rl_player_definition"])
 
-        print(f"RLPlayer will be generated: {rl_player_will_be_generated}")
-
-        from automl.utils.json_component_utils import json_string_of_component
-
-        for agent in agents.values():
-            string =json_string_of_component(agent)
-            print(string)
-
         rl_player.pass_input({
             "agents" : agents,
             "num_episodes" : self.number_of_episodes,

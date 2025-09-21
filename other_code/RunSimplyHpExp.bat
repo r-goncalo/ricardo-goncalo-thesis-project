@@ -42,6 +42,10 @@ if "%~1"=="--LOGDIR" (
 ) else if "%~1"=="--RELPATH" (
     set RELPATH=%~2   
     shift
+
+) else if "%~1"=="--SAMPLER" (
+    set RELPATH=%~2   
+    shift
 )
 
 REM == REM Parameter Identifier and then Parameter value

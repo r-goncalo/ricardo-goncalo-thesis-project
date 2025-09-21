@@ -16,7 +16,7 @@ set LOGFILE=%LOGDIR%\%LOGBASENAME%_%TIMESTAMP%.txt
 
 echo Starting at %TIME% >> %LOGFILE%
 
-CALL C:/rgoncalo/ricardo-goncalo-thesis-project/.conda/python.exe C:\rgoncalo\ricardo-goncalo-thesis-project\other_code\run_multiple_experiments_windows.py  >> %LOGFILE% 2>&1
+CALL C:/rgoncalo/ricardo-goncalo-thesis-project/.conda/python.exe C:\rgoncalo\ricardo-goncalo-thesis-project\other_code\run_multiple_ordered_experiments_windows.py  >> %LOGFILE% 2>&1
 
 REM === Capture exit code ===
 set EXITCODE=%ERRORLEVEL%

@@ -69,10 +69,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "start_with_given_values" : InputSignature(default_value=False),
                                                     
                        }
-    
-    exposed_values = {
-        "n_trials_done" : 0
-    }
             
 
     # PARTIAL INITIALIZATION -----------------------------------------------------------------------------
@@ -126,35 +122,37 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
         super().proccess_input_internal()
                 
+        # LOAD VALUES
+        self.start_with_given_values = self.input["start_with_given_values"]
+        self.study_name=self.input["database_study_name"]
+        self.n_steps = self.input["steps"]
+        self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
+        self.n_trials = self.input["n_trials"]
+        self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_component_from_input(self, "evaluator_component")
+
+        # MAKE NECESSARY INITIALIZATIONS
         self._initialize_config_dict()
         self._initialize_sampler()
         self._initialize_database()
         self._initialize_pruning_strategy()
+        self._initialize_study()
 
-        self.start_with_given_values = self.input["start_with_given_values"]
-        
-        self.n_steps = self.input["steps"]
-        
-        self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
+        # SETUP AUX VALUES
         
         parameter_names = [hyperparameter_specification.name for hyperparameter_specification in self.hyperparameters_range_list]
         
         self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
         
-        #self.results_lg : ResultLogger = self.initialize_child_component(ResultLogger, { "artifact_relative_directory" : "",
-        #    "results_columns" : ['experiment', *parameter_names, "result"]})
-        
         self.add_to_columns_of_results_logger(["experiment", "step", *parameter_names, "result"])
                 
         self.__suggested_values_by_trials = {}  
         
-        self.n_trials = self.input["n_trials"]
                 
         self.trial_loaders : dict[str, StatefulComponentLoader] = {}
         
-        self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_component_from_input(self, "evaluator_component")
                 
-        
+    
+    # initialize the base configuration to create components to test
     def _initialize_config_dict(self):
         
         if "base_component_configuration_path" in self.input.keys():
@@ -173,8 +171,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         else:
             raise Exception("No configuration defined")
         
-        
-            
+    
+    #it constructs the path for the database        
     def _initialize_database(self):
         
         self.database_path = self.get_artifact_directory() + "\\study_results.db"  # Path to the SQLite database file
@@ -184,22 +182,41 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.storage = f"sqlite:///{self.database_path}"  # This will save the study results to the file
     
     
-    
     def _initialize_sampler(self):
+
+        if isinstance(self.input["sampler"], str):
+            self._initialize_sampler_from_str()
+
+        elif isinstance(self.input["sampler", type]):
+            self._initialize_sampler_from_class()
+
+        else:
+            raise Exception("Non valid type for sampler")
+        
+    
+    def _initialize_sampler_from_str(self):
         
         if self.input["sampler"] == "TreeParzen":
             
             self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.input["seed"])
+
+        elif self.input["sampler"] == "Random":
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.input["seed"])
         
         else:
-            raise NotImplementedError(f"Did not implement for sampler '{self.input['sampler']}'") 
-    
+            raise NotImplementedError(f"Non valid string for sampler '{self.input['sampler']}'") 
     
     
         
     def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
+
+        try:
         
-        self.sampler : sampler_class(seed=self.input["seed"])
+            self.sampler : sampler_class(seed=self.input["seed"])
+
+        except Exception as e:
+
+            raise Exception(f"Could not instatiate sampler from class {sampler_class}") from e
     
     
         
@@ -391,7 +408,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             # if we should use the hp_suggestion object to suggest a value to the trial
             else:
-                suggested_value = hyperparameter_suggestion.make_suggestion(source_component=base_component, trial=trial)
+                suggested_value = hyperparameter_suggestion.make_suggestion(trial=trial)
             
             #save suggestion value in our internal dict
             self.__suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
@@ -510,6 +527,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         
         self._unload_component_to_test(trial)
 
+    
+    # INTERNAL EXCEPTION HANDLING --------------------------------------------------------
+
 
     def onException(self, exception : Exception):
 
@@ -528,22 +548,43 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         raise exception
                     
+    # STUDY SETUP ------------------------------------------------------------------------------
+
+    def _initialize_study(self):
+
+        if not hasattr(self, "study"):
+
+            try:
+                # Try loading existing study
+                self.study = optuna.load_study(
+                    sampler=self.sampler,
+                    storage=self.storage,
+                    study_name=self.study_name,
+                )
+                self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
+
+            except KeyError:
+                # If not found, create a new study
+                self.study = optuna.create_study(
+                    sampler=self.sampler,
+                    storage=self.storage,
+                    study_name=self.study_name,
+                    direction=self.input["direction"],
+                )
+                self.lg.writeLine(f"Created new study '{self.study_name}'")
+
+                if self.start_with_given_values:
+                    self._queue_trial_with_initial_suggestion()
+
+        
+        else:
+            self.lg.writeLine("Running HP optimization with already loaded study")
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------
                     
                     
     @requires_input_proccess
     def algorithm(self):        
-
-        if not hasattr(self, "study"):
-            self.study = optuna.create_study(sampler=self.sampler, 
-                                    storage=self.storage, 
-                                    study_name=self.input["database_study_name"], 
-                                    load_if_exists=True,
-                                    direction=self.input['direction'])
-            
-            if self.start_with_given_values:
-                self._queue_trial_with_initial_suggestion()
 
         self.study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,
@@ -554,6 +595,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         except Exception as e:
             self.lg.writeLine(f"Error getting best parameters: {e}")
+
+
+        
+    # STATE MANAGEMENT ----------------------------------------------------------
 
         
         
