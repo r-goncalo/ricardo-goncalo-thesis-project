@@ -24,7 +24,7 @@ def run_command(command):
     
     elif isinstance(command, list):
         print(f"Starting job with args: {command}", flush=True)
-        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     else:
         print("WARNING: JOB WILL BE IGNORED, NOT IN SUPPORTED FORMAT")
@@ -47,8 +47,10 @@ def run_command(command):
 # Function to execute a sequence of commands (synchronously, in order)
 
 def run_command_sequence(command_list):
+
+    print(f"\nSSUPPOSED COMMAND LIST: {command_list}\n\n")
     
-    print(f"Starting command sequence: \n    {'\n    '.join([str(command) for command in command_list])}", flush=True)
+    #print(f"\nStarting command sequence with len: \n    " + '\n    '.join([str(command) for command in command_list]), flush=True)
     
     for cmd in command_list:
         ret = run_command(cmd)
@@ -105,5 +107,12 @@ if __name__ == "__main__":
             }
         ]
     )
+
+    print("\nCommand_sequences: ")
+
+    for command_sequence in command_sequences:
+        print("\n    " + str(command_sequence))
+
+    print()
 
     run_jobs_concurrently(command_sequences)

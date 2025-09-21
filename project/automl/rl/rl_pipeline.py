@@ -196,9 +196,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
     # TRAINING_PROCCESS ----------------------
     
-    def onException(self, exception : Exception):
+    def _deal_with_exceptionn(self, exception : Exception):
         
-        super().onException(exception)
+        super()._deal_with_exceptionn(exception)
         
         error_message = str(exception)
         full_traceback = traceback.format_exc()

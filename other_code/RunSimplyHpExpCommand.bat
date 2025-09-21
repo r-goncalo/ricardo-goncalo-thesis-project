@@ -34,3 +34,5 @@ REM Guarantee module is installed
 echo Starting experiment at %TIME%
 
 %COMMAND%
+
+exit()

@@ -119,18 +119,22 @@ def hp_opt_for_models(directory_of_models,
 
         print(f"Creating commands for HP optimization\n")
 
+        command_sequence = []
+
         for parameter_dict in parameter_dict_list:
 
             command_to_add = hp_opt_command_sequence({**parameter_dict, **base_parameter_dict})
             
             print(f"For parameter dict {parameter_dict}, creating command:\n    {command_to_add}\n")
 
-            command_sequence_list.append(
-                command_to_add
+            command_sequence.append(
+                ' '.join([str(command_arg) for command_arg in command_to_add]) # to make it a str
             )
 
+        command_sequence_list.append(command_sequence)
 
-    print("END CREATION OF COMMAND SEQUENCES FOR MODELS ----------------------------------------------\n")
+
+    print("\nEND CREATION OF COMMAND SEQUENCES FOR MODELS ----------------------------------------------\n")
 
     return command_sequence_list
 

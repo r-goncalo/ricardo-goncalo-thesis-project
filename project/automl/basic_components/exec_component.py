@@ -55,9 +55,12 @@ class ExecComponent(Component):
             
         
 
-    def onException(self, exception):
-        pass
+    def __on_exception(self, exception):
+        '''To be called when a non treated exception happens'''
+        self._deal_with_exceptionn(exception)
     
+    def _deal_with_exceptionn(self, exception):
+        pass
 
     # RUNNABLE METHOD --------------------------------
     
@@ -90,6 +93,6 @@ class ExecComponent(Component):
         
         except Exception as e:
             self.values["running_state"] = State.ERROR
-            self.onException(e)
+            self.__on_exception(e)
             raise e # TODO: decide on this, are the elements that run this responsible for caughting the exception?
     

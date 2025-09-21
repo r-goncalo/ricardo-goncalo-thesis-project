@@ -496,7 +496,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 trial.report(result, step)
                 
-                results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial], "result" : [result]}
+                results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial.number], "result" : [result]}
                 
                 print(f"Logging results: {results_to_log}")
 
@@ -514,6 +514,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
                 trial.set_user_attr("prune_reason", "error")
+                self._deal_with_exceptionn(e)
                 raise optuna.TrialPruned("error")
                             
         
@@ -531,20 +532,20 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     # INTERNAL EXCEPTION HANDLING --------------------------------------------------------
 
 
-    def onException(self, exception : Exception):
+    def _deal_with_exceptionn(self, exception : Exception):
 
         import traceback
         
-        super().onException(exception)
+        super()._deal_with_exceptionn(exception)
         
         error_message = str(exception)
         full_traceback = traceback.format_exc()
 
-        self.lg.writeLine("Error message:", file="error_report.txt")
-        self.lg.writeLine(error_message, file="error_report.txt")
+        self.lg.writeLine("\nError message:", file="error_report.txt")
+        self.lg.writeLine(f"{error_message}", file="error_report.txt")
 
         self.lg.writeLine("\nFull traceback:")
-        self.lg.writeLine(full_traceback, file="error_report.txt")
+        self.lg.writeLine(f"{full_traceback}\n", file="error_report.txt")
 
         raise exception
                     
