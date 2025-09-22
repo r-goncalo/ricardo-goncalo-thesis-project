@@ -24,6 +24,8 @@ class DEBUG_LEVEL(Enum):
     INFO = 4
 
 
+IDENT_SPACE = '    '
+
 # LOGGING SCHEMA  -------------------------------------------------------------------------------------------------   
 
 
@@ -81,29 +83,34 @@ class LoggerSchema(ArtifactComponent):
     # LOGGING -----------------------------------------------------------------------------        
 
     @requires_input_proccess
-    def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None):
+    def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
-        return self._writeLine(string, file, level, toPrint, use_time_stamp)
+        return self._writeLine(string, file, level, toPrint, use_time_stamp, str_before, ident_level)
     
             
-    def _writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None):
+    def _writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
         
         
         if self.default_logger_level.value <= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
 
             if toPrint == None:
                 toPrint = self.default_print
-                
-            if self.object_with_name is not None: #if we have an object with a name, we add it to the string
-                string = f'{self.object_with_name.name}: {string}'
             
             if use_time_stamp == None: #if it was not specified, we use the default value
                 use_time_stamp = self.default_use_timestamp
                 
+            if ident_level > 0:
+                for _ in range(ident_level):
+                    string = IDENT_SPACE + string
+
             if use_time_stamp: #if we want to use the timestamp, we add it to the string
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 string = f'[{timestamp}] {string}'
                 
+            string = f"{str_before}{string}"
+
+            if self.object_with_name is not None: #if we have an object with a name, we add it to the string
+                string = f'{self.object_with_name.name}: {string}'
 
             if file is None:
                 file = self.default_log_text_file

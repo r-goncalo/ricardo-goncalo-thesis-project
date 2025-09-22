@@ -46,11 +46,7 @@ def run_command(command):
 # Function to execute a sequence of commands (synchronously, in order)
 
 def run_command_sequence(command_list):
-
-    print(f"\nSSUPPOSED COMMAND LIST: {command_list}\n\n")
-    
-    #print(f"\nStarting command sequence with len: \n    " + '\n    '.join([str(command) for command in command_list]), flush=True)
-    
+        
     for cmd in command_list:
         ret = run_command(cmd)
         if ret != 0:  # Stop if one fails
@@ -110,7 +106,10 @@ if __name__ == "__main__":
     print("\nCommand_sequences: ")
 
     for command_sequence in command_sequences:
-        print("\n    " + str(command_sequence))
+        print("\n    Sequence: \n")
+        for command in command_sequence:
+            print("        " + str(command_sequence))
+        print("\nEnd of sequence\n")
 
     print()
 

@@ -38,7 +38,7 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     
     hp_optimization_pipeline.run()
 
-    hp_optimization_pipeline.save_configuration(save_exposed_values=True)
+    hp_optimization_pipeline.save_configuration(save_exposed_values=True, ignore_defaults=False)
     
 
 

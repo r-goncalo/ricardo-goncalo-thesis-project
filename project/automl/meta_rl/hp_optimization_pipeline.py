@@ -424,6 +424,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             # if we should use the hp_suggestion object to suggest a value to the trial
             else:
                 suggested_value = hyperparameter_suggestion.make_suggestion(trial=trial)
+                self.lg.writeLine(f"For hyperparameter {hyperparameter_suggestion.name}, value {suggested_value} was sampled, using the sampler {self.sampler}")
             
             #save suggestion value in our internal dict
             self.__suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
@@ -470,8 +471,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Responsible for running the optimization trial and evaluating the component to test'''
         
-        self.lg.writeLine("\nStarting new training with hyperparameter cofiguration")
-                
+        self.lg.writeLine(f"Starting new training with hyperparameter cofiguration for trial {trial.number}")
+
         component_to_test = self._create_or_load_component_to_test(trial)
         
         for step in range(self.n_steps):
@@ -494,11 +495,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         raise e
 
                 self._try_save_stat_of_trial(component_to_test, trial)
-                
+
                 self.lg.writeLine(f"Evaluating trial {trial.number}...")
 
                 try:
-
                     evaluation_results = self._try_evaluate_component(component_to_test)
 
                 except Exception as e:
@@ -531,6 +531,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 trial.set_user_attr("prune_reason", "error")
                 self._deal_with_exceptionn(e)
                 raise optuna.TrialPruned("error")
+            
+        self.lg.writeLine(f"Ending training with hyperparameter cofiguration for trial {trial.number}\n\n")
                             
         
         return evaluation_results["result"]
@@ -610,7 +612,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     @requires_input_proccess
     def algorithm(self):  
 
-        self.lg.writeLine(f"Optimizing with {self.n_trials} trials")      
+        self.lg.writeLine(f"Optimizing with {self.n_trials} trials\n")      
 
         self.study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,

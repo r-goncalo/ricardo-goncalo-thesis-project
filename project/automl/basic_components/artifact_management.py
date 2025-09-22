@@ -153,9 +153,9 @@ class ArtifactComponent(Component):
         
 
 
-    def save_configuration(self, save_exposed_values=False):
+    def save_configuration(self, save_exposed_values=False, ignore_defaults=True):
         
-        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values)
+        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults)
 
 
 
