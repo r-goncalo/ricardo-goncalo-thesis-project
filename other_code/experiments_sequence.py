@@ -54,10 +54,11 @@ def hp_opt_for_models(directory_of_models,
         ]
 
     else:
+        print(f"Models to test: {models_to_test}")
         model_paths = [
             os.path.join(directory_of_models, f)
             for f in os.listdir(directory_of_models)
-            if os.path.basename(f) in models_to_test
+            if f in models_to_test
         ]   
 
     model_names = [os.path.basename(path) for path in model_paths]

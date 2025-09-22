@@ -100,7 +100,7 @@ if __name__ == "__main__":
                 "num_trials" : 80,
                 "sampler": "TreeParzen"
             }
-        ]
+        ],
 
         models_to_test= ["sb3_CartPole_dqn", "sb3_CartPole_dqn_perturbed_0_10"]
     )
