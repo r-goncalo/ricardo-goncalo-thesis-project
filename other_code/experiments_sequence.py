@@ -30,12 +30,13 @@ def hp_opt_command_sequence(
     return command_args_list
 
 
-def hp_opt_for_models(directory_of_models, 
+def hp_opt_for_models(directory_of_models,
                                  directory_to_store_experiment,
                                  base_to_opt_config_path, 
                                  hp_opt_config_path,
                                  parameter_dict_list  : list [dict] = [{}],
-                                 experiment_name = "hp_opt_for_models"):
+                                 experiment_name = "hp_opt_for_models",
+                                 models_to_test=None):
     
     print("\nCREATING COMMAND SEQUENCES FOR MODELS ------------------------------------------------")
     
@@ -45,12 +46,19 @@ def hp_opt_for_models(directory_of_models,
 
     print(f"\nDirectory of models: {directory_of_models}")
 
+    if models_to_test == None:
+        # get model paths
+        model_paths = [
+            os.path.join(directory_of_models, f)
+            for f in os.listdir(directory_of_models)
+        ]
 
-    # get model paths
-    model_paths = [
-        os.path.join(directory_of_models, f)
-        for f in os.listdir(directory_of_models)
-    ]
+    else:
+        model_paths = [
+            os.path.join(directory_of_models, f)
+            for f in os.listdir(directory_of_models)
+            if os.path.basename(f) in models_to_test
+        ]   
 
     model_names = [os.path.basename(path) for path in model_paths]
 
