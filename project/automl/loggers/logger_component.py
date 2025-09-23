@@ -71,7 +71,7 @@ class LoggerSchema(ArtifactComponent):
         
         super()._proccess_input_internal()
             
-        self.necessary_logger_level = self.input["logger_level"]  
+        self.necessary_logger_level = self.input["necessary_logger_level"]  
         
         self.default_print = self.input["default_print"]
         

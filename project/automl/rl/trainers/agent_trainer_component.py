@@ -66,8 +66,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
         super().__init__(*args, **kwargs)
         
-        self.reset_training()
-
 
     def _proccess_input_internal(self):
         
@@ -144,16 +142,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
     
     # TRAINING_PROCESS ----------------------
-    
-    def reset_training(self):
-        
-        '''Resets the training values, such as the total number of episodes'''
-        
-        self.values["total_steps"] = 0
-        self.values["episodes_done"] = 0
-        
-        self.values["episode_steps"] = 0
-        self.values["episode_score"] = 0
         
         
         
@@ -185,9 +173,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     @requires_input_proccess
     def end_episode(self):
         
-        self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]
         self.values["episodes_done"] = self.values["episodes_done"] + 1
-        
         
         self.lg.writeLine("Ended episode: " + str(self.values["episodes_done"]) + " with duration: " + str(self.values["episode_steps"]) + ", total reward: " + str(self.values["episode_score"]), file=self.TRAIN_LOG)
         
