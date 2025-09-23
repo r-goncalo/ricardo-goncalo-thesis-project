@@ -41,9 +41,9 @@ class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Stat
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.setup_environment()
         self.setup_memories_of_agents()
@@ -60,7 +60,7 @@ class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Stat
     def play_episode():
         pass
 
-    def algorithm(self):
+    def _algorithm(self):
         
-        super().algorithm()
+        super()._algorithm()
         

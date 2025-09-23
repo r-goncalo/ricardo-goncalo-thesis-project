@@ -14,8 +14,8 @@ class SB3Wrapper(PolicyInterface):
         "sb3_model" : InputSignature(default_value="dqn-MountainCar-v0")
     }    
     
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
         
         self.sb3_model = self.input["sb3_model"]
         

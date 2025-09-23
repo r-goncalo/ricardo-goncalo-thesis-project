@@ -37,9 +37,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                     }
 
         
-    def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.name = self.input["name"]                
         self.device = self.input["device"]

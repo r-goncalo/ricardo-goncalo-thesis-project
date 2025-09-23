@@ -39,9 +39,9 @@ class AgentTrainerDQN(AgentTrainer):
 
     # INITIALIZATION ---------------------------------------------
     
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.initialize_exploration_strategy()
         

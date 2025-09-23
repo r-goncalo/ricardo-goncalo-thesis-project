@@ -14,6 +14,7 @@ from automl.consts import CONFIGURATION_FILE_NAME
 import weakref
 import gc
 
+from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 import torch
                 
                 
@@ -85,7 +86,7 @@ class StatefulComponent(ArtifactComponent):
         pass    
     
 
-    def on_unload(self):
+    def _on_unload(self):
         '''
         This method is called when the component is unloaded, it should be used to clean up resources
         '''
@@ -206,10 +207,10 @@ def unload_component(component : Component) -> None:
         unload_component(child_component)
         
         if isinstance(child_component, StatefulComponent):
-            child_component.on_unload()
+            child_component._on_unload()
             
     if isinstance(component, StatefulComponent):
-        component.on_unload()
+        component._on_unload()
                 
         
                         
@@ -241,9 +242,9 @@ class StatefulComponentLoader(ArtifactComponent):
         
 
         
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()    
+        super()._proccess_input_internal()    
         
         if not hasattr(self, 'component_to_save_load'):
             raise Exception("Component to save / load was not defined, use define_component_to_save_load method")
@@ -261,6 +262,9 @@ class StatefulComponentLoader(ArtifactComponent):
     def unload_component(self):
 
         '''Unloads component, note that it does not implicitly save it first'''
+
+        # if this or any children components had dataframes, results, or something, we save them
+        save_all_dataframes_of_component_and_children(self.component_to_save_load)
                 
         weak_ref = weakref.ref(self.component_to_save_load)
 

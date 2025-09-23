@@ -10,8 +10,8 @@ class OptimizerSchema(Component):
     
     parameters_signature = {"model" : ComponentInputSignature(ignore_at_serialization=True)}
     
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
         
         self.model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
 
@@ -44,9 +44,9 @@ class AdamOptimizer(OptimizerSchema):
                        }    
     
     
-    def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.params = self.model.get_model_params() #gets the model parameters to optimize
                 
@@ -92,8 +92,8 @@ class SimpleSGDOptimizer(OptimizerSchema):
         "learning_rate": InputSignature(default_value=0.01)
     }
 
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
 
         # Get model parameters
         self.params = self.model.get_model_params()

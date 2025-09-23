@@ -46,9 +46,9 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
     results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
 
     
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
 
         self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
         self.num_episodes = self.input["num_episodes"]
@@ -163,7 +163,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
 
 
-    def algorithm(self):
+    def _algorithm(self):
         self.play()        
         
     

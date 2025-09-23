@@ -13,11 +13,11 @@ class DeqeueMemoryComponent(MemoryComponent):
     parameters_signature = {
                     }
 
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
         raise NotImplementedError("This is not up to date")
 
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.memory = deque([], maxlen=self.capacity)
 

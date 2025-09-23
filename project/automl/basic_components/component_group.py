@@ -64,8 +64,8 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
     
     
     
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
         
         self.runnable_components = []
         self.last_ran_component = -1
@@ -295,5 +295,5 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
     
     # Execution ----------------------------------------
     
-    def algorithm(self):
+    def _algorithm(self):
         self.run_all_components()

@@ -22,9 +22,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     }
     
 
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.n_results_to_use = self.input["n_results_to_use"]
         self.std_deviation_factor = self.input["std_deviation_factor"]

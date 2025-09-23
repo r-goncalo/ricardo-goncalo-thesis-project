@@ -48,11 +48,11 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
         print(f"Environment: {self.input['environment']}")
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
                 
         self.device = self.input["device"]
         
@@ -226,7 +226,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
     
     @requires_input_proccess
-    def algorithm(self):
+    def _algorithm(self):
         
         '''
         Executes the training part of the algorithm with a specified number of episodes < than the number specified

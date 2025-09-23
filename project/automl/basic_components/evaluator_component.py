@@ -26,9 +26,9 @@ class EvaluatorComponent(Component):
     
     }
 
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
 
 
     # EVALUATION -------------------------------------------------------------------------------
@@ -71,9 +71,9 @@ class ComponentWithEvaluator(Component):
         
         self.last_evaluation = {}
     
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         if "component_evaluator" not in self.input.keys():
             self.component_evaluator = None

@@ -23,9 +23,9 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         "base_evaluator" : ComponentInputSignature(mandatory=False)
     }
 
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.std_deviation_factor = self.input["std_deviation_factor"]
         

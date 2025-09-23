@@ -74,26 +74,36 @@ class ComponentWithResults(ArtifactComponent):
         
         super().__init__(*args, **kwargs)
         
-        self.__results_loggers : dict[str, ResultLogger] = {}
+        self.__results_loggers : dict[str, ResultLogger] = {} # all results loggers (each with a different dataframe)
         
-        if isinstance(self.results_columns, list):
-            self.results_columns = {DEFAULT_RESULTS_LOGGER_KEY : self.results_columns}
+        if isinstance(self.results_columns, list): # if the results_columns passed had no specified key
+            self.results_columns = {DEFAULT_RESULTS_LOGGER_KEY : self.results_columns} 
+        
 
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
             
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
 
                 
     def set_as_result_logger_object(self, logger_object, key=DEFAULT_RESULTS_LOGGER_KEY):
+        '''Sets a results logger object as one of the results loggers for this component, with the specified key'''
         self.__results_loggers[key] = logger_object
+
+
+    def remove_result_logger_object(self, key):
+        '''Removes one of the results loggers for this component, with the specified key'''
+        self.__results_loggers.pop(key)
+        self.results_columns.pop(key)
     
     
     def add_to_columns_of_results_logger(self, new_columns : list, key=DEFAULT_RESULTS_LOGGER_KEY):
         
+        '''Add columns to a results logger of this object. Note that this should only be used on '''
+
         results_logger = self.__results_loggers[key]
         
-        if results_logger._input_was_proccessed:
+        if results_logger.input_was_processed():
             raise Exception("Trying to add columns to results logger that was already used")
 
         else:
@@ -142,6 +152,15 @@ class ComponentWithResults(ArtifactComponent):
         
         return self.__results_loggers[key]
     
+    def save_dataframe(self, key=None):
+
+        if key == None:
+            for results_logger in self.__results_loggers.values():
+                results_logger.save_dataframe()
+
+        else:
+            self.__results_loggers[key].save_dataframe()
+    
 
     def get_decoupled_results_logger(self, dataframe_file='results.csv') -> ResultLogger:
         
@@ -151,3 +170,13 @@ class ComponentWithResults(ArtifactComponent):
         '''
         
         return get_results_logger_from_file(self.get_artifact_directory(), dataframe_file)
+    
+
+
+def save_all_dataframes_of_component_and_children(component : Component):
+
+    if isinstance(component, ComponentWithResults):
+        component.save_dataframe()
+
+    for child_component in component.child_components:
+        save_all_dataframes_of_component_and_children(child_component)

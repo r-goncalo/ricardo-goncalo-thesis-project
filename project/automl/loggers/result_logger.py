@@ -28,15 +28,15 @@ class ResultLogger(LoggerSchema):
     parameters_signature = {
             "results_filename" : InputSignature(default_value=RESULTS_FILENAME, description="The filename of the results file, in this case a csv file"),
             "results_columns" : InputSignature(possible_types=[list], description="The columns (metrics) of the results", mandatory=False),
-            "save_results_on_log" : InputSignature(default_value=True, description="If the results should be save on the disk after each log")
+            "save_results_on_log" : InputSignature(default_value=False, description="If the results should be save on the disk after each log")
         } 
     
 
     # INITIALIZATION --------------------------------------------------------
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.results_filename = self.input["results_filename"]
         

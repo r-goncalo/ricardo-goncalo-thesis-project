@@ -35,9 +35,9 @@ class AgentTrainerPPO(AgentTrainer):
                        }
     
 
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
                                 
 
         

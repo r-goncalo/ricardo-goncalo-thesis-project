@@ -49,9 +49,9 @@ class ConvModelSchema(ModelComponent):
     
     
     
-    def proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.board_x : int = self.input["board_x"]                
         self.board_y : int = self.input["board_y"]
@@ -111,7 +111,7 @@ class ConvModelSchema(ModelComponent):
     def clone(self):
                 
         toReturn = ConvModelSchema(input=self.input)
-        toReturn.proccess_input_internal()
+        toReturn._proccess_input_internal()
         toReturn.model.load_state_dict(self.model.state_dict()) #copies current values into new model
         
         return toReturn

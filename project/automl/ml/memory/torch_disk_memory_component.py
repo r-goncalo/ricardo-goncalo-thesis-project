@@ -35,8 +35,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
     }
     
 
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
         
         self.device = self.input["device"]
         self.max_in_memory = self.input["max_in_memory"]

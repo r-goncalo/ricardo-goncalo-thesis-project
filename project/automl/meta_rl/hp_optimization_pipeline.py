@@ -118,9 +118,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     # INITIALIZATION -----------------------------------------------------------------------------
 
 
-    def proccess_input_internal(self): # this is the best method to have initialization done right after
+    def _proccess_input_internal(self): # this is the best method to have initialization done right after
                 
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
                 
         # LOAD VALUES
         self.start_with_given_values = self.input["start_with_given_values"]
@@ -610,7 +610,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                     
     @requires_input_proccess
-    def algorithm(self):  
+    def _algorithm(self):  
 
         self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
 

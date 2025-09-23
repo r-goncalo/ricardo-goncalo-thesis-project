@@ -55,9 +55,9 @@ class FullyConnectedModelSchema(TorchModelComponent):
         "device": InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }    
     
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
 
             

@@ -70,7 +70,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         self.output = {} #output, if any, will be a dictionary
         
-        self._input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
+        self.__input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
         self.__input_is_being_processed = False
 
         self.__notes = [] #notes are a list of strings
@@ -85,7 +85,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         if not isinstance(input, dict):
             raise Exception("Passed input is not of type dict")
            
-        self._input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
+        self.__input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
         
         for passed_key in input.keys():
             
@@ -146,7 +146,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         
     def __some_updated_input(self): # some input was changed
-        self._input_was_proccessed = False
+        self.__input_was_proccessed = False
                 
     def __verified_pass_input(self, key, value):
         
@@ -200,7 +200,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         self.__input_meta[key].custom_value_removed()
     
 
-    def proccess_input_internal(self): #verify the input to this component
+    def _proccess_input_internal(self): #verify the input to this component
         '''
         Verify validity of input and add default values, following initializing the attributes
         This can and should be extended by child Schemas
@@ -227,21 +227,25 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         This method is called by external parties
         Instead of extending it, extend proccess_input_internal
         '''
-        self.proccess_input_internal()
-        self._input_was_proccessed = True
+        self._proccess_input_internal()
+        self.__input_was_proccessed = True
         self.__input_is_being_processed = False
-        self.post_proccess_input()
+        self._post_proccess_input()
         
     
-    def post_proccess_input(self):
+    def _post_proccess_input(self):
         '''Called after the input was proccessed, to do any post processing necessary'''
         
         pass
+
+    
+    def input_was_processed(self):
+        return self.__input_was_proccessed and not self.__input_is_being_processed
     
         
     def proccess_input_if_not_proccesd(self): 
            
-        if not self._input_was_proccessed:
+        if not self.__input_was_proccessed:
             
             if self.__input_is_being_processed:
                 raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Input is already being processed, there is probably a recursive call to proccess_input")

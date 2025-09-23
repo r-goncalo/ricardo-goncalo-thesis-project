@@ -69,9 +69,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.reset_training()
 
 
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.optimization_interval = self.input["optimization_interval"]
         self.device = self.input["device"]

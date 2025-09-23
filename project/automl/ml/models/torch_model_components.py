@@ -20,9 +20,9 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         "model" : None
     }
     
-    def proccess_input_internal(self):
+    def _proccess_input_internal(self):
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
 
         self.__synchro_model_value_attr()
         

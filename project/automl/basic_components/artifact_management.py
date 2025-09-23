@@ -145,9 +145,9 @@ class ArtifactComponent(Component):
         pass # to be implemented by subclasses if needed
 
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         # self.get_artifact_directory()
         

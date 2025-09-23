@@ -1,3 +1,4 @@
+from automl.loggers.component_with_results import ComponentWithResults
 from ..component import InputSignature, Component, requires_input_proccess
 
 from abc import abstractmethod
@@ -23,8 +24,8 @@ class ExecComponent(Component):
 
     exposed_values = {"running_state" : State.IDLE, "times_ran" : 0}    
     
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
 
         if "times_to_run" not in self.input:
             self.times_to_run = None
@@ -37,13 +38,13 @@ class ExecComponent(Component):
     # METHODS TO OVERRIDE --------------------------------
 
 
-    def algorithm(self): #the algorithm of the component
+    def _algorithm(self): #the algorithm of the component
         pass
     
-    def pre_algorithm(self): # a component may extend this for certain behaviours
+    def _pre_algorithm(self): # a component may extend this for certain behaviours
         self.values["running_state"] = State.RUNNING
         
-    def pos_algorithm(self): # a component may extend this for certain behaviours
+    def _pos_algorithm(self): # a component may extend this for certain behaviours
         
         self.values["times_ran"] += 1
         
@@ -86,9 +87,9 @@ class ExecComponent(Component):
         '''Runs the specified algorithm once.'''
          
         try:
-            self.pre_algorithm()
-            self.algorithm()
-            self.pos_algorithm()
+            self._pre_algorithm()
+            self._algorithm()
+            self._pos_algorithm()
             return self.get_output()
         
         except Exception as e:

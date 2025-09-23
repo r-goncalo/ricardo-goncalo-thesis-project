@@ -31,8 +31,8 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         
         
 
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
         
         self.device = self.input["device"]
         self.setup_environment()
@@ -147,9 +147,9 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
 
     # STATE MANAGEMENT -------------------------------------------------------------------
     
-    def on_unload(self):
+    def _on_unload(self):
         
-        super().on_unload()
+        super()._on_unload()
         
         self.env.close()
 

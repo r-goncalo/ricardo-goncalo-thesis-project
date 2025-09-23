@@ -15,8 +15,8 @@ class MockupRandomModel(ModelComponent):
         "device": InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }    
     
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
 
         self.input_size = discrete_input_layer_size_of_space(self.input_shape)
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)

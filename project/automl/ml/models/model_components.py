@@ -12,8 +12,8 @@ class ModelComponent(Component):
         "output_shape": InputSignature(mandatory=False, description="Used for models which can still change their output shape"),
     }    
     
-    def proccess_input_internal(self):
-        super().proccess_input_internal()
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
         
         self.input_shape = self.input["input_shape"] if "input_shape" in self.input.keys() else None
         self.output_shape = self.input["output_shape"] if "output_shape" in self.input.keys() else None

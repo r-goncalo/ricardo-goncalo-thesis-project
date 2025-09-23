@@ -42,9 +42,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     
     results_columns = ["episode", "episode_steps", "avg_reward", "episode_reward", "total_steps"]
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self.device = self.input["device"]
     

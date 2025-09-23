@@ -18,9 +18,9 @@ class SeededComponent(Component):
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
-        super().proccess_input_internal()
+        super()._proccess_input_internal()
         
         self._seed = self.input["seed"]
                 
