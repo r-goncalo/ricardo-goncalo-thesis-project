@@ -128,6 +128,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         
     def _evaluate_agents(self, agents, device, evaluations_directory, env=None):
+
+        '''Evaluate agents using the RL player and the base evaluator'''
         
         path_of_players = []
         environment_names = []
@@ -156,6 +158,11 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
     def _run_play_to_evaluate(self, agents : dict[str, AgentSchema], device, evaluations_directory, env):
 
+        '''
+            Plays a session with the RL player, returning it after
+            The objective is to then evaluate the results with the evaluator
+        '''
+
         rl_player_will_be_generated = not isinstance(self.input["rl_player_definition"], Component)
                 
         rl_player : RLPlayer = gen_component_from(self.input["rl_player_definition"])
@@ -166,7 +173,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             "device" : device,
             "base_directory" : evaluations_directory,
             "artifact_relative_directory" : "evaluation",
-            "create_new_directory" : True
+            "create_new_directory" : True # if there were other play made, create a new one
         })
         
         env = self.__generalize_get_environment(env, rl_player)

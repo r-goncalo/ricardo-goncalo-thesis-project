@@ -5,6 +5,7 @@ from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.result_logger import ResultLogger
 
 from automl.core.input_management import InputSignature
+from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 
 class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     
@@ -48,7 +49,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     
 
     @requires_input_proccess
-    def _evaluate_from_results(self, results_logger : ResultLogger):
+    def _evaluate_from_results(self, results_logger : ResultLogger): # TODO: check if more evaluators should have this
+        
+        save_all_dataframes_of_component_and_children(results_logger)
         
         if not self.value_to_use in results_logger.get_results_columns():
             raise Exception(f"The value to use '{self.value_to_use}' is not in the results columns of the results logger")
@@ -57,10 +60,11 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         n_rows = results_logger.get_number_of_rows()
                 
         if n_results_to_use > n_rows:
+            print(f"WARNING: Results to use in evaluator {self.name} were higher")
             n_results_to_use = n_rows
 
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, self.value_to_use)
 
-        result = avg_result - (std_result / self.std_deviation_factor)
 
-        return {"result" : result, "avg" : avg_result, "std" : std_result}
+        return avg_result - (std_result / self.std_deviation_factor)
+
