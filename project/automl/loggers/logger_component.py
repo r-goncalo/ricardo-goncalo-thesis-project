@@ -240,6 +240,7 @@ class ComponentWithLogging(ArtifactComponent):
         self.lg : LoggerSchema = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
         
 
+    @requires_input_proccess
     def change_logger_level(self, new_level : DEBUG_LEVEL):
         self.lg.change_logger_level(new_level)
 
