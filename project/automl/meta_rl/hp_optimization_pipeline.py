@@ -447,7 +447,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
             component_to_test_results : ResultLogger = component_to_test.get_results_logger()
             
-            result = component_to_test_results.get_last_results()["result"]
+            result = component_to_test_results.get_last_results()
             
         else:
             

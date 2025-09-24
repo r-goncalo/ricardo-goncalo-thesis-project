@@ -40,8 +40,8 @@ class LoggerSchema(ArtifactComponent):
     parameters_signature = {
 
                        "necessary_logger_level" : InputSignature(
-                            default_value=DEBUG_LEVEL.INFO, 
-                            #default_value=DEBUG_LEVEL.ERROR,
+                            #default_value=DEBUG_LEVEL.INFO, 
+                            default_value=DEBUG_LEVEL.ERROR,
                             ignore_at_serialization=True),
 
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),

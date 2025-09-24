@@ -170,12 +170,11 @@ class ComponentWithResults(ArtifactComponent):
         '''
         
         return get_results_logger_from_file(self.get_artifact_directory(), dataframe_file)
-    
 
 
 def save_all_dataframes_of_component_and_children(component : Component):
 
-    if isinstance(component, ComponentWithResults):
+    if isinstance(component, ComponentWithResults) or isinstance(component, ResultLogger):
         component.save_dataframe()
 
     for child_component in component.child_components:

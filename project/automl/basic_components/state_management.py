@@ -188,7 +188,7 @@ def save_state(component : Component, save_definition=True) -> None:
 
     elif isinstance(component, ArtifactComponent):
         if save_definition:
-            component.save_configuration(True)
+            component.save_configuration(save_exposed_values=True, ignore_defaults=False)
         
 
 # TODO: This is wrong

@@ -18,6 +18,7 @@ from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 from automl.utils.files_utils import saveDataframe
 from automl.utils.configuration_component_utils import save_configuration
 from automl.rl.agent.agent_components import AgentSchema
+from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 
 class EvaluatorWithPlayer(RLPipelineEvaluator):
     
@@ -131,14 +132,14 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         '''Evaluate agents using the RL player and the base evaluator'''
         
-        path_of_players = []
         environment_names = []
+        results_loggers_of_plays = []
                 
         for i in range(self.number_of_evaluations): # evaluate plays and store their paths 
 
             rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env) 
 
-            path_of_players.append(rl_player_of_run.get_artifact_directory())
+            results_loggers_of_plays.append(rl_player_of_run.get_results_logger())
 
             environment_name = rl_player_of_run.env.name
 
@@ -147,7 +148,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
             environment_names.append(environment_name)
 
-        results_logger = aggregate_results_logger(path_of_players, evaluations_directory, ("environment", environment_names))
+        results_logger = aggregate_results_logger(results_loggers_of_plays, evaluations_directory, ("environment", environment_names))
                 
         evaluation_to_return = self.base_evaluator.evaluate(results_logger)
 
@@ -182,6 +183,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             rl_player.pass_input({"environment" : env})            
         
         rl_player.run()
+
+        save_all_dataframes_of_component_and_children(rl_player)
 
         if rl_player_will_be_generated: # if the player will be generated, might as well save the configuration for later consultation of it
             save_configuration(rl_player, rl_player.get_artifact_directory(), save_exposed_values=True, ignore_defaults=False)

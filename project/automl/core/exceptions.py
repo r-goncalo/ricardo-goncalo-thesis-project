@@ -17,11 +17,9 @@ def common_exception_handling(component : ComponentWithLogging, exception, error
     '''Common exception handling for components with logging'''
 
     import traceback
-
         
     error_message = str(exception)
     full_traceback = traceback.format_exc()
-
 
     component.lg.writeLine("Error message:", file=error_report_path, level=DEBUG_LEVEL.ERROR)
     component.lg.writeLine(error_message, file=error_report_path, level=DEBUG_LEVEL.ERROR)

@@ -51,7 +51,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     @requires_input_proccess
     def _evaluate_from_results(self, results_logger : ResultLogger): # TODO: check if more evaluators should have this
         
-        save_all_dataframes_of_component_and_children(results_logger)
+        results_logger.save_dataframe()
         
         if not self.value_to_use in results_logger.get_results_columns():
             raise Exception(f"The value to use '{self.value_to_use}' is not in the results columns of the results logger")
@@ -65,6 +65,6 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
 
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, self.value_to_use)
 
+        result = avg_result - (std_result / self.std_deviation_factor)
 
-        return avg_result - (std_result / self.std_deviation_factor)
-
+        return {"result" : result, "avg" : avg_result, "std" : std_result}

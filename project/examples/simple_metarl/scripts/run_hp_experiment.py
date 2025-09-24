@@ -3,6 +3,7 @@ from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPi
 from automl.utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
+from automl.basic_components.state_management import save_state
 
 
 def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None):
@@ -42,7 +43,7 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     
     hp_optimization_pipeline.run()
 
-    hp_optimization_pipeline.save_configuration(save_exposed_values=True, ignore_defaults=False)
+    save_state(hp_optimization_pipeline)
 
     save_all_dataframes_of_component_and_children(hp_optimization_pipeline)
     

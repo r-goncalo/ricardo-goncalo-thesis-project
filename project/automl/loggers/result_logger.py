@@ -1,14 +1,9 @@
 import os
 import pandas as pd
-from automl.component import InputSignature, Component, requires_input_proccess
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.component import Component, InputSignature, requires_input_proccess
+from automl.loggers.logger_component import LoggerSchema
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
-
-
-import wandb
-
-import torch
 
 import pandas
 from typing import Dict
@@ -556,7 +551,7 @@ def get_results_logger_from_file(folder_path, results_filename=RESULTS_FILENAME)
     return resuls_logger
         
             
-def aggregate_results_logger(paths, new_directory, new_column=None, results_filename=RESULTS_FILENAME, new_results_filename=None) -> ResultLogger:
+def aggregate_results_logger_from_paths(paths, new_directory, new_column=None, results_filename=RESULTS_FILENAME, new_results_filename=None, parent_component : Component =None) -> ResultLogger:
     
     '''
     new_column is a tuple (column_name, [values for each dataframe loaded])
@@ -605,6 +600,49 @@ def aggregate_results_logger(paths, new_directory, new_column=None, results_file
     
     return resuls_logger
     
+
+def aggregate_results_logger(results_logger_objects : list[ResultLogger], new_directory, new_column=None, new_results_filename=RESULTS_FILENAME, parent_component : Component =None) -> ResultLogger:
+    
+    '''
+    new_column is a tuple (column_name, [values for each dataframe loaded])
+    '''
+
+    datafrane = None
+    
+    for results_logger_index in range(len(results_logger_objects)):
+        
+        results_logger : ResultLogger = results_logger_objects[results_logger_index]
+
+        if datafrane is None:
+            datafrane = results_logger.get_dataframe()
+            
+            if new_column is not None:
+                datafrane[new_column[0]] = new_column[1][results_logger_index]
+                            
+        else:
+            
+            loaded_dataframe = datafrane = results_logger.get_dataframe()
+
+            if new_column is not None:
+                loaded_dataframe[new_column[0]] = new_column[1][results_logger_index]
+                            
+            datafrane = pd.concat([datafrane, loaded_dataframe])
+
+    results_columns = datafrane.columns.tolist() 
+    
+    resuls_logger = ResultLogger(
+        {
+            "artifact_relative_directory": '',
+            "base_directory": new_directory,
+            "create_new_directory": False,
+            "results_filename": new_results_filename,
+            "results_columns": results_columns
+        }
+    )
+    
+    resuls_logger.saveDataframe(datafrane, filename=new_results_filename)
+    
+    return resuls_logger
         
     
     ## WANDB --------------------------------
