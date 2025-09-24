@@ -24,6 +24,7 @@ from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 from automl.core.advanced_input_management import ComponentInputSignature
 
 from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
+from automl.core.exceptions import common_exception_handling
 
 # TODO this is missing the evaluation component on a RLPipeline
 class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator, SeededComponent):
@@ -196,21 +197,13 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
     # TRAINING_PROCCESS ----------------------
     
-    def _deal_with_exceptionn(self, exception : Exception):
+    def _deal_with_exception(self, exception : Exception):
         
-        super()._deal_with_exceptionn(exception)
+        super()._deal_with_exception(exception)
         
-        error_message = str(exception)
-        full_traceback = traceback.format_exc()
+        common_exception_handling(self, exception, 'error_report.txt')
 
-        self.lg.writeLine("Error message:", file="error_report.txt")
-        self.lg.writeLine(error_message, file="error_report.txt")
-
-        self.lg.writeLine("\nFull traceback:")
-        self.lg.writeLine(full_traceback, file="error_report.txt")
-
-        raise exception
-        
+        raise exception        
         
     @requires_input_proccess
     def train(self):        

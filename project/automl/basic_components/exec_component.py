@@ -58,9 +58,9 @@ class ExecComponent(Component):
 
     def __on_exception(self, exception):
         '''To be called when a non treated exception happens'''
-        self._deal_with_exceptionn(exception)
+        self._deal_with_exception(exception)
     
-    def _deal_with_exceptionn(self, exception):
+    def _deal_with_exception(self, exception):
         pass
 
     # RUNNABLE METHOD --------------------------------

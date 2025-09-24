@@ -31,6 +31,7 @@ from automl.basic_components.state_management import save_state
 import copy
 
 from automl.consts import CONFIGURATION_FILE_NAME
+from automl.core.exceptions import common_exception_handling
 
 TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
 
@@ -199,7 +200,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def _initialize_sampler_from_str(self):
 
-        self.lg.writeLine(f"Initializing sampler with string {self.input["sampler"]}")
+        self.lg.writeLine(f"Initializing sampler with string {self.input['sampler']}")
         
         if self.input["sampler"] == "TreeParzen":
             
@@ -215,7 +216,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
     def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
 
-        self.lg.writeLine(f"Initializing sampler with class {self.input["sampler"]}")
+        self.lg.writeLine(f"Initializing sampler with class {self.input['sampler']}")
 
 
         try:
@@ -529,7 +530,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 self.lg.writeLine(f"Error in trial {trial.number}, prunning it")
                 trial.set_user_attr("prune_reason", "error")
-                self._deal_with_exceptionn(e)
+                self._deal_with_exception(e)
                 raise optuna.TrialPruned("error")
             
         self.lg.writeLine(f"Ending training with hyperparameter cofiguration for trial {trial.number}\n\n")
@@ -549,20 +550,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     # INTERNAL EXCEPTION HANDLING --------------------------------------------------------
 
 
-    def _deal_with_exceptionn(self, exception : Exception):
-
-        import traceback
+    def _deal_with_exception(self, exception : Exception):
         
-        super()._deal_with_exceptionn(exception)
+        super()._deal_with_exception(exception)
         
-        error_message = str(exception)
-        full_traceback = traceback.format_exc()
-
-        self.lg.writeLine("\nError message:", file="error_report.txt")
-        self.lg.writeLine(f"{error_message}", file="error_report.txt")
-
-        self.lg.writeLine("\nFull traceback:")
-        self.lg.writeLine(f"{full_traceback}\n", file="error_report.txt")
+        common_exception_handling(self, exception, 'error_report.txt')
 
         raise exception
                     
@@ -639,45 +631,24 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def on_exception_saving_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
 
-        import traceback
-
-        
-        error_message = str(exception)
-        full_traceback = traceback.format_exc()
-
         error_report_specific_path = "on_save_error_report.txt"
         error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
 
         self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}, storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        self.lg.writeLine("Error message:", file=error_report_path)
-        self.lg.writeLine(error_message, file=error_report_path)
-
-        self.lg.writeLine("\nFull traceback:", file=error_report_path)
-        self.lg.writeLine(full_traceback, file=error_report_path)
+        common_exception_handling(self, exception, error_report_path)
 
 
         raise exception
         
     def on_exception_evaluating_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
 
-        import traceback
-
-        
-        error_message = str(exception)
-        full_traceback = traceback.format_exc()
-
         error_report_specific_path = "on_evaluate_error_report.txt"
         error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
 
         self.lg.writeLine(f"ERROR: CAN'T EVALUATE TRIAL {trial.number}, storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        self.lg.writeLine("Error message:", file=error_report_path)
-        self.lg.writeLine(error_message, file=error_report_path)
-
-        self.lg.writeLine("\nFull traceback:", file=error_report_path)
-        self.lg.writeLine(full_traceback, file=error_report_path)
-
+        common_exception_handling(self, exception, error_report_path)
 
         raise exception
         

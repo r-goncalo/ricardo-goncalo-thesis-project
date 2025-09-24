@@ -73,6 +73,7 @@ def hp_opt_for_models(directory_of_models,
 
     directory_to_store_experiments = os.path.join(directory_to_store_experiment, "experiments")
     print(f"Directory to store experiments: {directory_to_store_experiments}")
+    open_or_create_folder(directory_to_store_experiments) # we do this because the directory is shared, and so there is a possibility of multiple processes trying to create it at the same time
 
     directory_to_store_logs = os.path.join(directory_to_store_experiment, "logs")
     print(f"Directory to store experiments: {directory_to_store_logs}")
