@@ -35,15 +35,11 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
         
         super()._proccess_input_internal()
         
-        self.device = self.input["device"]
-        self.setup_environment()
-        self.env.reset()
-        
     
-    def setup_environment(self):
+    def _setup_environment(self):
                 
         if isinstance(self.input["environment"], str):
-            self.load_environment(self.input["environment"])
+            self._load_environment(self.input["environment"])
             
         elif isinstance(self.input["environment"], ParallelEnv):
             self.env : ParallelEnv = self.input["environment"]
@@ -52,7 +48,7 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
             raise Exception("No valid environment or environment name passed to PettingZoo Wrapper")
         
         
-    def load_environment(self, environment_name : str):
+    def _load_environment(self, environment_name : str):
         
         if environment_name == "cooperative_pong":
             

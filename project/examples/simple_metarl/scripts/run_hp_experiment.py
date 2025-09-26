@@ -42,10 +42,6 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     hp_optimization_pipeline.change_logger_level(DEBUG_LEVEL.INFO) # guarantees hp_optimization_pipeline has all its output
     
     hp_optimization_pipeline.run()
-
-    save_state(hp_optimization_pipeline)
-
-    save_all_dataframes_of_component_and_children(hp_optimization_pipeline)
     
 
 

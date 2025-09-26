@@ -1,4 +1,5 @@
-from automl.loggers.component_with_results import ComponentWithResults
+from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
+from automl.basic_components.state_management import save_state
 from ..component import InputSignature, Component, requires_input_proccess
 
 from abc import abstractmethod
@@ -19,6 +20,8 @@ class ExecComponent(Component):
     parameters_signature = {
         
             "times_to_run" : InputSignature(mandatory=False, description="The number of times to run the component"),
+            "save_state_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True),
+            "save_dataframes_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True)
     
     }
 
@@ -28,9 +31,12 @@ class ExecComponent(Component):
         super()._proccess_input_internal()
 
         if "times_to_run" not in self.input:
-            self.times_to_run = None
+            self.__times_to_run = None
         else:
-            self.times_to_run = self.input["times_to_run"]
+            self.__times_to_run = self.input["times_to_run"]
+        
+        self.__save_state_on_run_end = self.input["save_state_on_run_end"]
+        self.__save_dataframes_on_run_end = self.input["save_dataframes_on_run_end"]
 
         
 
@@ -48,11 +54,17 @@ class ExecComponent(Component):
         
         self.values["times_ran"] += 1
         
-        if self.times_to_run != None and self.values["times_ran"] < self.times_to_run:
+        if self.__times_to_run != None and self.values["times_ran"] < self.__times_to_run:
             self.values["running_state"] = State.IDLE
             
         else:
             self.values["running_state"] = State.OVER
+        
+        if self.__save_state_on_run_end:
+            save_state(self)
+        
+        if self.__save_dataframes_on_run_end:
+            save_all_dataframes_of_component_and_children(self)
             
         
 
@@ -71,11 +83,11 @@ class ExecComponent(Component):
         
         '''Runs the algorithm the number of times specified in the input.'''
         
-        if self.times_to_run == None:
+        if self.__times_to_run == None:
             return self.run()
         
         else:
-            for i in range(self.times_to_run - self.values["times_ran"]):
+            for i in range(self.__times_to_run - self.values["times_ran"]):
                 self.run()
                 
             return self.get_output()

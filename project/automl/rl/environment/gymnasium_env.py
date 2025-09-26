@@ -35,20 +35,27 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         super()._proccess_input_internal()
         
         self.device = self.input["device"]
-        self.setup_environment()
-        self.reset()        
+
         self.last_observation = None
         self.last_reward = 0
         self.last_done = False
         self.last_info = {}
         
         self.reset_info = {}
+
+        self._setup_environment()
+
+        self.reset(seed=self._seed)   
+
+
         
 
-    def setup_environment(self):
+    def _setup_environment(self):
+
+        '''Loads the actual Gym environment implementation'''
         
         if isinstance(self.input["environment"], str):
-            self.load_environment(self.input["environment"])
+            self._load_environment(self.input["environment"])
         
         elif isinstance(self.input["environment"], gym.Env):
             self.env: gym.Env = self.input["environment"]
@@ -57,7 +64,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
             raise Exception("No valid Gymnasium environment or environment name passed.")
 
 
-    def load_environment(self, environment_name: str):
+    def _load_environment(self, environment_name: str):
         
         try:
             self.env: gym.Env = gym.make(environment_name, render_mode=self.input["render_mode"])
@@ -84,14 +91,19 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         return internal_state_shape
 
     
-    def reset(self):
-        
-        # TODO: Check if this is well done (in regards to seeds, should it not be the same)
-        observation, info = self.env.reset()
+    def reset(self, seed=None):
+
+        '''Resets the environment, with an optinal seed'''        
+
+        env_arguments = {}
+
+        if seed is not None:
+            env_arguments["seed"] = seed
+
+        observation, info = self.env.reset(**env_arguments)
         
         self.reset_info = info
         
-        #observation, _ = self.env.reset(seed=self._seed)
         self.last_observation = observation
             
         return self.state_translator(observation, self.device)

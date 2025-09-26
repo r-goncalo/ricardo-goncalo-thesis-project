@@ -184,8 +184,6 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         
         rl_player.run()
 
-        save_all_dataframes_of_component_and_children(rl_player)
-
         if rl_player_will_be_generated: # if the player will be generated, might as well save the configuration for later consultation of it
             save_configuration(rl_player, rl_player.get_artifact_directory(), save_exposed_values=True, ignore_defaults=False)
         
