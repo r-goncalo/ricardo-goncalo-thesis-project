@@ -1,3 +1,4 @@
+from datetime import datetime
 import subprocess, win32job, win32process, win32con, win32api
 import multiprocessing
 import experiments_sequence
@@ -66,11 +67,12 @@ def run_jobs_concurrently(command_groups):
     ]
     """
     print(f"Max jobs value is: {MAX_JOBS}")
+    print(f"Starting at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     with multiprocessing.Pool(processes=MAX_JOBS) as pool:
         results = pool.map(run_command_sequence, command_groups)
 
-    print("All jobs have finished.")
+    print(f"All jobs have finished at {print(f"Starting at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")}.")
     return results
 
 
@@ -105,6 +107,7 @@ if __name__ == "__main__":
         models_to_test= ["sb3_CartPole_dqn", "sb3_CartPole_dqn_perturbed_0_10"]
     )
 
+    print("\n----------------------------------------------")
     print("\nCommand_sequences: ")
 
     for command_sequence in command_sequences:
@@ -113,6 +116,6 @@ if __name__ == "__main__":
             print("        " + str(command_sequence))
         print("\nEnd of sequence\n")
 
-    print()
+    print("\n----------------------------------------------\n")
 
     run_jobs_concurrently(command_sequences)
