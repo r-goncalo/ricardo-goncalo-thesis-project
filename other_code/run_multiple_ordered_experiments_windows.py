@@ -4,7 +4,7 @@ import multiprocessing
 import experiments_sequence
 
 # === Define Maximum Concurrent Jobs ===
-MAX_JOBS = 2
+MAX_JOBS = 4
 
 # --- Create a global Job Object ---
 job = win32job.CreateJobObject(None, "")
@@ -72,7 +72,7 @@ def run_jobs_concurrently(command_groups):
     with multiprocessing.Pool(processes=MAX_JOBS) as pool:
         results = pool.map(run_command_sequence, command_groups)
 
-    print(f"All jobs have finished at {print(f"Starting at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")}.")
+    print(f"All jobs have finished at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.")
     return results
 
 
@@ -86,6 +86,7 @@ if __name__ == "__main__":
     #   ["python train.py --model m2", "python eval.py --model m2"]
     # ]
     command_sequences = experiments_sequence.hp_opt_for_models(
+
         directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models", 
         directory_to_store_experiment="C:\\rgoncalo\\experiments",
         base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\to_optimize_configuration.json", 
@@ -104,7 +105,7 @@ if __name__ == "__main__":
             }
         ],
 
-        models_to_test= ["sb3_CartPole_dqn", "sb3_CartPole_dqn_perturbed_0_10"]
+        #models_to_test= ["sb3_CartPole_dqn", "sb3_CartPole_dqn_perturbed_0_10"]
     )
 
     print("\n----------------------------------------------")
