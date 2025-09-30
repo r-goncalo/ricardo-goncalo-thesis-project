@@ -102,11 +102,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super().learn(trajectory, discount_factor)
 
-        model_before_learn = self.model.clone()
-
         batch_size = len(trajectory[0])
-
-        #print(f"Computed batch size: {batch_size}")
 
         state_batch, action_batch, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
             
@@ -144,8 +140,6 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()
 
-        #l2_distance, avg_distance, cosine_sim = model_parameter_distance(model_before_learn, self.model)
-        #print(f"Comparison between model before and after learn step: L2 distance {l2_distance}, avg distance {avg_distance}, cosine similarity {cosine_sim}")
         
         
     @requires_input_proccess            

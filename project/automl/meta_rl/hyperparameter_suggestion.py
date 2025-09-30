@@ -262,6 +262,110 @@ class HyperparameterSuggestion():
     def from_dict(dict):
                 
         return HyperparameterSuggestion(dict["name"], dict["localizations"], dict["suggestion"])
+    
+
+
+
+class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
+    
+    '''A class which defines a range of values a specific hyperparameter group can have'''
+    
+    def __init__(self, name : str, disjoint_hyperparameter_suggestions : list[HyperparameterSuggestion]):
+        
+        self.name = name
+
+        self.disjoint_hyperparameter_suggestions : dict[str, HyperparameterSuggestion] = {}
+        for hyperparameter_suggestion in disjoint_hyperparameter_suggestions:
+            self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion.name] = hyperparameter_suggestion
+        
+    
+    def _set_suggested_value_in_component(self, suggested_value, component : Component):
+        
+        '''Sets the suggested value in the component, using the localization'''
+
+        (hyperparameter_suggestion_to_use_name, suggested_value_of_suggestion_to_use) = suggested_value
+    
+        self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion_to_use_name]._set_suggested_value_in_component(suggested_value_of_suggestion_to_use, component)
+
+
+
+    
+    def _set_suggested_value_in_dict(self, suggested_value, component_dict : dict):
+    
+        '''Sets the suggested value in the dictionary representing a component, using the localization'''
+
+        (hyperparameter_suggestion_to_use_name, suggested_value_of_suggestion_to_use) = suggested_value
+    
+        self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion_to_use_name]._set_suggested_value_in_dict(suggested_value_of_suggestion_to_use, component_dict)
+    
+
+        
+    def make_suggestion(self, trial : optuna.Trial):
+        
+        '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
+        
+        hyperparameter_suggestion_to_use_name = trial.suggest_categorical(self.name, self.disjoint_hyperparameter_suggestions.keys())
+
+        hyperparameter_suggestion_to_use = self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion_to_use_name]
+
+        suggested_value_of_suggestion_to_use = hyperparameter_suggestion_to_use.make_suggestion()           
+                
+            
+        return (hyperparameter_suggestion_to_use_name, suggested_value_of_suggestion_to_use)
+
+
+    def _try_get_already_suggested_value_in_component(self, component : Component):
+        
+        '''Gets the suggested value in the component, using the localization'''
+
+        suggested_value = None
+
+        for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
+            
+            try:
+                suggested_value = hyperparameter_suggestion._try_get_already_suggested_value_in_component(component)
+            except:
+                suggested_value = None
+
+            if suggested_value != None:
+                break
+        
+        return suggested_value
+
+
+    
+    def _try_get_suggested_value_in_dict(self, component_dict : dict):
+    
+        '''Sets the suggested value in the dictionary representing a component, using the localization'''
+
+        suggested_value = None
+
+        for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
+            
+            try:
+                suggested_value = hyperparameter_suggestion._try_get_suggested_value_in_dict(component_dict)
+            except:
+                suggested_value = None
+
+            if suggested_value != None:
+                break
+        
+        return suggested_value
+            
+            
+    def to_dict(self):
+        
+        dict_to_return = {
+            "name" : self.name,
+            "suggestions" : self.disjoint_hyperparameter_suggestions.values()
+            }
+        
+        return dict_to_return
+            
+            
+    def from_dict(dict):
+                
+        return DisjointHyperparameterSuggestion(dict["name"], dict["suggestions"])
         
         
         

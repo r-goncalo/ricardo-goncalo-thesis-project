@@ -158,7 +158,7 @@ class ResultLogger(LoggerSchema):
     # GRAPHS ------------------------------------------------------------------------------------------------------------------
 
     @requires_input_proccess
-    def plot_bar_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label=''):
+    def plot_bar_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label='', lim_y=True):
         """
         Plots a graph using the dataframe stored in ResultLogger.
 
@@ -189,6 +189,18 @@ class ResultLogger(LoggerSchema):
 
         plt.xlabel(x_axis)
         plt.ylabel(y_label)
+
+        if lim_y:
+            all_values = self.dataframe[y_axis].values.flatten()
+            y_min, y_max = all_values.min(), all_values.max()
+
+            if y_min > 0:
+                # Set lower bound slightly below the min value
+                lower_bound = max(0, y_min - (0.05 * (y_max - y_min)))  
+                plt.ylim(lower_bound, y_max * 1.05)  # add a bit of headroom
+            else:
+                plt.ylim(y_min * 1.05, y_max * 1.05)
+
         
         if title != '':
             plt.title(title)
