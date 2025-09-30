@@ -39,6 +39,9 @@ MEMORY_REPORT_FILE = "memory_report.txt"
 
 Component_to_opt_type = Union[ExecComponent, StatefulComponent]
 
+OPTUNA_STUDY_PATH = 'study_results.db'
+
+BASE_CONFIGURATION_NAME = 'configuration'
 
 class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
     
@@ -176,7 +179,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     #it constructs the path for the database        
     def _initialize_database(self):
         
-        self.database_path = self.get_artifact_directory() + "\\study_results.db"  # Path to the SQLite database file
+        self.database_path = f"self.get_artifact_directory()\\{OPTUNA_STUDY_PATH}"  # Path to the SQLite database file
         
         self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
         
@@ -329,7 +332,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def gen_trial_name(self, trial : optuna.Trial) -> str:
         '''Generates a name for the trial based on its number'''
         
-        return f"configuration_{trial.number}"
+        return f"{BASE_CONFIGURATION_NAME}_{trial.number}"
 
 
 
