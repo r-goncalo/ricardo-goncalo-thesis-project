@@ -259,7 +259,7 @@ class HyperparameterSuggestion():
         return dict_to_return
             
             
-    def from_dict(dict):
+    def from_dict(dict, decode_elements_fun, source_component): # we have no use for the function for nested components, there are none
                 
         return HyperparameterSuggestion(dict["name"], dict["localizations"], dict["suggestion"])
     
@@ -308,7 +308,7 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
 
         hyperparameter_suggestion_to_use = self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion_to_use_name]
 
-        suggested_value_of_suggestion_to_use = hyperparameter_suggestion_to_use.make_suggestion()           
+        suggested_value_of_suggestion_to_use = hyperparameter_suggestion_to_use.make_suggestion(trial)           
                 
             
         return (hyperparameter_suggestion_to_use_name, suggested_value_of_suggestion_to_use)
@@ -357,15 +357,26 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
         
         dict_to_return = {
             "name" : self.name,
-            "suggestions" : self.disjoint_hyperparameter_suggestions.values()
+            "suggestions" : [
+                hyperparameter_suggestion for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values()
+                ]
             }
-        
+                
         return dict_to_return
             
             
-    def from_dict(dict):
+    def from_dict(dict, decode_elements_fun, source_component):
+
+        '''Decodes object dict'''
                 
-        return DisjointHyperparameterSuggestion(dict["name"], dict["suggestions"])
+        suggestion_dicts =  [ hyperparameter_suggestion_dict for hyperparameter_suggestion_dict in dict["suggestions"] ]
+
+        disjoint_to_return = DisjointHyperparameterSuggestion(
+            name=dict["name"], 
+            disjoint_hyperparameter_suggestions=decode_elements_fun(source_component, suggestion_dicts)) # it is done this way to be able to deal with nested components
+
+
+        return disjoint_to_return
         
         
         

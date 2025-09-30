@@ -211,7 +211,7 @@ def decode_a_component_element(source_component : Component, component_element_d
     return component_to_return
     
 
-def decode_a_non_component_element(element_dict : dict):
+def decode_a_non_component_element(source_component : Component, element_dict : dict):
         
     element_type_str = element_dict["__type__"]
     
@@ -221,7 +221,8 @@ def decode_a_non_component_element(element_dict : dict):
         
         if "object" in element_dict.keys():
             
-            instanced_object = element_type.from_dict(element_dict["object"])
+            # from dict can also use the decoding function we're using to decode nested elements
+            instanced_object = element_type.from_dict(element_dict["object"], decode_components_input_element, source_component)
                         
             return instanced_object
         
@@ -252,7 +253,7 @@ def decode_components_input_element(source_component : Component, element):
                 return decode_a_component_element(source_component, element)
             
             else:
-                return decode_a_non_component_element(element)
+                return decode_a_non_component_element(source_component, element)
             
         else:
             

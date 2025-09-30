@@ -90,17 +90,18 @@ if __name__ == "__main__":
         directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models", 
         directory_to_store_experiment="C:\\rgoncalo\\experiments",
         base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\to_optimize_configuration.json", 
-        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration_2.json",
+
+        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration_3.json",
         experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
 
         parameter_dict_list=[
             {
-                "num_trials" : 30,
+                "num_trials" : 50,
                 "sampler" : "Random", # this is to gain some knowledge first
                 
             },
             {
-                "num_trials" : 120,
+                "num_trials" : 150,
                 "sampler": "TreeParzen"
             }
         ],

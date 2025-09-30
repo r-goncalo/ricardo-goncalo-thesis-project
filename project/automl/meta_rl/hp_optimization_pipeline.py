@@ -179,7 +179,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     #it constructs the path for the database        
     def _initialize_database(self):
         
-        self.database_path = f"self.get_artifact_directory()\\{OPTUNA_STUDY_PATH}"  # Path to the SQLite database file
+        self.database_path = f"{self.get_artifact_directory()}\\{OPTUNA_STUDY_PATH}"  # Path to the SQLite database file
         
         self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
         
