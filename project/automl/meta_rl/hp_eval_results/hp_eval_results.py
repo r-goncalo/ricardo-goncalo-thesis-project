@@ -248,6 +248,4 @@ def get_pruned_trials(optuna_study):
 
     pruned_trials = [f'{BASE_CONFIGURATION_NAME}_{trial.number + 1}' for trial in optuna_study.trials if trial.state == optuna.trial.TrialState.PRUNED]
 
-    print(f"Pruned trials: {pruned_trials}")
-
     return pruned_optuna_trials, pruned_optuna_trials_per_steps, pruned_trials
