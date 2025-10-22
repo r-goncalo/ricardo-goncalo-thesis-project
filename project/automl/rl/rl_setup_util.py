@@ -3,7 +3,7 @@
 
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.environment.environment_components import EnvironmentComponent
-from automl.utils.json_component_utils import gen_component_from
+from automl.utils.json_utils.json_component_utils import gen_component_from
 
 # TODO: Use this in RL Pipeline
 

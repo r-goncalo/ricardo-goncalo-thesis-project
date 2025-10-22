@@ -9,7 +9,7 @@ from automl.rl.rl_pipeline import RLPipelineComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
-from automl.utils.json_component_utils import gen_component_from_dict,  dict_from_json_string
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict,  dict_from_json_string
 
 import optuna
 

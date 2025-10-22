@@ -15,7 +15,7 @@ from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
 from automl.utils.files_utils import write_text_to_file
-from automl.utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, gen_component_from
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, gen_component_from
 
 import optuna
 

@@ -7,7 +7,7 @@ import pickle
 from automl.basic_components.state_management import load_component_from_folder
 from automl.component import Component
 from automl.consts import CONFIGURATION_FILE_NAME, LOADED_COMPONENT_FILE_NAME
-from automl.utils.json_component_utils import component_from_json_string
+from automl.utils.json_utils.json_component_utils import component_from_json_string
 
 
 def gen_component_from_path(path, parent_component_for_generated : Component = None) -> Component:

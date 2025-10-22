@@ -4,7 +4,7 @@
 import shutil
 from typing import final
 from automl.component import Component, requires_input_proccess
-from automl.utils.json_component_utils import decode_components_from_dict, dict_from_json_string, gen_component_from, json_string_of_component, component_from_json_string, set_values_of_dict_in_component
+from automl.utils.json_utils.json_component_utils import decode_components_from_dict, dict_from_json_string, gen_component_from, json_string_of_component, component_from_json_string, set_values_of_dict_in_component
 from automl.utils.files_utils import write_text_to_file, read_text_from_file
 from automl.basic_components.artifact_management import ArtifactComponent, find_artifact_component_first_parent_directory
 import os

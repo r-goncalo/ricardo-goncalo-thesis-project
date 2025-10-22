@@ -24,6 +24,8 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         
         super()._proccess_input_internal()
 
+        print("MODEL INPUT: " + str(self.input))
+
         self.__synchro_model_value_attr()
         
         self._setup_values()
@@ -81,7 +83,12 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
             self.model : nn.Module = self.input["model"]
             self.values["model"] = self.model
         
+    def _initialize_mininum_model_architecture(self):
+        '''Initializes the minimum architecture, this is used to load weights of the model, so the initial parameters are to be ignored'''
+        raise Exception("Initialize minimum model architecture not implemented in base TorchModelComponent")
+
     def _initialize_model(self):
+        '''Initializes a totally new model'''
         raise Exception("Model initialization not implemented in base TorchModelComponent")
 
     # EXPOSED METHODS --------------------------------------------
@@ -148,6 +155,6 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
                 
         state_dict = torch.load(model_path, map_location=torch.device('cpu'))
         
-        self._initialize_model()  # Ensure the model is initialized before loading weights
+        self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
         
         self.model.load_state_dict(state_dict) #loads the saved weights into the model

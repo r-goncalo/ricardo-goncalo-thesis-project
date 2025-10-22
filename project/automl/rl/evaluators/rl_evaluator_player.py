@@ -5,7 +5,7 @@ import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.rl.environment.environment_sampler import EnvironmentSampler
-from automl.utils.json_component_utils import gen_component_from
+from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent

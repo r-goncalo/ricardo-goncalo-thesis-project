@@ -1,6 +1,6 @@
 
 from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
-from automl.utils.json_component_utils import gen_component_from_path
+from automl.utils.json_utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state

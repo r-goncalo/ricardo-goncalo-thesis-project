@@ -9,7 +9,7 @@ from automl.basic_components.evaluator_component import ComponentWithEvaluator, 
 from automl.loggers.component_with_results import ComponentWithResults, DEFAULT_RESULTS_LOGGER_KEY
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.loggers.result_logger import ResultLogger, get_results_logger_from_file
-from automl.utils.json_component_utils import gen_component_from_dict, json_string_of_component, component_from_json_string
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict, json_string_of_component, component_from_json_string
 from automl.utils.files_utils import write_text_to_file, read_text_from_file
 from automl.basic_components.artifact_management import ArtifactComponent
 import os

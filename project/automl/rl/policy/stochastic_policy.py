@@ -40,12 +40,13 @@ class StochasticPolicy(Policy):
     def predict_logits(self, state) -> torch.Tensor:
         
         probabilitiesForActionsLogits : torch.Tensor = self.model.predict(state)
+
                 
         return probabilitiesForActionsLogits
     
     
     def probabilities_from_logits(self, logits) -> torch.Tensor:
-        
+
         probs = torch.softmax(logits, dim=-1)
         
         return probs

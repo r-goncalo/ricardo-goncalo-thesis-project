@@ -2,12 +2,12 @@
 from typing import Union
 from automl.component import Component
 
-from automl.utils.json_component_utils import get_child_dict_from_localization
+from automl.utils.json_utils.json_component_utils import CustomJsonLogic, get_child_dict_from_localization
 import optuna
 
 
 
-class HyperparameterSuggestion():
+class HyperparameterSuggestion(CustomJsonLogic):
     
     '''A class which defines a range of values a specific hyperparameter group can have'''
     
@@ -245,19 +245,21 @@ class HyperparameterSuggestion():
             
             return self._try_get_already_passed_input_to_component_input(component_to_change.input, hyperparameter_localizer)
             
+        
+    # JSON ENCODING DECODING ------------------------------------------------------------------------
+
             
             
     def to_dict(self):
         
-        dict_to_return = {
-            "name" : self.name,
-            "localizations" : self.hyperparameter_localizations,
-            "suggestion" : self.value_suggestion
-            
+        return {
+
+                    "name" : self.name,
+                    "localizations" : self.hyperparameter_localizations,
+                    "suggestion" : self.value_suggestion
+
             }
-        
-        return dict_to_return
-            
+                    
             
     def from_dict(dict, decode_elements_fun, source_component): # we have no use for the function for nested components, there are none
                 
@@ -351,19 +353,22 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
                 break
         
         return suggested_value
+    
+    # JSON ENCODING DECODING ------------------------------------------------------------------------
             
             
     def to_dict(self):
         
-        dict_to_return = {
+        
+        return  {
+
             "name" : self.name,
             "suggestions" : [
                 hyperparameter_suggestion for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values()
                 ]
-            }
-                
-        return dict_to_return
             
+        }
+                            
             
     def from_dict(dict, decode_elements_fun, source_component):
 

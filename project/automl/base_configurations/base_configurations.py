@@ -1,6 +1,6 @@
 import os
 
-from automl.utils.json_component_utils import gen_component_from_dict
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 from automl.component import Component
 
 from typing import Literal

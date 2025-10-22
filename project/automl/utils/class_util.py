@@ -48,7 +48,16 @@ def get_class_from_string(class_string: str):
         raise Exception(f"Problem when getting class with string {class_string}: {e}")
     
         
+def super_class_from_list_of_class(list_of_superclasses : list[type], class_to_look_for : type) -> type:
+
+    for super_class in list_of_superclasses:
+
+        if issubclass(class_to_look_for, super_class):
+            return super_class
         
+    return None
+
+
 def generate_folder_import(cls):
     """
     Given a class, generates an import statement that imports

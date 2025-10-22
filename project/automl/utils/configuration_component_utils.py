@@ -5,7 +5,7 @@ import os
 from automl.component import Component
 from automl.consts import CONFIGURATION_FILE_NAME
 from automl.utils.files_utils import write_text_to_file
-from automl.utils.json_component_utils import json_string_of_component
+from automl.utils.json_utils.json_component_utils import json_string_of_component
 
 
 def save_configuration(component : Component, config_directory, config_filename=CONFIGURATION_FILE_NAME, save_exposed_values=False, ignore_defaults=True):

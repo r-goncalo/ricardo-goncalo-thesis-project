@@ -8,13 +8,18 @@ from automl.utils.class_util import get_class_from
 
 from enum import Enum
 
+from automl.utils.json_utils.custom_json_logic import get_custom_strategy
+
+
+
+
 # ENCODING --------------------------------------------------
 
 class ComponentValuesElementsEncoder(json.JSONEncoder):
     
     '''Encodes elements of a component input or exposed value, which can be a component (defined by its localization) or a primitive type'''
     
-    def __init__(self, *args, source_component, **kwargs):
+    def __init__(self, *args, source_component=None, **kwargs):
         super().__init__(*args, **kwargs)
         
         self.source_component = source_component
@@ -35,9 +40,7 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
                     "name" : obj.name,
                     "localization" : localization_from_source_to_obj
                 }
-            
-        elif isinstance(obj, (int, float, str, dict, list)):
-            return obj
+
         
         elif isinstance(obj, Enum):
             return obj.value
@@ -51,10 +54,19 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
                 raise Exception(f"Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}, so it cannot be serialized")
 
             return {"__type__": str(type(obj)), "object" : self.default(obj.to_dict())}
-
-        try:
-            return super().default(obj)
         
+        # if we reached here, the type was none we treat by default
+        custom_json_logic = get_custom_strategy(type(obj))
+
+        if custom_json_logic != None:
+            return {"__type__" : str(type(obj)), "object" : custom_json_logic.to_dict(obj)}
+
+
+        # if none of our special conditions were verified, we use the default encoder on the object
+        try:
+            return super().default(obj) # this will actually always raise an exception, the correct pre processing was already done
+        
+        # if it fails, we give it a null value
         except:
             
             return None
@@ -86,8 +98,9 @@ class ComponentInputEncoder(json.JSONEncoder):
                 if ( not parameters_signature.ignore_at_serialization ) and (not ( ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults )):
                     
                     serialized_value = json.dumps(input[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in input, loads
+
                     
-                    if serialized_value != 'null':
+                    if serialized_value != 'null': # we default to not save null values, we ignore them instead
                         toReturn[key]  = json.loads(serialized_value)
                     
             return toReturn
@@ -118,10 +131,10 @@ class ComponentExposedValuesEncoder(json.JSONEncoder):
             toReturn = {}
             
             for key in exposed_values.keys():
-                
-                serialized_value = json.dumps(exposed_values[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in exposed_value, loads
-                   
-                if serialized_value != 'null':
+                                   
+                serialized_value = json.dumps(exposed_values[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in exposed value, loads
+
+                if serialized_value != 'null': # we default to not save null values, we ignore them instead
                     toReturn[key]  = json.loads(serialized_value)
                     
             return toReturn
@@ -211,7 +224,7 @@ def decode_a_component_element(source_component : Component, component_element_d
     return component_to_return
     
 
-def decode_a_non_component_element(source_component : Component, element_dict : dict):
+def decode_element_custom_strategy(source_component : Component, element_dict : dict, custom_strategy):
         
     element_type_str = element_dict["__type__"]
     
@@ -228,9 +241,21 @@ def decode_a_non_component_element(source_component : Component, element_dict : 
         
         else:
             raise Exception("No object defined when decoding element of type " + element_type_str)
+    
+    custom_strategy = get_custom_strategy(element_type)
+
+    if custom_strategy != None: # if there is a custom strategy to deal with this types
+
+        instanced_object = custom_strategy.from_dict(element_dict["object"], decode_components_input_element, source_component)
         
+        return instanced_object
+
     else:
         raise Exception("No from_dict method defined for type " + element_type_str)
+    
+
+
+
     
 
 
@@ -243,7 +268,7 @@ def decode_components_input_element(source_component : Component, element):
         
     if isinstance(element, dict):
         keys = element.keys()
-        
+
         if "__type__" in keys:
             
             class_of_element : type = get_class_from(element['__type__'])
@@ -253,7 +278,7 @@ def decode_components_input_element(source_component : Component, element):
                 return decode_a_component_element(source_component, element)
             
             else:
-                return decode_a_non_component_element(source_component, element)
+                return decode_element_custom_strategy(source_component, element, class_of_element)
             
         else:
             

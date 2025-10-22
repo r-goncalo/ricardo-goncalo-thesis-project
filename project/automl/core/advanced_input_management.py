@@ -6,7 +6,7 @@
 
 from automl.component import Component
 from automl.core.input_management import InputSignature
-from automl.utils.json_component_utils import gen_component_from
+from automl.utils.json_utils.json_component_utils import gen_component_from
 
 
 CHANGE_INPUT = True
