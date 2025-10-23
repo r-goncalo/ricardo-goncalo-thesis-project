@@ -136,8 +136,13 @@ class EnvironmentCycler(EnvironmentSampler):
 
         if self.generate_name:
             for index in range(len(self.environments)):
+
                 env = self.environments[index]
-                env.pass_input({"name" : f"{env.name}_{index}"})
+                generated_name = f"{env.name}_{index}"
+                env.pass_input({"name" : generated_name})
+
+                print(f"EnvironmentCycler is generating the name {generated_name}")
+
 
     
     @requires_input_proccess

@@ -62,9 +62,6 @@ class CustomSpaceJsonEncoderDecoder(CustomJsonLogic):
     def from_dict(dict, decode_elements_fun, source_component):
 
         """Reconstruct a Gym/Gymnasium space from its JSON dict."""
-
-        print("Custom space json encoder decoder called from_dict")
-
         
         type = dict["space_type"]
 

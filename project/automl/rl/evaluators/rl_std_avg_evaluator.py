@@ -60,7 +60,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         n_rows = results_logger.get_number_of_rows()
                 
         if n_results_to_use > n_rows:
-            print(f"WARNING: Results to use in evaluator {self.name} were higher")
+            print(f"WARNING: Results rows to use in evaluator {self.name} were {n_results_to_use}, which is higher than the total number of rows: {n_rows}")
             n_results_to_use = n_rows
 
         avg_result, std_result = results_logger.get_avg_and_std_n_last_results(n_results_to_use, self.value_to_use)

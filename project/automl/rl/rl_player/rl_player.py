@@ -43,7 +43,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                       "episode_score" : 0
                       } 
     
-    results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
+    results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward", "environment"]
 
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
@@ -157,7 +157,8 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             "episode" : [self.values["episodes_done"]],
             "episode_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]]
+            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
+            "environment" : [self.env.name]
             }
         
 

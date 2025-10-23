@@ -628,12 +628,13 @@ def aggregate_results_logger(results_logger_objects : list[ResultLogger], new_di
         if datafrane is None:
             datafrane = results_logger.get_dataframe()
             
-            if new_column is not None:
+            if new_column is not None: # if we're going to add a new column
+
                 datafrane[new_column[0]] = new_column[1][results_logger_index]
                             
         else:
             
-            loaded_dataframe = datafrane = results_logger.get_dataframe()
+            loaded_dataframe = results_logger.get_dataframe()
 
             if new_column is not None:
                 loaded_dataframe[new_column[0]] = new_column[1][results_logger_index]

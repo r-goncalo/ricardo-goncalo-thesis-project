@@ -50,7 +50,7 @@ class SB3WrapperTorch(TorchModelComponent):
         Rebuilds the model architecture using stored SB3 metadata (without re-downloading the checkpoint).
         """
 
-        model_architecture = self.values["sb3_architectures"]
+        model_architecture = self.values["sb3_architecture"]
         
         self.model = load_policy_network_from_architecture(model_architecture)
         

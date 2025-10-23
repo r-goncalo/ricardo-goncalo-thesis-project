@@ -92,7 +92,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         evaluations_directory = os.path.join(component_to_evaluate.get_artifact_directory(), "evaluations")
 
 
-        return self._evaluate_agents(component_to_evaluate.agents, component_to_evaluate.device, evaluations_directory, env)
+        return self._evaluate_agents(agents, device, evaluations_directory, env)
         
         
     def _evaluate_from_tuple(self, tuple):
@@ -114,7 +114,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         else:
             return None # no environment was passed or stored, we return None
 
-        env = gen_component_from(env)
+        env = gen_component_from(env) # in case the environment passed isn't an instance but a definition of an environment
 
         if isinstance(env, EnvironmentSampler): # if a sampler was passed
             
@@ -132,7 +132,6 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         '''Evaluate agents using the RL player and the base evaluator'''
         
-        environment_names = []
         results_loggers_of_plays = []
                 
         for i in range(self.number_of_evaluations): # evaluate plays and store their paths 
@@ -141,14 +140,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
             results_loggers_of_plays.append(rl_player_of_run.get_results_logger())
 
-            environment_name = rl_player_of_run.env.name
-
-            if environment_name in environment_names:
-                environment_name = f"{environment_name}_{i}"
-
-            environment_names.append(environment_name)
-
-        results_logger = aggregate_results_logger(results_loggers_of_plays, evaluations_directory, ("environment", environment_names))
+        results_logger = aggregate_results_logger(results_loggers_of_plays, evaluations_directory)
                 
         evaluation_to_return = self.base_evaluator.evaluate(results_logger)
 
