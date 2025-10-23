@@ -31,9 +31,9 @@ class ExecComponent(Component):
         super()._proccess_input_internal()
 
         if "times_to_run" not in self.input:
-            self.__times_to_run = None
+            self._times_to_run = None
         else:
-            self.__times_to_run = self.input["times_to_run"]
+            self._times_to_run = self.input["times_to_run"]
         
         self.__save_state_on_run_end = self.input["save_state_on_run_end"]
         self.__save_dataframes_on_run_end = self.input["save_dataframes_on_run_end"]
@@ -54,7 +54,7 @@ class ExecComponent(Component):
         
         self.values["times_ran"] += 1
         
-        if self.__times_to_run != None and self.values["times_ran"] < self.__times_to_run:
+        if self._times_to_run != None and self.values["times_ran"] < self._times_to_run:
             self.values["running_state"] = State.IDLE
             
         else:
@@ -83,11 +83,11 @@ class ExecComponent(Component):
         
         '''Runs the algorithm the number of times specified in the input.'''
         
-        if self.__times_to_run == None:
+        if self._times_to_run == None:
             return self.run()
         
         else:
-            for i in range(self.__times_to_run - self.values["times_ran"]):
+            for i in range(self._times_to_run - self.values["times_ran"]):
                 self.run()
                 
             return self.get_output()

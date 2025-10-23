@@ -478,6 +478,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.lg.writeLine(f"Starting new training with hyperparameter cofiguration for trial {trial.number}")
 
         component_to_test = self._create_or_load_component_to_test(trial)
+
+        input_to_pass_before_running = {}
+
+        input_to_pass_before_running["times_to_run"] = self.n_steps # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
         
         for step in range(self.n_steps):
                         
@@ -485,6 +489,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 try:
                     self.lg.writeLine(f"Running trial {trial.number}")
+                    component_to_test.pass_input(input_to_pass_before_running)
                     component_to_test.run()
 
                 except Exception as e:
@@ -496,7 +501,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                     except Exception as saving_exception:
                         self.lg.writeLine(f"EXCEPTION TRYING SAVING TRIAL AFTER ORIGINAL EXCEPTION")
-                        raise e
+                        raise 
 
                 self._try_save_stat_of_trial(component_to_test, trial)
 

@@ -19,8 +19,11 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
                         "device" : InputSignature(ignore_at_serialization=True),
                         
-                       "num_episodes" : InputSignature(default_value=-1),
-                       "limit_total_steps" : InputSignature(default_value=-1),
+                       "num_episodes" : InputSignature(default_value=-1, description="Number of episodes to do in this training session"),
+                       "limit_total_steps" : InputSignature(default_value=-1, description="Number of total steps to do in this training session"),
+                       
+                       "fraction_training_to_do" : InputSignature(mandatory=False),
+
                        "environment" : InputSignature(),
                        
                        "agents" : InputSignature(),
@@ -69,8 +72,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         if self.limit_total_steps <= 0 and self.num_episodes <= 0:
             raise Exception("No stop condition defined")
-        
-        
+
+        self._fraction_training_to_do = self.input["fraction_training_to_do"] if "fraction_training_to_do" in self.input.keys() else None
+
     
     def setup_agents(self):
         
@@ -114,51 +118,90 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
     # TRAINING_PROCESS -------------------------------------------------------------------------------
 
-    def _check_if_to_end_episode(self):
+    def _return_fraction_of_training_stop_value_if_any(self, training_stop_value):
 
+        if self._fraction_training_to_do is not None:
+            return self.num_episodes * self._fraction_training_to_do
+
+        else:
+            return self.num_episodes
         
-        if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
-            
-            self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
-            return True
-            
-        if self.limit_total_steps >= 1 and self.values["steps_done_in_session"] >= self.limit_total_steps:
-            return True
-            
+
+    def _check_if_to_end_episode_by_steps_done(self):
+
+        if self.limit_steps >= 1: # if we're using num episodes to stop training
+
+            if self.values["episode_steps"] >= self.limit_steps:
+                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+                return True
         
+        return False
+
+
+    def _check_if_to_end_episode(self):
+        
+        if self._check_if_to_end_episode_by_steps_done() or self._check_if_to_end_training_by_total_steps():
+            return True
+        
+        return False
+    
+    
+    def _check_if_to_end_training_by_episodes_done(self):
+
+        if self.num_episodes >= 1: # if we're using num episodes to stop training
+
+            max_episodes_to_do = self._return_fraction_of_training_stop_value_if_any(self.num_episodes)
+
+            if self.values["episode_done_in_session"] >= max_episodes_to_do:
+                self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
+                return True
+        
+        return False
+    
+
+    def _check_if_to_end_training_by_total_steps(self):
+
+        if self.limit_total_steps >= 1: # if we're using steps to stop training
+
+            max_total_steps_to_do = self._return_fraction_of_training_stop_value_if_any(self.limit_total_steps)
+
+            if  self.values["steps_done_in_session"] >= max_total_steps_to_do:
+                return True
+                
+                
         return False
     
 
     def _check_if_to_end_training_session(self):
 
-        if self.num_episodes >= 1 and self.values["episode_done_in_session"] >= self.num_episodes:
-            self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
-            return True
-        
-        if self.limit_total_steps >= 1 and self.values["steps_done_in_session"] >= self.limit_total_steps:
-            return True
-        
+        if self._check_if_to_end_training_by_episodes_done() or self._check_if_to_end_training_by_total_steps():
+            return True # we end the training
+
         return False
+        
 
 
     @requires_input_proccess
     def run_episodes(self):
         
-        '''Starts training
-        
-           Args:
-           
-            :n_episodes, if defined, limits the number of episodes that will be done
-        
+        '''
+        Starts training       
         '''
         
         self.lg.writeLine(f"Starting to run {self.num_episodes} episodes of training")
+
+        if self._fraction_training_to_do != None:
+
+            if self._fraction_training_to_do <= 0 or self._fraction_training_to_do >= 1:
+                raise Exception("Fraction of training to do must be between 0 and 1")
+
+            self.lg.writeLine(f"Only doing a fraction of {self._fraction_training_to_do} of the training")
         
             
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_training_session() 
             
-            
+
         self.values["episode_done_in_session"] = 0
         self.values["steps_done_in_session"] = 0
         

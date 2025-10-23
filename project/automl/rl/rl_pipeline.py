@@ -41,6 +41,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                        "save_in_between" : InputSignature(default_value=True),
                        
                        "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
+
+                       "fraction_of_training_to_do_in_session" : InputSignature(mandatory=False, description="If when this is run it is supposed to do only a fraction of the training, this affects the stop condition"),
+                       "generate_fraction_from_times_to_run" : InputSignature(default_value=False)
                 
                        }
     
@@ -68,6 +71,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         self.setup_trainer()
         
         self.rl_setup_evaluator()
+
         
     def setup_environment(self):
         self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
@@ -118,10 +122,28 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             "agents" : self.agents.copy() # so changes to the rl trainer dict do not translate to the agents passed
         }        
         
+        self.fraction_of_training_to_do_in_session = self.input["fraction_of_training_to_do_in_session"] if "fraction_of_training_to_do_in_session" in self.input.keys() else None
+
+        self.generate_fraction_from_times_to_run = self.input["generate_fraction_from_times_to_run"]
+
+        # if we are to generate a fraction and there was none specified
+        if self.generate_fraction_from_times_to_run and self.fraction_of_training_to_do_in_session is None and self._times_to_run is not None: 
+
+            self.fraction_of_training_to_do_in_session = 1 / self.generate_fraction_from_times_to_run
+
+
+        if self.fraction_of_training_to_do_in_session is not None:
+            rl_trainer_input["fraction_training_to_do"] = self.fraction_of_training_to_do_in_session
+
+
+
+            
+
+
         self.rl_trainer : RLTrainerComponent = ComponentInputSignature.get_component_from_input(self, "rl_trainer")
         
         self.rl_trainer.pass_input(rl_trainer_input)
-            
+
             
     def initialize_agents_components(self):
         
@@ -204,6 +226,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         common_exception_handling(self, exception, 'error_report.txt')
 
         raise exception        
+    
         
     @requires_input_proccess
     def train(self):        
