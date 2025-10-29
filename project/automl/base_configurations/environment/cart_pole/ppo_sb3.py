@@ -77,6 +77,8 @@ def config_dict():
 
                     "lamda_gae" : 0.8,
 
+                    "critic_model" : (FullyConnectedModelSchema, {"hidden_layers" : 2, "hidden_size" : 64}),
+
                     "optimizer" :(
                                    AdamOptimizer,
                                    {
