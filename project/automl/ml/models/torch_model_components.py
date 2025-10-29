@@ -25,9 +25,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         super()._proccess_input_internal()
 
         self.__synchro_model_value_attr()
-        
-        self._setup_values()
-                
+                        
         self._setup_model()
         
         if "device" in self.input.keys():
@@ -42,7 +40,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         
         
     def _setup_values(self):
-        pass
+        super()._setup_values()
         
     def _setup_model(self):
         

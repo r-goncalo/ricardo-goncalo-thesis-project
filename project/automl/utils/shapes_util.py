@@ -1,5 +1,6 @@
 
 
+from collections.abc import Iterable
 import numpy as np
 import gymnasium
 import torch
@@ -60,7 +61,7 @@ def discrete_input_layer_size_of_space(state_space) -> int:
         return prod([ (s if isinstance(s, int) else discrete_input_layer_size_of_space(s)) for s in state_space])
     
     else:
-        raise NotImplementedError(f"Unkown space type: {type(state_space)}")
+        raise NotImplementedError(f"Unkown space type: {type(state_space)} with value: {state_space}")
     
     
 
@@ -165,8 +166,35 @@ def single_action_shape(action_space):
 # ALLOCATING MEMORY FOR SPACE ------------------------------------------------------------------
 
 def torch_zeros_for_space_gym(space, device):
-    
-    raise NotImplementedError(f"Unsupported space type: {type(space)}")
+
+    """
+    Returns a zero tensor (or structure of tensors) matching the Gymnasium space.
+    """
+    if isinstance(space, gymnasium.spaces.Box):
+        # Continuous observation/action space
+        return torch.zeros(space.shape, dtype=torch.float32, device=device)
+
+    elif isinstance(space, gymnasium.spaces.Discrete):
+        # Single integer (scalar) state; often encoded as one-hot or int.
+        # We’ll use a single scalar zero by default.
+        return torch.zeros(1, dtype=torch.long, device=device)
+
+    elif isinstance(space, gymnasium.spaces.MultiBinary):
+        return torch.zeros(space.n, dtype=torch.float32, device=device)
+
+    elif isinstance(space, gymnasium.spaces.MultiDiscrete):
+        return torch.zeros(len(space.nvec), dtype=torch.long, device=device)
+
+    elif isinstance(space, gymnasium.spaces.Dict):
+        # Recursively allocate for each subspace
+        return {k: torch_zeros_for_space_gym(v, device=device) for k, v in space.spaces.items()}
+
+    elif isinstance(space, gymnasium.spaces.Tuple):
+        # Recursively allocate for each element
+        return tuple(torch_zeros_for_space_gym(s, device=device) for s in space.spaces)
+
+    else:
+        raise NotImplementedError(f"Unsupported space type: {type(space)}")
     
     
 def torch_zeros_for_space_torch(space : torch.Size, device) -> int:
@@ -236,3 +264,82 @@ def gym_to_gymnasium_space(space):
         return gymnasium.spaces.Discrete(space.n)
 
     raise NotImplementedError(f"Unsupported space type: {space}")
+
+
+# -----------------------------------------------------------------------------------------------
+# TORCH SHAPE FROM SPACE / SHAPE / TUPLE
+# -----------------------------------------------------------------------------------------------
+
+def torch_shape_from_space_gym(space: gymnasium.Space) -> torch.Size:
+    """Convert a Gymnasium space into a torch.Size."""
+    if isinstance(space, gymnasium.spaces.Box):
+        return torch.Size(space.shape)
+
+    elif isinstance(space, gymnasium.spaces.Discrete):
+        return torch.Size([1])
+
+    elif isinstance(space, gymnasium.spaces.MultiDiscrete):
+        return torch.Size([len(space.nvec)])
+
+    elif isinstance(space, gymnasium.spaces.MultiBinary):
+        return torch.Size([space.n])
+
+    elif isinstance(space, gymnasium.spaces.Tuple):
+        # Concatenate all subspace shapes along the last dimension
+        flat_shapes = [int(np.prod(torch_shape_from_space_gym(s))) for s in space.spaces]
+        return torch.Size([sum(flat_shapes)])
+
+    elif isinstance(space, gymnasium.spaces.Dict):
+        # Concatenate all dict subspace shapes along the last dimension
+        flat_shapes = [int(np.prod(torch_shape_from_space_gym(s))) for s in space.spaces.values()]
+        return torch.Size([sum(flat_shapes)])
+
+    else:
+        raise NotImplementedError(f"Unsupported Gymnasium space type: {type(space)}")
+
+
+def torch_shape_from_space(space_like) -> torch.Size:
+    """Converts any space-like input into a torch.Size."""
+    if isinstance(space_like, torch.Size):
+        return space_like
+
+    elif isinstance(space_like, gymnasium.Space):
+        return torch_shape_from_space_gym(space_like)
+
+    elif isinstance(space_like, tuple):
+        # Normalize nested tuples (e.g., ((3,), (4,)) → (3, 4))
+        flat = []
+        for s in space_like:
+            if isinstance(s, Iterable) and not isinstance(s, (str, bytes)):
+                flat.extend(s)
+            else:
+                flat.append(s)
+        return torch.Size(flat)
+
+    elif isinstance(space_like, int):
+        return torch.Size([space_like])
+
+    else:
+        raise NotImplementedError(f"Unknown space/shape type: {type(space_like)}")
+
+
+# -----------------------------------------------------------------------------------------------
+# TUPLE OF TORCH SHAPES FROM MULTIPLE SPACES
+# -----------------------------------------------------------------------------------------------
+
+def tuple_of_torch_shapes_from_spaces(spaces_like) -> tuple[torch.Size, ...]:
+    """
+    Converts a tuple/list/dict of Gym spaces or shapes into a tuple of torch.Size.
+    """
+    if isinstance(spaces_like, dict):
+        return tuple(torch_shape_from_space(v) for v in spaces_like.values())
+
+    elif isinstance(spaces_like, (list, tuple)):
+        return tuple(torch_shape_from_space(s) for s in spaces_like)
+
+    elif isinstance(spaces_like, gymnasium.Space) or isinstance(spaces_like, torch.Size):
+        # Wrap a single space into a tuple
+        return (torch_shape_from_space(spaces_like),)
+
+    else:
+        raise NotImplementedError(f"Unknown composite type: {type(spaces_like)}")

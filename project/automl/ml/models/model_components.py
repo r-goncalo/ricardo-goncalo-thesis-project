@@ -14,7 +14,14 @@ class ModelComponent(Component):
     
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
+
+        self._setup_values()
         
+
+    def _setup_values(self):
+
+        '''Sets up basic values from the input, such as input shapes and such'''
+
         self.input_shape = self.input["input_shape"] if "input_shape" in self.input.keys() else None
         self.output_shape = self.input["output_shape"] if "output_shape" in self.input.keys() else None
     

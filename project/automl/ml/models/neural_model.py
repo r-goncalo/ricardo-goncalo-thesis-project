@@ -59,9 +59,10 @@ class FullyConnectedModelSchema(TorchModelComponent):
         super()._proccess_input_internal()
         
 
-            
     def _setup_values(self):
         super()._setup_values()    
+
+        print(f"Input was {self.input}")
 
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
@@ -72,16 +73,20 @@ class FullyConnectedModelSchema(TorchModelComponent):
                        
     def _initialize_mininum_model_architecture(self):
     
-        '''Initializes the model with no regard for initial parameters, as they are meant to be loaded'''
+        '''
+        Initializes the model with no regard for initial parameters, as they are meant to be loaded
+        This method is meant to be called even if the input isn't fully processed
+        '''
+
+        self._setup_values() # this needs the values from the input fully setup
 
         self.model : nn.Module = type(self).Model_Class(
-            input_size=self.input_size,
+            input_size=self.input_size, 
                 hidden_size=self.hidden_size, 
                 output_size=self.output_size,
                 hidden_layers=self.hidden_layers
             )
 
-        
     def _initialize_model(self):
 
         '''Initializes the model with initial parameter strategy'''

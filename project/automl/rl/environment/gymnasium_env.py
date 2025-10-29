@@ -86,9 +86,11 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
     def get_agent_state_space(self, agent):
         '''returns the state space for the environment'''
                 
-        internal_state_shape = torch_state_shape_from_space(self.env.observation_space)
-                
-        return internal_state_shape
+        #internal_state_shape = torch_state_shape_from_space(self.env.observation_space)
+        #        
+        #return internal_state_shape
+
+        return self.env.observation_space
 
     
     def reset(self, seed=None):

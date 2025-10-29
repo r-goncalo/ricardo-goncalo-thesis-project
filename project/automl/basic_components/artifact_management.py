@@ -1,9 +1,9 @@
 
-from automl.component import Component, requires_input_proccess
-from automl.utils.json_utils.json_component_utils import json_string_of_component, component_from_json_string
-from automl.utils.files_utils import open_or_create_folder, write_text_to_file
+from automl.component import Component
+
+from automl.utils.files_utils import open_or_create_folder
+
 from automl.core.input_management import InputSignature
-from automl.consts import CONFIGURATION_FILE_NAME, NOTES_FILE_NAME
 
 import os
 

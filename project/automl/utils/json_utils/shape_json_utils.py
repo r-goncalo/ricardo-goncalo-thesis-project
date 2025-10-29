@@ -3,6 +3,10 @@ import numpy as np
 import gymnasium as gym
 from automl.utils.json_utils.custom_json_logic import CustomJsonLogic, register_custom_strategy
 
+'''
+Has custom class for encoding and decoding states
+Importing this has the inherit effect of adding the encoder / decoder strategy to the registry
+'''
 
 class CustomSpaceJsonEncoderDecoder(CustomJsonLogic):
 

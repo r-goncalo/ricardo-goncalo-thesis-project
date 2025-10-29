@@ -1,6 +1,7 @@
 
 
 from automl.utils.class_util import super_class_from_list_of_class
+from automl.loggers.global_logger import globalWriteLine
 
 
 LOOK_FOR_SUPERCLASSES = True # when this is true, the register will take into account inheritence automatically, without need for explicit configuration
@@ -51,6 +52,9 @@ class CustomJsonLogic():
 __custom_json_strategies_register : dict[type, CustomJsonLogic] = {}
 
 def register_custom_strategy(t : type, custom_logic : CustomJsonLogic):
+
+    globalWriteLine(f"GLOBAL LOGGER: Registed custom logic of type {custom_logic} for type {t}")
+    
     __custom_json_strategies_register[t] = custom_logic
 
 def get_custom_strategy(t : type) -> CustomJsonLogic:

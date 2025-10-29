@@ -7,7 +7,7 @@ from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.maths import nearest_highest_multiple, nearest_multiple
-from automl.utils.shapes_util import discrete_output_layer_size_of_space
+from automl.utils.shapes_util import discrete_output_layer_size_of_space, torch_shape_from_space
 import torch
 from automl.ml.memory.memory_components import MemoryComponent
 
@@ -64,10 +64,9 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         transitions : dict[str, torch.Tensor] = {}
         
         for field_name, field_shape, data_type in self.fields_shapes:
-            
-            if not isinstance(field_shape, Iterable):
-                field_shape = (field_shape,)
-                
+
+            field_shape = torch_shape_from_space(field_shape)
+
             #normally it would be state, action, next_state and reward 
             
             if data_type == None:

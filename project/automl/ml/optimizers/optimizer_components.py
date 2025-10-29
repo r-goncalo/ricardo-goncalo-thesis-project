@@ -78,6 +78,8 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
                 
         self.torch_adam_opt = optim.Adam(params=self.params,lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
 
+
+
         self._initialize_decays()
         self._initialize_grad_clip()
 
@@ -91,9 +93,14 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
 
         if self.linear_decay_learning_rate_with_final_input_value_of != None:
 
+            for group in self.torch_adam_opt.param_groups:
+                if "initial_lr" not in group:
+                    group["initial_lr"] = group["lr"] # we set the initial in case we're resuming training
+
             self.lg.writeLine(f"LR will have linear decay, using a linear decay till 0 and a predicted final number of optimizations of {self.linear_decay_learning_rate_with_final_input_value_of}")
 
-            self.lr_scheduler = LambdaLR(self.torch_adam_opt, lr_lambda=lambda step: 1 - step / self.linear_decay_learning_rate_with_final_input_value_of)
+            self.lr_scheduler = LambdaLR(self.torch_adam_opt, last_epoch=self.values["optimizations_done"], lr_lambda=lambda step: 1 - step / self.linear_decay_learning_rate_with_final_input_value_of)
+
 
     def _initialize_grad_clip(self):
 
@@ -148,7 +155,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         self.torch_adam_opt.step()
         
         if self.lr_scheduler is not None:
-            self.lr_scheduler.step(self.values["optimizations_done"])
+            self.lr_scheduler.step()
 
         self.values["optimizations_done"] = self.values["optimizations_done"] + 1
         

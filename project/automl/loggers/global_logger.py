@@ -1,16 +1,18 @@
 
 
-from automl.loggers.logger_component import DEBUG_LEVEL, LoggerSchema
 
 
-_global_logger : list [LoggerSchema] = []
+_global_logger = None
 
 
 def activate_global_logger(global_logger_directory, global_logger_input={}):
 
+    from automl.loggers.logger_component import LoggerSchema
+
+
     global _global_logger
 
-    if len(_global_logger) > 0:
+    if not is_global_logger_active():
         print("WARNING: Tried to activate global logger after it was already activated, ignoring it...")
 
     else:
@@ -19,20 +21,20 @@ def activate_global_logger(global_logger_directory, global_logger_input={}):
 
         global_logger_input["base_directory"] = global_logger_directory
 
-        _global_logger = [LoggerSchema(global_logger_input)]
+        _global_logger = LoggerSchema(global_logger_input)
         
 
 def is_global_logger_active():
     
     global _global_logger
      
-    return len(_global_logger) > 0
+    return _global_logger != None
 
-def globalWriteLine(string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
+def globalWriteLine(string : str, file=None, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
 
         global _global_logger
 
         if is_global_logger_active():
 
-            _global_logger[0].writeLine(string, file, level, toPrint, use_time_stamp, str_before, ident_level)
+            _global_logger[0].writeLine(string, file, toPrint=toPrint, use_time_stamp=use_time_stamp, str_before=str_before, ident_level=ident_level)
