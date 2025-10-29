@@ -127,7 +127,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
     
     @requires_input_proccess
     def clone(self):
-        toReturn = type(self)(input=self.input) # initializes the component
+        toReturn : TorchModelComponent = super().clone()
         toReturn.proccess_input_if_not_proccesd()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn

@@ -36,12 +36,6 @@ class ModelComponent(Component):
     def update_model_with_target(self, target_model, target_model_weight):
         pass
     
-    # UTIL -----------------------------------------------------
-    
-    @requires_input_proccess
-    def clone(self):
-        pass
-    
     
     
     

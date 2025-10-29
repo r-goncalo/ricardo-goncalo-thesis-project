@@ -51,8 +51,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
     parameters_signature = {
         "hidden_layers" : InputSignature(description="Number of hidden layers"),
-        "hidden_size": InputSignature(description="Size of hidden layers"),
-        "device": InputSignature(get_from_parent=True, ignore_at_serialization=True)
+        "hidden_size": InputSignature(description="Size of hidden layers")
     }    
     
     def _proccess_input_internal(self):
@@ -71,9 +70,21 @@ class FullyConnectedModelSchema(TorchModelComponent):
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
                        
+    def _initialize_mininum_model_architecture(self):
+    
+        '''Initializes the model with no regard for initial parameters, as they are meant to be loaded'''
+
+        self.model : nn.Module = type(self).Model_Class(
+            input_size=self.input_size,
+                hidden_size=self.hidden_size, 
+                output_size=self.output_size,
+                hidden_layers=self.hidden_layers
+            )
 
         
     def _initialize_model(self):
+
+        '''Initializes the model with initial parameter strategy'''
 
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size,
