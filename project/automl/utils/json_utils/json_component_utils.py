@@ -9,6 +9,7 @@ from automl.utils.class_util import get_class_from
 from enum import Enum
 
 from automl.utils.json_utils.custom_json_logic import get_custom_strategy
+from automl.core.localizations import get_component_by_localization
 
 
 
@@ -265,7 +266,7 @@ def decode_components_input_element(source_component : Component, element):
     Decodes an element in a dictionary of a component
     One of the things it does is get a component with a localization and set it
     '''
-        
+
     if isinstance(element, dict):
         keys = element.keys()
 
@@ -301,6 +302,10 @@ def decode_components_input_element(source_component : Component, element):
             raise Exception("Outside component, can't get it")
         else:
             return element
+        
+    elif isinstance(element, tuple):
+
+        return tuple(decode_components_input_element(source_component, value) for value in element)
             
     else:
         return element
@@ -345,8 +350,9 @@ def decode_components_input(component : Component, source_component : Component,
         for key in component_dict_input.keys():
             try:
                 input_to_pass[key] = decode_components_input_element(source_component, component_dict_input[key])
-            except:
-                pass
+            except Exception as e:
+                #pass
+                print(f"Exception while decoding for key '{key}': {e}")
             
         component.pass_input(input_to_pass)
     
@@ -372,7 +378,6 @@ def decode_components_notes(component : Component, source_component : Component,
             
         decode_components_notes(child_component, source_component, component_dict["child_components"][i])
                 
-
 
 
 def decode_components_from_dict(dict : dict):
@@ -419,16 +424,51 @@ def set_values_of_dict_in_component(component : Component, dict_representation :
 
     
     
+def gen_component_from_special_dict(dict_representation : dict, parent_component_for_generated : Component =None) -> Component:
+
+    to_return = None
+
+    if parent_component_for_generated is not None and "__get_by_name__" in dict_representation.keys():
+
+        to_return = parent_component_for_generated.look_for_component_with_name(dict_representation["__get_by_name__"])
+
+        if to_return is None:
+            print(f"WARNING: Tried to get component by name {dict_representation['__get_by_name__']} with parent component {parent_component_for_generated.name} but couldn't get it")
     
-    
-def gen_component_from_dict(dict_representation) -> Component:
-    '''Returns a component, decoding it from a dictionary representation of a system'''
-    
+    return to_return
+
+
+
+def gen_component_from_definition_dict(dict_representation : dict, parent_component_for_generated : Component =None) -> Component:
+
     source_component_with_children = decode_components_from_dict(dict_representation)
     
     set_values_of_dict_in_component(source_component_with_children, dict_representation)
     
     return source_component_with_children
+    
+    
+def gen_component_from_dict(dict_representation : dict, parent_component_for_generated : Component =None) -> Component:
+    '''
+    Returns a component, decoding it from a dictionary representation of a system
+    
+    This is both called when generating whole component trees from a configuration file or when processing Component inputs
+
+    '''
+
+    # we try to check if the dictionary has some special representation that should get a component
+    to_return = gen_component_from_special_dict(dict_representation, parent_component_for_generated)
+    
+    if to_return is not None:
+        return to_return
+    
+    # if it is not a special dictionary, we return the normal generation
+    to_return = gen_component_from_definition_dict(dict_representation, parent_component_for_generated)
+
+    if to_return is not None:
+        return to_return
+
+
 
 
 
@@ -446,35 +486,48 @@ def component_from_json_string(json_string) -> Component:
     return gen_component_from_dict(dict_representation)
 
 
-def component_from_tuple_definition(tuple_definition) -> Component:
+def generate_component_from_class_input_definition(class_of_component, input : dict):
+
+    class_definition = class_of_component
+    class_of_component : type = get_class_from(class_definition)
+
+    component_to_return = class_of_component(input=input)
+    return component_to_return
+
+
+def component_from_tuple_definition(tuple_definition, context_component=None) -> Component:
 
     '''
-    Generates a component from a tuple definition (Component_definition, input)
-    
+    Generates a component from a tuple definition (Component_definition, input) or a localization
     '''
-     
-    class_definition = tuple_definition[0]
-    
+         
     if len(tuple_definition) > 2:
         raise Exception(f"Tuple definition has more than 2 elements, but it should have only 2, got {len(tuple_definition)}")
     
     elif len(tuple_definition) == 2:
-        input = tuple_definition[1]
+
+        if isinstance(tuple_definition[1], dict): # if it can be a definition (class_def, input)
+
+            return generate_component_from_class_input_definition(tuple_definition[0], tuple_definition[1])
+
+        elif context_component != None: # if it can be a localization 
+
+            to_return = get_component_by_localization(context_component, tuple_definition)
+
+            if to_return == None:
+                raise Exception(f"Could not find component, with context_component {context_component}, using tuple {tuple_definition}")
         
-        if not isinstance(input, dict):
-            raise Exception(f"Input in tuple is not a dict, but {type(input)}")
-    
+            return to_return
+
     else:
-        input = {} #input was not passed
         
-    class_of_component : type = get_class_from(class_definition)
+        raise Exception(f"Non valid number of arguments passed to generate a component: {len(tuple_definition)}")
         
-    component_to_return = class_of_component(input=input)
-    return component_to_return
         
+    raise Exception(f"Invalid tuple definition: {tuple_definition} as len must be 2 and is {len(tuple_definition)}")
         
 
-def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_component_for_generated : Component = None) -> Component:
+def gen_component_from(definition :  Union[Component, dict, str, tuple, list], parent_component_for_generated : Component = None, input_if_generated=None) -> Component:
     
     '''Generates a component from a definition or returns it if it is already a component'''
 
@@ -484,7 +537,7 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
     else: # gen component if it was a definition
     
         if isinstance(definition, dict):
-            generated_component = gen_component_from_dict(definition)
+            generated_component = gen_component_from_dict(definition, parent_component_for_generated)
 
         elif isinstance(definition, str):
 
@@ -500,14 +553,25 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple], parent_
 
         elif isinstance(definition, tuple) or isinstance(definition, list):
 
-            generated_component =  component_from_tuple_definition(definition)
+            generated_component =  component_from_tuple_definition(definition, parent_component_for_generated)
 
         else:
             raise Exception(f"Definition for key is not a Component, dict, str or tuple | list, but {type(definition)} with name {definition.__name__}")
         
-        if parent_component_for_generated is not None:
+        if not isinstance(generated_component, Component):
+            msg_error = "Something went wrong generating component as it was generated as None"
+
+            if parent_component_for_generated != None:
+                msg_error += f", with parent_omponent {parent_component_for_generated}"
+
+            raise Exception(f"{msg_error}, with definition:\n{definition}")
+
+        if parent_component_for_generated != None and generated_component.parent_component == None:
             parent_component_for_generated.define_component_as_child(generated_component)
     
+        if input_if_generated != None:
+            generated_component.pass_input(input_if_generated)
+
         return generated_component
     
     

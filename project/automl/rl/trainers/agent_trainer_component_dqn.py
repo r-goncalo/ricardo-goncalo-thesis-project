@@ -50,7 +50,7 @@ class AgentTrainerDQN(AgentTrainer):
                 
         if "exploration_strategy" in self.input.keys():
             
-            self.exploration_strategy : ExplorationStrategySchema = ComponentInputSignature.get_component_from_input(self, "exploration_strategy") 
+            self.exploration_strategy : ExplorationStrategySchema = ComponentInputSignature.get_value_from_input(self, "exploration_strategy") 
             self.exploration_strategy.pass_input(input= {"training_context" : self}) #the exploration strategy has access to the same training context
         
             self.lg.writeLine(f"Using exploration strategy {self.exploration_strategy.name}")

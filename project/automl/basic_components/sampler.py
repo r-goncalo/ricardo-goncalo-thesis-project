@@ -1,8 +1,7 @@
-from automl.component import Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
-from automl.core.input_management import InputSignature
 
-from abc import abstractmethod
+
+from automl.component import Component
+
 
 class Sampler(Component):
     

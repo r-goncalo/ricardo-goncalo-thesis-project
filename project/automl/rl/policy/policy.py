@@ -45,7 +45,7 @@ class Policy(PolicyInterface):
         
         super()._proccess_input_internal()
         
-        self.model : ModelComponent = ComponentInputSignature.get_component_from_input(self, "model")
+        self.model : ModelComponent = ComponentInputSignature.get_value_from_input(self, "model")
         
         self.model_input_shape = self.input["state_shape"]
         self.model_output_shape = self.input["action_shape"]

@@ -24,8 +24,6 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         
         super()._proccess_input_internal()
 
-        print("MODEL INPUT: " + str(self.input))
-
         self.__synchro_model_value_attr()
         
         self._setup_values()

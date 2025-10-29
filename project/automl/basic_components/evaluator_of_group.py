@@ -34,7 +34,7 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
             self.base_evaluator = None
         
         else:
-            self.base_evaluator = ComponentInputSignature.get_component_from_input(self, "base_evaluator")
+            self.base_evaluator = ComponentInputSignature.get_value_from_input(self, "base_evaluator")
 
         
 

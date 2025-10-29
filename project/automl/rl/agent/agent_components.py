@@ -81,7 +81,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         self.lg.writeLine("Initializing policy...")    
         
-        self.policy : Policy = ComponentInputSignature.get_component_from_input(self, "policy")
+        self.policy : Policy = ComponentInputSignature.get_value_from_input(self, "policy")
                 
         self.policy.pass_input({"state_shape" : self.model_input_shape,
                                "action_shape" : self.model_output_shape,})

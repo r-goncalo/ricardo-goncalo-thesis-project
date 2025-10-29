@@ -48,7 +48,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         
         super()._proccess_input_internal()
         
-        self.base_evaluator : RLPipelineEvaluator = ComponentInputSignature.get_component_from_input(self, "base_evaluator")
+        self.base_evaluator : RLPipelineEvaluator = ComponentInputSignature.get_value_from_input(self, "base_evaluator")
 
         self.number_of_episodes = self.input["number_of_episodes"]
         self.number_of_evaluations = self.input["number_of_evaluations"]
@@ -61,7 +61,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         self.env = None
         
         if "environment" in self.input.keys():
-            self.env = ComponentInputSignature.get_component_from_input(self, "environment")
+            self.env = ComponentInputSignature.get_value_from_input(self, "environment")
             
             
     # EVALUATION -------------------------------------------------------------------------------

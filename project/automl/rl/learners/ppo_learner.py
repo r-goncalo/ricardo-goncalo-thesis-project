@@ -5,6 +5,7 @@ from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.learners.learner_component import LearnerSchema
 
 from automl.rl.policy.stochastic_policy import StochasticPolicy
+from automl.ml.optimizers.optimizer_components import AdamOptimizer, OptimizerSchema
 import torch
 
 from automl.rl.policy.policy import Policy
@@ -32,7 +33,14 @@ class PPOLearner(LearnerSchema):
                         "critic_model" : ComponentInputSignature(
                             default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64})    
                         ),
-        
+
+                        "optimizer" : ComponentInputSignature(
+                            default_component_definition=(
+                                AdamOptimizer,
+                                {}
+                            )
+                            ),
+                        "critic_optimizer" : ComponentInputSignature(mandatory=False),
                         
                         "clip_epsilon" : InputSignature(default_value=0.2, description="The clip range"),
                         "entropy_coef" : InputSignature(default_value=0.01, description="How much weight entropy has"),
@@ -72,9 +80,10 @@ class PPOLearner(LearnerSchema):
     
     def initialize_critic_model(self):
         
-        self.critic : ModelComponent = ComponentInputSignature.get_component_from_input(self, "critic_model")
+        self.critic : ModelComponent = ComponentInputSignature.get_value_from_input(self, "critic_model")
         
-        self.critic.pass_input({"name" : "critic"})
+        if not self.critic.has_custom_name_passed():
+            self.critic.pass_input({"name" : "critic"})
         
         self.critic.pass_input({"input_shape" : self.agent.model_input_shape , "output_shape" :  1})
         
@@ -82,10 +91,24 @@ class PPOLearner(LearnerSchema):
     def initialize_optimizer(self):
         
         # Policy optimizer
-        self.policy_optimizer = optim.Adam(self.policy.model.get_model_params(), lr=self.input["model_learning_rate"])
+        self.actor_optimizer : OptimizerSchema = ComponentInputSignature.get_value_from_input(self, "optimizer")
         
+        if not self.actor_optimizer.has_custom_name_passed():
+            self.actor_optimizer.pass_input({"ActorOptimizer"})
+
         # Critic optimizer
-        self.critic_optimizer = optim.Adam(self.critic.get_model_params(), lr=self.input["critic_learning_rate"])
+        self.critic_optimizer : OptimizerSchema  = ComponentInputSignature.get_value_from_input(self, "critic_optimizer")
+
+        if self.critic_optimizer == None:
+            self.critic_optimizer = self.actor_optimizer.clone()
+            self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
+
+        elif not self.critic_optimizer.has_custom_name_passed():
+            self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
+
+
+        self.actor_optimizer.pass_input({"model" : self.model})
+        self.critic_optimizer.pass_input({"model" : self.critic})
     
     # EXPOSED METHODS --------------------------------------------------------------------------
     
@@ -149,7 +172,6 @@ class PPOLearner(LearnerSchema):
             running_advantage = deltas[t] + discount_factor * self.lamda_gae * running_advantage
             advantages[t] = running_advantage
         
-        
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         # Compute new log probabilities from the policy
@@ -170,19 +192,10 @@ class PPOLearner(LearnerSchema):
         # Total loss
         loss : torch.Tensor = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy.mean()
 
+        self.actor_optimizer.clear_optimizer_gradients()
+        self.critic_optimizer.clear_optimizer_gradients()
 
-        # Optimize the model
-        # Zero gradients
-        self.policy_optimizer.zero_grad()
-        self.critic_optimizer.zero_grad()
+        loss.backward() # we do the optimization here so it goes to both optimizers
 
-        # Backward pass
-        loss.backward()
-
-        # Gradient clipping (optional but common in PPO)
-        torch.nn.utils.clip_grad_norm_(self.policy.model.get_model_params(), max_norm=0.5)
-        torch.nn.utils.clip_grad_norm_(self.critic.get_model_params(), max_norm=0.5)
-
-        # Optimizer step
-        self.policy_optimizer.step()
-        self.critic_optimizer.step()
+        self.actor_optimizer.optimize_with_backward_pass_done()
+        self.critic_optimizer.optimize_with_backward_pass_done()

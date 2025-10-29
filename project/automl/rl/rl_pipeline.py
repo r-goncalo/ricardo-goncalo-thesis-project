@@ -74,7 +74,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         
     def setup_environment(self):
-        self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
+        self.env : EnvironmentComponent = ComponentInputSignature.get_value_from_input(self, "environment")
                 
         self.env.pass_input({"device" : self.device})
         
@@ -128,7 +128,6 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         # if we are to generate a fraction and there was none specified
         if self.generate_fraction_from_times_to_run and self.fraction_of_training_to_do_in_session is None and self._times_to_run is not None: 
-
             self.fraction_of_training_to_do_in_session = 1 / self.generate_fraction_from_times_to_run
 
 
@@ -140,7 +139,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             
 
 
-        self.rl_trainer : RLTrainerComponent = ComponentInputSignature.get_component_from_input(self, "rl_trainer")
+        self.rl_trainer : RLTrainerComponent = ComponentInputSignature.get_value_from_input(self, "rl_trainer")
         
         self.rl_trainer.pass_input(rl_trainer_input)
 

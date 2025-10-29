@@ -86,6 +86,10 @@ class LoggerSchema(ArtifactComponent):
     @requires_input_proccess
     def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
+        '''
+        This writes a line to the logger of the component, meant to be called by outside of the scope of the component
+        '''
+
         return self._writeLine(string, file, level, toPrint, use_time_stamp, str_before, ident_level)
     
     @requires_input_proccess
@@ -96,6 +100,10 @@ class LoggerSchema(ArtifactComponent):
             
     def _writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
         
+        '''
+        This writes a line to the logger of the component, meant to be called inside the scope of the component
+        It does not require the component to have its input processed
+        '''
         
         if self.necessary_logger_level.value <= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
 

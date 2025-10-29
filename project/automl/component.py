@@ -3,12 +3,16 @@ from types import FunctionType
 import copy
 from abc import ABCMeta
 
+from automl.core.localizations import get_child_by_name, get_component_by_localization, get_index_localization, get_source_component
+
 from automl.utils.class_util import get_class_from
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
 def on_name_pass(self):
     self.name = self.input["name"] #sets the name of the component to the input name
+    self._was_custom_name_set = True
+
     
 
 #TODO: this should make all pre computation necessary for input processing
@@ -64,7 +68,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         self.child_components : list[Component] = []
         self.parent_component : Component = None
         
-        self.name = str(type(self).__name__) #defines the initial component name
+        self.name = str(type(self).__name__) #defines the initial component name~
+        self._was_custom_name_set = False
 
         self.pass_input(input) #passes the input but note that it does not proccess it
         
@@ -74,8 +79,15 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         self.__input_is_being_processed = False
 
         self.__notes = [] #notes are a list of strings
+
+    
+    # NAMING STUFF --------------------------------------------------------------------------------------------------
+
+    def has_custom_name_passed(self):
+        return self._was_custom_name_set
                 
             
+    # PASSING AND CHANGING INPUT --------------------------------------------------------------------------------------------------
     
     def pass_input(self, input: dict): # pass input to this component, may need verification of input
         '''Pass input to this component
@@ -113,9 +125,6 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         else:
             print(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
                 
-            
-                
-                    
                    
 
     def setup_default_value(self, key):
@@ -190,15 +199,16 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         else:
             raise Exception(f"In component of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
 
-            
-               
     def __verified_remove_input(self, key):
         
         '''for logic of passing the input, already verified'''
         
         self.input[key] = None
         self.__input_meta[key].custom_value_removed()
-    
+
+
+    # PROCCESS INPUT ---------------------------------------------------------------------------------------
+
 
     def _proccess_input_internal(self): #verify the input to this component
         '''
@@ -253,12 +263,12 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
             self.proccess_input()
 
 
-    # OUTPUT -------------------------
+    # OUTPUT ---------------------------------------------------------------------
     
     def get_output(self): #return output
         return self.output
     
-    # CHILD AND PARENT COMPONENTS ---------------------------------
+    # CHILD AND PARENT COMPONENTS AND LOCALIZATION ---------------------------------
     
     def initialize_child_component(self, component_type : type, input : dict ={}):
         
@@ -309,17 +319,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         '''Gets child component, looking for it by its name'''
                 
-        if self.name == name:
-            return self
-        
-        for child_component in self.child_components:
-            
-            to_return = child_component.get_child_by_name(name)
-            
-            if to_return != None:
-                return to_return
-            
-        return None
+        return get_child_by_name(self, name)
     
     def get_child_by_localization(self, localization : list):
         
@@ -328,85 +328,21 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         Note that an emty localization will return the component itself
         '''
         
-        current_component : Component = self
-
-        for index in localization:
-            
-            if isinstance(index, int):
-                current_component = current_component.child_components[index]
-
-            elif isinstance(index, str):
-                current_component = current_component.get_child_by_name(index)
-            
-            else:
-                raise Exception(f"Invalid index {index} in localization {localization} for component {self.name}")
-
-        return current_component
-    
-    def get_child_component(self, component_localizer):
-        
-        if isinstance(component_localizer, str):
-                    
-            return self.get_child_by_name(component_localizer)
-        
-        elif isinstance(component_localizer, int):
-            
-            return self.get_child_by_localization([component_localizer])
-                    
-        elif isinstance(component_localizer, list):
-                    
-            return self.get_child_by_localization(component_localizer)
-        
-        raise Exception(f"Could not find component in source_component {self.name} given localization {component_localizer}")
+        return get_component_by_localization(self, localization)
                 
     
     def get_index_localization(self, target_parent_components = [], accept_source_component_besides_targets=False):
         
         '''Gets localization of this component, stopping the definition of localization when it finds a source componen (without parent)'''
         
-        current_component = self
-        
-        full_localization = [] # where we'll store the full localization of the component
-
-        if not isinstance(target_parent_components, list):
-            target_parent_components = [target_parent_components] #if it was only an element
-                        
-        while True: #while we have not reached the source component
-
-            # if we reached a target parent component, we return the localization and whose it is from
-            if current_component in target_parent_components:
-                return full_localization, current_component 
-                        
-            elif current_component.parent_component != None:
-                
-                child_components_of_parent : list = current_component.parent_component.child_components
-            
-                index_of_this_in_parent = child_components_of_parent.index(current_component)
-            
-                full_localization.insert(0, index_of_this_in_parent) #inserts index
-            
-                current_component = current_component.parent_component
-                
-            else: # parent_commponent is None
-                break #we reached the source component
-            
-        if target_parent_components != [] and not accept_source_component_besides_targets:
-            raise Exception(f"Localization could not be computed from component {self.name} to one of target components {[targ_com.name for targ_com in target_parent_components]}")
-
-        return full_localization, current_component 
+        return get_index_localization(self, target_parent_components, accept_source_component_besides_targets)
     
     
     def get_source_component(self):
         '''Gets the source component, the one without parent'''
         
-        current_component = self
-        
-        while True:
+        return get_source_component(self)
             
-            if current_component.parent_component != None:
-                current_component = current_component.parent_component
-            else:
-                return current_component
 
     # CLONING -------------------------------------------------
     
@@ -420,6 +356,9 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         cloned_component = type(self)(copy.deepcopy(self.input))
         cloned_component.values = copy.deepcopy(self.values) #copy the exposed values
         cloned_component.output = copy.deepcopy(self.output) #copy the output
+
+        if self.parent_component != None:
+            self.parent_component.define_component_as_child(cloned_component) # the cloned component is also child of same parent
         
         return cloned_component
     

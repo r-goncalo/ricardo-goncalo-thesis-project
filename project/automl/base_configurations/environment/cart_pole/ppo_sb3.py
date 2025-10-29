@@ -26,7 +26,6 @@ CartPole-v1:
 
 '''
 
-from automl.ml.memory.torch_disk_memory_component import TorchDiskMemoryComponent
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.environment.gymnasium_env import GymnasiumEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
@@ -34,8 +33,10 @@ from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
 from automl.rl.learners.ppo_learner import PPOLearner
+from automl.ml.optimizers.optimizer_components import AdamOptimizer
+from automl.basic_components.dynamic_value import DynamicLinearValueInRangeBasedOnComponent
 
-
+from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 
 def config_dict():
 
@@ -48,7 +49,6 @@ def config_dict():
         "environment": (GymnasiumEnvironmentWrapper, {"environment" : "CartPole-v1"}),
 
         "agents_input": {
-            "state_memory_size" : 2,
 
             "policy" : ( StochasticPolicy,
                         {
@@ -66,15 +66,50 @@ def config_dict():
         "rl_trainer" : (RLTrainerComponent,
             
             {
+            "name" : "RLTrainerComponent",
             "default_trainer_class" : AgentTrainerPPO,
             "limit_total_steps" : 1e5,
-            "optimization_interval": 300,
+            "optimization_interval": 256,
+            "predict_optimizations_to_do" : True,
             "agents_trainers_input" : { #for each agent trainer
                 
-                "learner" : (PPOLearner, {}),
+                "learner" : (PPOLearner, {
+
+                    "lamda_gae" : 0.8,
+
+                    "optimizer" :(
+                                   AdamOptimizer,
+                                   {
+                                       "name" : "AdamOpimizerComponent",
+                                       "learning_rate" : 2.3e-3,
+                                       "linear_decay_learning_rate_with_final_input_value_of" : ("relative", [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]),
+                                       "clip_grad_value" : (
+                                           DynamicLinearValueInRangeBasedOnComponent, {
+                                               "input_for_fun_key" : "optimizations_done",
+                                               "initial_value" : 0.2,
+                                               "final_value" : 0,
+                                               "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})),
+                                               "input_for_fun_max_value" : 
+                                                ('relative', 
+                                                 [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                                                )
+
+
+                                           }
+                                       )                 
+                                   }
+                    )
+
+                }),
+
+                "discount_factor" : 0.98,
+                
+                "optimization_interval" : 256,
+
+                "times_to_learn" : 20,
             
-                "memory" : (TorchDiskMemoryComponent, {
-                    "capacity" : 500
+                "memory" : (TorchMemoryComponent, {
+                    "capacity" : 256
                 })
                 
             
@@ -83,14 +118,5 @@ def config_dict():
             }
         )
         
-    },
-    "child_components": [
-        {
-            "__type__": str(PettingZooEnvironmentWrapper),
-            "name": "PettingZooEnvironmentLoader",
-            "input": {
-                "environment": "cooperative_pong"
-            }
-        }
-    ]
+    }
 }

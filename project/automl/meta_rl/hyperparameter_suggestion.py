@@ -5,7 +5,7 @@ from automl.component import Component
 from automl.utils.json_utils.json_component_utils import CustomJsonLogic, get_child_dict_from_localization
 import optuna
 
-
+from automl.core.localizations import get_component_by_localization_list
 
 class HyperparameterSuggestion(CustomJsonLogic):
     
@@ -24,7 +24,8 @@ class HyperparameterSuggestion(CustomJsonLogic):
     
         for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
             
-            component_to_change : Component = component.get_child_component(component_localizer) 
+            # gets the component change 
+            component_to_change : Component = get_component_by_localization_list(component_localizer, hyperparameter_localizer) 
             
             if component_to_change == None:
                 raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   
@@ -135,7 +136,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
         for (component_localizer, hyperparameter_localizer) in self.hyperparameter_localizations:
             
-            component_to_change : Component = component.get_child_component(component_localizer) 
+            component_to_change : Component = get_component_by_localization_list(component, component_localizer) 
             
             if component_to_change == None:
                 raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   

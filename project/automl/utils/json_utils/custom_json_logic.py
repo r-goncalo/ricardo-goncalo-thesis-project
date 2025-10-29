@@ -51,7 +51,6 @@ class CustomJsonLogic():
 __custom_json_strategies_register : dict[type, CustomJsonLogic] = {}
 
 def register_custom_strategy(t : type, custom_logic : CustomJsonLogic):
-    print(f"Registing custom strategy with name {custom_logic} for encoding and decoding of objects of type {t}")
     __custom_json_strategies_register[t] = custom_logic
 
 def get_custom_strategy(t : type) -> CustomJsonLogic:

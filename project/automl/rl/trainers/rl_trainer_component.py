@@ -1,4 +1,5 @@
 
+import math
 from typing import Dict
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.loggers.component_with_results import ComponentWithResults
@@ -20,7 +21,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                         "device" : InputSignature(ignore_at_serialization=True),
                         
                        "num_episodes" : InputSignature(default_value=-1, description="Number of episodes to do in this training session"),
-                       "limit_total_steps" : InputSignature(default_value=-1, description="Number of total steps to do in this training session"),
+                       "limit_total_steps" : InputSignature(default_value=-1, description="Number of total steps to do in this training session"), # Note how this changes with multiple agents
                        
                        "fraction_training_to_do" : InputSignature(mandatory=False),
 
@@ -31,7 +32,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                        "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
                        "limit_steps" : InputSignature(default_value=-1),
-                       "save_interval" : InputSignature(default_value=100)
+                       "save_interval" : InputSignature(default_value=100),
+
+                       "predict_optimizations_to_do" : InputSignature(default_value=False),
                        
                        }
     
@@ -63,6 +66,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         self.values["total_steps"] = 0
         
         self.setup_agents()
+
+        self._optimizations_prediction()
         
         
     def _initialize_limit_numbers(self):
@@ -103,6 +108,50 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 self.agents_in_training[key].pass_input(agent_trainer_input)
 
 
+    def _make_optimization_prediction_for_agent_episodes(self, agent_key):
+        raise NotImplementedError()
+    
+    def _make_optimization_prediction_for_agent_total_steps(self, agent_key):
+        return self.agents_in_training[agent_key].make_optimization_prediction_for_agent_steps(self.limit_total_steps)
+        
+
+    def _make_optimization_prediction_for_agent(self, agent_key):
+
+        if self.num_episodes > 1 and self.limit_total_steps > 1:
+            raise Exception("Can't make prediction")
+        
+        elif self.num_episodes > 1:
+            return self._make_optimization_prediction_for_agent_episodes(agent_key)
+
+        elif self.limit_total_steps > 1:
+            return self._make_optimization_prediction_for_agent_total_steps(agent_key)
+        else:
+            raise Exception("Can't make prediction")
+
+
+    def _optimizations_prediction(self):
+
+        '''Setup the predicted value for the optimizations to do'''
+
+        self.predict_optimizations_to_do = InputSignature.get_value_from_input(self, "predict_optimizations_to_do")
+
+        if self.predict_optimizations_to_do:
+
+            self.lg._writeLine("RLTrainer will try to predict the optimizations it has to do by agent")
+
+            self.values["optimizations_to_do_per_agent"] = {}
+
+            for key in self.agents_in_training:
+
+                optimizations_for_agent = int(math.ceil(self._make_optimization_prediction_for_agent(key)))
+
+                self.values["optimizations_to_do_per_agent"][key] = optimizations_for_agent
+                self.lg._writeLine(f"RLTrainer predicted it will do {optimizations_for_agent} optimizations for agent with key '{key}'")
+
+
+
+
+
     # RESULTS LOGGING --------------------------------------------------------------------------------
     
     def calculate_results(self):
@@ -121,10 +170,10 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     def _return_fraction_of_training_stop_value_if_any(self, training_stop_value):
 
         if self._fraction_training_to_do is not None:
-            return self.num_episodes * self._fraction_training_to_do
+            return training_stop_value * self._fraction_training_to_do
 
         else:
-            return self.num_episodes
+            return training_stop_value
         
 
     def _check_if_to_end_episode_by_steps_done(self):
@@ -132,7 +181,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         if self.limit_steps >= 1: # if we're using num episodes to stop training
 
             if self.values["episode_steps"] >= self.limit_steps:
-                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+                self.lg._writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
                 return True
         
         return False
@@ -153,7 +202,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             max_episodes_to_do = self._return_fraction_of_training_stop_value_if_any(self.num_episodes)
 
             if self.values["episode_done_in_session"] >= max_episodes_to_do:
-                self.lg.writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(self.num_episodes))
+                self.lg._writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(max_episodes_to_do))
                 return True
         
         return False
@@ -166,6 +215,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             max_total_steps_to_do = self._return_fraction_of_training_stop_value_if_any(self.limit_total_steps)
 
             if  self.values["steps_done_in_session"] >= max_total_steps_to_do:
+                self.lg._writeLine(f"Total episodes done in this session, {self.values['steps_done_in_session']}, is greater than the limit for it, {max_total_steps_to_do}")
                 return True
                 
                 
@@ -188,14 +238,14 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         Starts training       
         '''
         
-        self.lg.writeLine(f"Starting to run {self.num_episodes} episodes of training")
+        self.lg._writeLine(f"Starting to run training with number of episodes: {self.num_episodes} and total step limit: {self.limit_total_steps}")
 
         if self._fraction_training_to_do != None:
 
             if self._fraction_training_to_do <= 0 or self._fraction_training_to_do >= 1:
                 raise Exception("Fraction of training to do must be between 0 and 1")
 
-            self.lg.writeLine(f"Only doing a fraction of {self._fraction_training_to_do} of the training")
+            self.lg._writeLine(f"Only doing a fraction of {self._fraction_training_to_do} of the training")
         
             
         for agent_in_training in self.agents_in_training.values():
@@ -216,13 +266,12 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
             
             self.calculate_and_log_results()
-            
-            
+                
             if self._check_if_to_end_training_session():
                 break
+
+        self.lg._writeLine(f"Ended training with values: {self.values}")
         
-                
-            
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.end_training()            
                 

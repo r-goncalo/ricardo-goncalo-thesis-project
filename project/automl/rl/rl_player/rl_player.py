@@ -50,7 +50,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         super()._proccess_input_internal()
 
-        self.env : EnvironmentComponent = ComponentInputSignature.get_component_from_input(self, "environment")
+        self.env : EnvironmentComponent = ComponentInputSignature.get_value_from_input(self, "environment")
         self.num_episodes = self.input["num_episodes"]
         
         self.limit_steps = self.input["limit_steps"]

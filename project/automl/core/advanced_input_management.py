@@ -7,24 +7,52 @@
 from automl.component import Component
 from automl.core.input_management import InputSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
+from automl.core.localizations import get_component_by_localization
 
 
 CHANGE_INPUT = True
 
+class LookableInputSignature(InputSignature):
+
+    '''An input with functionality that allows it to look for its value'''
+
+    def get_value_from_input(component_with_input : Component, key, possible_types):
+        
+        value = InputSignature.get_value_from_input(component_with_input, key)
+
+        if value == None:
+            return None
+
+        elif isinstance(value, possible_types):
+            return possible_types
+
+        else: # is localization
+
+            try:
+                return get_component_by_localization(component_with_input, value)
+            
+            except Exception as e:
+
+                raise Exception(f"Exception when trying to get value for key {key} for component {component_with_input.name}, with assumed localization {value}: \n{e}") from e
+
 
 class ComponentInputSignature(InputSignature):
     
+    '''Abstracts the passage of components in other components inputs'''
+
+    
     possible_types = [Component, type, dict, str, tuple, list]
     
-    '''Abstracts the passage of components in other components inputs'''
-    
-    def get_component_from_input(component_with_input : Component, key):
+    def get_value_from_input(component_with_input : Component, key, input_if_generated=None):
         
         '''Returns a component from a ComponentInputSignature passed value'''
         
-        value = component_with_input.input[key]
+        value = InputSignature.get_value_from_input(component_with_input, key)
+
+        if value is None:
+            return value
         
-        component = gen_component_from(value, component_with_input)
+        component = gen_component_from(value, component_with_input, input_if_generated)
 
         if CHANGE_INPUT:
             component_with_input.input[key] = component
@@ -59,8 +87,7 @@ class ComponentInputSignature(InputSignature):
             super().__init__(generator=generator, **kwargs)
         
         else:
-            super().__init__(**kwargs)
-            
+            super().__init__(**kwargs)            
             
 
 
@@ -68,7 +95,7 @@ class ComponentListInputSignature(InputSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
     
-    def get_component_list_from_input(component_with_input : Component, key) -> list[Component]:
+    def get_value_from_input(component_with_input : Component, key) -> list[Component]:
         
         '''Returns a component list from a ComponentListInputSignature passed value'''
         
@@ -104,23 +131,6 @@ class ComponentListInputSignature(InputSignature):
         if default_component_definition is not None:
             
             raise NotImplementedError("Default component definition is not implemented for component lists")
-            
-            #(component_definition, n_components) = default_component_definition
-        
-            #def generator(self : Component): # will return the component to be saved in 
-
-            #    list_of_components : list[Component] = [None] * n_components
-
-            #    for i in range(n_components):
-
-            #        component = gen_component_from(component_definition)
-            #        self.define_component_as_child(component)
-            #        
-            #        list_of_components[i] = component
-            #    
-            #    return list_of_components
-            #
-            #super().__init__(generator=generator, **kwargs)
         
         else:
             super().__init__(**kwargs)
@@ -130,7 +140,7 @@ class ComponentDictInputSignature(InputSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
     
-    def get_component_list_from_input(component_with_input : Component, key) -> dict[Component]:
+    def get_value_from_input(component_with_input : Component, key) -> dict[Component]:
         
         '''Returns a component list from a ComponentListInputSignature passed value'''
         

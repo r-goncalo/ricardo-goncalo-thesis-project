@@ -132,7 +132,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.n_steps = self.input["steps"]
         self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
         self.n_trials = self.input["n_trials"]
-        self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_component_from_input(self, "evaluator_component")
+        self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_value_from_input(self, "evaluator_component")
 
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_config_dict()

@@ -30,6 +30,14 @@ class InputSignature():
         self.on_pass = on_pass
         self.mandatory = mandatory
         self.get_from_parent = get_from_parent
+
+
+    
+    def get_value_from_input(component_with_input, key):
+
+        '''Gets the value from input, returning None if it does not exist'''
+
+        return component_with_input.input.get(key, None)
         
 class InputMetaData():
     

@@ -52,7 +52,11 @@ class ResultLogger(LoggerSchema):
         
         except Exception as e:
                         
-            self.columns = self.input["results_columns"]
+            self.columns = InputSignature.get_value_from_input(self, "results_columns")
+
+            if self.columns == None:
+                raise Exception(f"Results logger dataframe did not exist in artifact directory {self.get_artifact_directory()} with filename {self.results_filename} and no columns passed")
+
             self.dataframe = pandas.DataFrame(columns=self.columns)
             self._save_dataframe()
             

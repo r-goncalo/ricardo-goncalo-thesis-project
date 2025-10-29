@@ -100,20 +100,20 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     def initialize_agent(self):
     
-        self.agent : AgentSchema = ComponentInputSignature.get_component_from_input(self, "agent")
+        self.agent : AgentSchema = ComponentInputSignature.get_value_from_input(self, "agent")
         self.agent.proccess_input_if_not_proccesd()
         
         
     def initialize_learner(self):
         
-        self.learner : LearnerSchema = ComponentInputSignature.get_component_from_input(self, "learner")
+        self.learner : LearnerSchema = ComponentInputSignature.get_value_from_input(self, "learner")
         self.learner.pass_input({"device" : self.device, "agent" : self.agent})
         
 
 
     def initialize_memory(self):
         
-        self.memory : MemoryComponent = ComponentInputSignature.get_component_from_input(self, "memory")
+        self.memory : MemoryComponent = ComponentInputSignature.get_value_from_input(self, "memory")
         
         self.memory_fields_shapes = [] # tuples of (name_of_field, dimension)
             
@@ -140,6 +140,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             "avg_reward" : [self.values["episode_score"] / self.values["total_steps"]]
             }
         
+
+    # PREDICTING OPTIMIZATIONS ------------------------------------------------
+
+    @requires_input_proccess
+    def make_optimization_prediction_for_agent_steps(self, total_steps):
+        
+        return  ( total_steps / self.optimization_interval ) * self.times_to_learn
+    
     
     # TRAINING_PROCESS ----------------------
         

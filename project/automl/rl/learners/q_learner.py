@@ -90,7 +90,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
     def initialize_optimizer(self):
         
-        self.optimizer : OptimizerSchema = ComponentInputSignature.get_component_from_input(self, "optimizer")        
+        self.optimizer : OptimizerSchema = ComponentInputSignature.get_value_from_input(self, "optimizer")        
         self.optimizer.pass_input({"model" : self.model})
 
     
