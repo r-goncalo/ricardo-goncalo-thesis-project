@@ -1,7 +1,7 @@
 
 
 
-from other_code.experiments import hp_experiments_sequence
+from experiments import hp_experiments_sequence
 
 
 def experiment_1(directory_to_store_experiment = "C:\\rgoncalo\\experiments",
