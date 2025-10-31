@@ -143,7 +143,7 @@ def change_command_for_value_change(command_dict : dict,
             for index_loc_i in range(len(localization_to_change) - 1):
                 current_value_localizer = current_value_localizer[localization_to_change[index_loc_i]]
 
-            current_value_localizer[localization_to_change[len(index_loc_i) - 1]] = value_to_put
+            current_value_localizer[localization_to_change[len(localization_to_change) - 1]] = value_to_put
 
             # save changed configuration
             json_str_to_opt = json_string_of_component_dict(base_to_opt_config_dict)
