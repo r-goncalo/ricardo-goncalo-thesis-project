@@ -125,7 +125,7 @@ def change_command_for_value_change(command_dict : dict,
 
         '''Changes the command with a value change if the command had all predicted command keys'''
 
-        if "to_optimize_configuration_path" in command_dict.keys() and "path_to_store_experiment" in command_dict.keys and  "experiment_relative_path" in command_dict.keys():
+        if "to_optimize_configuration_path" in command_dict.keys() and "path_to_store_experiment" in command_dict.keys() and  "experiment_relative_path" in command_dict.keys():
         
             # the current to optimize configuration
             base_to_opt_config_path = command_dict["to_optimize_configuration_path"]
