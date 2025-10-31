@@ -1,7 +1,6 @@
 from datetime import datetime
 import subprocess, win32job, win32process, win32con, win32api
 import multiprocessing
-import experiments_sequence
 
 # === Define Maximum Concurrent Jobs ===
 MAX_JOBS = 4
@@ -78,6 +77,7 @@ def run_jobs_concurrently(command_groups):
 
 # === Run the jobs ===
 if __name__ == "__main__":
+
     print("Running multiple experiments on windows as main", flush=True)
 
     # Example: now experiments.hp_opt_for_models should return list of lists
@@ -85,39 +85,23 @@ if __name__ == "__main__":
     #   ["python train.py --model m1", "python eval.py --model m1"],
     #   ["python train.py --model m2", "python eval.py --model m2"]
     # ]
-    command_sequences = experiments_sequence.hp_opt_for_models(
 
-        directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models", 
-        directory_to_store_experiment="C:\\rgoncalo\\experiments",
-        base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\to_optimize_configuration.json", 
-
-        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration_3.json",
+    from experiments.hp_experiments_sequence import print_commands
+    from experiments.rl_zoo_sb3.ppo_cartpole import experiment_1 as experiment
+    
+    command_sequences = experiment(
+        directory_to_store_experiment='C:\\rgoncalo\\experiments',
+        base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\to_optimize_configuration.json",
+        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration_3.json", 
+        directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models",
         experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
-
-        parameter_dict_list=[
-            {
-                "num_trials" : 50,
-                "sampler" : "Random", # this is to gain some knowledge first
-                
-            },
-            {
-                "num_trials" : 150,
-                "sampler": "TreeParzen"
-            }
-        ],
-
-        #models_to_test= ["sb3_CartPole_dqn", "sb3_CartPole_dqn_perturbed_0_10"]
     )
 
-    print("\n----------------------------------------------")
-    print("\nCommand_sequences: ")
 
-    for command_sequence in command_sequences:
-        print("\n    Sequence: \n")
-        for command in command_sequence:
-            print("        " + str(command_sequence))
-        print("\nEnd of sequence\n")
+    print("EXPERIMENTS TO DO:")
 
-    print("\n----------------------------------------------\n")
+    print(command_sequences)
 
-    run_jobs_concurrently(command_sequences)
+    print("\nSTARTING THREAD TO DO EXPERIMENTS")
+
+    

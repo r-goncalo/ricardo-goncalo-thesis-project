@@ -152,5 +152,5 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         state_dict = torch.load(model_path, map_location=torch.device('cpu'))
         
         self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
-        
+
         self.model.load_state_dict(state_dict) #loads the saved weights into the model

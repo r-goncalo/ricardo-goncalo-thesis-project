@@ -62,10 +62,15 @@ def load_policy_network_from_architecture(architecture, params=None):
     
         return load_dqn_net_from_policy(q_policy)
 
-    elif architecture["type"] == "ppo":
+    elif architecture["type"] == "ppo-actor" or architecture["type"] == "ppo":
         ppo_policy = load_policy_from_class_and_architecture(PPOPolicy, architecture, params)
 
         return load_ppo_actor_net_from_policy(ppo_policy)
+    
+    elif architecture["type"] == "ppo-critic":
+        ppo_policy = load_policy_from_class_and_architecture(PPOPolicy, architecture, params)
+
+        return load_ppo_critic_net_from_policy(ppo_policy)
     
     else:
         raise ValueError(f"Unsupported SB3 model type {architecture['type']}")
@@ -112,15 +117,39 @@ def load_ppo_actor_net_from_policy(policy: PPOPolicy):
     return actor_layers
 
 
+def load_ppo_critic_net_from_policy(policy: PPOPolicy):
+
+    """
+    Loads the critic (value) network from a PPO policy.
+    Returns a torch.nn.Module suitable for computing value estimates.
+    """
+    critic_layers = torch.nn.Sequential(
+        policy.features_extractor,  # shared feature extractor
+        policy.mlp_extractor.value_net,  # critic-specific MLP
+        policy.value_net  # final linear layer producing scalar value
+    )
+    return critic_layers
+
+
 
 def load_sb3_ppo_model(model_name : str):
 
 
     policy, architecture = load_policy_from_model_name_and_class(model_name, PPOPolicy)
     
-    architecture["type"] = "ppo"
+    architecture["type"] = "ppo-actor"
 
     return load_ppo_actor_net_from_policy(policy), architecture
+
+
+def load_sb3_ppo_critic(model_name: str):
+    """
+    Loads only the critic network from a PPO SB3 checkpoint.
+    Returns a torch.nn.Module and architecture info.
+    """
+    policy, architecture = load_policy_from_model_name_and_class(model_name, PPOPolicy)
+    architecture["type"] = "ppo-critic"
+    return load_ppo_critic_net_from_policy(policy), architecture
 
 
 
@@ -135,6 +164,11 @@ def load_sb3_net(model_name: str):
         return load_sb3_q_net(model_name)
     
     elif model_name.startswith("ppo-"):
-        return load_sb3_ppo_model(model_name)
+
+        if model_name.endswith("-critic"):
+            return load_sb3_ppo_critic(model_name.removesuffix('-critic'))
+
+        else:
+            return load_sb3_ppo_model(model_name)
     else:
         raise ValueError(f"Unsupported SB3 model type in name '{model_name}'")

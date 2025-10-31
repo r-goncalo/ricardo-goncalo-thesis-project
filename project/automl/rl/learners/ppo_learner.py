@@ -31,7 +31,7 @@ class PPOLearner(LearnerSchema):
                         "device" : InputSignature(ignore_at_serialization=True),
                         
                         "critic_model" : ComponentInputSignature(
-                            default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64})    
+                            default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64, "output_shape" : 1})    
                         ),
 
                         "optimizer" : ComponentInputSignature(
@@ -85,7 +85,7 @@ class PPOLearner(LearnerSchema):
         if not self.critic.has_custom_name_passed():
             self.critic.pass_input({"name" : "critic"})
         
-        self.critic.pass_input({"input_shape" : self.agent.model_input_shape , "output_shape" :  1})
+        self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
         
         
     def initialize_optimizer(self):
