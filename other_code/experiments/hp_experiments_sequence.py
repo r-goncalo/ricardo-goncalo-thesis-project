@@ -17,6 +17,9 @@ BASE_COMMAND = [
     "C:\\rgoncalo\\ricardo-goncalo-thesis-project\\project\\examples\\simple_metarl\\scripts\\run_hp_experiment.py"
 ]
 
+'''
+The specification of a command to do hyperparameter optimization defined as a dictionary of the parameters
+'''
 
     
 
@@ -26,7 +29,10 @@ BASE_COMMAND = [
 
 def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
         
-        '''Guarantees that in command sequences, the same relevant directories are being referenced'''
+        '''
+        Guarantees that in command sequences, the same relevant directories are being referenced
+        This modifies the sequence in place, without returning a new one
+        '''
 
         if not isinstance(command_dict_sequence, list):
             raise Exception("Must be list")
@@ -37,7 +43,8 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
         
         elif isinstance(command_dict_sequence[0], list):
 
-            return [guarantee_same_path_in_commands(command_dict_sequence_element) for command_dict_sequence_element in command_dict_sequence]
+            for command_dict_sequence_element in command_dict_sequence:
+                guarantee_same_path_in_commands(command_dict_sequence_element)
 
         elif isinstance(command_dict_sequence[0], dict):
 
@@ -56,6 +63,9 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
             raise Exception("Invalid type")
 
 
+def make_command_list_string(parameter_list : list):
+
+    return ' '.join(parameter_list)
 
 def hp_opt_command_sequence(
                                  parameter_dict : dict,
@@ -84,7 +94,7 @@ def make_command_dicts_command_strings(command_dicts):
     # if we called it for a single command
     elif isinstance(command_dicts, dict):
 
-        return hp_opt_command_sequence(command_dicts)
+        return make_command_list_string(hp_opt_command_sequence(command_dicts))
     
 
     else:
@@ -98,11 +108,21 @@ def print_commands(command_dicts_str, ident_level=0):
 
     if isinstance(command_dicts_str, list):
         
-        print(ident_str + "----\n")
+        if len(command_dicts_str) == 0: # if list is empty we do nothing
+            pass
         
-        for command_dicts_element in command_dicts_str:
+        elif isinstance(command_dicts_str[0], list): # if is list of lists we ident accordingly
 
-            print_commands(command_dicts_element, ident_level + 1)
+            print(ident_str + "----\n")
+
+            for command_dicts_element in command_dicts_str:
+
+                print_commands(command_dicts_element, ident_level + 1)
+
+        elif isinstance(command_dicts_str[0], str): # if is list of parameters we make it a command string
+
+            for command_dicts_element in command_dicts_str:
+                print(ident_str + f"{make_command_list_string(command_dicts_element)}\n")
 
     elif isinstance(command_dicts_str, str):
 
@@ -156,7 +176,7 @@ def change_command_for_value_change(command_dict : dict,
 
             # SETUP EXPERIMENT COMMAND SEQUENCE
 
-            current_path_to_store_experiment = command_dict["current_path_to_store_experiment"]
+            current_path_to_store_experiment = command_dict["path_to_store_experiment"]
             current_experiment_relative_path = command_dict["experiment_relative_path"]
 
             current_path_to_store_experiment = f"{current_path_to_store_experiment}\\{current_experiment_relative_path}"
@@ -190,13 +210,13 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
     elif len(command_dicts_list) == 0:
         return command_dicts_list # if it is empty, we do nothing
 
-    # if it is a list of lists, we mantain the shape
+    # if it is a list of lists, we mantain the shape, we don'
     elif isinstance(command_dicts_list[0], list):
 
         to_return = []
 
         for command_dicts_list_element in command_dicts_list:
-            to_return = [*to_return, expand_commands_for_each_value_change(command_dicts_list_element, value_changes, loc_of_value, experiment_names, mantain_original)]
+            to_return.append(expand_commands_for_each_value_change(command_dicts_list_element, value_changes, loc_of_value, experiment_names, mantain_original))
 
         return to_return
 
