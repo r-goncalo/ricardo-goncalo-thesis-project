@@ -305,6 +305,21 @@ def expand_commands_for_each_model(command_dicts, directory_of_models, directory
         paths_to_test=models_to_test
     )
 
+
+
+def expand_commands_for_each_critic_model(command_dicts, directory_of_models, directory_to_store_definitions, mantain_original=False, models_to_test=None):
+
+    '''Given a collection (that can have nested lists) of command dicts, expands those for each of the given models'''
+
+    return expand_commands_for_each_path_in_directory(
+        command_dicts=command_dicts,
+        localization=["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "critic_model"],
+        directory_of_paths=directory_of_models,
+        directory_to_store_definitions=directory_to_store_definitions,
+        mantain_original=mantain_original,
+        paths_to_test=models_to_test
+    )
+
     
 def setup_experiment_directories(
                                  directory_to_store_experiment,

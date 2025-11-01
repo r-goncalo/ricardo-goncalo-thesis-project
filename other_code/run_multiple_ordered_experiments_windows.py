@@ -86,7 +86,7 @@ if __name__ == "__main__":
     #   ["python train.py --model m2", "python eval.py --model m2"]
     # ]
 
-    from experiments.hp_experiments_sequence import print_commands
+    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings
     from experiments.rl_zoo_sb3.ppo_cartpole import experiment_1 as experiment
     
     command_sequences = experiment(
@@ -95,7 +95,10 @@ if __name__ == "__main__":
         hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration_3.json", 
         directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models",
         experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
+    
     )
+
+    command_sequences = make_command_dicts_command_strings(command_sequences)
 
 
     print("EXPERIMENTS TO DO:")
