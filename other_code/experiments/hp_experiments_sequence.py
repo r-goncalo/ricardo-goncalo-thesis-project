@@ -65,7 +65,11 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
 
 def make_command_list_string(parameter_list : list):
 
-    return ' '.join([str(parameter_list_element) for parameter_list_element in parameter_list])
+    if isinstance(parameter_list, str):
+        return parameter_list
+
+    else:
+        return ' '.join([str(parameter_list_element) for parameter_list_element in parameter_list])
 
 def hp_opt_command_sequence(
                                  parameter_dict : dict,
@@ -118,11 +122,18 @@ def print_commands(command_dicts_str, ident_level=0):
             for command_dicts_element in command_dicts_str:
 
                 print_commands(command_dicts_element, ident_level + 1)
+            
+            print()
+            print(ident_str + "----\n")
 
         else: # if is list of parameters we make it a command string
 
+            print(ident_str + "[----\n")
+
             for command_dicts_element in command_dicts_str:
                 print(ident_str + f"{make_command_list_string(command_dicts_element)}\n")
+
+            print(ident_str + "----]\n")
 
     elif isinstance(command_dicts_str, str):
 

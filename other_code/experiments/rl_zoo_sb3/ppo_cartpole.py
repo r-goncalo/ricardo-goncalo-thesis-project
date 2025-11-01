@@ -44,6 +44,12 @@ def experiment_1(directory_to_store_experiment = "C:\\rgoncalo\\experiments",
             },
         ]
 
+        print("\nBASE COMMANDS:\n")
+
+        hp_experiments_sequence.print_commands(base_commands)
+
+        print("END OF BASE COMMANDS\n")
+
     expanded_commands_for_models = hp_experiments_sequence.expand_commands_for_each_model(
         command_dicts=base_commands,
         directory_of_models=directory_of_models,

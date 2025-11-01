@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
     print("EXPERIMENTS TO DO:")
 
-    print(command_sequences)
+    print_commands(command_sequences)
 
     print("\nSTARTING THREAD TO DO EXPERIMENTS")
 
