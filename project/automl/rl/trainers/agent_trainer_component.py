@@ -262,6 +262,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
 
     def optimizeAgent(self):
+
+        '''Optimizes the trained agent'''
         
         self.lg.writeLine("Optimizing agent...", file=self.TRAIN_LOG)
         

@@ -110,4 +110,31 @@ def get_all_subclasses(cls):
     '''
     
     return [cls, *__get_all_subclasses_recursive(cls)]
+
+
+def make_classes_in_collection_strings(collection):
+
+    if isinstance(collection, type):
+        return str(collection)
+    
+    elif isinstance(collection, dict):
+
+        to_return = {}
+
+        for key, value in collection.items():
+
+            to_return[key] = make_classes_in_collection_strings(value)
+
+        return to_return
+    
+    elif isinstance(collection, list):
+
+        return [make_classes_in_collection_strings(element) for element in collection]
+    
+    elif isinstance(collection, tuple):
+
+        return tuple(make_classes_in_collection_strings(element) for element in collection)
+    
+    else:
+        return collection
     

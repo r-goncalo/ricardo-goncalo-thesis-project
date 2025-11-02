@@ -73,6 +73,7 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
                  models_to_test=None,
                  directory_of_critics="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models",
                  critics_to_test=None,
+                 mantain_critic_original=True,
                  experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
                  base_commands=None):
 
@@ -128,7 +129,7 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
         directory_of_models=directory_of_critics,
         directory_to_store_definitions=directory_to_store_definitions,
         models_to_test=critics_to_test,
-        mantain_original=mantain_original
+        mantain_original=mantain_critic_original
     )
 
     hp_experiments_sequence.guarantee_same_path_in_commands(expanded_commands_strs_for_critics)

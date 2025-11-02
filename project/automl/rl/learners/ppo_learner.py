@@ -34,6 +34,8 @@ class PPOLearner(LearnerSchema):
                             default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64, "output_shape" : 1})    
                         ),
 
+                        "critic_model_input" : InputSignature(mandatory=False),
+
                         "optimizer" : ComponentInputSignature(
                             default_component_definition=(
                                 AdamOptimizer,
@@ -81,10 +83,14 @@ class PPOLearner(LearnerSchema):
     def initialize_critic_model(self):
         
         self.critic : ModelComponent = ComponentInputSignature.get_value_from_input(self, "critic_model")
-        
+
         if not self.critic.has_custom_name_passed():
             self.critic.pass_input({"name" : "critic"})
         
+        critic_model_passed_input = InputSignature.get_value_from_input("critic_model_input")
+
+        self.critic.pass_input(critic_model_passed_input)
+
         self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
         
         

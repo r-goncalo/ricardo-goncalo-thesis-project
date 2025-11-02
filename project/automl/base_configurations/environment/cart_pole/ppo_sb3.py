@@ -105,9 +105,7 @@ def config_dict():
                 }),
 
                 "discount_factor" : 0.98,
-                
-                "optimization_interval" : 256,
-
+            
                 "times_to_learn" : 20,
             
                 "memory" : (TorchMemoryComponent, {
