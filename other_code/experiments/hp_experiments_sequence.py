@@ -75,13 +75,13 @@ def hp_opt_command_sequence(
                                  parameter_dict : dict,
                             ):
     
-    '''Transforms a given parameter dict in an actual command for running hyperparameter optimization problems'''
+    '''Transforms a given parameter dict in an actual command list for running hyperparameter optimization problems'''
     
     command_args_list = [*BASE_COMMAND]
 
     for key, value in parameter_dict.items():
         command_args_list.append(f"--{key}")
-        command_args_list.append(value)
+        command_args_list.append(str(value))
 
     return command_args_list
 
