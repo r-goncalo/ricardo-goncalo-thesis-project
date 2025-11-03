@@ -87,7 +87,7 @@ class PPOLearner(LearnerSchema):
         if not self.critic.has_custom_name_passed():
             self.critic.pass_input({"name" : "critic"})
         
-        critic_model_passed_input = InputSignature.get_value_from_input("critic_model_input")
+        critic_model_passed_input = InputSignature.get_value_from_input(self, "critic_model_input")
 
         self.critic.pass_input(critic_model_passed_input)
 
