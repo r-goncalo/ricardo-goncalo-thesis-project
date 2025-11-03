@@ -221,13 +221,19 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
     elif len(command_dicts_list) == 0:
         return command_dicts_list # if it is empty, we do nothing
 
-    # if it is a list of lists, we mantain the shape, we don'
+    # if it is a list of lists
     elif isinstance(command_dicts_list[0], list):
 
         to_return = []
 
         for command_dicts_list_element in command_dicts_list:
-            to_return.append(expand_commands_for_each_value_change(command_dicts_list_element, value_changes, loc_of_value, experiment_names, mantain_original))
+            to_return.append(expand_commands_for_each_value_change(
+                command_dicts_list=command_dicts_list_element,
+                value_changes=value_changes,
+                loc_of_value=loc_of_value,
+                experiment_names=experiment_names,
+                directory_to_store_definitions=directory_to_store_definitions,
+                mantain_original=mantain_original))
 
         return to_return
 
@@ -288,11 +294,68 @@ def expand_commands_for_each_path_in_directory(command_dicts, localization, dire
             mantain_original=mantain_original
         )
 
+def unfold_sequences_element_to_correct_format(commands_collection_element):
+
+    '''
+    the correct format for an element of command sequences is a list[dict | str]
+    '''
+
+    if not isinstance(commands_collection_element, list):
+        raise Exception(f"Commands collection element must be of type list[dict|str] but was {type(commands_collection_element)}")
+    
+    elif len(commands_collection_element) == 0:
+        return []
+    
+    # if commands_collection type is list[dic | str]
+    elif isinstance(commands_collection_element[0], (dict, str)):
+        return commands_collection_element
+    
+    #if commands_collection_element type is list[list[?]], we must unfold it
+    elif isinstance(commands_collection_element[0], list):
+
+        to_return = []
+
+        for element_in_collection_element in commands_collection_element:
+
+            to_return = [
+                *to_return, *unfold_sequences_element_to_correct_format(element_in_collection_element)
+            ]
+
+        return to_return
+
+
+    else:
+        raise Exception(f"Element in commands collection must be of type list[str | dict] but was list[{type(commands_collection_element[0])}]")
+
+def unfold_sequences_to_correct_format(commands_collection):
+
+    '''
+    the correct format for command sequences is a list[list[dict | str]]
+    '''
+
+    if not isinstance(commands_collection, list):
+        raise Exception(f"Commands collection must be of type list[list[dict|str]] but was {type(commands_collection)}")
+    
+    elif len(commands_collection) == 0:
+        return []
+    
+    # if commands collection is list[list[?]]
+    elif isinstance(commands_collection[0], list):
+
+        return [
+            unfold_sequences_element_to_correct_format(element_in_collection) for element_in_collection in commands_collection
+        ]
+
+    else:
+        raise Exception(f"Type of collection must be list[list[dict | str]] but was list[{type(commands_collection[0])}]")
+
+        
+
 
 # MAKE EXPERIMENTS FOR MODELS ------------------------------------------------------------------------------
 
 
-def expand_commands_for_each_model(command_dicts, directory_of_models, directory_to_store_definitions, mantain_original=False, models_to_test=None):
+def expand_commands_for_each_model(command_dicts, directory_of_models, directory_to_store_definitions, mantain_original=False, models_to_test=None): 
 
     '''Given a collection (that can have nested lists) of command dicts, expands those for each of the given models'''
 

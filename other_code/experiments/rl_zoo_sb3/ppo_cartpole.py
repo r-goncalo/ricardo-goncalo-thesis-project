@@ -110,11 +110,13 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
             },
         ]
 
-        print("\nBASE COMMANDS:\n")
+    print("\nBASE COMMANDS:\n")
 
-        hp_experiments_sequence.print_commands(base_commands)
+    hp_experiments_sequence.print_commands(base_commands)
 
-        print("END OF BASE COMMANDS\n")
+    print("\nEND OF BASE COMMANDS\n")
+
+    print("\nCOMMANDS FOR MODELS:\n")
 
     expanded_commands_for_models = hp_experiments_sequence.expand_commands_for_each_model(
         command_dicts=base_commands,
@@ -123,6 +125,10 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
         mantain_original=mantain_original,
         models_to_test=models_to_test
     )
+
+    hp_experiments_sequence.print_commands(expanded_commands_for_models)
+
+    print("\nEND OF COMMANDS FOR MODELS:\n")
 
     expanded_commands_strs_for_critics = hp_experiments_sequence.expand_commands_for_each_critic_model(
         command_dicts=expanded_commands_for_models,
