@@ -62,8 +62,6 @@ class FullyConnectedModelSchema(TorchModelComponent):
     def _setup_values(self):
         super()._setup_values()    
 
-        print(f"Input was {self.input}")
-
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
         self.hidden_size: int = self.input["hidden_size"]

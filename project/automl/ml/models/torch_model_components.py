@@ -1,5 +1,6 @@
 import os
 from automl.basic_components.state_management import StatefulComponent
+from automl.loggers.global_logger import globalWriteLine
 import torch
 import torch.nn as nn
 
@@ -32,24 +33,36 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
             self.model.to(self.input["device"])
 
     def __synchro_model_value_attr(self):
+
+        '''To call mainly when the model attribute is updated'''
+
         if self.values["model"] is not None: # if a model is already present in the exposed values, use it
             self.model = self.values["model"]
         
         elif self.values["model"] is None and hasattr(self, "model"): # if a model is already present as an attribute, use it
             self.values["model"] = self.model
-        
+
+        # has both, attribute takes priority
+        else:
+            self.values["model"] = self.model 
+
+
         
     def _setup_values(self):
         super()._setup_values()
         
+
+
     def _setup_model(self):
+
+        '''Sets up the model, loading it or initializing it'''
         
         model_loaded = self._is_model_loaded()
 
         if self._should_load_model():
             
             if model_loaded:
-                print("WARNING: LOADING A TORCH MODEL WHEN A MODEL WAS ALREADY LOADED, WILL NOT LOAD NEW MODEL AND KEEP THE OLD ONE")
+                globalWriteLine(f"{self.name}: WARNING: LOADING A TORCH MODEL WHEN A MODEL WAS ALREADY LOADED, WILL NOT LOAD NEW MODEL AND KEEP THE OLD ONE")
 
             else:
                 self._load_model()
@@ -135,9 +148,12 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
     def _save_state_internal(self):
         
         super()._save_state_internal()
-        
-        torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
+
+        if hasattr(self, "model"):
+            torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
     
+        else:
+            globalWriteLine(f"{self.name}: WARNING: Saving state of Torch model state without ever reaching the point of initializing its model")
     
     
     def _load_state_internal(self) -> None:
@@ -146,11 +162,14 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
                 
         model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
         
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model weights file not found at {model_path}")
+        if os.path.exists(model_path):
                 
-        state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+            state_dict = torch.load(model_path, map_location=torch.device('cpu'))
         
-        self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
+            self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
 
-        self.model.load_state_dict(state_dict) #loads the saved weights into the model
+            self.model.load_state_dict(state_dict) #loads the saved weights into the model
+
+        else:
+
+            globalWriteLine(f"{self.name}: WARNING: Loading torch model state without havings its model weights available in folder")

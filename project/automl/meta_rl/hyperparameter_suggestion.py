@@ -105,7 +105,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
                 current_input_dict = current_input_dict[hyperparameter_localizer[i]]
     
             except Exception as e:
-                raise Exception(f'Exception when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
+                raise Exception(f'Exception when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}: {e}')
         
         return current_input_dict
 

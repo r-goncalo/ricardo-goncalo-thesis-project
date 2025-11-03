@@ -4,9 +4,10 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state
+from automl.loggers.global_logger import activate_global_logger
 
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None):
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, activate_global_logger_in_exp=False):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
@@ -41,6 +42,11 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
 
     hp_optimization_pipeline.change_logger_level(DEBUG_LEVEL.INFO) # guarantees hp_optimization_pipeline has all its output
     
+    if activate_global_logger_in_exp != None:
+
+        if isinstance(activate_global_logger_in_exp, str) and activate_global_logger_in_exp.lower() in ["true", "yes", "t", "y"]:        
+            activate_global_logger(hp_optimization_pipeline.get_artifact_directory())
+
     hp_optimization_pipeline.run()
     
 
@@ -60,6 +66,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--hp_configuration_path", type=str, default='.\\configuration.json', help="Path to config of hp experiment.")
     parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
+
+    parser.add_argument("--activate_global_logger", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
 
     args = parser.parse_args()
 

@@ -15,6 +15,7 @@ import weakref
 import gc
 
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
+from automl.loggers.global_logger import globalWriteLine
 import torch
                 
                 
@@ -135,7 +136,7 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
     component_to_return.write_line_to_notes(f"Component generated from folder {folder_path}", use_datetime=True)
     
     if not isinstance(component_to_return, ArtifactComponent):
-        print("WARNING: Tried to load state of component which is not a ArtifactComponent component")
+        globalWriteLine(f"{self.name}: WARNING: Tried to load state of component which is not a ArtifactComponent component")
         #raise Exception("Tried to load state of component which is not a ArtifactComponent component")
 
     else: # is instance of ArtifactComponent

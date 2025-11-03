@@ -288,7 +288,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         '''Defines target component as being child component of this one'''
 
         if new_child_component.parent_component == self:
-            print("WARNING: Tried to add a child component that is already a child of this component")
+            raise Exception("Tried to add a child component that is already a child of this component")
 
         else:
             self.child_components.append(new_child_component)

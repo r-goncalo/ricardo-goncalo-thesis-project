@@ -17,7 +17,7 @@ def activate_global_logger(global_logger_directory, global_logger_input={}):
 
     else:
         if "artifact_relative_directory" not in global_logger_input.keys():
-            global_logger_input["artifact_relative_directory"] = "global_logger"
+            global_logger_input["artifact_relative_directory"] = "_global_logger"
 
         global_logger_input["base_directory"] = global_logger_directory
 
