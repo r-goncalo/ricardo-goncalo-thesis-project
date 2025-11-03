@@ -2,7 +2,8 @@
 from typing import Union
 from automl.component import Component
 
-from automl.utils.json_utils.json_component_utils import CustomJsonLogic, get_child_dict_from_localization
+from automl.utils.json_utils.json_component_utils import get_child_dict_from_localization
+from automl.utils.json_utils.custom_json_logic import CustomJsonLogic
 import optuna
 
 from automl.core.localizations import get_component_by_localization_list
