@@ -94,13 +94,12 @@ class HyperparameterSuggestion(CustomJsonLogic):
             
         return suggested_value
     
-    def _pass_input_to_component_input(self, component_input, hyperparameter_localizer, suggested_value):
-        
-        '''Passes the suggested value to the component input, using the localization'''
-        
+    
+    def _get_last_collection_where_value_should_be(self, component_input, hyperparameter_localizer):
+
         current_input_dict = component_input
         
-        for i in range(0, len(hyperparameter_localizer) - 1):
+        for i in range(0, len(hyperparameter_localizer) - 1): # we go to the last collection, before the last indice
         
             try:
                 current_input_dict = current_input_dict[hyperparameter_localizer[i]]
@@ -108,7 +107,23 @@ class HyperparameterSuggestion(CustomJsonLogic):
             except KeyError as e:
                 raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
         
-        current_input_dict[hyperparameter_localizer[len(hyperparameter_localizer) - 1]] = suggested_value
+        return current_input_dict
+
+
+    def _pass_input_to_component_input(self, component_input, hyperparameter_localizer, suggested_value):
+        
+        '''Passes the suggested value to the component input, using the localization'''
+        
+        current_input_dict = self._get_last_collection_where_value_should_be(component_input, hyperparameter_localizer)
+
+        try:
+
+            current_input_dict[hyperparameter_localizer[len(hyperparameter_localizer) - 1]] = suggested_value
+
+        except Exception as e:
+
+            raise Exception(f"Exception when setting last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
+
         
         
     
@@ -218,18 +233,13 @@ class HyperparameterSuggestion(CustomJsonLogic):
         
         '''Passes the suggested value to the component input, using the localization'''
         
-        current_input_dict = component_input
+        current_input_dict = self._get_last_collection_where_value_should_be(component_input, hyperparameter_localizer)
+
+        try:
+            return current_input_dict.get(hyperparameter_localizer[len(hyperparameter_localizer) - 1], None)
         
-        for i in range(0, len(hyperparameter_localizer) - 1):
-        
-            try:
-                current_input_dict = current_input_dict[hyperparameter_localizer[i]]
-    
-            except KeyError as e:
-                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
-        
-        return current_input_dict.get(hyperparameter_localizer[len(hyperparameter_localizer) - 1], None)
-        
+        except Exception as e:
+            raise Exception(f"Exception when trying to get last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
         
     
     def _try_get_already_passed_input(self, component_to_change : Component, hyperparameter_localizer):
