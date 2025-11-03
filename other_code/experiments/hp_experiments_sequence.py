@@ -294,21 +294,62 @@ def expand_commands_for_each_path_in_directory(command_dicts, localization, dire
             mantain_original=mantain_original
         )
 
+def unfold_sequences_element_to_correct_format(commands_collection_element):
+
+    '''
+    the correct format for an element of command sequences is a list[dict | str]
+    '''
+
+    if not isinstance(commands_collection_element, list):
+        raise Exception(f"Commands collection element must be of type list[dict|str] but was {type(commands_collection_element)}")
+    
+    elif len(commands_collection_element) == 0:
+        return []
+    
+    # if commands_collection type is list[dic | str]
+    elif isinstance(commands_collection_element[0], (dict, str)):
+        return commands_collection_element
+    
+    #if commands_collection_element type is list[list[?]], we must unfold it
+    elif isinstance(commands_collection_element[0], list):
+
+        to_return = []
+
+        for element_in_collection_element in commands_collection_element:
+
+            to_return = [
+                *to_return, *unfold_sequences_element_to_correct_format(element_in_collection_element)
+            ]
+
+        return to_return
+
+
+    else:
+        raise Exception(f"Element in commands collection must be of type list[str | dict] but was list[{type(commands_collection_element[0])}]")
+
 def unfold_sequences_to_correct_format(commands_collection):
 
+    '''
+    the correct format for command sequences is a list[list[dict | str]]
+    '''
+
     if not isinstance(commands_collection, list):
-        raise Exception()
+        raise Exception(f"Commands collection must be of type list[list[dict|str]] but was {type(commands_collection)}")
     
     elif len(commands_collection) == 0:
         return []
     
-    elif isinstance(commands_collection[0], dict):
-        return commands_collection
-    
+    # if commands collection is list[list[?]]
     elif isinstance(commands_collection[0], list):
-        to_return = []
 
-        to
+        return [
+            unfold_sequences_element_to_correct_format(element_in_collection) for element_in_collection in commands_collection
+        ]
+
+    else:
+        raise Exception(f"Type of collection must be list[list[dict | str]] but was list[{type(commands_collection[0])}]")
+
+        
 
 
 # MAKE EXPERIMENTS FOR MODELS ------------------------------------------------------------------------------

@@ -18,15 +18,15 @@ win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation
 def run_command(command):
 
     if isinstance(command, str):
-        print(f"Starting string job: {command}", flush=True)
+        print(f"\nStarting string job: {command}\n", flush=True)
         proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     elif isinstance(command, list):
-        print(f"Starting job with args: {command}", flush=True)
+        print(f"\nStarting job with args: {command}\n", flush=True)
         proc = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     else:
-        print("WARNING: JOB WILL BE IGNORED, NOT IN SUPPORTED FORMAT")
+        print(f"\nWARNING: JOB WITH COMMAND <{str(command)[:20]}...> WILL BE IGNORED, NOT IN SUPPORTED FORMAT")
         return 1  # error return code
 
     # Assign subprocess to Job Object
@@ -36,9 +36,9 @@ def run_command(command):
     stdout, stderr = proc.communicate()
 
     if proc.returncode == 0:
-        print(f"Job completed successfully: {command}")
+        print(f"\nJob completed successfully: <{str(command)[:20]}...>\n")
     else:
-        print(f"Job failed: {command}\nError: {stderr}")
+        print(f"\nJob failed: <{str(command)[:20]}...>\nError: {stderr}\n")
 
     return proc.returncode
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     #   ["python train.py --model m2", "python eval.py --model m2"]
     # ]
 
-    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings
+    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings, unfold_sequences_to_correct_format
     from experiments.rl_zoo_sb3.ppo_cartpole import experiment_for_poo_actors_and_critics as experiment
     
     command_sequences = experiment(
@@ -101,6 +101,8 @@ if __name__ == "__main__":
     )
 
     command_sequences = make_command_dicts_command_strings(command_sequences)
+
+    command_sequences = unfold_sequences_to_correct_format(command_sequences)
 
 
     print("EXPERIMENTS TO DO:")
