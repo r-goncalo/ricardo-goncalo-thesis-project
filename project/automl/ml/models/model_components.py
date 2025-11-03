@@ -23,7 +23,7 @@ class ModelComponent(Component):
         '''Sets up basic values from the input, such as input shapes and such'''
 
         self.input_shape = InputSignature.get_value_from_input(self, "input_shape")
-        self.input_shape = InputSignature.get_value_from_input(self, "output_shape")
+        self.output_shape = InputSignature.get_value_from_input(self, "output_shape")
     
     
     def predict(self, state):

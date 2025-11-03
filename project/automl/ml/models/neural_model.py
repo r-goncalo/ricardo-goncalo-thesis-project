@@ -62,11 +62,11 @@ class FullyConnectedModelSchema(TorchModelComponent):
     def _setup_values(self):
         super()._setup_values()    
 
-        if self.input_size == None:
-            raise Exception(f"{type(self)} needs input size to be passed to setup its values, input: {self.input}")
+        if self.input_shape == None:
+            raise Exception(f"{type(self)} needs input shape to be passed to setup its values, input: {self.input}")
         
-        if self.output_size == None:
-            raise Exception(f"{type(self)} needs output size to be passed to setup its values, input: {self.input}")
+        if self.output_shape == None:
+            raise Exception(f"{type(self)} needs output shape to be passed to setup its values, input: {self.input}")
         
         if self.hidden_size == None:
             raise Exception(f"{type(self)} needs hidden size to be passed to setup its values, input: {self.input}")
