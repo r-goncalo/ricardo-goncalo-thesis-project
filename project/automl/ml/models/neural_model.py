@@ -51,7 +51,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
     parameters_signature = {
         "hidden_layers" : InputSignature(description="Number of hidden layers"),
-        "hidden_size": InputSignature(description="Size of hidden layers")
+        "hidden_size": InputSignature(description="Size of hidden layers"),
     }    
     
     def _proccess_input_internal(self):
@@ -62,6 +62,19 @@ class FullyConnectedModelSchema(TorchModelComponent):
     def _setup_values(self):
         super()._setup_values()    
 
+        if self.input_size == None:
+            raise Exception(f"{type(self)} needs input size to be passed to setup its values, input: {self.input}")
+        
+        if self.output_size == None:
+            raise Exception(f"{type(self)} needs output size to be passed to setup its values, input: {self.input}")
+        
+        if self.hidden_size == None:
+            raise Exception(f"{type(self)} needs hidden size to be passed to setup its values, input: {self.input}")
+        
+        if self.hidden_layers == None:
+            raise Exception(f"{type(self)} needs hidden layers to be passed to setup its values, input: {self.input}")
+
+
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
         self.hidden_size: int = self.input["hidden_size"]
@@ -69,26 +82,17 @@ class FullyConnectedModelSchema(TorchModelComponent):
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
                        
+
+
     def _initialize_mininum_model_architecture(self):
     
         '''
         Initializes the model with no regard for initial parameters, as they are meant to be loaded
         This method is meant to be called even if the input isn't fully processed
         '''
-
+        
         self._setup_values() # this needs the values from the input fully setup
 
-        if self.input_size == None:
-            raise Exception(f"{type(self)} needs input size to be passed to initialize minimum model architecture, input: {self.input}")
-        
-        if self.output_size == None:
-            raise Exception(f"{type(self)} needs output size to be passed to initialize minimum model architecture, input: {self.input}")
-        
-        if self.hidden_size == None:
-            raise Exception(f"{type(self)} needs hidden size to be passed to initialize minimum model architecture, input: {self.input}")
-        
-        if self.hidden_layers == None:
-            raise Exception(f"{type(self)} needs hidden layers to be passed to initialize minimum model architecture, input: {self.input}")
 
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size, 
