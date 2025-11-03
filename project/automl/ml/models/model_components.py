@@ -22,8 +22,8 @@ class ModelComponent(Component):
 
         '''Sets up basic values from the input, such as input shapes and such'''
 
-        self.input_shape = self.input["input_shape"] if "input_shape" in self.input.keys() else None
-        self.output_shape = self.input["output_shape"] if "output_shape" in self.input.keys() else None
+        self.input_shape = InputSignature.get_value_from_input(self, "input_shape")
+        self.input_shape = InputSignature.get_value_from_input(self, "output_shape")
     
     
     def predict(self, state):

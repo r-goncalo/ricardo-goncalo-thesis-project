@@ -78,6 +78,18 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self._setup_values() # this needs the values from the input fully setup
 
+        if self.input_size == None:
+            raise Exception(f"{type(self)} needs input size to be passed to initialize minimum model architecture, input: {self.input}")
+        
+        if self.output_size == None:
+            raise Exception(f"{type(self)} needs output size to be passed to initialize minimum model architecture, input: {self.input}")
+        
+        if self.hidden_size == None:
+            raise Exception(f"{type(self)} needs hidden size to be passed to initialize minimum model architecture, input: {self.input}")
+        
+        if self.hidden_layers == None:
+            raise Exception(f"{type(self)} needs hidden layers to be passed to initialize minimum model architecture, input: {self.input}")
+
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size, 
                 hidden_size=self.hidden_size, 
