@@ -104,8 +104,8 @@ class HyperparameterSuggestion(CustomJsonLogic):
             try:
                 current_input_dict = current_input_dict[hyperparameter_localizer[i]]
     
-            except KeyError as e:
-                raise KeyError(f'Error when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
+            except Exception as e:
+                raise Exception(f'Exception when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}')
         
         return current_input_dict
 
