@@ -75,7 +75,7 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
                  critics_to_test=None,
                  mantain_critic_original=True,
                  experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
-                 base_commands=None):
+                 base_commands : list[dict] =None):
 
 
     directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = hp_experiments_sequence.setup_experiment_directories(
@@ -87,7 +87,8 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
     base_command = {
             "create_new_directory" : "False",
             "path_to_store_experiment" : directory_to_store_experiments,
-            "experiment_relative_path" : experiment_name
+            "experiment_relative_path" : experiment_name,
+            "activate_global_logger" : "True"
         }
 
     if base_commands == None:
@@ -109,6 +110,8 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
 
             },
         ]
+
+
 
     print("\nBASE COMMANDS:\n")
 
