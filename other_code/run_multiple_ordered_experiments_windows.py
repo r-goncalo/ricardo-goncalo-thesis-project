@@ -87,14 +87,16 @@ if __name__ == "__main__":
     # ]
 
     from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings
-    from experiments.rl_zoo_sb3.ppo_cartpole import experiment_1 as experiment
+    from experiments.rl_zoo_sb3.ppo_cartpole import experiment_for_poo_actors_and_critics as experiment
     
     command_sequences = experiment(
         directory_to_store_experiment='C:\\rgoncalo\\experiments',
-        base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\to_optimize_configuration.json",
-        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\configurations\\configuration_3.json", 
-        directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models",
-        experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
+        base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\definitions\\to_optimize.json",
+        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\definitions\\configuration.json", 
+        directory_of_models="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\models\\actor_models",
+        directory_of_critics="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\models\\critic_models",
+        mantain_critic_original=True,
+        experiment_name="sb3_zoo_ppo_cartpole_hp_opt",
     
     )
 
@@ -105,6 +107,8 @@ if __name__ == "__main__":
 
     print_commands(command_sequences)
 
-    print("\nSTARTING THREAD TO DO EXPERIMENTS")
+    print("\nSTARTING THREADS TO DO EXPERIMENTS", flush=True)
+
+    run_jobs_concurrently(command_sequences)
 
     

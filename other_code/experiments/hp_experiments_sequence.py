@@ -221,13 +221,19 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
     elif len(command_dicts_list) == 0:
         return command_dicts_list # if it is empty, we do nothing
 
-    # if it is a list of lists, we mantain the shape, we don'
+    # if it is a list of lists
     elif isinstance(command_dicts_list[0], list):
 
         to_return = []
 
         for command_dicts_list_element in command_dicts_list:
-            to_return.append(expand_commands_for_each_value_change(command_dicts_list_element, value_changes, loc_of_value, experiment_names, mantain_original))
+            to_return.append(expand_commands_for_each_value_change(
+                command_dicts_list=command_dicts_list_element,
+                value_changes=value_changes,
+                loc_of_value=loc_of_value,
+                experiment_names=experiment_names,
+                directory_to_store_definitions=directory_to_store_definitions,
+                mantain_original=mantain_original))
 
         return to_return
 
@@ -288,11 +294,27 @@ def expand_commands_for_each_path_in_directory(command_dicts, localization, dire
             mantain_original=mantain_original
         )
 
+def unfold_sequences_to_correct_format(commands_collection):
+
+    if not isinstance(commands_collection, list):
+        raise Exception()
+    
+    elif len(commands_collection) == 0:
+        return []
+    
+    elif isinstance(commands_collection[0], dict):
+        return commands_collection
+    
+    elif isinstance(commands_collection[0], list):
+        to_return = []
+
+        to
+
 
 # MAKE EXPERIMENTS FOR MODELS ------------------------------------------------------------------------------
 
 
-def expand_commands_for_each_model(command_dicts, directory_of_models, directory_to_store_definitions, mantain_original=False, models_to_test=None):
+def expand_commands_for_each_model(command_dicts, directory_of_models, directory_to_store_definitions, mantain_original=False, models_to_test=None): 
 
     '''Given a collection (that can have nested lists) of command dicts, expands those for each of the given models'''
 
