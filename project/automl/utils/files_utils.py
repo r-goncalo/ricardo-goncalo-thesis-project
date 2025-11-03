@@ -2,11 +2,15 @@
 
 import os
 
+from automl.loggers.global_logger import globalWriteLine
+
 
 
 def open_or_create_folder(dir, folder_name='', create_new=True):
     
-    ''''''
+    '''
+    If create_new == True, we make a new folder in the case it exists
+    '''
 
     if folder_name == '':
         dir, folder_name = os.path.split(dir) #if the last folder/file name is not defined, extract it from dir
@@ -14,11 +18,15 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
     full_path = os.path.join(dir, folder_name)        
 
     try:
-        folders_in_dir = os.listdir(dir) #is the dir already created? if not, error
+        folders_in_dir = os.listdir(dir) #is the dir already created? if not, we create it
         
     except:
-        os.makedirs(dir)
-        folders_in_dir = os.listdir(dir) #now 
+        try:
+            os.makedirs(dir)
+        except:
+            globalWriteLine(f"When creating directory {dir}, error, while it did not exist before. If it exists now, this means badly written parallel code that is trying to create the same directory")
+        
+        folders_in_dir = os.listdir(dir)
     
     folder_exists = os.path.exists(full_path) and os.path.isdir(full_path)
 

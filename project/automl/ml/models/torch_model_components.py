@@ -93,8 +93,10 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
             self.values["model"] = self.model
         
     def _initialize_mininum_model_architecture(self):
+
         '''Initializes the minimum architecture, this is used to load weights of the model, so the initial parameters are to be ignored'''
-        raise Exception("Initialize minimum model architecture not implemented in base TorchModelComponent")
+        pass
+
 
     def _initialize_model(self):
         '''Initializes a totally new model'''

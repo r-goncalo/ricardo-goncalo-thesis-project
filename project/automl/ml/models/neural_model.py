@@ -90,9 +90,10 @@ class FullyConnectedModelSchema(TorchModelComponent):
         Initializes the model with no regard for initial parameters, as they are meant to be loaded
         This method is meant to be called even if the input isn't fully processed
         '''
-        
-        self._setup_values() # this needs the values from the input fully setup
 
+        super()._initialize_mininum_model_architecture()
+
+        self._setup_values() # this needs the values from the input fully setup
 
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size, 
