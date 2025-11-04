@@ -56,6 +56,8 @@ def get_source_component(component):
             return current_component
 
 
+
+
 def get_child_by_name(component, name):
     """Gets a child component by its name using a breadth-first search."""
 
@@ -88,10 +90,14 @@ def look_for_component_with_name(component, name):
 
 
 
+
 def get_parent_component(component):
     '''Returns the parent component of a component'''
 
     return component.parent_component
+
+
+
 
 
 def get_next_component_by_tuple_operation(component, tuple_operation : tuple):
@@ -120,6 +126,9 @@ def get_next_component_by_tuple_operation(component, tuple_operation : tuple):
         raise Exception(f"Unkown operation in localization: {tuple_operation}")
 
 
+
+
+
 def get_next_component_by_str_operation(component, str_operation : str):
 
     if str_operation == '__up__':
@@ -134,6 +143,8 @@ def get_next_component_by_int_operation(component, integer : int):
 
     return component.child_components[integer]
     
+
+
 
 def get_component_by_localization_list(component, localization : list):
     
@@ -152,13 +163,15 @@ def get_component_by_localization_list(component, localization : list):
         elif isinstance(operation, str):
             current_component = get_next_component_by_str_operation(current_component, operation)
 
-        elif isinstance(operation, tuple):
+        elif isinstance(operation, (tuple, list)):
             current_component = get_next_component_by_tuple_operation(current_component, operation)
         
         else:
             raise Exception(f"Invalid operation {operation} in localization {localization} for component {component.name}")
     
     return current_component
+
+
 
 
 def get_component_by_localization(component, localization):
@@ -233,6 +246,7 @@ def localization_list_from(localization):
     
     else:
         raise Exception(f"Invalid type for creating a localization list: {type(localization)}")
+    
     
 def is_valid_tuple_format(localization_definition):
 
