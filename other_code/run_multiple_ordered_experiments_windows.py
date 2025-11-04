@@ -50,7 +50,7 @@ def run_command_sequence(command_list):
     for cmd in command_list:
         ret = run_command(cmd)
         if ret != 0:  # Stop if one fails
-            print(f"Aborting sequence due to failure in: {cmd}", flush=True)
+            print(f"Aborting sequence due to failure in: <{str(cmd)[:20]}...>", flush=True)
             return ret
     print(f"Finished sequence successfully: {command_list}", flush=True)
     return 0

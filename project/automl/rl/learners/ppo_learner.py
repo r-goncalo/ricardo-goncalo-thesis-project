@@ -92,6 +92,8 @@ class PPOLearner(LearnerSchema):
         self.critic.pass_input(critic_model_passed_input)
 
         self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
+
+        self.critic.proccess_input_if_not_proccesd()
         
         
     def initialize_optimizer(self):
