@@ -167,7 +167,7 @@ def get_component_by_localization_list(component, localization : list):
             current_component = get_next_component_by_tuple_operation(current_component, operation)
         
         else:
-            raise Exception(f"Invalid operation {operation} in localization {localization} for component {component.name}")
+            raise Exception(f"Invalid operation with type {type(operation)}, {operation} in localization {localization} for component {component.name}")
     
     return current_component
 
