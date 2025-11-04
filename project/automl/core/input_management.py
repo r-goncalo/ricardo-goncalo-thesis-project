@@ -33,11 +33,19 @@ class InputSignature():
 
 
     
-    def get_value_from_input(component_with_input, key):
+    def get_value_from_input(component_with_input, key, is_none_ok=True):
 
         '''Gets the value from input, returning None if it does not exist'''
 
-        return component_with_input.input.get(key, None)
+        if is_none_ok:
+            return component_with_input.input.get(key, None)
+        
+        else:
+            try:
+                return component_with_input.input[key]
+            
+            except KeyError as e:
+                raise Exception(f"Component {component_with_input.name} tried to get mandatory input value for key '{key}' but it was not set in its input") from e
         
 class InputMetaData():
     

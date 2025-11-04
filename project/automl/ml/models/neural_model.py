@@ -68,17 +68,11 @@ class FullyConnectedModelSchema(TorchModelComponent):
         if self.output_shape == None:
             raise Exception(f"{type(self)} needs output shape to be passed to setup its values, input: {self.input}")
         
-        if self.hidden_size == None:
-            raise Exception(f"{type(self)} needs hidden size to be passed to setup its values, input: {self.input}")
-        
-        if self.hidden_layers == None:
-            raise Exception(f"{type(self)} needs hidden layers to be passed to setup its values, input: {self.input}")
-
 
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
-        self.hidden_size: int = self.input["hidden_size"]
-        self.hidden_layers: int = self.input["hidden_layers"]
+        self.hidden_size: int = InputSignature.get_value_from_input(self, "hidden_size", is_none_ok=False)
+        self.hidden_layers: int = InputSignature.get_value_from_input(self, "hidden_layers", is_none_ok=False)
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
                        
