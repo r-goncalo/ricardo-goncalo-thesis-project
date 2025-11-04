@@ -32,19 +32,16 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         if "device" in self.input.keys():
             self.model.to(self.input["device"])
 
+
     def __synchro_model_value_attr(self):
 
         '''To call mainly when the model attribute is updated'''
 
-        if self.values["model"] is not None: # if a model is already present in the exposed values, use it
-            self.model = self.values["model"]
-        
-        elif self.values["model"] is None and hasattr(self, "model"): # if a model is already present as an attribute, use it
-            self.values["model"] = self.model
-
-        # has both, attribute takes priority
-        else:
+        if hasattr(self, "model"):
             self.values["model"] = self.model 
+
+        elif self.values["model"] != None: # if a model is already present in the exposed values, use it
+            self.model = self.values["model"]
 
 
         
