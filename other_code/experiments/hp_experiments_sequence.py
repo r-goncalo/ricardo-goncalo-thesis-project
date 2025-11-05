@@ -153,9 +153,11 @@ def change_command_for_value_change(command_dict : dict,
                                     name_of_experiment: str, 
                                     directory_to_store_definitions : str):
         
-
-        '''Changes the command with a value change if the command had all predicted command keys'''
-
+        '''
+        Changes value in command dict by changing its to_optimize_configuration_path, 
+        its path_to_store_experiment and experiment_relative_path
+        '''
+        
         if "to_optimize_configuration_path" in command_dict.keys() and "path_to_store_experiment" in command_dict.keys() and  "experiment_relative_path" in command_dict.keys():
         
             # the current to optimize configuration
@@ -192,6 +194,58 @@ def change_command_for_value_change(command_dict : dict,
 
             current_path_to_store_experiment = f"{current_path_to_store_experiment}\\{current_experiment_relative_path}"
             current_experiment_relative_path = name_of_experiment
+
+            print(f"Changing\n    <{command_dict['path_to_store_experiment']}> + <{command_dict['experiment_relative_path']}> ->\n        <{current_path_to_store_experiment}> + <{current_experiment_relative_path}>")
+
+            command_dict_to_return = {
+                **command_dict,
+                "path_to_store_experiment" : current_path_to_store_experiment,
+                "experiment_relative_path" : current_experiment_relative_path,
+                "to_optimize_configuration_path" : to_optimize_config_path
+                }
+
+
+            return command_dict_to_return
+
+        else: # if not all necessary keys were in command
+            return command_dict
+
+def process_original_without_value_change(command_dict : dict, 
+                                    directory_to_store_definitions : str):
+                
+
+        if "to_optimize_configuration_path" in command_dict.keys() and "path_to_store_experiment" in command_dict.keys() and  "experiment_relative_path" in command_dict.keys():
+        
+            # the current to optimize configuration
+            base_to_opt_config_path = command_dict["to_optimize_configuration_path"]
+
+            base_to_opt_name = (os.path.basename(base_to_opt_config_path).split('.')[0])
+
+            fd = open(base_to_opt_config_path, 'r') 
+            base_to_opt_config_str = fd.read() # reads the base configuration str
+            fd.close()
+
+            # modify configuration to use desired value
+            base_to_opt_config_dict = dict_from_json_string(base_to_opt_config_str)
+
+            # save non changed configuration
+            json_str_to_opt = json_string_of_component_dict(base_to_opt_config_dict)
+
+            to_optimize_config_path = os.path.join(directory_to_store_definitions, f'{base_to_opt_name}_original.json')
+
+            fd = open(to_optimize_config_path, 'w')
+            fd.write(json_str_to_opt)
+            fd.close()
+
+            # SETUP EXPERIMENT COMMAND SEQUENCE
+
+            current_path_to_store_experiment = command_dict["path_to_store_experiment"]
+            current_experiment_relative_path = command_dict["experiment_relative_path"]
+
+            current_path_to_store_experiment = f"{current_path_to_store_experiment}\\{current_experiment_relative_path}"
+            current_experiment_relative_path = 'original'
+
+            print(f"Changing\n    <{command_dict['path_to_store_experiment']}> + <{command_dict['experiment_relative_path']}> ->\n        <{current_path_to_store_experiment}> + <{current_experiment_relative_path}>")
 
             command_dict_to_return = {
                 **command_dict,
@@ -242,8 +296,20 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
 
         to_return : list[list[dict]] = []
 
-        if mantain_original:
-            to_return.append(command_dicts_list)
+        if mantain_original: # if we are to mantain the original
+
+            new_command_list = []
+        
+            for command_dicts_element in command_dicts_list: # for each command, we change it
+
+                new_command_list.append(
+                    process_original_without_value_change(
+                        command_dict=command_dicts_element,
+                        directory_to_store_definitions= directory_to_store_definitions
+                    ))
+                
+            to_return.append(new_command_list)
+
 
         for value_change_i in range(len(value_changes)):
 
@@ -294,7 +360,7 @@ def expand_commands_for_each_path_in_directory(command_dicts, localization, dire
             mantain_original=mantain_original
         )
 
-def unfold_sequences_element_to_correct_format(commands_collection_element):
+def unfold_sequences_element_to_correct_format(commands_collection_element : list):
 
     '''
     the correct format for an element of command sequences is a list[dict | str]
@@ -315,11 +381,24 @@ def unfold_sequences_element_to_correct_format(commands_collection_element):
 
         to_return = []
 
+        print(f"\nUnfolding:\n")
+
+        for element_in_collection_element in commands_collection_element:
+            print(element_in_collection_element)
+
         for element_in_collection_element in commands_collection_element:
 
+            # list[list[?]] -> list[?]
+            # in the case element_in_collection_element was list[dict | str],
+            # list[list[dict | str]] -> list[dict | str]
             to_return = [
                 *to_return, *unfold_sequences_element_to_correct_format(element_in_collection_element)
             ]
+
+        print(f"Unfolded into:")
+
+        for element_in_collection_element in to_return:
+            print(element_in_collection_element)
 
         return to_return
 
