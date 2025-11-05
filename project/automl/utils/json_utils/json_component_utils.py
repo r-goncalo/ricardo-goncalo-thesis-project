@@ -495,7 +495,7 @@ def generate_component_from_class_input_definition(class_of_component, input : d
     return component_to_return
 
 
-def component_from_tuple_definition(tuple_definition, context_component=None) -> Component:
+def component_from_tuple_definition(tuple_definition, context_component=None, assume_localization=True) -> Component:
 
     '''
     Generates a component from a tuple definition (Component_definition, input) or a localization
@@ -519,9 +519,18 @@ def component_from_tuple_definition(tuple_definition, context_component=None) ->
         
             return to_return
 
+    elif assume_localization: # if we are to assume a localization in the case of badly formed arguments
+
+        to_return = get_component_by_localization(context_component, tuple_definition)
+
+        if to_return == None:
+            raise Exception(f"Could not find component, with context_component {context_component}, using tuple {tuple_definition}")
+        
+        return to_return
+
     else:
         
-        raise Exception(f"Non valid number of arguments passed to generate a component: {len(tuple_definition)}")
+        raise Exception(f"Non valid number of arguments passed to generate a component: {len(tuple_definition)}, with arguments: {tuple_definition}")
         
         
     raise Exception(f"Invalid tuple definition: {tuple_definition} as len must be 2 and is {len(tuple_definition)}")
