@@ -393,7 +393,7 @@ def unfold_sequences_element_to_correct_format(commands_collection_element : lis
             unfolded_list_element = unfold_sequences_element_to_correct_format(element_in_collection_element)
 
             if len(unfolded_list_element) > 0 and isinstance(unfolded_list_element[0], (str, dict)):
-                to_return.append(unfolded_list_element)
+                return unfolded_list_element
 
             else:
 
