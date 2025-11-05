@@ -50,4 +50,4 @@ def globalWriteLine(string : str, file=None, toPrint=None, use_time_stamp=None, 
 
         if is_global_logger_active():
 
-            _global_logger[0].writeLine(string, file, toPrint=toPrint, use_time_stamp=use_time_stamp, str_before=str_before, ident_level=ident_level)
+            _global_logger.writeLine(string, file, toPrint=toPrint, use_time_stamp=use_time_stamp, str_before=str_before, ident_level=ident_level)
