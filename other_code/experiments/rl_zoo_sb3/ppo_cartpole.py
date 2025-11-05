@@ -90,7 +90,6 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
             "create_new_directory" : "False",
             "path_to_store_experiment" : directory_to_store_experiments,
             "experiment_relative_path" : experiment_name,
-            "activate_global_logger" : "True"
         }
 
     if base_commands == None:
