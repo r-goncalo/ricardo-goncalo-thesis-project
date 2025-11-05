@@ -1,5 +1,6 @@
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state
+from automl.utils.smart_enum import SmartEnum
 from ..component import InputSignature, Component, requires_input_proccess
 
 from abc import abstractmethod
@@ -7,7 +8,7 @@ from enum import Enum
 
 from typing import final
 
-class State(Enum): #an enumerator to track state of executable component
+class State(SmartEnum): #an enumerator to track state of executable component
         IDLE = 0
         RUNNING = 1
         OVER = 2

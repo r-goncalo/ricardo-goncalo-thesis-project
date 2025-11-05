@@ -12,8 +12,10 @@ import os
 
 import pandas as pd
 
+from automl.utils.smart_enum import SmartEnum
 
-class DEBUG_LEVEL(Enum):
+
+class DEBUG_LEVEL(SmartEnum):
     NONE = -1
     CRITICAL = 0
     ERROR = 1
@@ -69,7 +71,7 @@ class LoggerSchema(ArtifactComponent):
         
         super()._proccess_input_internal()
             
-        self.necessary_logger_level = self.input["necessary_logger_level"]  
+        self.necessary_logger_level = DEBUG_LEVEL.from_value(InputSignature.get_value_from_input(self, "necessary_logger_level"))  
         
         self.default_print = self.input["default_print"]
         

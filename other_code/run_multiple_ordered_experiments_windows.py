@@ -89,6 +89,11 @@ if __name__ == "__main__":
     from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings, unfold_sequences_to_correct_format
     from experiments.rl_zoo_sb3.ppo_cartpole import experiment_for_poo_actors_and_critics as experiment
     
+
+    base_command = {
+        "global_logger_level" : "INFO"
+    }
+
     command_sequences = experiment(
         directory_to_store_experiment='C:\\rgoncalo\\experiments',
         base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\definitions\\to_optimize.json",
@@ -97,6 +102,7 @@ if __name__ == "__main__":
         directory_of_critics="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\models\\critic_models",
         mantain_critic_original=True,
         experiment_name="sb3_zoo_ppo_cartpole_hp_opt",
+        base_command = {}
     
     )
 
@@ -110,7 +116,7 @@ if __name__ == "__main__":
 
     print("EXPERIMENTS TO DO AFTER MAKING CORRECT FORMAT (Expect list[list[dict]]):")
     print_commands(command_sequences)
-    
+
 
     print("\nSTARTING THREADS TO DO EXPERIMENTS", flush=True)
 

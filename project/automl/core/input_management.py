@@ -1,6 +1,8 @@
 
 from enum import Enum
 
+from automl.utils.smart_enum import SmartEnum
+
 
 
 
@@ -56,7 +58,7 @@ class InputMetaData():
     
     '''
     
-    class InputOrigin(Enum):
+    class InputOrigin(SmartEnum):
         
         DEFAULT = 0
         GENERATED = 1

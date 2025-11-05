@@ -5,7 +5,7 @@
 _global_logger = None
 
 
-def activate_global_logger(global_logger_directory, global_logger_input={}):
+def activate_global_logger(global_logger_directory, global_logger_input={"create_new_directory" : False}):
 
     from automl.loggers.logger_component import LoggerSchema
 
