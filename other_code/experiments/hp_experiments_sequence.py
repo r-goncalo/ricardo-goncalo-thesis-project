@@ -273,31 +273,40 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
     elif len(command_dicts_list) == 0:
         return command_dicts_list # if it is empty, we do nothing
 
+
     # if it is a list of lists
+    # in this case we expect list[list[dict]] -> list[list[dict]], in whici list[dict] elements are added for the list
     elif isinstance(command_dicts_list[0], list):
 
         to_return = []
 
+        # for each list[dict] element
         for command_dicts_list_element in command_dicts_list:
-            to_return.append(expand_commands_for_each_value_change(
+
+            # this makes list[dict] -> list[list[dict]]
+            expanded_value = expand_commands_for_each_value_change(
                 command_dicts_list=command_dicts_list_element,
                 value_changes=value_changes,
                 loc_of_value=loc_of_value,
                 experiment_names=experiment_names,
                 directory_to_store_definitions=directory_to_store_definitions,
-                mantain_original=mantain_original))
+                mantain_original=mantain_original)
+
+            to_return.append(expanded_value)
 
         return to_return
 
     # if it is a list of dicts, we add to it the changed dictionaries, changing [command_1, command_2] -> [[command_1, command_2], [altered_1, altered_2]]
     elif isinstance(command_dicts_list[0], dict):
 
+        # in this case we should add expanded list[dict] to here
         to_return : list[list[dict]] = []
 
         if mantain_original: # if we are to mantain the original
 
-            new_command_list = []
+            new_command_list : list[dict] = []
         
+            # for each dict element
             for command_dicts_element in command_dicts_list: # for each command, we change it
 
                 new_command_list.append(
@@ -326,6 +335,7 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
                 
             to_return.append(new_command_list)
 
+        # return list[list[dict]]
         return to_return
     
 

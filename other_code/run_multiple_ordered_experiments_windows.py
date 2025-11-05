@@ -100,14 +100,17 @@ if __name__ == "__main__":
     
     )
 
-    command_sequences = make_command_dicts_command_strings(command_sequences)
+    print("EXPERIMENTS TO DO BEFORE UNFOLDING AND MAKING STRINGS:")
+    print_commands(command_sequences)
 
+    # we then treat the commands to make them in a correct format
+    command_sequences = make_command_dicts_command_strings(command_sequences)
     command_sequences = unfold_sequences_to_correct_format(command_sequences)
 
 
-    print("EXPERIMENTS TO DO:")
-
+    print("EXPERIMENTS TO DO AFTER MAKING CORRECT FORMAT (Expect list[list[dict]]):")
     print_commands(command_sequences)
+    
 
     print("\nSTARTING THREADS TO DO EXPERIMENTS", flush=True)
 
