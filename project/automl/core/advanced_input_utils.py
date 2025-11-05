@@ -5,6 +5,7 @@
 from automl.component import Component
 from automl.core.input_management import InputSignature
 from automl.core.advanced_input_management import ComponentInputSignature
+from automl.loggers.global_logger import globalWriteLine
 
 
 
@@ -26,7 +27,7 @@ def get_value_of_type_or_component(component_with_input : Component, key : str, 
     
     except Exception as e:
 
-        print(f"WARNING: Value with key {key} in component {component_with_input.name} is {value_in_input}, which could not be get as a component nor is it of the desired type: {desired_type}")
+        globalWriteLine(f"WARNING: Value with key {key} in component {component_with_input.name} is {value_in_input}, which could not be get as a component nor is it of the desired type: {desired_type}")
 
     
     return value_in_input

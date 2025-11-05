@@ -7,6 +7,7 @@ from automl.utils.json_utils.custom_json_logic import CustomJsonLogic
 import optuna
 
 from automl.core.localizations import get_component_by_localization_list
+from automl.loggers.global_logger import globalWriteLine
 
 class HyperparameterSuggestion(CustomJsonLogic):
     
@@ -160,11 +161,11 @@ class HyperparameterSuggestion(CustomJsonLogic):
             localization_suggested_value = self._try_get_already_passed_input(component_to_change, hyperparameter_localizer)
 
             if suggested_value != None and localization_suggested_value != suggested_value:
-                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
+                globalWriteLine(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
                 return None
 
             if localization_suggested_value == None:
-                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and one of localizations does not have any value. This is still not implemented, and the value will be treated as if it is non existent")
+                globalWriteLine(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and one of localizations does not have any value. This is still not implemented, and the value will be treated as if it is non existent")
                 return None
             
             if suggested_value == None:
@@ -200,11 +201,11 @@ class HyperparameterSuggestion(CustomJsonLogic):
         
 
             if suggested_value != None and localization_suggested_value != suggested_value:
-                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
+                globalWriteLine(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
                 return None
 
             if localization_suggested_value == None:
-                print(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and one of localizations does not have any value. This is still not implemented, and the value will be treated as if it is non existent")
+                globalWriteLine(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and one of localizations does not have any value. This is still not implemented, and the value will be treated as if it is non existent")
                 return None
             
             if suggested_value == None:

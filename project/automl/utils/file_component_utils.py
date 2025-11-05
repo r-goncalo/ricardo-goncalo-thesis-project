@@ -50,7 +50,7 @@ def gen_component_in_file_path(file_path) -> Component:
     
     if file_path.endswith('.json'):
 
-        print(f"WARNING: Generating component from file {file_path}, if you want to load the enterity of its state, you should use the base folder instead of the configuration path")
+        globalWriteLine(f"WARNING: Generating component from file {file_path}, if you want to load the enterity of its state, you should use the base folder instead of the configuration path")
         
         with open(file_path, 'r') as f:
             str_to_gen_from = f.read()

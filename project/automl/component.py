@@ -6,6 +6,7 @@ from abc import ABCMeta
 from automl.core.localizations import get_child_by_name, get_component_by_localization, get_index_localization, get_source_component
 
 from automl.utils.class_util import get_class_from
+from automl.loggers.global_logger import globalWriteLine
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
@@ -108,7 +109,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 self.__verified_pass_input(passed_key, input[passed_key])
                 
             else:
-                print(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
+                globalWriteLine(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
         
         
                 
@@ -123,7 +124,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 self.__verified_setup_default_value(key)
                 
         else:
-            print(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
                 
                    
 
@@ -136,7 +137,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
             self.__verified_setup_default_value(key)
                 
         else:
-            print(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
                 
     
     def remove_input(self, key):
@@ -151,7 +152,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
             self.__verified_remove_input(key)
             
         else:
-            print(f"WARNING: input with key {key} tried to remove from component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} tried to remove from component {self.name} but not in its input signature, will be ignored")
         
         
     def __some_updated_input(self): # some input was changed

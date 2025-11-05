@@ -433,7 +433,7 @@ def gen_component_from_special_dict(dict_representation : dict, parent_component
         to_return = parent_component_for_generated.look_for_component_with_name(dict_representation["__get_by_name__"])
 
         if to_return is None:
-            print(f"WARNING: Tried to get component by name {dict_representation['__get_by_name__']} with parent component {parent_component_for_generated.name} but couldn't get it")
+            globalWriteLine(f"WARNING: Tried to get component by name {dict_representation['__get_by_name__']} with parent component {parent_component_for_generated.name} but couldn't get it")
     
     return to_return
 

@@ -393,6 +393,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.study.enqueue_trial(suggestion_dict)
 
+
     def _queue_trial_with_initial_suggestion(self):
 
         initial_suggestion = {}
@@ -403,6 +404,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             if initial_value != None:
                 initial_suggestion[hp_suggestion.name] = initial_value
+
+            else:
+                self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
 
         if initial_suggestion != {}:
             self._queue_trial_with_suggestion(initial_suggestion)
@@ -522,8 +526,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial.number], "result" : [result]}
                 
-                print(f"Logging results: {results_to_log}")
-
                 self.log_results(results_to_log)                
 
                 if trial.should_prune():

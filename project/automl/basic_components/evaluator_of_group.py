@@ -8,6 +8,8 @@ from automl.core.input_management import InputSignature
 from automl.loggers.result_logger import ResultLogger
 import pandas
 
+from automl.loggers.global_logger import globalWriteLine
+
 
 
 class EvaluatorComponentOfGroup(EvaluatorComponent):
@@ -30,7 +32,7 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         self.std_deviation_factor = self.input["std_deviation_factor"]
         
         if not "base_evaluator" in self.input.keys():
-            print(f"WARNING: no base evaluator defined for evaluator component of group, this needs all the components in the group to be defined with the same evaluator or it will not work as intended")
+            globalWriteLine(f"WARNING: no base evaluator defined for evaluator component of group, this needs all the components in the group to be defined with the same evaluator or it will not work as intended")
             self.base_evaluator = None
         
         else:

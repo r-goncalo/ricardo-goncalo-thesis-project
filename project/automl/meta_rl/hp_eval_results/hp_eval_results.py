@@ -6,6 +6,7 @@ from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPi
 from automl.utils.optuna_utils import load_study_from_database
 from optuna.importance import get_param_importances
 import optuna
+from automl.loggers.global_logger import globalWriteLine
 
 
 
@@ -215,7 +216,7 @@ def get_results_of_configurations(experiment_path,
                     print(f"Did not manage to store configuration {configuration_name} due to error {e}")
 
             else:
-                print(f"WARNING: Configuration path with name {configuration_name} is not a directory")
+                globalWriteLine(f"WARNING: Configuration path with name {configuration_name} is not a directory")
 
             
     return results_of_configurations
