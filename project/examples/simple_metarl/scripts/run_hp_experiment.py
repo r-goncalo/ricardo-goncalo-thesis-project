@@ -46,9 +46,6 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
       
         activate_global_logger(hp_optimization_pipeline.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
 
-        hp_optimization_pipeline.lg.writeLine("\nGLOBAL LOGGER ACTIVATED HERE\n")
-
-
     hp_optimization_pipeline.run()
     
 

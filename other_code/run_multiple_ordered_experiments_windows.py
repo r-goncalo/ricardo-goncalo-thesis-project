@@ -102,7 +102,7 @@ if __name__ == "__main__":
         directory_of_critics="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\models\\critic_models",
         mantain_critic_original=True,
         experiment_name="sb3_zoo_ppo_cartpole_hp_opt",
-        base_command = {}
+        base_command = base_command
     
     )
 
