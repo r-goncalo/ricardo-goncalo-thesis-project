@@ -30,6 +30,14 @@ def is_global_logger_active():
      
     return _global_logger != None
 
+def get_global_level_artifact_directory():
+     
+    if _global_logger == None:
+        return None
+    
+    else:
+        return _global_logger.get_artifact_directory()
+
 def globalWriteLine(string : str, file=None, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
 

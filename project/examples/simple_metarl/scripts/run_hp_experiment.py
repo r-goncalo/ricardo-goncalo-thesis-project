@@ -4,7 +4,7 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state
-from automl.loggers.global_logger import activate_global_logger
+from automl.loggers.global_logger import activate_global_logger, get_global_level_artifact_directory
 
 
 def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None):
@@ -46,7 +46,7 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
       
         activate_global_logger(hp_optimization_pipeline.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
 
-        hp_optimization_pipeline.lg.writeLine("\nGLOBAL LOGGER ACTIVATED HERE\n")
+        hp_optimization_pipeline.lg.writeLine(f"\nGLOBAL LOGGER ACTIVATED HERE WITH ARTIFACT DIRECTORY {get_global_level_artifact_directory()}\n")
 
 
     hp_optimization_pipeline.run()
