@@ -243,8 +243,6 @@ def process_original_without_value_change(command_dict : dict,
             current_path_to_store_experiment = f"{current_path_to_store_experiment}\\{current_experiment_relative_path}"
             current_experiment_relative_path = 'original'
 
-            print(f"Changing\n    <{command_dict['path_to_store_experiment']}> + <{command_dict['experiment_relative_path']}> ->\n        <{current_path_to_store_experiment}> + <{current_experiment_relative_path}>")
-
             command_dict_to_return = {
                 **command_dict,
                 "path_to_store_experiment" : current_path_to_store_experiment,
@@ -403,12 +401,12 @@ def unfold_sequences_element_to_correct_format(commands_collection_element : lis
             unfolded_list_element = unfold_sequences_element_to_correct_format(element_in_collection_element)
 
             if len(unfolded_list_element) > 0 and isinstance(unfolded_list_element[0], (str, dict)):
-                return unfolded_list_element
+                to_return.append(unfolded_list_element)
 
             else:
 
                 to_return = [
-                    *to_return, *unfold_sequences_element_to_correct_format(element_in_collection_element)
+                    *to_return, *unfolded_list_element
                 ]
 
         print(f"Unfolded into:")
