@@ -256,7 +256,7 @@ def localization_list_from(localization):
     
 def is_valid_tuple_format(localization_definition):
 
-    return isinstance(localization_definition, tuple) and len(localization_definition) == 2
+    return isinstance(localization_definition, (tuple, list)) and len(localization_definition) == 2
 
 def is_valid_tuple_types(localization_definition):
 
