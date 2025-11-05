@@ -147,7 +147,7 @@ class DynamicLinearValueInRangeBasedOnComponent(DynamicLinearValueInRange, Dynam
         
         value_to_return = self._initial_value + self._slope_of_fun * self._input_component.values[self._input_for_fun_key]
 
-        globalWriteLine(f"{self.name}: {self._input_component.values[self._input_for_fun_key]} -> {value_to_return}")
+        #globalWriteLine(f"{self.name}: {self._input_component.values[self._input_for_fun_key]} -> {value_to_return}")
 
         return value_to_return
 
