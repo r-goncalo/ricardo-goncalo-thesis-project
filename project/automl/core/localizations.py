@@ -123,7 +123,7 @@ def get_next_component_by_tuple_operation(component, tuple_operation : tuple):
         return get_value_from_value_loc(component.input, operation_parameters["value_localization"])
     
     else:
-        raise Exception(f"Unkown operation in localization: {tuple_operation}")
+        raise Exception(f"Unkown tuple operation in localization: {tuple_operation}")
 
 
 
@@ -178,17 +178,23 @@ def get_component_by_localization(component, localization):
 
     localization_type, localization_list = interpret_localization(localization)
 
-    if localization_type == ABSOLUTE_LOCALIZATION_STR:
+    try:
 
-        source_component = get_source_component(component)
-        return get_component_by_localization_list(source_component, localization_list)
-    
-    elif localization_type == RELATIVE_LOCALIZATION_STR:
+        if localization_type == ABSOLUTE_LOCALIZATION_STR:
 
-        return get_component_by_localization_list(component, localization_list)
-    
-    else:
-        raise Exception("Unkown localization type")
+            source_component = get_source_component(component)
+            return get_component_by_localization_list(source_component, localization_list)
+
+        elif localization_type == RELATIVE_LOCALIZATION_STR:
+
+            return get_component_by_localization_list(component, localization_list)
+
+        else:
+            raise Exception("Unkown localization type")
+        
+    except Exception as e:
+
+        raise Exception(f"Exception when getting value from localization <{localization}>, with localization type <{localization_type}> and localization list <{localization_list}>") from e
 
 # CALCULATING LOCALIZATION -------------------------------------------------------------------- 
 
