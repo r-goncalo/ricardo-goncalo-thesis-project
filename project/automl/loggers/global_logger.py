@@ -12,7 +12,7 @@ def activate_global_logger(global_logger_directory, global_logger_input={"create
 
     global _global_logger
 
-    if not is_global_logger_active():
+    if is_global_logger_active():
         print("WARNING: Tried to activate global logger after it was already activated, ignoring it...")
 
     else:
@@ -30,9 +30,10 @@ def is_global_logger_active():
      
     return _global_logger != None
 
+
 def get_global_level_artifact_directory():
      
-    if _global_logger == None:
+    if not is_global_logger_active():
         return None
     
     else:
