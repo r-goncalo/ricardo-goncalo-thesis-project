@@ -5,7 +5,7 @@
 _global_logger = None
 
 
-def activate_global_logger(global_logger_directory, global_logger_input={"create_new_directory" : False}):
+def activate_global_logger(global_logger_directory, global_logger_input : dict ={}):
 
     from automl.loggers.logger_component import LoggerSchema
 
@@ -16,6 +16,10 @@ def activate_global_logger(global_logger_directory, global_logger_input={"create
         print("WARNING: Tried to activate global logger after it was already activated, ignoring it...")
 
     else:
+
+        if "create_new_directory" not in global_logger_input.keys():
+            global_logger_input["create_new_directory"] = False
+
         if "artifact_relative_directory" not in global_logger_input.keys():
             global_logger_input["artifact_relative_directory"] = "_global_logger"
 
