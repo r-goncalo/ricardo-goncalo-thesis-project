@@ -385,8 +385,6 @@ def unfold_sequences_to_correct_format(commands_collection_element : list) -> li
 
         to_return : list[list[dict]] = []
 
-        print(f"\nUnfolding:\n")
-
         for element_in_collection_element in commands_collection_element:
             print(element_in_collection_element)
 
@@ -398,8 +396,6 @@ def unfold_sequences_to_correct_format(commands_collection_element : list) -> li
             to_return = [
                     *to_return, *unfolded_list_element
                 ]
-
-        print(f"Unfolded into:")
 
         for element_in_collection_element in to_return:
             print(element_in_collection_element)
