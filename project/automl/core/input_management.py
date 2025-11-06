@@ -3,7 +3,7 @@ from enum import Enum
 
 from automl.utils.smart_enum import SmartEnum
 
-
+from automl.consts import ONLY_IGNORE_AT_SERIALIZATION_AFTER_GET
 
 
 
@@ -34,21 +34,24 @@ class InputSignature():
         self.get_from_parent = get_from_parent
 
 
-    
     def get_value_from_input(component_with_input, key, is_none_ok=True):
 
         '''Gets the value from input, returning None if it does not exist'''
 
         if is_none_ok:
-            return component_with_input.input.get(key, None)
+            to_return = component_with_input.input.get(key, None)
         
         else:
             try:
-                return component_with_input.input[key]
+                to_return = component_with_input.input[key]
             
             except KeyError as e:
                 raise Exception(f"Component {component_with_input.name} tried to get mandatory input value for key '{key}' but it was not set in its input") from e
-        
+
+
+        return to_return
+
+
 class InputMetaData():
     
     '''
@@ -68,8 +71,12 @@ class InputMetaData():
     def __init__(self, parameter_signature : InputSignature):
         
         self.origin = InputMetaData.InputOrigin.DEFAULT
-        self.parameter_signature = parameter_signature
+        self.parameter_signature : InputSignature = parameter_signature
+
+        self.ignore_at_serialization = parameter_signature.ignore_at_serialization or ONLY_IGNORE_AT_SERIALIZATION_AFTER_GET
     
+        self.value_got = False
+
     def custom_value_passed(self):
         self.origin = InputMetaData.InputOrigin.PASSED
         
@@ -85,4 +92,9 @@ class InputMetaData():
     def was_custom_value_passed(self):
         return self.origin == InputMetaData.InputOrigin.PASSED
     
+    def was_value_got(self):
+        return self.value_got
+    
+    def set_to_ignore_at_serialization(self, value : bool):
+        self.ignore_at_serialization = value
 

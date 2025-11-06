@@ -22,6 +22,8 @@ class Scheme(ABCMeta): # the meta class of all component classes, defines their 
     def __init__(self_class, *args, **kwargs):
         # Create the new class
         super().__init__(*args, **kwargs)
+
+        
                 
     
     def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values
@@ -206,6 +208,22 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         self.input[key] = None
         self.__input_meta[key].custom_value_removed()
+
+
+    def get_input_value_in_dict(self, key):
+
+        '''
+        Gets the input value in the input dictionary of this component
+        This shouldn't usually be used, instead use InputSignature.get...
+        '''
+
+        return self.input[key]
+
+
+    
+    def set_input_to_be_ignored_at_serialization(self, key : str, value : bool):
+
+        self.__input_meta[key].set_to_ignore_at_serialization(value)
 
 
     # PROCCESS INPUT ---------------------------------------------------------------------------------------

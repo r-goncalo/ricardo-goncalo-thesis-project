@@ -96,7 +96,7 @@ class ComponentInputEncoder(json.JSONEncoder):
                 parameter_meta : InputMetaData = obj.get_input_meta()[key]
                 parameters_signature : InputSignature = parameter_meta.parameter_signature
                                 
-                if ( not parameters_signature.ignore_at_serialization ) and (not ( ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults )):
+                if ( not parameter_meta.ignore_at_serialization ) and (not ( ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults )):
                     
                     serialized_value = json.dumps(input[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in input, loads
 
