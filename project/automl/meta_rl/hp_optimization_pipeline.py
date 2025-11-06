@@ -593,13 +593,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             return evaluation_results["result"]   # this is the value the objective will optimize
             
         
-        
-    
-    
-    
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
         
-        '''Called when a trial is over'''        
+        '''
+        Called when a trial is over
+        It is passed to optuna in the callbacks when the objective is defined
+        '''        
                         
         self._unload_component_to_test(trial)
 
@@ -614,6 +613,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         common_exception_handling(self, exception, 'error_report.txt')
 
         raise exception
+    
+    
                     
     # STUDY SETUP ------------------------------------------------------------------------------
 

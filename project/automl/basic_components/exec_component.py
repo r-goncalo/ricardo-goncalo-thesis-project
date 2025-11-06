@@ -74,6 +74,7 @@ class ExecComponent(Component):
         self._deal_with_exception(exception)
     
     def _deal_with_exception(self, exception):
+        '''Called internally when an exception happens'''
         pass
 
     # RUNNABLE METHOD --------------------------------
