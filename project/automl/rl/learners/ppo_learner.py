@@ -34,7 +34,7 @@ class PPOLearner(LearnerSchema):
                             default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64, "output_shape" : 1})    
                         ),
 
-                        "critic_model_input" : InputSignature(mandatory=False),
+                        "critic_model_input" : InputSignature(mandatory=False, ignore_at_serialization=True),
 
                         "optimizer" : ComponentInputSignature(
                             default_component_definition=(

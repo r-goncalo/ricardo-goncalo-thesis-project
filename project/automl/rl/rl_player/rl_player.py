@@ -28,7 +28,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                                                                                        
                        "environment" :  ComponentInputSignature(),
                        "agents" : InputSignature(),
-                       "agents_input" : InputSignature(default_value={}),
+                       "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
                        "num_episodes" : InputSignature(default_value=1),
                        "limit_steps" : InputSignature(default_value=-1),
                        "store_env_at_end" : InputSignature(default_value=False)

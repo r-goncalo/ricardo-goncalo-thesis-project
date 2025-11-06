@@ -28,7 +28,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                        "environment" : InputSignature(),
                        
                        "agents" : InputSignature(),
-                       "agents_trainers_input" : InputSignature(default_value={}),
+                       "agents_trainers_input" : InputSignature(default_value={}, ignore_at_serialization=True),
                        "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
                        "limit_steps" : InputSignature(default_value=-1),

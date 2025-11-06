@@ -36,7 +36,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                        "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {}), possible_types=[EnvironmentComponent]),
                        
                        "agents" : InputSignature(default_value={}),
-                       "agents_input" : InputSignature(default_value={}),
+                       "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
 
                        "save_in_between" : InputSignature(default_value=True),
                        
