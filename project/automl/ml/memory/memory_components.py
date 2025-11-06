@@ -19,7 +19,7 @@ class MemoryComponent(StatefulComponent):
         
         super()._proccess_input_internal()
         
-        self.capacity = self.input["capacity"]
+        self.capacity = InputSignature.get_value_from_input(self, "capacity")
         
         self.fields_shapes = []
         

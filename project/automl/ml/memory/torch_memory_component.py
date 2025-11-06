@@ -1,27 +1,16 @@
 
 
-from collections import namedtuple
-from typing import Iterable
-from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, requires_input_proccess
+from automl.component import  requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.utils.maths import nearest_highest_multiple, nearest_multiple
-from automl.utils.shapes_util import discrete_output_layer_size_of_space, torch_shape_from_space
+from automl.utils.shapes_util import torch_shape_from_space
+from automl.loggers.global_logger import globalWriteLine
 import torch
 from automl.ml.memory.memory_components import MemoryComponent
 
-
-import os
-import torch
-import numpy as np
-from pathlib import Path
-
-from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, requires_input_proccess
+from automl.component import requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.utils.shapes_util import discrete_output_layer_size_of_space
 from automl.ml.memory.memory_components import MemoryComponent
 
 
@@ -42,8 +31,6 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
         self.allocate_computer_memory_to_transitions()
         
-        self.capacity = self.input["capacity"]
-
         self.position = 0
         self.total_size = 0
         
@@ -56,10 +43,12 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         '''Allocates the necessary space '''
         
         self.transitions = self._allocate_computer_memory_to_transitions_dictionary() # transitions saved in memory        
-        
+
+
             
-            
-    def _allocate_computer_memory_to_transitions_dictionary(self):
+    def _allocate_computer_memory_to_transitions_dictionary(self) -> dict[str, torch.Tensor]:
+
+        '''Allocates necessary space given the specification of name, shape and data type in field_shapes'''
             
         transitions : dict[str, torch.Tensor] = {}
         
@@ -76,6 +65,9 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
             else:
                 transitions[field_name] = torch.zeros((self.capacity, *field_shape),
                                                        device=self.device, dtype=data_type)
+                
+        for key in transitions.keys():
+            self.lg.writeLine(f"Component {self.name} allocated for key '{key}' torch tensor with shape {transitions[key].shape}")
             
         return transitions
             
@@ -83,6 +75,8 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     @requires_input_proccess
     def push(self, transition):
+
+        '''Pushes a transition into the saved transitions, possibly substituting another'''
         
         idx = self.position
 
@@ -99,6 +93,8 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     @requires_input_proccess
     def sample(self, batch_size):
+
+        '''Returns <batch_size> random elements from the saved transitions'''
         
         if len(self) < batch_size:
             raise ValueError("Not enough transitions to sample.")
@@ -146,9 +142,8 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         '''Logicaly cleans the memory, without doing any deletion operation'''
         
         self.position = 0
-        self.disk_file_position = 0
+        self.total_size = 0
         
-        self.created_files = 0
         
         
     def __len__(self):

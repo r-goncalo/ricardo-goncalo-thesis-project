@@ -14,7 +14,10 @@ class NotInComponentTree(Exception):
 
 def common_exception_handling(component : ComponentWithLogging, exception, error_report_path):
 
-    '''Common exception handling for components with logging'''
+    '''
+    Common exception handling for components with logging
+    It is about saving the error in file
+    '''
 
     import traceback
         
