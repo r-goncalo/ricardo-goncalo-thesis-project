@@ -659,7 +659,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                     
     @requires_input_proccess
-    def _algorithm(self):  
+    def _algorithm(self): 
+
+        self.lg.writeLine() 
 
         self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
 
@@ -667,7 +669,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                        n_trials=self.n_trials,
                        callbacks=[self.after_trial])
         
-        self.lg.writeLine(f"STUDY OVER --------------------------------------------------------------------")
+        self.lg.writeLine(f"OPTIMIZATION WITH {self.n_trials} TRIALS OVER --------------------------------------------------------------------")
 
         try:
             self.lg.writeLine(f"Best parameters: {self.study.best_params}, used in trial {self.study.best_trial.number}, with best result {self.study.best_value}" )
