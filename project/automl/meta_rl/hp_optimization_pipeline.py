@@ -71,6 +71,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                             ),
 
                         "start_with_given_values" : InputSignature(default_value=True),
+
+                        "continue_after_error" : InputSignature(default_value=False, description="If trials should continue after an error or not")
                                                     
                        }
             
@@ -133,6 +135,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
         self.n_trials = self.input["n_trials"]
         self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_value_from_input(self, "evaluator_component")
+        
+        self.continue_after_error = InputSignature.get_value_from_input(self, "continue_after_error")
 
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_config_dict()
@@ -578,7 +582,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 else:
                     self.lg.writeLine(f"Can't try to save state of trial because its path could not be computed")
 
-                raise optuna.TrialPruned("error")
+                if self.continue_after_error: # if we are to continue after an error, we count the trial simply as pruned, and let optuna deal with it
+                    raise optuna.TrialPruned("error")
+                
+                else: # if not, we propagate the exception
+                    self.lg.writeLine("As <continue_after_error> was set to False, we end the Hyperparameter Optimization process and propagate the error to the caller")
+                    raise e
             
 
             return evaluation_results["result"]   # this is the value the objective will optimize
