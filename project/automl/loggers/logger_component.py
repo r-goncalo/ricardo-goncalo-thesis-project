@@ -84,7 +84,7 @@ class LoggerSchema(ArtifactComponent):
     # LOGGING -----------------------------------------------------------------------------        
 
     @requires_input_proccess
-    def writeLine(self, string : str, file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
+    def writeLine(self, string : str = "", file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
         '''
         This writes a line to the logger of the component, meant to be called by outside of the scope of the component
