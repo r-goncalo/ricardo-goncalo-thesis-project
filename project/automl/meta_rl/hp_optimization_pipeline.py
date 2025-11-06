@@ -356,8 +356,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
     def _load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
-
-        self.lg.writeLine(f"\nLoading component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
+        
+        self.lg.writeLine()
+        self.lg.writeLine(f"Loading component to test for trial {trial.number} with current memory info\n: {torch.cuda.memory_summary() if torch.cuda.is_available() else 'No CUDA available'}", file=MEMORY_REPORT_FILE)
         
         component_saver_loader = self.trial_loaders[trial.number]
         component_to_opt = component_saver_loader.load_component()
@@ -466,7 +467,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
 
     
-    def _try_evaluate_component(self, component_to_test : Component_to_opt_type, trial : optuna.Trial) -> float:
+    def _try_evaluate_component(self, component_to_test : Component_to_opt_type, component_to_test_path, trial : optuna.Trial) -> float:
 
         '''Tries evaluate the component that has already run and return its result, and deals with an exception that could appear'''
         
@@ -474,29 +475,30 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             return self._evaluate_component(component_to_test)
         
         except Exception as e:
-            self.on_exception_evaluating_trial(e, component_to_test, trial)
+            self.on_exception_evaluating_trial(e, component_to_test_path, trial)
             raise e
         
+
     
-    def _try_run_component(self, component_to_test : Component_to_opt_type, trial : optuna.Trial):
+    def _try_run_component(self, component_to_test : Component_to_opt_type, component_to_test_path, trial : optuna.Trial):
 
         try:
             return component_to_test.run()
 
         except Exception as e:
-            self.on_exception_running_trial(e, component_to_test, trial)
+            self.on_exception_running_trial(e, component_to_test_path, trial)
             raise e
     
 
 
-    def _try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, trial = optuna.Trial):
+    def _try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, component_to_test_path, trial = optuna.Trial):
     
         try:
             self.lg.writeLine(f"Trying to save state of trial {trial.number}")                 
             return save_state(component_to_test, save_definition=True)
 
         except Exception as e:
-            self.on_exception_saving_trial(e, component_to_test, trial)
+            self.on_exception_saving_trial(e, component_to_test_path, trial)
             raise e
 
 
@@ -506,7 +508,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Responsible for running the optimization trial and evaluating the component to test'''
         
-        self.lg.writeLine(f"\nStarting new training with hyperparameter cofiguration for trial {trial.number}")
+        self.lg.writeLine()
+        self.lg.writeLine(f"Starting new training with hyperparameter cofiguration for trial {trial.number}")
 
         component_to_test = self._create_or_load_component_to_test(trial)
 
@@ -515,6 +518,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         input_to_pass_before_running["times_to_run"] = self.n_steps # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
         
         for step in range(self.n_steps):
+
+            component_to_test_path = None
                         
             try:
 
@@ -522,13 +527,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 component_to_test.pass_input(input_to_pass_before_running)
 
-                self._try_run_component(component_to_test, trial) # we try to run the trial, this can raise an exception
+                component_to_test_path = component_to_test.get_artifact_directory()
 
-                self._try_save_stat_of_trial(component_to_test, trial) # we try to save the state of the trial, this can raise an exception
+                self._try_run_component(component_to_test, component_to_test_path, trial) # we try to run the trial, this can raise an exception
+
+                self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial) # we try to save the state of the trial, this can raise an exception
 
                 self.lg.writeLine(f"Evaluating trial {trial.number}...")
 
-                evaluation_results = self._try_evaluate_component(component_to_test) # and then, if all succeded, we try to evaluate it, which can also raise an exception
+                evaluation_results = self._try_evaluate_component(component_to_test, component_to_test_path, trial) # and then, if all succeded, we try to evaluate it, which can also raise an exception
 
                 self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: \n{evaluation_results}")
 
@@ -540,16 +547,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 self.log_results(results_to_log)  
 
-
                 if trial.should_prune(): # we verify this after reporting the result
                     self.lg.writeLine("Prunning current experiment due to pruner...")
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                     
 
-                self.lg.writeLine(f"Ending training with hyperparameter cofiguration for trial {trial.number}\n\n")
-
-                return evaluation_results["result"]   # this is the value the objective will 
+                self.lg.writeLine(f"Ending training with hyperparameter cofiguration for trial {trial.number}\n\n") 
 
                 
             except Exception as e:
@@ -562,16 +566,22 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"Error in trial {trial.number}, prunning it...")
                 trial.set_user_attr("prune_reason", "error")
                 
+                if component_to_test_path != None:
+                    try:
+                        self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
+                        self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial)
 
-                try:
-                    self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
-                    self._try_save_stat_of_trial(component_to_test, trial)
-
-                except:
-                    self.lg.writeLine(f"Saving state of trial due to error failed")
-                    pass
+                    except:
+                        self.lg.writeLine(f"Saving state of trial due to error failed")
+                        pass
+                
+                else:
+                    self.lg.writeLine(f"Can't try to save state of trial because its path could not be computed")
 
                 raise optuna.TrialPruned("error")
+            
+
+            return evaluation_results["result"]   # this is the value the objective will optimize
             
         
         
@@ -667,36 +677,44 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
 
     
-    def on_exception_saving_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
+    def on_exception_saving_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial):
+
+        self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}")
 
         error_report_specific_path = "on_save_error_report.txt"
-        error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
+        error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
 
-        self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}, storing error report in configuration, path {error_report_path}\nError: {exception}")
+        self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
         common_exception_handling(self, exception, error_report_path)
 
-
         raise exception
-        
-    def on_exception_evaluating_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
+
+
+
+    def on_exception_evaluating_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial):
+
+        self.lg.writeLine(f"ERROR: CAN'T EVALUATE TRIAL {trial.number}")
 
         error_report_specific_path = "on_evaluate_error_report.txt"
-        error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
+        error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
 
-        self.lg.writeLine(f"ERROR: CAN'T EVALUATE TRIAL {trial.number}, storing error report in configuration, path {error_report_path}\nError: {exception}")
+        self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
         common_exception_handling(self, exception, error_report_path)
 
         raise exception
     
 
-    def on_exception_running_trial(self, exception : Exception, component_to_test : Component_to_opt_type, trial : optuna.Trial):
+
+    def on_exception_running_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial):
+
+        self.lg.writeLine(f"ERROR RUNNING TRIAL {trial.number}")
 
         error_report_specific_path = "on_run_error_report.txt"
-        error_report_path = os.path.join(component_to_test.get_artifact_directory(), error_report_specific_path)
+        error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
 
-        self.lg.writeLine(f"ERROR RUNNING TRIAL {trial.number}: storing error report in configuration, path {error_report_path}\nError: {exception}")
+        self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
         common_exception_handling(self, exception, error_report_path)
 
