@@ -69,9 +69,10 @@ def config_dict():
             "name" : "RLTrainerComponent",
             "default_trainer_class" : AgentTrainerPPO,
             "limit_total_steps" : 1e5,
-            "optimization_interval": 256,
             "predict_optimizations_to_do" : True,
             "agents_trainers_input" : { #for each agent trainer
+                
+                "optimization_interval": 256,
                 
                 "learner" : (PPOLearner, {
 

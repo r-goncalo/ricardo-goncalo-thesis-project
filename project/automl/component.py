@@ -96,7 +96,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
            '''
         
         if not isinstance(input, dict):
-            raise Exception("Passed input is not of type dict")
+            raise Exception(f"In component {self.name} of type {type(self)}: Passed input is not of type dict")
            
         self.__input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
         
