@@ -199,7 +199,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         try:
 
             parameter_signature : InputSignature = self.get_parameter_signature(key)
-
+           
             to_return = parameter_signature.get_value_from_input(self, key, **kwargs)
 
             self.__input_meta[key].value_was_got()
@@ -208,7 +208,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         except Exception as e:
 
-            raise Exception(f"Error getting input value from component {self.name} with key '{key}' and parameters {kwargs}:") from e
+            raise Exception(f"Error getting input value from component {self.name} with key '{key}' and parameters {kwargs}: {e}") from e
 
     
     def set_input_to_be_ignored_at_serialization(self, key : str, value : bool):

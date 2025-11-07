@@ -179,7 +179,7 @@ def change_command_for_value_change(command_dict : dict,
             current_value_localizer[localization_to_change[len(localization_to_change) - 1]] = value_to_put
 
             # save changed configuration
-            json_str_to_opt = json_string_of_component_dict(base_to_opt_config_dict)
+            json_str_to_opt = json_string_of_component_dict(base_to_opt_config_dict, respect_ignore_order = False)
 
             to_optimize_config_path = os.path.join(directory_to_store_definitions, f'{base_to_opt_name}_{name_of_experiment}.json')
 
@@ -227,7 +227,7 @@ def process_original_without_value_change(command_dict : dict,
             base_to_opt_config_dict = dict_from_json_string(base_to_opt_config_str)
 
             # save non changed configuration
-            json_str_to_opt = json_string_of_component_dict(base_to_opt_config_dict)
+            json_str_to_opt = json_string_of_component_dict(base_to_opt_config_dict, respect_ignore_order = False)
 
             to_optimize_config_path = os.path.join(directory_to_store_definitions, f'{base_to_opt_name}_original.json')
 

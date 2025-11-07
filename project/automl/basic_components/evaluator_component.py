@@ -79,7 +79,7 @@ class ComponentWithEvaluator(Component):
             self.component_evaluator = None
         
         else:
-            self.component_evaluator : EvaluatorComponent = ComponentInputSignature.get_value_from_input(self, "component_evaluator")        
+            self.component_evaluator : EvaluatorComponent = self.get_input_value("component_evaluator")        
     
     def evaluate_this_component(self) -> dict:
         

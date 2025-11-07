@@ -23,10 +23,10 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         
         super()._proccess_input_internal()
         
-        self.EPS_END = self.input["epsilon_end"]                
-        self.EPS_START = self.input["epsilon_start"]
-        self.EPS_DECAY = self.input["epsilon_decay"]
-        self.training_context = self.input["training_context"].values
+        self.EPS_END = self.get_input_value("epsilon_end")                
+        self.EPS_START = self.get_input_value("epsilon_start")
+        self.EPS_DECAY = self.get_input_value("epsilon_decay")
+        self.training_context = self.get_input_value("training_context").values
     
 
     
@@ -78,10 +78,10 @@ class EpsilonGreedyLinearStrategy(ExplorationStrategySchema):
         
         super()._proccess_input_internal()
         
-        self.EPS_END = self.input["epsilon_end"]                
-        self.EPS_START = self.input["epsilon_start"]
-        self.DECAY = self.input["exploration_fraction"]
-        self.training_context = self.input["training_context"].values
+        self.EPS_END = self.get_input_value("epsilon_end")                
+        self.EPS_START = self.get_input_value("epsilon_start")
+        self.DECAY = self.get_input_value("exploration_fraction")
+        self.training_context = self.get_input_value("training_context").values
     
 
     

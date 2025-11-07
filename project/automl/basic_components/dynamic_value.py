@@ -82,7 +82,7 @@ class DynamicValueBasedOnComponent(DynamicValue):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
 
-        self._input_component : Component = ComponentInputSignature.get_value_from_input(self, "input_component")
+        self._input_component : Component = self.get_input_value("input_component")
 
 
 
@@ -105,10 +105,10 @@ class DynamicLinearValueInRange(DynamicValue):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
 
-        self._initial_value = self.input["initial_value"]
-        self._final_value = self.input["final_value"]
+        self._initial_value = self.get_input_value("initial_value")
+        self._final_value = self.get_input_value("final_value")
 
-        self._input_for_fun_max_value = LookableInputSignature.get_value_from_input(self, "input_for_fun_max_value", numeric_type)
+        self._input_for_fun_max_value = self.get_input_value("input_for_fun_max_value", accepted_types=numeric_type)
 
 
 class DynamicLinearValueInRangeBasedOnComponent(DynamicLinearValueInRange, DynamicValueBasedOnComponent):
@@ -128,9 +128,9 @@ class DynamicLinearValueInRangeBasedOnComponent(DynamicLinearValueInRange, Dynam
 
         super()._proccess_input_internal()
 
-        self._input_for_fun_key = self.input["input_for_fun_key"]
+        self._input_for_fun_key = self.get_input_value("input_for_fun_key")
 
-        self._input_for_fun_initial_value = self.input["input_for_fun_initial_value"]
+        self._input_for_fun_initial_value = self.get_input_value("input_for_fun_initial_value")
 
         self._slope_of_fun = (self._final_value - self._initial_value) / (self._input_for_fun_max_value - self._input_for_fun_initial_value)
 

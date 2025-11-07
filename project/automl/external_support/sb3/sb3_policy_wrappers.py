@@ -17,7 +17,7 @@ class SB3Wrapper(PolicyInterface):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.sb3_model = self.input["sb3_model"]
+        self.sb3_model = self.get_input_value("sb3_model")
         
         if isinstance(self.sb3_model, str):
             self.sb3_model = load_sb3_dqn_model(self.sb3_model)

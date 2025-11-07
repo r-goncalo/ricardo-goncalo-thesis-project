@@ -13,7 +13,7 @@ def get_value_of_type_or_component(component_with_input : Component, key : str, 
 
     '''Gets either a value in the key with the desired type or, if that fails, tries to get a component. If it does not exist, returns none'''
 
-    value_in_input = InputSignature.get_value_from_input(component_with_input, key)
+    value_in_input = component_with_input.get_input_value(key)
 
     if value_in_input is None:
         return None
@@ -22,7 +22,7 @@ def get_value_of_type_or_component(component_with_input : Component, key : str, 
         return value_in_input
 
     try:
-        component_to_return = ComponentInputSignature.get_value_from_input(component_with_input, key)
+        component_to_return = ComponentInputSignature.proccess_value_in_input(component_with_input, key, value_in_input)
         return component_to_return
     
     except Exception as e:

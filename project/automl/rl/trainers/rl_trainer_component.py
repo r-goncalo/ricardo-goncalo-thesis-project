@@ -52,15 +52,19 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         super()._proccess_input_internal()
         
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
     
-        self.limit_steps = self.input["limit_steps"]
+        self.limit_steps = self.get_input_value("limit_steps")
+
+        self.agents_input = self.get_input_value("agents_trainers_input")
+
+        self.default_trainer_class = self.get_input_value("default_trainer_class")
         
         self._initialize_limit_numbers()
         
-        self.env : EnvironmentComponent = self.input["environment"]
+        self.env : EnvironmentComponent = self.get_input_value("environment")
             
-        self.save_interval = self.input["save_interval"]
+        self.save_interval = self.get_input_value("save_interval")
 
         self.values["episodes_done"] = 0
         self.values["total_steps"] = 0
@@ -72,24 +76,24 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
     def _initialize_limit_numbers(self):
         
-        self.limit_total_steps = self.input["limit_total_steps"]
-        self.num_episodes = self.input["num_episodes"]  
+        self.limit_total_steps = self.get_input_value("limit_total_steps")
+        self.num_episodes = self.get_input_value("num_episodes")  
         
         if self.limit_total_steps <= 0 and self.num_episodes <= 0:
             raise Exception("No stop condition defined")
 
-        self._fraction_training_to_do = self.input["fraction_training_to_do"] if "fraction_training_to_do" in self.input.keys() else None
+        self._fraction_training_to_do = self.get_input_value("fraction_training_to_do")
 
     
     def setup_agents(self):
         
-        agents : Dict[str, AgentTrainer | AgentSchema] = self.input["agents"]
+        agents : Dict[str, AgentTrainer | AgentSchema] = self.get_input_value("agents")
         
         self.agents_in_training : Dict[str, AgentTrainer] = {}
         
         for key in agents:
             
-            agent_trainer_input = {**self.input["agents_trainers_input"]}
+            agent_trainer_input = {**self.agents_input}
                 
             if isinstance(agents[key], AgentSchema):
                 
@@ -97,7 +101,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 
                 agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agents[key]} 
                 
-                agent_trainer = self.initialize_child_component(self.input["default_trainer_class"], agent_trainer_input_in_creation)
+                agent_trainer = self.initialize_child_component(self.default_trainer_class, agent_trainer_input_in_creation)
                 
                 self.agents_in_training[key] = agent_trainer
                 agents[key] = agent_trainer #puts the agent trainer in input too
@@ -133,7 +137,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
         '''Setup the predicted value for the optimizations to do'''
 
-        self.predict_optimizations_to_do = InputSignature.get_value_from_input(self, "predict_optimizations_to_do")
+        self.predict_optimizations_to_do = self.get_input_value("predict_optimizations_to_do")
 
         if self.predict_optimizations_to_do:
 

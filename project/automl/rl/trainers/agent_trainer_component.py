@@ -71,14 +71,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         super()._proccess_input_internal()
         
-        self.optimization_interval = self.input["optimization_interval"]
-        self.device = self.input["device"]
-        self.save_interval = self.input["save_interval"]
+        self.optimization_interval = self.get_input_value("optimization_interval")
+        self.device = self.get_input_value("device")
+        self.save_interval = self.get_input_value("save_interval")
     
-        self.BATCH_SIZE = self.input["batch_size"] #the number of transitions sampled from the replay buffer
-        self.discount_factor = self.input["discount_factor"] # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
+        self.BATCH_SIZE = self.get_input_value("batch_size") #the number of transitions sampled from the replay buffer
+        self.discount_factor = self.get_input_value("discount_factor") # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
                               
-        self.times_to_learn = self.input["times_to_learn"]    
+        self.times_to_learn = self.get_input_value("times_to_learn")    
         
         self._initialize_delays()                  
                                 
@@ -94,26 +94,26 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     def _initialize_delays(self):
         
-        self.learning_start_ep_delay = self.input["learning_start_ep_delay"]
-        self.learning_start_step_delay = self.input["learning_start_step_delay"]
+        self.learning_start_ep_delay = self.get_input_value("learning_start_ep_delay")
+        self.learning_start_step_delay = self.get_input_value("learning_start_step_delay")
         
     
     def initialize_agent(self):
     
-        self.agent : AgentSchema = ComponentInputSignature.get_value_from_input(self, "agent")
+        self.agent : AgentSchema = self.get_input_value("agent")
         self.agent.proccess_input_if_not_proccesd()
         
         
     def initialize_learner(self):
         
-        self.learner : LearnerSchema = ComponentInputSignature.get_value_from_input(self, "learner")
+        self.learner : LearnerSchema = self.get_input_value("learner")
         self.learner.pass_input({"device" : self.device, "agent" : self.agent})
         
 
 
     def initialize_memory(self):
         
-        self.memory : MemoryComponent = ComponentInputSignature.get_value_from_input(self, "memory")
+        self.memory : MemoryComponent = self.get_input_value("memory")
         
         self.memory_fields_shapes = [] # tuples of (name_of_field, dimension)
             

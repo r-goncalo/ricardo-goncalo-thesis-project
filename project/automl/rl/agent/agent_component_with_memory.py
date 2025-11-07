@@ -23,23 +23,20 @@ class AgentSchemaWithStateMemory(AgentSchema):
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
-        
-        self.name = self.input["name"]                
-        self.device = self.input["device"]
-    
+            
 
     def initialize_state_memory(self): #Note this overrides the super method
         
             
-        self.state_shape = self.input["state_shape"]
-        self.state_memory_size = self.input["state_memory_size"]
+        self.state_shape = self.get_input_value("state_shape")
+        self.state_memory_size = self.get_input_value("state_memory_size")
                 
         if self.state_memory_size <= 1:
             raise Exception("State memory size must be greater than 1 to use this agent schema")
         
         self.model_input_shape = (self.state_memory_size, *self.state_shape)
         
-        self.state_memory_size = self.input["state_memory_size"]
+        self.state_memory_size = self.get_input_value("state_memory_size")
         
         self.lg.writeLine(f"State memory is {self.state_memory_size}, this means the agent will remember the last {self.state_memory_size - 1} states besides the new one it is experiencing")
      

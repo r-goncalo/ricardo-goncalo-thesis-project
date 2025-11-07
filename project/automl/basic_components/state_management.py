@@ -220,7 +220,7 @@ def unload_component(component : Component) -> None:
                 
     
 
-
+# TODO: REVIEW THIS, it is weird and unecessarly complex
 class StatefulComponentLoader(ArtifactComponent):
     
     '''A component with the capability of storing its state in its respective directory and later load it'''

@@ -15,7 +15,7 @@ class LearnerSchema(Component):
         
         super()._proccess_input_internal()
         
-        self.agent : AgentSchema = self.input["agent"]
+        self.agent : AgentSchema = self.get_input_value("agent")
         
     def learn(self, trajectory, discount_factor) -> None:
         

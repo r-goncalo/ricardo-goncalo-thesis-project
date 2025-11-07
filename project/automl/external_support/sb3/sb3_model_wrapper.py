@@ -21,7 +21,7 @@ class SB3WrapperTorch(TorchModelComponent):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.sb3_model = self.input["sb3_model"]
+        self.sb3_model = self.get_input_value("sb3_model")
     
 
     def _load_model(self):
@@ -35,7 +35,7 @@ class SB3WrapperTorch(TorchModelComponent):
             Exception("No sb3_model_provided")
             
         # Clone network
-        model_net, architecture = load_sb3_net(self.input["sb3_model"])
+        model_net, architecture = load_sb3_net(self.get_input_value("sb3_model"))
                 
         self.model = copy.deepcopy(model_net)
 

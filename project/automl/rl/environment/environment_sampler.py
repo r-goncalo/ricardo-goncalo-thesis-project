@@ -49,7 +49,7 @@ class EnvironmentSampler(Sampler, EnvironmentComponent):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.environment_input = self.input["environment_input"]
+        self.environment_input = self.get_input_value("environment_input")
                 
         
     def sample(self) -> EnvironmentComponent:
@@ -130,8 +130,8 @@ class EnvironmentCycler(EnvironmentSampler):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
 
-        self.environments : EnvironmentComponent = ComponentListInputSignature.get_value_from_input(self, "environments") 
-        self.generate_name = self.input["generate_name"]
+        self.environments : EnvironmentComponent = self.get_input_value("environments") 
+        self.generate_name = self.get_input_value("generate_name")
         self.next_index = 0
 
         if self.generate_name:

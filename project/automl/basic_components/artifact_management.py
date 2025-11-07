@@ -75,17 +75,16 @@ class ArtifactComponent(Component):
         if not all(key in self.input.keys() for key in necessary_parameters):
             raise Exception(f'Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters, needs {necessary_parameters} and has {self.input.keys()}')
         
-        self.artifact_relative_directory = self.input["artifact_relative_directory"]
-        
-        self.base_directory = self.input["base_directory"]
-
+        self.artifact_relative_directory = self.get_input_value("artifact_relative_directory")
+        self.base_directory = self.get_input_value("base_directory")
+        self.create_new_directory = self.get_input_value("create_new_directory")
         
         if self.base_directory == '' and self.artifact_relative_directory == '':
             raise Exception("No path specification for artifact directory")
         
         try:
             full_path = os.path.join(self.base_directory, self.artifact_relative_directory)
-            self.artifact_directory = open_or_create_folder(full_path, create_new=self.input["create_new_directory"])
+            self.artifact_directory = open_or_create_folder(full_path, create_new=self.create_new_directory)
             
         except Exception as e:
             
@@ -155,9 +154,9 @@ class ArtifactComponent(Component):
         
 
 
-    def save_configuration(self, save_exposed_values=False, ignore_defaults=True):
+    def save_configuration(self, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=True):
         
-        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults)
+        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order)
 
 
 

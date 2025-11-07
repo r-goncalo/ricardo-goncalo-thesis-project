@@ -48,10 +48,11 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         
         super()._proccess_input_internal()
         
-        self.base_evaluator : RLPipelineEvaluator = ComponentInputSignature.get_value_from_input(self, "base_evaluator")
+        self.base_evaluator : RLPipelineEvaluator = self.get_input_value("base_evaluator")
 
-        self.number_of_episodes = self.input["number_of_episodes"]
-        self.number_of_evaluations = self.input["number_of_evaluations"]
+        self.number_of_episodes = self.get_input_value("number_of_episodes")
+        self.number_of_evaluations = self.get_input_value("number_of_evaluations")
+        self.rl_player_definition = self.get_input_value("rl_player_definition")
         
         self._setup_environment()
 
@@ -61,7 +62,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         self.env = None
         
         if "environment" in self.input.keys():
-            self.env = ComponentInputSignature.get_value_from_input(self, "environment")
+            self.env = self.get_input_value("environment")
             
             
     # EVALUATION -------------------------------------------------------------------------------
@@ -156,9 +157,9 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             The objective is to then evaluate the results with the evaluator
         '''
 
-        rl_player_will_be_generated = not isinstance(self.input["rl_player_definition"], Component)
+        rl_player_will_be_generated = not isinstance(self.rl_player_definition, Component)
                 
-        rl_player : RLPlayer = gen_component_from(self.input["rl_player_definition"])
+        rl_player : RLPlayer = gen_component_from(self.rl_player_definition)
 
         rl_player.pass_input({
             "agents" : agents,

@@ -54,15 +54,13 @@ class ConvModelSchema(TorchModelComponent):
         
         super()._proccess_input_internal()
         
-        self.board_x : int = self.input["board_x"]                
-        self.board_y : int = self.input["board_y"]
-        self.board_z : int = self.input["board_z"]
-        self.output_size : int = self.input["output_size"]
+        self.board_x : int = self.get_input_value("board_x")                
+        self.board_y : int = self.get_input_value("board_y")
+        self.board_z : int = self.get_input_value("board_z")
+        self.output_size : int = self.get_input_value("output_size")
         
         self.model = ConvModelSchema.DQN(boardX=self.board_x, boardY=self.board_y, boardZ=self.board_z, n_actions=self.output_size)
         
-        if self.input["device"] != "":
-            self.model.to(self.input["device"])
 
     
     

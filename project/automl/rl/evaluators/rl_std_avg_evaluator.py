@@ -28,9 +28,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         
         super()._proccess_input_internal()
         
-        self.n_results_to_use = self.input["n_results_to_use"]
-        self.std_deviation_factor = self.input["std_deviation_factor"]
-        self.value_to_use = self.input["value_to_use"]
+        self.n_results_to_use = self.get_input_value("n_results_to_use")
+        self.std_deviation_factor = self.get_input_value("std_deviation_factor")
+        self.value_to_use = self.get_input_value("value_to_use")
 
 
     # EVALUATION -------------------------------------------------------------------------------

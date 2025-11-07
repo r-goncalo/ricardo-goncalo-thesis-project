@@ -38,8 +38,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.device = self.input["device"]
-        self.max_in_memory = self.input["max_in_memory"]
+        self.device = self.get_input_value("device")
+        self.max_in_memory = self.get_input_value("max_in_memory")
 
         self.set_capaticy()
 
@@ -60,10 +60,12 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         
         '''Sets capacity to an appropriate value, multiple of the max transitions in memory'''
 
-        self.capacity = nearest_highest_multiple(self.input["capacity"], self.max_in_memory)
+        prev_capacity = self.get_input_value("capacity")
+
+        self.capacity = nearest_highest_multiple(prev_capacity, self.max_in_memory)
         
-        if self.capacity != self.input["capacity"]:
-            self.lg.writeLine(f"Capacity of {self.input['capacity']} was changed to {self.capacity} due to it not being a multiple of max in memory ({self.max_in_memory})")
+        if self.capacity != prev_capacity:
+            self.lg.writeLine(f"Capacity of {prev_capacity} was changed to {self.capacity} due to it not being a multiple of max in memory ({self.max_in_memory})")
 
         
         
@@ -102,7 +104,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         
     def initialize_disk_files(self):
         
-        self.storage_dir = Path(os.path.join(self.get_artifact_directory(), self.input["storage_dir"]))
+        self.storage_dir = Path(os.path.join(self.get_artifact_directory(), self.get_input_value("storage_dir")))
 
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.disk_file_position = 0

@@ -62,9 +62,7 @@ class InputSignature():
 
 
 
-
-
-    def get_value_from_input(component_with_input, key, is_none_ok=True):
+    def get_value_from_input(self, component_with_input, key, is_none_ok=True):
 
         '''Gets the value from input, returning None if it does not exist'''
 
@@ -80,7 +78,6 @@ class InputSignature():
 
 
         return to_return
-    
 
     
     def fuse_with_new(self, other_input_signature):
@@ -212,6 +209,10 @@ class InputMetaData():
         
     def was_custom_value_passed(self):
         return self.origin == InputMetaData.InputOrigin.PASSED
+    
+
+    def value_was_got(self):
+        self.value_got = True
     
     def was_value_got(self):
         return self.value_got

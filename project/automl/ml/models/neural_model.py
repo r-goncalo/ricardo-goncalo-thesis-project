@@ -71,8 +71,8 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
-        self.hidden_size: int = InputSignature.get_value_from_input(self, "hidden_size", is_none_ok=False)
-        self.hidden_layers: int = InputSignature.get_value_from_input(self, "hidden_layers", is_none_ok=False)
+        self.hidden_size: int = self.get_input_value("hidden_size", is_none_ok=False)
+        self.hidden_layers: int = self.get_input_value("hidden_layers", is_none_ok=False)
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
                        

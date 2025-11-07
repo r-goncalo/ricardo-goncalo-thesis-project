@@ -1,18 +1,14 @@
 
 
 
-import copy
-from automl.component import Component, requires_input_proccess, InputSignature
+from automl.component import InputSignature
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
 from automl.loggers.component_with_results import ComponentWithResults, DEFAULT_RESULTS_LOGGER_KEY
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.loggers.result_logger import ResultLogger, get_results_logger_from_file
-from automl.utils.json_utils.json_component_utils import gen_component_from_dict, json_string_of_component, component_from_json_string
-from automl.utils.files_utils import write_text_to_file, read_text_from_file
-from automl.basic_components.artifact_management import ArtifactComponent
-import os
+from automl.loggers.result_logger import ResultLogger
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 from typing import Union
 
@@ -69,26 +65,20 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
         
         self.runnable_components = []
         self.last_ran_component = -1
+
+        self.number_of_components = self.get_input_value("number_of_components")
+
+        self.component_class = self.get_input_value("component_class") # may be None
+        self.component_dic = self.get_input_value("component_dic") # may be None
+
+        self.component_parameters = self.get_input_value("component_parameters")
+        
+        self.component_in_group_evaluator = self.get_input_value("component_in_group_evaluator")
                 
-        self.instantiate_evaluator()
-        
-        self.check_component_class()
-        
         self.instantiate_components_in_group()
         
         self.__was_aggregate_results_initialized = False
-        
-        
-    
-    def instantiate_evaluator(self):
-        
-        if "component_in_group_evaluator" not in self.input:
-            self.component_in_group_evaluator = None
-        
-        else:
-            self.component_in_group_evaluator : EvaluatorComponent  = self.input["component_in_group_evaluator"]
-            
-            
+
         
     # AGGREGATE RESULTS LOGGING ----------------------------------------------
         
@@ -154,37 +144,40 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
             
     # COMPONENT GROUP INITIALIZATION ----------------------------------------------
             
-    def check_component_class(self):
+    def check_component_class(self, component_class):
+
         
-        if not issubclass(self.input["component_class"], SeededComponent):
+        if not issubclass(component_class, SeededComponent):
             raise Exception("The component class must be a subclass of SeededComponent")
         
-        if not issubclass(self.input["component_class"], ExecComponent):
+        if not issubclass(component_class, ExecComponent):
             raise Exception("The component class must be a subclass of ExecComponent")
         
-        self.using_stateful_components = issubclass(self.input["component_class"], StatefulComponent)
+        self.using_stateful_components = issubclass(component_class, StatefulComponent)
         
         
         
     def generate_stateful_component(self) -> Component_in_group_type:
         
         '''Generates a component in the group from the class or the dic'''
-        
-        if "component_class" not in self.input:
+
+        if self.component_class == None:
             
-            if "component_dic" in self.input: #generate the component from the dic
-                stateful_component = gen_component_from_dict(self.input["component_dic"])
-            
+            if self.component_dic != None: #generate the component from the dic
+                stateful_component = gen_component_from_dict(self.component_dic)
+
             else:
                 raise Exception("Either the component class is defined or the component dic")
             
         else: #generate the component from the class
-            stateful_component = self.input["component_class"](
-                self.input["component_parameters"]
+            stateful_component = self.component_class(
+                self.component_parameters
             )
             
         if isinstance(stateful_component, ComponentWithEvaluator):
             stateful_component.pass_input({"component_evaluator" : self.component_in_group_evaluator})
+
+        self.check_component_class(type(stateful_component))
             
         return stateful_component
     
@@ -193,7 +186,7 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
 
         '''Adds a component to the group'''
         
-        component_parameters = self.input["component_parameters"]
+        component_parameters = {**self.component_parameters}
         component_parameters["create_new_directory"] = True #this is to make sure that each component has its own directory
 
         stateful_component = self.generate_stateful_component()
@@ -215,7 +208,7 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
     def instantiate_components_in_group(self):
         '''Initializes the components in the group'''
         
-        for _ in range(self.input["number_of_components"]):
+        for _ in range(self.number_of_components):
             
             self.add_component()
             

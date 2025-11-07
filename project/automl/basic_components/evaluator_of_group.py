@@ -29,14 +29,14 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         
         super()._proccess_input_internal()
         
-        self.std_deviation_factor = self.input["std_deviation_factor"]
+        self.std_deviation_factor = self.get_input_value("std_deviation_factor")
         
         if not "base_evaluator" in self.input.keys():
             globalWriteLine(f"WARNING: no base evaluator defined for evaluator component of group, this needs all the components in the group to be defined with the same evaluator or it will not work as intended")
             self.base_evaluator = None
         
         else:
-            self.base_evaluator = ComponentInputSignature.get_value_from_input(self, "base_evaluator")
+            self.base_evaluator = self.get_input_value("base_evaluator")
 
         
 

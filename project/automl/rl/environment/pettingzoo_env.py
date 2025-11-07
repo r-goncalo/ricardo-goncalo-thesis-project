@@ -34,15 +34,19 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
+
+        self.render_mode = self.get_input_value("render_mode")
         
     
     def _setup_environment(self):
+
+        self.env = self.get_input_value("environment")
                 
-        if isinstance(self.input["environment"], str):
-            self._load_environment(self.input["environment"])
+        if isinstance(self.env , str):
+            self._load_environment(self.env )
             
-        elif isinstance(self.input["environment"], ParallelEnv):
-            self.env : ParallelEnv = self.input["environment"]
+        elif isinstance(self.env , ParallelEnv):
+            self.env : ParallelEnv = self.env 
             
         else:
             raise Exception("No valid environment or environment name passed to PettingZoo Wrapper")
@@ -53,7 +57,7 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
         if environment_name == "cooperative_pong":
             
             from pettingzoo.butterfly import cooperative_pong_v5
-            self.env : ParallelEnv = cooperative_pong_v5.env(render_mode=self.input["render_mode"])
+            self.env : ParallelEnv = cooperative_pong_v5.env(render_mode=self.render_mode)
             
         else:
             raise Exception(f"{self.name}: No valid petting zoo environment specified")

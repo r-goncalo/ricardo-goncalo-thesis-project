@@ -28,9 +28,11 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         self.__synchro_model_value_attr()
                         
         self._setup_model()
+
+        self.device = self.get_input_value("device")
         
-        if "device" in self.input.keys():
-            self.model.to(self.input["device"])
+        if self.device != None:
+            self.model.to(self.device)
 
 
     def __synchro_model_value_attr(self):
@@ -86,7 +88,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
     def _load_model(self):
         
         if "model" in self.input.keys():
-            self.model : nn.Module = self.input["model"]
+            self.model : nn.Module = self.get_input_value("model")
             self.values["model"] = self.model
         
     def _initialize_mininum_model_architecture(self):

@@ -11,14 +11,10 @@ from automl.basic_components.state_management import StatefulComponent
 from automl.rl.rl_setup_util import initialize_agents_components
 
 from automl.utils.configuration_component_utils import save_configuration
-from pyparsing import Dict
 import torch
 
-import gc
 
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
-
-from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
+from automl.loggers.logger_component import  ComponentWithLogging
 
 # TODO this is missing the evaluation component on a RLPipeline
 class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
@@ -50,25 +46,29 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         super()._proccess_input_internal()
 
-        self.env : EnvironmentComponent = ComponentInputSignature.get_value_from_input(self, "environment")
-        self.num_episodes = self.input["num_episodes"]
+        self.env : EnvironmentComponent = self.get_input_value("environment")
+        self.num_episodes = self.get_input_value("num_episodes")
         
-        self.limit_steps = self.input["limit_steps"]
+        self.limit_steps = self.get_input_value("limit_steps")
 
-        self.store_env_at_end = self.input["store_env_at_end"]
+        self.store_env_at_end = self.get_input_value("store_env_at_end")
 
         self.__setup_agents()
 
         
     def __setup_agents(self):
+
+        self.agents = self.get_input_value("agents")
+        self.agents_input = self.get_input_value("agents_input")
         
-        self.agents : Dict[str, AgentSchema] = initialize_agents_components(self.input["agents"], self.env, self.input["agents_input"], self)
+        self.agents : dict[str, AgentSchema] = initialize_agents_components(self.agents, self.env, self.agents_input, self)
         
         # if the agents have no base directory associated with it, use RL player's
         for agent in self.agents.values():
             if not "base_directory" in agent.input.keys():
                 self.lg.writeLine(f"Agent {agent.name} has no base directory, passing player's directory to it")
                 agent.pass_input({"base_directory" : self.get_artifact_directory()})
+        
         
     
     def __setup_episode(self):
@@ -83,6 +83,8 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                 
         for agent in self.agents.values():
             agent.reset_agent_in_environment(self.env.observe(agent.name))
+
+
 
     def __end_episode(self):
         self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]

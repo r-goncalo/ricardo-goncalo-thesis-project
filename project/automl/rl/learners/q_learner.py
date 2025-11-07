@@ -50,11 +50,11 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super()._proccess_input_internal()
                 
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
         
-        self.TAU = self.input["target_update_rate"] #the update rate of the target network
+        self.TAU = self.get_input_value("target_update_rate") #the update rate of the target network
         
-        self.target_update_learn_interval = self.input["target_update_learn_interval"]
+        self.target_update_learn_interval = self.get_input_value("target_update_learn_interval")
         
         self.policy : Policy = self.agent.get_policy()
         
@@ -76,7 +76,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         elif "target_network" in self.input.keys():
             
             self.lg.writeLine("There was already a target network defined in the input")
-            self.target_net : ModelComponent  = self.input["target_network"]
+            self.target_net : ModelComponent  = self.get_input_value("target_network")
             self.values["target_network"] = self.target_net
             
         else:
@@ -90,7 +90,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
     def initialize_optimizer(self):
         
-        self.optimizer : OptimizerSchema = ComponentInputSignature.get_value_from_input(self, "optimizer")        
+        self.optimizer : OptimizerSchema = self.get_input_value("optimizer")        
         self.optimizer.pass_input({"model" : self.model})
 
     

@@ -14,17 +14,18 @@ CHANGE_INPUT = True
 
 class LookableInputSignature(InputSignature):
 
-    '''An input with functionality that allows it to look for its value'''
+    '''An input with functionality that allows it to look for its value when it is not of one of the explicitly defined types'''
 
-    def get_value_from_input(component_with_input : Component, key, possible_types):
+
+    def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True, accepted_types=()):
         
-        value = InputSignature.get_value_from_input(component_with_input, key)
+        value = super().get_value_from_input(component_with_input, key, is_none_ok)
 
         if value == None:
             return None
 
-        elif isinstance(value, possible_types):
-            return possible_types
+        elif isinstance(value, accepted_types):
+            return value
 
         else: # is localization
 
@@ -50,15 +51,13 @@ class ComponentInputSignature(InputSignature):
 
     
     possible_types = [Component, type, dict, str, tuple, list]
-    
-    def get_value_from_input(component_with_input : Component, key, input_if_generated=None):
-        
-        '''Returns a component from a ComponentInputSignature passed value'''
-        
-        value = InputSignature.get_value_from_input(component_with_input, key)
 
-        if value is None:
-            return value
+    @classmethod
+    def proccess_value_in_input(cls, component_with_input, key, value, input_if_generated=None):
+
+        '''
+        Processes the value in the input to a component
+        '''
         
         component = gen_component_from(value, component_with_input, input_if_generated)
 
@@ -67,11 +66,24 @@ class ComponentInputSignature(InputSignature):
 
         return component
     
+    def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True, input_if_generated=None):
+        
+        '''Returns a component from a ComponentInputSignature passed value'''
+
+        value = super().get_value_from_input(component_with_input, key, is_none_ok)
+
+        if value is None:
+            return value
+        
+        return ComponentInputSignature.proccess_value_in_input(component_with_input, key, value, input_if_generated)
+    
     
     
     def __init__(self, default_component_definition = None, **kwargs):
         
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
+
+        self.default_component_definition = default_component_definition
         
         if "possible_types" in kwargs.keys():
             kwargs["possible_types"] = [*ComponentInputSignature.possible_types, *kwargs["possible_types"]]
@@ -104,6 +116,19 @@ class ComponentInputSignature(InputSignature):
 
     def fuse_with_new(self, other_input_signature : InputSignature):
         raise NotImplementedError()
+    
+
+    def to_dict(self):
+
+        to_dict_to_return = {
+
+            ** super().to_dict(),
+            "default_component_definition" : str(self.default_component_definition)
+
+
+        }
+
+        return to_dict_to_return
 
 
 
@@ -112,11 +137,12 @@ class ComponentListInputSignature(InputSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
     
-    def get_value_from_input(component_with_input : Component, key) -> list[Component]:
+
+    def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True):
         
         '''Returns a component list from a ComponentListInputSignature passed value'''
         
-        list_of_components = component_with_input.input[key]
+        list_of_components = super().get_value_from_input(component_with_input, key, is_none_ok)
         
         to_return : list[Component] = []
 
@@ -163,12 +189,12 @@ class ComponentListInputSignature(InputSignature):
 class ComponentDictInputSignature(InputSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
-    
-    def get_value_from_input(component_with_input : Component, key) -> dict[Component]:
+
+    def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True):
         
         '''Returns a component list from a ComponentListInputSignature passed value'''
         
-        dict_of_components : dict = component_with_input.input[key]
+        dict_of_components : dict = super().get_value_from_input(component_with_input, key, is_none_ok)
         
         to_return : dict[Component] = {}
 

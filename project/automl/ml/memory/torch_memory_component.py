@@ -25,7 +25,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
 
         self.lg.writeLine("Initializing TorchMemoryComponent...")
 

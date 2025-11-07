@@ -10,6 +10,7 @@ from enum import Enum
 
 from automl.utils.json_utils.custom_json_logic import get_custom_strategy
 from automl.core.localizations import get_component_by_localization
+from automl.loggers.global_logger import globalWriteLine
 
 
 
@@ -77,11 +78,12 @@ class ComponentInputEncoder(json.JSONEncoder):
     
     '''Used with component to encode its input (not the input itself)'''
     
-    def __init__(self, *args, ignore_defaults : bool, source_component, **kwargs):
+    def __init__(self, *args, ignore_defaults : bool, source_component, respect_ignore_order, **kwargs):
         
         super().__init__(*args, **kwargs)
         self.ignore_defaults = ignore_defaults
         self.source_component = source_component
+        self.respect_ignore_order = respect_ignore_order
     
     def default(self, obj):
         
@@ -94,14 +96,15 @@ class ComponentInputEncoder(json.JSONEncoder):
             for key in input.keys():
                 
                 parameter_meta : InputMetaData = obj.get_input_meta()[key]
-                parameters_signature : InputSignature = parameter_meta.parameter_sig
+                parameters_signature : InputSignature = parameter_meta.parameter_signature
                 
                 # we we're set to ignore defaults and the value set is a default value
                 to_ignore_due_to_defaults =  ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults 
-                                
-                
-                
-                if ( not parameter_meta.ignore_at_serialization ) and not to_ignore_due_to_defaults :
+
+                # This is due to cases where we may want to save and reload the configuration exactly as is    
+                to_ignore_due_to_ignore_order = parameter_meta.ignore_at_serialization and self.respect_ignore_order
+            
+                if ( not to_ignore_due_to_ignore_order ) and ( not to_ignore_due_to_defaults) :
                     
                     serialized_value = json.dumps(input[key], cls=ComponentValuesElementsEncoder, source_component=self.source_component) #for each value in input, loads
 
@@ -155,12 +158,13 @@ class ComponentEncoder(json.JSONEncoder):
     
     '''Encodes the definition of a component, focusing on its child components'''
     
-    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, source_component : Component, **kwargs):
+    def __init__(self, *args, ignore_defaults : bool, save_exposed_values : bool, source_component : Component, respect_ignore_order, **kwargs):
         
         super().__init__(*args, **kwargs)
         self.ignore_defaults = ignore_defaults
         self.save_exposed_values = save_exposed_values
         self.source_component = source_component
+        self.respect_ignore_order = respect_ignore_order
     
     def default(self, obj):
         
@@ -172,7 +176,7 @@ class ComponentEncoder(json.JSONEncoder):
                 }
             
             #load input if it exists
-            component_input = json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults, source_component=self.source_component))
+            component_input = json.loads(json.dumps(obj, cls= ComponentInputEncoder, ignore_defaults=self.ignore_defaults, source_component=self.source_component, respect_ignore_order=self.respect_ignore_order))
             if component_input != {}:
                 toReturn["input"] = component_input
 
@@ -199,16 +203,16 @@ class ComponentEncoder(json.JSONEncoder):
             
         return None
 
-def json_string_of_component_dict(component_dict : dict, ignore_defaults = True, save_exposed_values = False):
+def json_string_of_component_dict(component_dict : dict, ignore_defaults = True, save_exposed_values = False, respect_ignore_order = True):
     
     component_from_dict = gen_component_from_dict(component_dict)
     
-    return json_string_of_component(component_from_dict, ignore_defaults=ignore_defaults, save_exposed_values=save_exposed_values)
+    return json_string_of_component(component_from_dict, ignore_defaults=ignore_defaults, save_exposed_values=save_exposed_values, respect_ignore_order = respect_ignore_order)
 
 
 # TODO: maybe it should be source_component.get_source_component()?
-def json_string_of_component(component, ignore_defaults = False, save_exposed_values = False):
-    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values, source_component=component)
+def json_string_of_component(component, ignore_defaults = False, save_exposed_values = False, respect_ignore_order = True):
+    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values, source_component=component, respect_ignore_order=respect_ignore_order)
 
 # DECODING --------------------------------------------------------------------------
 

@@ -7,7 +7,8 @@ from abc import ABCMeta
 class Schema(ABCMeta): # the meta class of all component classes, defines their behavior (not the behavior of the instances)
     
     def __init__(self_class, name, bases, namespace):
-        # Create the new class
+        
+        # Create the schema, with its defined attributes
         super().__init__(name, bases, namespace)
 
         self_class.__set_exposed_values_with_super(bases)
@@ -15,15 +16,6 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         self_class.__setup_default_values_in_parameter_signatures()
         self_class.__setup_organized_parameters_signature()
         
-                
-    def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values, this adds those attributes
-        
-        return {
-            "parameters_signature": {},
-            "exposed_values": {}
-        }
-    
-
 
     def __set_exposed_values_with_super(self_class, bases):
         

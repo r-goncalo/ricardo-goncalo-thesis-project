@@ -24,6 +24,7 @@ from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
+from automl.basic_components.seeded_component import SeededComponent
 import torch
 
 from automl.basic_components.state_management import save_state
@@ -43,14 +44,13 @@ OPTUNA_STUDY_PATH = 'study_results.db'
 
 BASE_CONFIGURATION_NAME = 'configuration'
 
-class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
+class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, SeededComponent):
     
     parameters_signature = {
         
                         "sampler" : InputSignature(default_value="TreeParzen"),
-                        "seed" : InputSignature(generator= lambda self : generate_and_setup_a_seed()),
         
-                        "configuration_dict" : InputSignature(mandatory=False),
+                        "configuration_dict" : InputSignature(mandatory=False, possible_types=[dict]),
                         "configuration_string" : InputSignature(mandatory=False),
                         "base_component_configuration_path" : InputSignature(mandatory=False),
 
@@ -102,7 +102,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self_artifact_directory = self.get_artifact_directory() #
         
-        json_str_of_exp = json_string_of_component_dict(self.config_dict, ignore_defaults=True, save_exposed_values=False)
+        json_str_of_exp = json_string_of_component_dict(self.config_dict, ignore_defaults=True, save_exposed_values=False, respect_ignore_order=False)
         
         configuration_path = os.path.join(self_artifact_directory, TO_OPTIMIZE_CONFIG_FILE)
 
@@ -116,7 +116,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def _setup_hp_config_file(self):
         
-        self.save_configuration(save_exposed_values=True) 
+        self.save_configuration(save_exposed_values=True, respect_ignore_order=False) 
         
         
                 
@@ -129,14 +129,16 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         super()._proccess_input_internal()
                 
         # LOAD VALUES
-        self.start_with_given_values = self.input["start_with_given_values"]
-        self.study_name=self.input["database_study_name"]
-        self.n_steps = self.input["steps"]
-        self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.input["hyperparameters_range_list"]
-        self.n_trials = self.input["n_trials"]
-        self.evaluator_component : EvaluatorComponent = ComponentInputSignature.get_value_from_input(self, "evaluator_component")
+        self.start_with_given_values = self.get_input_value("start_with_given_values")
+        self.study_name=self.get_input_value("database_study_name")
+        self.n_steps = self.get_input_value("steps")
+        self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.get_input_value("hyperparameters_range_list")
+        self.n_trials = self.get_input_value("n_trials")
+        self.evaluator_component : EvaluatorComponent = self.get_input_value("evaluator_component")
         
-        self.continue_after_error = InputSignature.get_value_from_input(self, "continue_after_error")
+        self.continue_after_error = self.get_input_value("continue_after_error")
+        
+        self.direction = self.get_input_value("direction")
 
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_config_dict()
@@ -167,14 +169,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             self.load_configuration_dict_from_path()
   
         elif "configuration_dict" in self.input.keys():
+
+            self.config_dict = self.get_input_value("configuration_dict")
             
-            if not isinstance(self.input["configuration_dict"], dict):
-                raise Exception("Configuration input passed is not a dictionary")
-            
-            self.config_dict = self.input["configuration_dict"]
-            
+                        
         elif "configuration_string" in self.input.keys():
-            self.config_dict = dict_from_json_string(self.input["configuration_string"])
+            self.config_dict = dict_from_json_string(self.get_input_value("configuration_string"))
             
         else:
             raise Exception("No configuration defined")
@@ -192,10 +192,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def _initialize_sampler(self):
 
-        if isinstance(self.input["sampler"], str):
+        self.sampler = self.get_input_value("sampler")
+
+        if isinstance(self.sampler, str):
             self._initialize_sampler_from_str()
 
-        elif isinstance(self.input["sampler", type]):
+        elif isinstance(self.sampler, type):
             self._initialize_sampler_from_class()
 
         else:
@@ -207,28 +209,28 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def _initialize_sampler_from_str(self):
 
-        self.lg.writeLine(f"Initializing sampler with string {self.input['sampler']}")
+        self.lg.writeLine(f"Initializing sampler with string {self.sampler}")
         
-        if self.input["sampler"] == "TreeParzen":
+        if self.sampler == "TreeParzen":
             
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.input["seed"])
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self._seed)
 
-        elif self.input["sampler"] == "Random":
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.input["seed"])
+        elif self.sampler == "Random":
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self._seed)
         
         else:
-            raise NotImplementedError(f"Non valid string for sampler '{self.input['sampler']}'") 
+            raise NotImplementedError(f"Non valid string for sampler '{self.sampler}'") 
     
     
         
     def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
 
-        self.lg.writeLine(f"Initializing sampler with class {self.input['sampler']}")
+        self.lg.writeLine(f"Initializing sampler with class {self.sampler}")
 
 
         try:
         
-            self.sampler : sampler_class(seed=self.input["seed"])
+            self.sampler : sampler_class(seed=self._seed)
 
         except Exception as e:
 
@@ -241,7 +243,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         if 'pruner' in self.input.keys():
             
-            passed_pruner = self.input["pruner"]
+            passed_pruner = self.get_input_value("pruner")
 
                         
             if isinstance(passed_pruner, optuna.pruners.BasePruner):
@@ -269,7 +271,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         pruner_input = {}
         
         if "pruner_input" in self.input.keys():
-            pruner_input = {**pruner_input, **self.input["pruner_input"]}
+            pruner_input = {**pruner_input, **self.get_input_value("pruner_input")}
             self.lg.writeLine(f"Pruner input passed: {pruner_input}")
 
         
@@ -288,7 +290,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
     def load_configuration_dict_from_path(self):
         
-        self.rl_pipeline_config_path : str = self.input["base_component_configuration_path"]
+        self.rl_pipeline_config_path : str = self.get_input_value("base_component_configuration_path")
         
         fd = open(self.rl_pipeline_config_path, 'r') 
         self.config_str = fd.read()
@@ -644,7 +646,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     sampler=self.sampler,
                     storage=self.storage,
                     study_name=self.study_name,
-                    direction=self.input["direction"],
+                    direction=self.direction ,
                 )
                 self.lg.writeLine(f"Created new study '{self.study_name}'")
 

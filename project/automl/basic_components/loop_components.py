@@ -14,10 +14,10 @@ class WhileFunDoFunComponent(ExecComponent):
     
     def algorithm(self):
                 
-        condition = self.input["condition"]
-        execution = self.input["execution"]
-        pre_execution = self.input["pre_execution"]
-        post_execution = self.input["post_execution"]
+        condition = self.get_input_value("condition")
+        execution = self.get_input_value("execution")
+        pre_execution = self.get_input_value("pre_execution")
+        post_execution = self.get_input_value("post_execution")
         
         pre_execution(self)
         
@@ -40,13 +40,13 @@ class DoNTimesComponent(ExecComponent):
     
     def algorithm(self):
                 
-        execution = self.input["execution"]
-        pre_execution = self.input["pre_execution"]
-        post_execution = self.input["post_execution"]
+        execution = self.get_input_value("execution")
+        pre_execution = self.get_input_value("pre_execution")
+        post_execution = self.get_input_value("post_execution")
         
         pre_execution(self)
         
-        i : int = self.input["times_to_do"]
+        i : int = self.get_input_value("times_to_do")
         
         while i > 0:
             execution(self)

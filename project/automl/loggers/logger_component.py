@@ -71,15 +71,15 @@ class LoggerSchema(ArtifactComponent):
         
         super()._proccess_input_internal()
             
-        self.necessary_logger_level = DEBUG_LEVEL.from_value(InputSignature.get_value_from_input(self, "necessary_logger_level"))  
+        self.necessary_logger_level = DEBUG_LEVEL.from_value(self.get_input_value("necessary_logger_level"))  
         
-        self.default_print = self.input["default_print"]
+        self.default_print = self.get_input_value("default_print")
         
-        self.default_use_timestamp = self.input["user_timestamp_in_logs"]
+        self.default_use_timestamp = self.get_input_value("user_timestamp_in_logs")
         
-        self.default_log_text_file = self.input["log_text_file"]
+        self.default_log_text_file = self.get_input_value("log_text_file")
         
-        self.object_with_name = self.input["object_with_name"] if "object_with_name" in self.input.keys() else None
+        self.object_with_name = self.get_input_value("object_with_name") if "object_with_name" in self.input.keys() else None
 
     # LOGGING -----------------------------------------------------------------------------        
 
@@ -216,7 +216,7 @@ class LoggerSchema(ArtifactComponent):
     
 def on_log_pass(self : Component):
             
-    self.lg  = self.input["logger_object"]
+    self.lg  = self.get_input_value("logger_object")
     
 def generate_logger_for_component(self : ArtifactComponent):
     return self.initialize_child_component(LoggerSchema, input={
@@ -245,7 +245,7 @@ class ComponentWithLogging(ArtifactComponent):
             
         super()._proccess_input_internal()
         
-        self.lg : LoggerSchema = self.input["logger_object"] if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
+        self.lg : LoggerSchema = self.get_input_value("logger_object") if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
         
 
     @requires_input_proccess

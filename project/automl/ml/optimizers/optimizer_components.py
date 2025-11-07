@@ -18,7 +18,7 @@ class OptimizerSchema(Component):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.model : ModelComponent = ComponentInputSignature.get_value_from_input(self, "model")
+        self.model : ModelComponent = self.get_input_value("model")
 
 
         
@@ -75,8 +75,11 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         self.lg.writeLine(f"This exists with input:\n{self.input}")
         
         self.params = self.model.get_model_params() #gets the model parameters to optimize
+
+        self.lr = self.get_input_value("learning_rate")
+        self.amsgrad = self.get_input_value("amsgrad")
                 
-        self.torch_adam_opt = optim.Adam(params=self.params,lr=self.input["learning_rate"], amsgrad=self.input["amsgrad"])
+        self.torch_adam_opt = optim.Adam(params=self.params,lr=self.lr, amsgrad=self.amsgrad)
 
 
 
@@ -89,7 +92,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
 
         self.lr_scheduler = None
 
-        self.linear_decay_learning_rate_with_final_input_value_of = LookableInputSignature.get_value_from_input(self, "linear_decay_learning_rate_with_final_input_value_of", (int)) 
+        self.linear_decay_learning_rate_with_final_input_value_of = self.get_input_value("linear_decay_learning_rate_with_final_input_value_of", accepted_types=(int)) 
 
         if self.linear_decay_learning_rate_with_final_input_value_of != None:
 
@@ -171,9 +174,11 @@ class SimpleSGDOptimizer(OptimizerSchema):
 
         # Get model parameters
         self.params = self.model.get_model_params()
+        
+        self.lr = self.get_input_value("learning_rate")
 
         # Define SGD optimizer
-        self.sgd_optimizer = optim.SGD(self.params, lr=self.input["learning_rate"])
+        self.sgd_optimizer = optim.SGD(self.params, lr=self.lr)
 
     @requires_input_proccess
     def optimize_model(self, predicted, correct) -> None:

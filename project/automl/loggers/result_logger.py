@@ -33,11 +33,11 @@ class ResultLogger(LoggerSchema):
         
         super()._proccess_input_internal()
         
-        self.results_filename = self.input["results_filename"]
+        self.results_filename = self.get_input_value("results_filename")
         
         self._initialize_dataframe()
         
-        self.save_on_log = self.input["save_results_on_log"]
+        self.save_on_log = self.get_input_value("save_results_on_log")
     
     
     def _initialize_dataframe(self):
@@ -52,7 +52,7 @@ class ResultLogger(LoggerSchema):
         
         except Exception as e:
                         
-            self.columns = InputSignature.get_value_from_input(self, "results_columns")
+            self.columns = self.get_input_value("results_columns")
 
             if self.columns == None:
                 raise Exception(f"Results logger dataframe did not exist in artifact directory {self.get_artifact_directory()} with filename {self.results_filename} and no columns passed")

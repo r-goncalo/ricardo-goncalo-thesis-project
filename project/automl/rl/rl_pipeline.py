@@ -53,18 +53,18 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     # INITIALIZATION -----------------------------------------------------------------------------
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
-        
-        print(f"Environment: {self.input['environment']}")
-        
+                
         super()._proccess_input_internal()
                 
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
+
+        self.agents_input = self.get_input_value("agents_input")
         
         self.configure_device(self.device)
         
         self.setup_environment()
                         
-        self.save_in_between = self.input["save_in_between"]
+        self.save_in_between = self.get_input_value("save_in_between")
         
         self.initialize_agents_components()
     
@@ -74,7 +74,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         
     def setup_environment(self):
-        self.env : EnvironmentComponent = ComponentInputSignature.get_value_from_input(self, "environment")
+        self.env : EnvironmentComponent = self.get_input_value("environment")
                 
         self.env.pass_input({"device" : self.device})
         
@@ -122,9 +122,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             "agents" : self.agents.copy() # so changes to the rl trainer dict do not translate to the agents passed
         }        
         
-        self.fraction_of_training_to_do_in_session = self.input["fraction_of_training_to_do_in_session"] if "fraction_of_training_to_do_in_session" in self.input.keys() else None
+        self.fraction_of_training_to_do_in_session = self.get_input_value("fraction_of_training_to_do_in_session")
 
-        self.generate_fraction_from_times_to_run = self.input["generate_fraction_from_times_to_run"]
+        self.generate_fraction_from_times_to_run = self.get_input_value("generate_fraction_from_times_to_run")
 
         # if we are to generate a fraction and there was none specified
         if self.generate_fraction_from_times_to_run and self.fraction_of_training_to_do_in_session is None and self._times_to_run is not None: 
@@ -135,11 +135,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             rl_trainer_input["fraction_training_to_do"] = self.fraction_of_training_to_do_in_session
 
 
-
-            
-
-
-        self.rl_trainer : RLTrainerComponent = ComponentInputSignature.get_value_from_input(self, "rl_trainer")
+        self.rl_trainer : RLTrainerComponent = self.get_input_value("rl_trainer")
         
         self.rl_trainer.pass_input(rl_trainer_input)
 
@@ -148,7 +144,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         '''Initialize the agents, creating them if necessary first'''
 
-        self.agents = self.input["agents"] #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
+        self.agents = self.get_input_value("agents") #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
 
         if self.agents  == {}:
             self.create_agents()
@@ -163,7 +159,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             
         self.setup_agent_state_action_shape(agent_name, agent)
                             
-        agent.pass_input(self.input["agents_input"])
+        agent.pass_input(self.agents_input)
             
             
     def setup_agent_state_action_shape(self, agent_name, agent : AgentSchema):       
@@ -201,7 +197,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             
             agent_input["base_directory"] = os.path.join(self.get_artifact_directory(), "agents" )
             
-            agent_class = get_sub_class_with_correct_parameter_signature(AgentSchema, self.input["agents_input"]) #gets the agent class with the correct parameter signature
+            agent_class = get_sub_class_with_correct_parameter_signature(AgentSchema, self.agents_input) #gets the agent class with the correct parameter signature
 
             agents[agent] = self.initialize_child_component(agent_class, input=agent_input)
 

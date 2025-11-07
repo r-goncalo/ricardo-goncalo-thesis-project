@@ -20,7 +20,7 @@ class MockupRandomModel(ModelComponent):
 
         self.input_size = discrete_input_layer_size_of_space(self.input_shape)
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
         
         
     

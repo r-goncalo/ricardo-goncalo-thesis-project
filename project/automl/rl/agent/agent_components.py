@@ -41,14 +41,13 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         super()._proccess_input_internal()
         
-        self.name = self.input["name"]                
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
     
-        self.state_shape = self.input["state_shape"] #shape of the state as the environment sees it
+        self.state_shape = self.get_input_value("state_shape") #shape of the state as the environment sees it
                 
         self.model_input_shape = self.state_shape #shape of the state as it is processed by the model of the policy
         
-        self.model_output_shape = self.input["action_shape"] #shape of the action
+        self.model_output_shape = self.get_input_value("action_shape") #shape of the action
     
         self.initialize_state_memory()
         self.initialize_policy()
@@ -81,7 +80,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         self.lg.writeLine("Initializing policy...")    
         
-        self.policy : Policy = ComponentInputSignature.get_value_from_input(self, "policy")
+        self.policy : Policy = self.get_input_value("policy")
                 
         self.policy.pass_input({"state_shape" : self.model_input_shape,
                                "action_shape" : self.model_output_shape,})

@@ -22,8 +22,9 @@ class SeededComponent(Component):
         
         super()._proccess_input_internal()
         
-        self._seed = self.input["seed"]
+        self._seed = self.get_input_value("seed")
+        self._do_full_setup_of_seed = self.get_input_value("do_full_setup_of_seed")
                 
-        if self.input["do_full_setup_of_seed"]:
+        if self._do_full_setup_of_seed:
             do_full_setup_of_seed(self._seed)
         

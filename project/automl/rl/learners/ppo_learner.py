@@ -58,7 +58,7 @@ class PPOLearner(LearnerSchema):
         
         super()._proccess_input_internal()
                 
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
                         
         self.policy : StochasticPolicy = self.agent.get_policy()
         
@@ -70,10 +70,10 @@ class PPOLearner(LearnerSchema):
         self.initialize_critic_model()
         self.initialize_optimizer()
         
-        self.clip_epsilon = self.input["clip_epsilon"]
-        self.entropy_coef = self.input["entropy_coef"]
-        self.value_loss_coef = self.input["value_loss_coef"]
-        self.lamda_gae = self.input["lamda_gae"]
+        self.clip_epsilon = self.get_input_value("clip_epsilon")
+        self.entropy_coef = self.get_input_value("entropy_coef")
+        self.value_loss_coef = self.get_input_value("value_loss_coef")
+        self.lamda_gae = self.get_input_value("lamda_gae")
         
         self.number_of_times_optimized = 0
 
@@ -82,12 +82,12 @@ class PPOLearner(LearnerSchema):
     
     def initialize_critic_model(self):
         
-        self.critic : ModelComponent = ComponentInputSignature.get_value_from_input(self, "critic_model")
+        self.critic : ModelComponent = self.get_input_value("critic_model")
 
         if not self.critic.has_custom_name_passed():
             self.critic.pass_input({"name" : "critic"})
         
-        critic_model_passed_input = InputSignature.get_value_from_input(self, "critic_model_input")
+        critic_model_passed_input = self.get_input_value("critic_model_input")
         if critic_model_passed_input != None:
             self.critic.pass_input(critic_model_passed_input)
 
@@ -99,13 +99,13 @@ class PPOLearner(LearnerSchema):
     def initialize_optimizer(self):
         
         # Policy optimizer
-        self.actor_optimizer : OptimizerSchema = ComponentInputSignature.get_value_from_input(self, "optimizer")
+        self.actor_optimizer : OptimizerSchema = self.get_input_value("optimizer")
         
         if not self.actor_optimizer.has_custom_name_passed():
             self.actor_optimizer.pass_input({"ActorOptimizer"})
 
         # Critic optimizer
-        self.critic_optimizer : OptimizerSchema  = ComponentInputSignature.get_value_from_input(self, "critic_optimizer")
+        self.critic_optimizer : OptimizerSchema  = self.get_input_value("critic_optimizer")
 
         if self.critic_optimizer == None:
             self.critic_optimizer = self.actor_optimizer.clone()

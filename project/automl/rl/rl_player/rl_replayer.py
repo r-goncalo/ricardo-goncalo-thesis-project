@@ -50,10 +50,10 @@ class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Stat
 
 
     def setup_environment(self):
-        self.env : EnvironmentComponent = ComponentInputSignature.get_value_from_input(self, "environment")
+        self.env : EnvironmentComponent = self.get_input_value("environment")
 
     def setup_memories_of_agents(self):        
-        self.memory_dict : dict[MemoryComponent] = ComponentDictInputSignature.get_value_from_input(self, "memory_list")
+        self.memory_dict : dict[MemoryComponent] = self.get_input_value("memory_list")
 
 
 

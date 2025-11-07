@@ -34,10 +34,10 @@ class ExecComponent(Component):
         if "times_to_run" not in self.input:
             self._times_to_run = None
         else:
-            self._times_to_run = self.input["times_to_run"]
+            self._times_to_run = self.get_input_value("times_to_run")
         
-        self.__save_state_on_run_end = self.input["save_state_on_run_end"]
-        self.__save_dataframes_on_run_end = self.input["save_dataframes_on_run_end"]
+        self.__save_state_on_run_end = self.get_input_value("save_state_on_run_end")
+        self.__save_dataframes_on_run_end = self.get_input_value("save_dataframes_on_run_end")
 
         
 

@@ -34,7 +34,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.device = self.input["device"]
+        self.device = self.get_input_value("device")
 
         self.last_observation = None
         self.last_reward = 0
@@ -42,6 +42,8 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         self.last_info = {}
         
         self.reset_info = {}
+
+        self.render_mode = self.get_input_value("render_mode")
 
         self._setup_environment()
 
@@ -53,12 +55,14 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
     def _setup_environment(self):
 
         '''Loads the actual Gym environment implementation'''
+
+        self.env = self.get_input_value("environment")
         
-        if isinstance(self.input["environment"], str):
-            self._load_environment(self.input["environment"])
+        if isinstance(self.env, str):
+            self._load_environment(self.env)
         
-        elif isinstance(self.input["environment"], gym.Env):
-            self.env: gym.Env = self.input["environment"]
+        elif isinstance(self.env, gym.Env):
+            self.env: gym.Env = self.env
         
         else:
             raise Exception("No valid Gymnasium environment or environment name passed.")
@@ -67,7 +71,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
     def _load_environment(self, environment_name: str):
         
         try:
-            self.env: gym.Env = gym.make(environment_name, render_mode=self.input["render_mode"])
+            self.env: gym.Env = gym.make(environment_name, render_mode=self.render_mode)
         
         except Exception as e:
             raise Exception(f"{self.name}: Failed to load gym environment '{environment_name}': {str(e)}")

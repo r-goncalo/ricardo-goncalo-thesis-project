@@ -35,7 +35,7 @@ class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPip
                 
         super()._proccess_input_internal()
                 
-        self.number_of_opt_per_group = self.input["number_of_opt_per_group"]
+        self.number_of_opt_per_group = self.get_input_value("number_of_opt_per_group")
         
 
     def _create_component_to_optimize_configuration(self, trial : optuna.Trial) -> dict:

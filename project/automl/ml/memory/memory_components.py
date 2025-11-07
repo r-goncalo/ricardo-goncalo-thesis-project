@@ -19,11 +19,13 @@ class MemoryComponent(StatefulComponent):
         
         super()._proccess_input_internal()
         
-        self.capacity = InputSignature.get_value_from_input(self, "capacity")
+        self.capacity = self.get_input_value("capacity")
         
         self.fields_shapes = []
+
+        self.transition_data = self.get_input_value("transition_data")
         
-        for transition_data in self.input["transition_data"]:
+        for transition_data in self.transition_data:
             
             if len(transition_data) < 3:
                 data_name, shape = transition_data
