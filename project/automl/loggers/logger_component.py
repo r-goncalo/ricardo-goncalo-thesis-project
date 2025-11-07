@@ -255,6 +255,6 @@ class ComponentWithLogging(ArtifactComponent):
             self.lg.change_logger_level(new_level)
 
         else:
-            self.lg.pass_input{"necessary_logger_level" : new_level}
+            self.lg.pass_input({"necessary_logger_level" : new_level})
 
     
