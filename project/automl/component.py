@@ -187,17 +187,28 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         self.input[key] = None
         self.__input_meta[key].custom_value_removed()
 
+    
 
-
-    def get_input_value_in_dict(self, key):
+    def get_input_value(self, key, **kwargs):
 
         '''
-        Gets the input value in the input dictionary of this component
-        This shouldn't usually be used, instead use InputSignature.get...
+        This is the method meant to get input from the component
+        It generalizes using the method giving from the InputSignature of the specific key
         '''
 
-        return self.input[key]
+        try:
 
+            parameter_signature : InputSignature = self.get_parameter_signature(key)
+
+            to_return = parameter_signature.get_value_from_input(self, key, **kwargs)
+
+            self.__input_meta[key].value_was_got()
+
+            return to_return
+        
+        except Exception as e:
+
+            raise Exception(f"Error getting input value from component {self.name} with key '{key}' and parameters {kwargs}:") from e
 
     
     def set_input_to_be_ignored_at_serialization(self, key : str, value : bool):
@@ -389,6 +400,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         return type(self).get_schema_parameter_signature(key) #uses the class method to get the parameter signature for a key
     
+
+
     def get_parameters_signatures(self) -> dict[str, InputSignature]:
         
         '''Returns the parameters signatures for this component'''
