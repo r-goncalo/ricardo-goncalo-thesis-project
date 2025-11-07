@@ -250,6 +250,11 @@ class ComponentWithLogging(ArtifactComponent):
 
     @requires_input_proccess
     def change_logger_level(self, new_level : DEBUG_LEVEL):
-        self.lg.change_logger_level(new_level)
+
+        if self.lg.input_was_processed():
+            self.lg.change_logger_level(new_level)
+
+        else:
+            self.lg.pass_input{"necessary_logger_level" : new_level}
 
     
