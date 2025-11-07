@@ -1,12 +1,12 @@
 from automl.core.input_management import InputMetaData, InputSignature
 from types import FunctionType
 import copy
-from abc import ABCMeta
 
 from automl.core.localizations import get_child_by_name, get_component_by_localization, get_index_localization, get_source_component
 
 from automl.utils.class_util import get_class_from
 from automl.loggers.global_logger import globalWriteLine
+from automl.schema import Schema
 
 # Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
 
@@ -14,37 +14,13 @@ def on_name_pass(self):
     self.name = self.input["name"] #sets the name of the component to the input name
     self._was_custom_name_set = True
 
-    
 
-#TODO: this should make all pre computation necessary for input processing
-class Scheme(ABCMeta): # the meta class of all component classes, defines their behavior (not the behavior of the instances)
-    
-    def __init__(self_class, *args, **kwargs):
-        # Create the new class
-        super().__init__(*args, **kwargs)
+class Component(metaclass=Schema): # a component that receives and verifies input
 
-        
-                
-    
-    def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values
-        
-        return {
-            "parameters_signature": {},
-            "exposed_values": {}
-        }
-
-
-class Component(metaclass=Scheme): # a component that receives and verifies input
-
-    '''This is the basic Squema, all other Squemas should extend it'''
-    
-    # a dictionary with { "input_name" : (default_value, validity verification) }
-    # if default_value is None, an exception error is raised when input is missing
-    # if validity verification function is not none, it will be applied to the input value
-    # the actual input values will be saved in self.input
-    # worth noting that child components can freely repeat values in their parameters_signature.
-    #   Default values and generators of child components will have priority
-    #   Validity and type checkers will be applied from Parent to child     
+    '''
+    This is the basic Squema, all other Squemas should extend it
+    All its defiined values are still processed by the metaclass Schema
+    '''
     
     parameters_signature : dict[str, InputSignature] = {
         "name" : InputSignature(on_pass=on_name_pass, ignore_at_serialization=True, mandatory=False, priority=0), #the name of the component
@@ -54,6 +30,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     #it tells other components what are the values exposed by this component, useful when checking the validity of the program before running it
     #this does not need to be stored in the component, the only reason it is is to standardize this kind of exposure
     exposed_values : dict[str, any] = {}
+
+    organized_parameters_signatures : dict[int, list[InputSignature]] = {} #InputSignatures organized by priorities
     
     
     # INITIALIZATION -------------------------------------------------------------------------
@@ -65,8 +43,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         self.__input_meta : dict[str, InputMetaData] = {} # will store meta data according to the input
         self.__initialize_input_meta_data()
         
-        self.__set_exposed_values_with_super() #updates the exposed values with the ones in super classes
-        self.values = self.exposed_values.copy() #this is where the exposed values will be stored
+        self.values = type(self).exposed_values.copy() #this is where the exposed values will be stored
         
         self.child_components : list[Component] = []
         self.parent_component : Component = None
@@ -116,6 +93,10 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
                 
     def _setup_default_value_if_no_value(self, key):
+
+        '''
+        Internally sets up the default value for an input if it has no default value
+        '''
         
         parameter_signature = self.get_parameter_signature(key)
             
@@ -169,25 +150,20 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         try:
             self.__input_meta[key].custom_value_passed()
         
-        except KeyError as e:
-            raise Exception(f"In component of type {type(self)}, when passing input: Tried to pass input for key {key}, with internal inconsistency, as it does not exist in the meta of inputs: {self.__input_meta.keys()} but exists in parameter signature: {self.__get_organized_parameters_signature()})") from e
+        except Exception as e:
+            raise Exception(f"In component of type {type(self)}, when passing input: Tried to pass input for key {key}, with internal inconsistency, as it does not exist in the meta of inputs: {self.__input_meta.keys()} even if exists in parameter signature: {self.get_parameters_signatures()})") from e
 
-        parameters_signatures_of_key : list[InputSignature] = self.get_list_of_parameter_signatures_for_key(key)
         
-        for parameter_signature in parameters_signatures_of_key: # TODO: this should all be defined in the creation of the Scheme, not computed every time an input is passed
-        
-            if parameter_signature.on_pass != None: #if there is verification of logic for when the input is passed
+        for on_pass in self.get_parameter_signature(key).on_pass:
 
-                try:
-                
-                    parameter_signature.on_pass(self)
+            try:
+                on_pass(self)
 
-                except:
-                    raise Exception(f"In component of type {type(self)}, when passing input: Exception while using the on_pass for {key}, named {parameter_signature.on_pass.__name__}")
+            except:
+                raise Exception(f"In component of type {type(self)}, when passing input: Exception while using the on_pass for {key}, named {on_pass.__name__}")
                
                
-    def __verified_setup_default_value(self, key):
-                
+    def __verified_setup_default_value(self, key): 
             
         parameter_signature = self.get_parameter_signature(key)
         
@@ -202,12 +178,15 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         else:
             raise Exception(f"In component of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
 
+
+
     def __verified_remove_input(self, key):
         
         '''for logic of passing the input, already verified'''
         
         self.input[key] = None
         self.__input_meta[key].custom_value_removed()
+
 
 
     def get_input_value_in_dict(self, key):
@@ -237,18 +216,13 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         self.__input_is_being_processed = True
         
-        #get input signature priorities specified, sorted
-        #and the input signatures organized by priorities
-        parameters_signature_priorities, organized_parameters_signature = self.__get_organized_parameters_signature()
-        
         passed_keys = self.input.keys()
         
-        
-        for priority in parameters_signature_priorities:
+        for priority in type(self).parameters_signature_priorities:
                         
-            self.__add_default_values_of_class_input(passed_keys, organized_parameters_signature[priority])
+            self.__add_default_values_of_class_input(passed_keys, type(self).organized_parameters_signatures[priority])
             
-            self.__verify_input(passed_keys, organized_parameters_signature[priority])            
+            self.__verify_input(passed_keys, type(self).organized_parameters_signatures[priority])            
             
         
     def proccess_input(self):
@@ -289,7 +263,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     
     # CHILD AND PARENT COMPONENTS AND LOCALIZATION ---------------------------------
     
-    def initialize_child_component(self, component_type : type, input : dict ={}):
+    def initialize_child_component(self, component_type : type, input : dict = {}):
         
         '''Explicitly initializes a component of a certain type as a child component of this one'''
         
@@ -340,6 +314,7 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 
         return get_child_by_name(self, name)
     
+
     def get_child_by_localization(self, localization : list):
         
         '''
@@ -383,57 +358,11 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     
     # EXPOSED VALUES -------------------------------------------
     
-    # TODO : maybe this should happen at the end of class definition for all classes that extend Component, statically? Instead of happening multiple times per class redundantly
-    def __set_exposed_values_with_super(self):
-        
-        '''Updates the exposed values with super classes'''
-                
-        current_class_index = 0
-        method_resolution_list = type(self).__mro__
-        current_squeme : type[Component] = method_resolution_list[current_class_index]
-        
-        while True:
-            
-            self.exposed_values =  {**current_squeme.exposed_values, **self.exposed_values} #updates the exposed values with the exposed values in super classes
-            
-            if current_squeme == Component:
-                break #this is the last squeme
-            
-            else:
-                current_class_index += 1
-                current_squeme : type[Component] = method_resolution_list[current_class_index]
+
 
 
 
     # INPUT PROCCESSING ---------------------------------------------      
-    
-    def get_list_of_parameter_signatures_for_key(self, key) -> list[InputSignature]:
-        
-        current_class_index = 0
-        method_resolution_list = type(self).__mro__
-        current_squeme : type[Component] = method_resolution_list[current_class_index]
-        
-        toReturn : list[InputSignature]= []
-        
-        while True:
-            
-            if key in current_squeme.parameters_signature.keys():
-                toReturn.append(current_squeme.parameters_signature[key])
-                
-                if current_squeme == Component:
-                    break 
-                
-                current_class_index += 1
-                current_squeme : type[Component] = method_resolution_list[current_class_index]
-            
-            elif current_squeme == Component:
-                break 
-            
-            else:
-                current_class_index += 1
-                current_squeme : type[Component] = method_resolution_list[current_class_index]
-        
-        return toReturn
     
     
     
@@ -441,24 +370,16 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
     def get_schema_parameter_signature(cls, key) -> InputSignature:
         
         '''Returns the parameter signature for a key for this Schema'''
+
+        return cls.parameters_signature[key]
+    
+
+    @classmethod
+    def get_schema_parameters_signatures(cls) -> dict[str, InputSignature]:
         
-        current_class_index = 0
-        method_resolution_list = cls.__mro__
-        current_squeme : type[Component] = method_resolution_list[current_class_index]
-        
-        while True:
-            
-            if key in current_squeme.parameters_signature.keys():
-                return current_squeme.parameters_signature[key]
-            
-            elif current_squeme == Component:
-                break #this will return false
-            
-            else:
-                current_class_index += 1
-                current_squeme : type[Component] = method_resolution_list[current_class_index]
-            
-        return None #there was no key
+        '''Returns the parameters signatures for this Schema'''
+
+        return cls.parameters_signature
     
     
 
@@ -468,58 +389,25 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         return type(self).get_schema_parameter_signature(key) #uses the class method to get the parameter signature for a key
     
+    def get_parameters_signatures(self) -> dict[str, InputSignature]:
+        
+        '''Returns the parameters signatures for this component'''
+        
+        return type(self).get_schema_parameters_signatures() #uses the class method to get the parameter signature 
+    
+
+    
     def in_parameters_signature(self, key): #checks if the key is in input signature of component or its parents components
         
         return self.get_parameter_signature(key) != None
     
-    
-    def __proccess_squeme_from_priorities(self, current_squeme, parameters_signature_priorities : list[int], organized_parameters_signatures : dict[int, list[InputSignature]]):
-    
-        current_parameters_signature : dict[str, InputSignature] = current_squeme.parameters_signature #get its input signature 
-        
-        for key, parameter_signature in current_parameters_signature.items():
-            
-            priority = parameter_signature.priority
-            
-            if not priority in parameters_signature_priorities: #if this is the first key for that priority, initialize the list for that priority
-                parameters_signature_priorities.append(priority)
-                organized_parameters_signatures[priority] = []
-                
-            organized_parameters_signatures[priority].append((key, parameter_signature)) #put its key, parameter_signature pair in the list of respective priority                
-
-    
-    
-    # TODO: This is missing the capability of a Schematic re-writing the InputSignature of its super
-    def __get_organized_parameters_signature(self): 
-        
-        current_class_index = 0
-        method_resolution_list = type(self).__mro__
-        current_squeme : type[Component] = method_resolution_list[current_class_index]
-        
-        parameters_signature_priorities : list[int] = [] #all priorities defined
-        organized_parameters_signatures : dict[int, list[InputSignature]] = {} #InputSignatures organized by priorities
-        
-        while True: #for each component class
-            
-            self.__proccess_squeme_from_priorities(current_squeme, parameters_signature_priorities, organized_parameters_signatures)              
-            
-            if current_squeme == Component:
-                break #this is the last squeme
-            
-            else:
-                current_class_index += 1
-                current_squeme : type[Component] = method_resolution_list[current_class_index]
-
-        parameters_signature_priorities.sort()
-        
-        return parameters_signature_priorities, organized_parameters_signatures
         
             
     # DEFAULT VALUES -------------------------------------------------
             
-    def __add_default_values_of_class_input(self, passed_keys, list_of_signatures : list[tuple[int, InputSignature]]):
+    def __add_default_values_of_class_input(self, passed_keys, list_of_signatures : dict[str, InputSignature]):
                         
-        for (input_key, parameter_signature) in list_of_signatures:
+        for input_key, parameter_signature in list_of_signatures.items():
                              
             #if this values was not already defined
             if not input_key in passed_keys: 
@@ -549,21 +437,8 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
         '''Initializes the dictionary __input_meta'''
             
-        current_class_index = 0
-        method_resolution_list = type(self).__mro__
-        current_squeme : type[Component] = method_resolution_list[current_class_index]
-        
-        while True:
-            
-            for key in current_squeme.parameters_signature.keys():
-                self.__input_meta[key] = InputMetaData(parameter_signature=current_squeme.parameters_signature[key])
-            
-            if current_squeme == Component:
-                break #this is the last squeme
-            
-            else:
-                current_class_index += 1
-                current_squeme : type[Component] = method_resolution_list[current_class_index]
+        for key in type(self).parameters_signature.keys():
+            self.__input_meta[key] = InputMetaData(parameter_signature=type(self).parameters_signature[key])
         
 
             
@@ -573,9 +448,9 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
         
     # VALIDITY VERIFICATION ---------------------------------------------
 
-    def __verify_input(self, passed_keys, list_of_signatures : list[tuple[int, InputSignature]]): #verify the input to this component and add default values, to the self.input dict
+    def __verify_input(self, passed_keys, list_of_signatures : dict[str, InputSignature]): #verify the input to this component and add default values, to the self.input dict
 
-        for (input_key, parameter_signature) in list_of_signatures:
+        for input_key, parameter_signature in list_of_signatures.items():
                                     
             if input_key in passed_keys: #if this value was in input
                 
@@ -587,32 +462,36 @@ class Component(metaclass=Scheme): # a component that receives and verifies inpu
                 raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")     
 
 
-    def verify_validity(self, input_key, input_value, possible_types, validity_verificator):
+    def verify_validity(self, input_key, input_value, possible_types, validity_verificator_list):
 
-        if validity_verificator == None: #if there was no specified validity_verification, we check the available types
+        if validity_verificator_list == None or validity_verificator_list == []: #if there was no specified validity_verification, we check the available types
             return self.verify_one_of_types(input_key, input_value, possible_types) 
 
-        is_a_correct_type = validity_verificator(input_value) #use the verificator the Component has specified in its input signature
+        else:
 
-        if not isinstance(is_a_correct_type, bool): #validity_verification must return bool
-            raise Exception(f"In component of type {type(self)}: Validity verification on key '{input_key}' returned a type other than bool")
+            for validity_verificator in validity_verificator_list:
+            
+                is_a_correct_type = validity_verificator(input_value) #use the verificator the Component has specified in its input signature
 
-        elif is_a_correct_type == False:
-            raise Exception(f"In component of type {type(self)}: Value with key '{input_key}' did not pass Component specified validity verificator") 
+                if not isinstance(is_a_correct_type, bool): #validity_verification must return bool
+                    raise Exception(f"In component of type {type(self)}: Validity verification on key '{input_key}' returned a type other than bool")
+
+                elif is_a_correct_type == False:
+                    raise Exception(f"In component of type {type(self)}: Value with key '{input_key}' did not pass Component specified validity verificator") 
 
 
 
 
     def verify_one_of_types(self, input_key, input_value, possible_types):
-
-            if len(possible_types) == 0:
+            
+            if possible_types == None or possible_types == []:
                 return #if there were no possible_types defined, there is no need to check the type
 
             for possible_type in possible_types:
 
                 if isinstance(input_value, possible_type):
                     return #break the loop and the functon, value is of one of the possible types
-
+                
             #if we reach the end of the function, then the value is of none of the types
             raise Exception(f"In component of type {type(self)}: No validity verificator specified for key '{input_key}' and its type ({type(input_key)}) is of none of the possible types: {possible_types}")
           

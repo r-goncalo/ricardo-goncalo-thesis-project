@@ -34,6 +34,14 @@ class LookableInputSignature(InputSignature):
             except Exception as e:
 
                 raise Exception(f"Exception when trying to get value for key {key} for component {component_with_input.name}, with assumed localization {value}: \n{e}") from e
+            
+
+    def setup_default_values(self):
+        super().setup_default_values()
+        
+
+    def fuse_with_new(self, other_input_signature : InputSignature):
+        super().setup_default_values(other_input_signature)
 
 
 class ComponentInputSignature(InputSignature):
@@ -88,7 +96,16 @@ class ComponentInputSignature(InputSignature):
         
         else:
             super().__init__(**kwargs)            
+
             
+    def setup_default_values(self):
+        super().setup_default_values()
+
+
+    def fuse_with_new(self, other_input_signature : InputSignature):
+        raise NotImplementedError()
+
+
 
 
 class ComponentListInputSignature(InputSignature):
@@ -134,6 +151,13 @@ class ComponentListInputSignature(InputSignature):
         
         else:
             super().__init__(**kwargs)
+
+    def setup_default_values(self):
+        super().setup_default_values()
+        
+
+    def fuse_with_new(self, other_input_signature : InputSignature):
+        raise NotImplementedError()
             
             
 class ComponentDictInputSignature(InputSignature):
@@ -181,6 +205,14 @@ class ComponentDictInputSignature(InputSignature):
         
         else:
             super().__init__(**kwargs)
+
+
+    def setup_default_values(self):
+        super().setup_default_values()
+        
+
+    def fuse_with_new(self, other_input_signature : InputSignature):
+        raise NotImplementedError()
             
 
         
