@@ -101,13 +101,15 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
                     "sampler" : "Random", # this is to gain some knowledge first
                     "hp_configuration_path" : hp_opt_config_path,
                     "to_optimize_configuration_path" : base_to_opt_config_path,
+                    "steps" : 1,
 
              },
 
             {
                 **base_command,
                     "num_trials" : 150,
-                    "sampler": "TreeParzen"
+                    "sampler": "TreeParzen",
+                    "steps" : 2
 
             },
         ]
