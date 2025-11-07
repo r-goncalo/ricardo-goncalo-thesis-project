@@ -240,11 +240,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
     def _initialize_pruning_strategy(self):
         
+        passed_pruner = self.get_input_value("pruner")
         
-        if 'pruner' in self.input.keys():
+        if passed_pruner != None:
             
-            passed_pruner = self.get_input_value("pruner")
-
+            self.lg.writeLine("Prunning strategy was defined")
                         
             if isinstance(passed_pruner, optuna.pruners.BasePruner):
                 
@@ -526,6 +526,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         for step in range(self.n_steps):
 
             component_to_test_path = None
+
+            self.lg.writeLine()
+            self.lg.writeLine(f"Starting step {step} of {self.n_steps + 1} total steps")
                         
             try:
 

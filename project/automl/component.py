@@ -380,9 +380,12 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     @classmethod
     def get_schema_parameter_signature(cls, key) -> InputSignature:
         
-        '''Returns the parameter signature for a key for this Schema'''
+        '''
+        Returns the parameter signature for a key for this Schema
+        None if non existant
+        '''
 
-        return cls.parameters_signature[key]
+        return cls.parameters_signature.get(key, None)
     
 
     @classmethod

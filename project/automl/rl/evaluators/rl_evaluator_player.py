@@ -164,7 +164,6 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         rl_player.pass_input({
             "agents" : agents,
             "num_episodes" : self.number_of_episodes,
-            "device" : device,
             "base_directory" : evaluations_directory,
             "artifact_relative_directory" : "evaluation",
             "create_new_directory" : True # if there were other play made, create a new one
