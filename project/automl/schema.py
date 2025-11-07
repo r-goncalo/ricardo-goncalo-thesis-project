@@ -2,12 +2,6 @@ from automl.core.input_management import InputSignature
 from abc import ABCMeta
 
 
-# Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
-
-def on_name_pass(self):
-    self.name = self.input["name"] #sets the name of the component to the input name
-    self._was_custom_name_set = True
-
     
 #TODO: this should make all pre computation necessary for input processing
 class Schema(ABCMeta): # the meta class of all component classes, defines their behavior (not the behavior of the instances)
