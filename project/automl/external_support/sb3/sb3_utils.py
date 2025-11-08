@@ -2,6 +2,7 @@
 
 from automl.utils.shapes_util import gym_to_gymnasium_space, gymnasium_to_gym_space
 from huggingface_sb3 import load_from_hub
+from automl.loggers.global_logger import globalWriteLine
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.save_util import load_from_zip_file
 from stable_baselines3.dqn.policies import DQNPolicy
@@ -159,6 +160,8 @@ def load_sb3_net(model_name: str):
     Loads only the neural network policy from a SB3 checkpoint (DQN or PPO).
     Returns the relevant torch.nn.Module and architecture info.
     """
+
+    globalWriteLine(f"Loading sb3 model with name: {model_name}")
 
     if model_name.startswith("dqn-"):
         return load_sb3_q_net(model_name)
