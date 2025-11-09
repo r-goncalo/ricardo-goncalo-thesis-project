@@ -6,6 +6,7 @@ from automl.external_support.sb3.sb3_utils import load_policy_network_from_archi
 from automl.ml.models.model_components import ModelComponent
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.utils.json_utils.shape_json_utils import CustomSpaceJsonEncoderDecoder # the act of importing this registers it
+from automl.loggers.global_logger import globalWriteLine
 import torch
 
 
@@ -31,11 +32,15 @@ class SB3WrapperTorch(TorchModelComponent):
     
     def _initialize_model(self):
 
-        if not "sb3_model" in self.input.keys():
+        sb3_model_name = self.get_input_value("sb3_model")
+
+        if sb3_model_name == None:
             Exception("No sb3_model_provided")
+
+        globalWriteLine(f"Sb3 model component {self.name} has no model already loaded and has sb3_model defined with name {sb3_model_name}")
             
         # Clone network
-        model_net, architecture = load_sb3_net(self.get_input_value("sb3_model"))
+        model_net, architecture = load_sb3_net(sb3_model_name)
                 
         self.model = copy.deepcopy(model_net)
 

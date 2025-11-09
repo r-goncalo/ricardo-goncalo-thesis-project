@@ -58,23 +58,24 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         
         model_loaded = self._is_model_loaded()
 
-        if self._should_load_model():
+        if not model_loaded:
             
-            if model_loaded:
-                globalWriteLine(f"{self.name}: WARNING: LOADING A TORCH MODEL WHEN A MODEL WAS ALREADY LOADED, WILL NOT LOAD NEW MODEL AND KEEP THE OLD ONE")
+            model_was_loaded = self._try_load_model()
+            
+            if model_was_loaded:
+                globalWriteLine(f"{self.name}: MODEL WAS LOADED")
 
             else:
-                self._load_model()
+                self._initialize_model() # initializes the model using passed values
 
-        else:
-            self._initialize_model() # initializes the model using passed values
-
+            
         self.__synchro_model_value_attr()
 
         self._is_model_well_formed() # throws exception if model is not well formed
 
 
     def _is_model_well_formed(self):
+        '''Raises exception if model is not well formed'''
         if not self._is_model_loaded():
             raise Exception("Failed to load the model")
             
@@ -82,14 +83,55 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
     def _is_model_loaded(self):
         return hasattr(self, "model") and self.model is not None
     
-    def _should_load_model(self):
-        return "model" in self.input.keys()
+
+    def _try_load_model(self):
+        '''Ties load model, and returns True if model was loaded, false otherwise'''
+
+        model_was_loaded = self._try_load_model_from_input()
+
+        if model_was_loaded:
+            return model_was_loaded
+
+        return False
     
-    def _load_model(self):
-        
-        if "model" in self.input.keys():
+    
+    def _try_load_model_from_input(self):
+
+        '''Ties load model from input, and returns True if model was loaded, false otherwise'''
+
+        input_model = self.get_input_value("model")
+
+        if input_model != None:
+
             self.model : nn.Module = self.get_input_value("model")
             self.values["model"] = self.model
+            return True
+        
+        else:
+            return False
+
+
+    def _try_load_model_from_path(self):
+
+        '''Ties load model from input, and returns True if model was loaded, false otherwise'''
+
+        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
+        
+        if os.path.exists(model_path):
+                
+            state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+        
+            self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
+
+            self.model.load_state_dict(state_dict) #loads the saved weights into the model
+
+            return True
+        
+        else:
+        
+            return False
+
+
         
     def _initialize_mininum_model_architecture(self):
 
@@ -161,16 +203,12 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
         
         super()._load_state_internal()
                 
-        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
+        model_loaded_from_path = self._try_load_model_from_path()
         
-        if os.path.exists(model_path):
-                
-            state_dict = torch.load(model_path, map_location=torch.device('cpu'))
-        
-            self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
+        if model_loaded_from_path:
 
-            self.model.load_state_dict(state_dict) #loads the saved weights into the model
+            globalWriteLine(f"{self.name}: Success in loading model from path when loading state")
 
         else:
 
-            globalWriteLine(f"{self.name}: WARNING: Loading torch model state without havings its model weights available in folder")
+            globalWriteLine(f"{self.name}: Failure in loading model from path when loading state")
