@@ -27,7 +27,8 @@ class SB3WrapperTorch(TorchModelComponent):
 
     def _try_load_model(self):
         
-        model_loaded = super()._try_load_model()
+        return super()._try_load_model()
+
 
     
     def _initialize_model(self):
