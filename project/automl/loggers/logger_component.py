@@ -13,6 +13,7 @@ import os
 import pandas as pd
 
 from automl.utils.smart_enum import SmartEnum
+from automl.loggers.global_logger import globalWriteLine
 
 
 class DEBUG_LEVEL(SmartEnum):
@@ -248,13 +249,18 @@ class LoggerSchema(ArtifactComponent):
 
         if len(self.text_buffer[filename]) >= self.write_to_file_when_text_lines_over:
 
+            globalWriteLine(f"Len ({len(self.text_buffer[filename]) }) is higher than limit: {self.write_to_file_when_text_lines_over}")
+
             self.flush_buffer_of_file(filename)
+
+        else:
+            globalWriteLine(f"\nWrote text without flushing: {text}\n")
 
 
     def flush_buffer_of_file(self, filename):
 
             fd = open(os.path.join(self.get_artifact_directory(), filename), 'a')
-            fd.write(f'{self.text_buffer[filename]}')
+            fd.write(self.text_buffer[filename])
             fd.close()
                     
             self.text_buffer[filename] = ''
