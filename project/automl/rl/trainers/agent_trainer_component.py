@@ -58,7 +58,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                       "episode_steps" : 0,
                       "episodes_done" : 0,
                       "episode_score" : 0,
-                      "optimizations_done" : 0
+                      "optimizations_done" : 0,
+                      "average_optimization" : 0
                       } #this means we'll have a dic "values" with this starting values
     
     results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
@@ -202,7 +203,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                 
                 for _ in range(self.times_to_learn):
                     self.optimizeAgent()
-                    self.values["optimizations_done"] += 1
+                    
             
         
     @requires_input_proccess
@@ -264,20 +265,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def optimizeAgent(self):
 
         '''Optimizes the trained agent'''
-        
-        self.lg.writeLine("Optimizing agent...", file=self.TRAIN_LOG)
-        
-        timeBeforeOptimizing = time.time()
-                            
-        self.optimize_policy_model() # TODO : Take attention to this, the agents optimization strategy is too strict
-        
-        duration = time.time() - timeBeforeOptimizing
-        
-        self.lg.writeLine("Optimization took " + str(duration) + " seconds", file=self.TRAIN_LOG)
+                
+        self._optimize_policy_model() 
+        self.values["optimizations_done"] += 1
         
         
         
-    def optimize_policy_model(self):
+        
+    def _optimize_policy_model(self):
         
         if len(self.memory) < self.BATCH_SIZE:
             return
