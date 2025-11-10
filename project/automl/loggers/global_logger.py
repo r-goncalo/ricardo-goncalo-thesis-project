@@ -63,8 +63,14 @@ def globalWriteLine(string : str, file=None, toPrint=None, use_time_stamp=None, 
 
         _global_logger.writeLine(string, file, toPrint=toPrint, use_time_stamp=use_time_stamp, str_before=str_before, ident_level=ident_level)
 
+        print("WROTE IN GLOBAL LOGGER STRING: " + string)
+
+
     elif WARN_WHEN_CALLED_WITHOUT_ACTIVATION:
     
         print(f"WARNING: CALLED GLOBAL WRITELINE WHEN IT IS NOT ACTIVATED WITH STRING: {string}")
         
+    else:
+
+        print("OISAHDOIHWSOD*HAOSI")
             
