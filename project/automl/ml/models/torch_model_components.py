@@ -230,12 +230,3 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
         super()._load_state_internal()
                 
-        model_loaded_from_path = self._try_load_model_from_path()
-        
-        if model_loaded_from_path:
-
-            globalWriteLine(f"{self.name}: Success in loading model from path when loading state")
-
-        else:
-
-            globalWriteLine(f"{self.name}: Failure in loading model from path when loading state")
