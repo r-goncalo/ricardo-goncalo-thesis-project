@@ -141,8 +141,6 @@ class EnvironmentCycler(EnvironmentSampler):
                 generated_name = f"{env.name}_{index}"
                 env.pass_input({"name" : generated_name})
 
-                print(f"EnvironmentCycler is generating the name {generated_name}")
-
 
     
     @requires_input_proccess
