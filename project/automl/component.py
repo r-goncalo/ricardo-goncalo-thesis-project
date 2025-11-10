@@ -361,6 +361,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         cloned_component = type(self)(copy.deepcopy(self.input))
         cloned_component.values = copy.deepcopy(self.values) #copy the exposed values
         cloned_component.output = copy.deepcopy(self.output) #copy the output
+        cloned_component.__notes = copy.deepcopy(self.__notes) # copy the notes
 
         if self.parent_component != None:
             self.parent_component.define_component_as_child(cloned_component) # the cloned component is also child of same parent

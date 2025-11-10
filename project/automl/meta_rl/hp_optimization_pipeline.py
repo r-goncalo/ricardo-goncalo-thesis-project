@@ -130,6 +130,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         super()._proccess_input_internal()
 
         globalWriteLine(f"Current logger input: {self.lg.input}")
+
+        self.lg.writeLine(f"PLEASE LOOK AT ME PLEASSSSSSSSSEEEEEEEEEEEEEE")
                 
         # LOAD VALUES
         self.start_with_given_values = self.get_input_value("start_with_given_values")
