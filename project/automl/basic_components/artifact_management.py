@@ -143,7 +143,7 @@ class ArtifactComponent(Component):
 
     def _change_to_new_artifact_directory_internal(self, new_folder_path):
         '''What happens between the creation of the folder and the actual change of the directory'''
-        pass # to be implemented by subclasses if needed
+        os.makedirs(new_folder_path, exist_ok=True)
 
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
