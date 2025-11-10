@@ -37,7 +37,7 @@ def experiment_base_commands(directory_to_store_experiment,
                     "sampler" : "Random", # this is to gain some knowledge first
                     "hp_configuration_path" : hp_opt_config_path,
                     "to_optimize_configuration_path" : base_to_opt_config_path,
-                    "num_steps" : 1,
+                    "num_steps" : 2,
 
              },
 
