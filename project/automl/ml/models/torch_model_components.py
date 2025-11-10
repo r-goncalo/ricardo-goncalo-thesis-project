@@ -1,7 +1,7 @@
 import os
 from automl.basic_components.state_management import StatefulComponent
 from automl.loggers.global_logger import globalWriteLine
-from project.automl.loggers.logger_component import ComponentWithLogging
+from automl.loggers.logger_component import ComponentWithLogging
 import torch
 import torch.nn as nn
 
