@@ -25,7 +25,7 @@ from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 from automl.basic_components.seeded_component import SeededComponent
-from automl.loggers.global_logger import globalWriteLine
+from automl.loggers.global_logger import globalWriteLine, activate_global_logger
 import torch
 
 from automl.basic_components.state_management import save_state
@@ -129,9 +129,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
         super()._proccess_input_internal()
 
-        globalWriteLine(f"Current logger input: {self.lg.input}")
+        activate_global_logger(self.get_artifact_directory())
 
-        self.lg.writeLine(f"PLEASE LOOK AT ME PLEASSSSSSSSSEEEEEEEEEEEEEE")
+        globalWriteLine(f"Current logger input: {self.lg.input}")
                 
         # LOAD VALUES
         self.start_with_given_values = self.get_input_value("start_with_given_values")
