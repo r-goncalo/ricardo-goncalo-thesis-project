@@ -5,6 +5,8 @@
 _global_logger = None
 DEFAULT_TO_PRINT_GLOBAL = True
 
+WARN_WHEN_CALLED_WITHOUT_ACTIVATION = True
+
 
 def activate_global_logger(global_logger_directory, global_logger_input : dict ={}):
 
@@ -55,8 +57,14 @@ def get_global_level_artifact_directory():
 def globalWriteLine(string : str, file=None, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
 
-        global _global_logger
+    global _global_logger
 
-        if is_global_logger_active():
+    if is_global_logger_active():
 
-            _global_logger.writeLine(string, file, toPrint=toPrint, use_time_stamp=use_time_stamp, str_before=str_before, ident_level=ident_level)
+        _global_logger.writeLine(string, file, toPrint=toPrint, use_time_stamp=use_time_stamp, str_before=str_before, ident_level=ident_level)
+
+    elif WARN_WHEN_CALLED_WITHOUT_ACTIVATION:
+    
+        print(f"WARNING: CALLED GLOBAL WRITELINE WHEN IT IS NOT ACTIVATED WITH STRING: {string}")
+        
+            
