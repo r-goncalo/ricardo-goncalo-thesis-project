@@ -316,7 +316,9 @@ class ComponentWithLogging(ArtifactComponent):
                                                                                 
                        "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
                                                         generator = generate_logger_for_component , 
-                                                        on_pass=on_log_pass)
+                                                        on_pass=on_log_pass),
+
+                        "logger_input" : InputSignature(ignore_at_serialization=True, default_value={})
                        }
 
 
@@ -326,14 +328,12 @@ class ComponentWithLogging(ArtifactComponent):
         
         self.lg : LoggerSchema = self.get_input_value("logger_object") if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
         
+        self.lg.pass_input(self.get_input_value("logger_input"))
+
 
     @requires_input_proccess
     def change_logger_level(self, new_level : DEBUG_LEVEL):
 
-        if self.lg.input_was_processed():
-            self.lg.change_logger_level(new_level)
-
-        else:
-            self.lg.pass_input({"necessary_logger_level" : new_level})
+        self.lg.pass_input({"necessary_logger_level" : new_level})
 
     
