@@ -114,7 +114,7 @@ class LoggerSchema(ArtifactComponent):
         It does not require the component to have its input processed
         '''
         
-        if self.necessary_logger_level.value >= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
+        if self.necessary_logger_level.value <= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
 
             if toPrint == None:
                 toPrint = self.default_print
