@@ -100,6 +100,8 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         '''Initializes the model with initial parameter strategy'''
 
+        super()._initialize_model()
+
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size,
                 hidden_size=self.hidden_size, 

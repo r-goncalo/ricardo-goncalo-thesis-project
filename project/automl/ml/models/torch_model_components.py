@@ -1,13 +1,14 @@
 import os
 from automl.basic_components.state_management import StatefulComponent
 from automl.loggers.global_logger import globalWriteLine
+from project.automl.loggers.logger_component import ComponentWithLogging
 import torch
 import torch.nn as nn
 
 from automl.component import InputSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
-class TorchModelComponent(ModelComponent, StatefulComponent):
+class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLogging):
     
     
     # INITIALIZATION --------------------------------------------------------------------------
@@ -55,23 +56,30 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
     def _setup_model(self):
 
         '''Sets up the model, loading it or initializing it'''
+
+        self.lg.writeLine("Setting up model")
         
         model_loaded = self._is_model_loaded()
 
         if not model_loaded:
+
+            self.lg.writeLine("Model is not loaded, trying to load it...")
             
             model_was_loaded = self._try_load_model()
             
             if model_was_loaded:
-                globalWriteLine(f"{self.name}: MODEL WAS LOADED")
+                self.lg.writeLine(f"Success in loading the model")
 
             else:
+                self.lg.writeLine(f"Could not load model, initiating initialization strategy...")
                 self._initialize_model() # initializes the model using passed values
 
             
         self.__synchro_model_value_attr()
 
         self._is_model_well_formed() # throws exception if model is not well formed
+
+        self.lg.writeLine(f"Model setup is over")
 
 
     def _is_model_well_formed(self):
@@ -91,6 +99,11 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
 
         if model_was_loaded:
             return model_was_loaded
+        
+        model_was_loaded = self._try_load_model_from_path()
+
+        if model_was_loaded:
+            return model_was_loaded
 
         return False
     
@@ -99,21 +112,27 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
 
         '''Ties load model from input, and returns True if model was loaded, false otherwise'''
 
+        self.lg.writeLine("Trying to load model from input....")
+
         input_model = self.get_input_value("model")
 
         if input_model != None:
 
             self.model : nn.Module = self.get_input_value("model")
             self.values["model"] = self.model
+            self.lg.writeLine(f"Success in loading model from input")
             return True
         
         else:
+            self.lg.writeLine("No model available in input to load")
             return False
 
 
     def _try_load_model_from_path(self):
 
         '''Ties load model from input, and returns True if model was loaded, false otherwise'''
+
+        self.lg.writeLine("Trying to load model from path...")
 
         model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
         
@@ -125,9 +144,13 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
 
             self.model.load_state_dict(state_dict) #loads the saved weights into the model
 
+            self.lg.writeLine("Success in loading model from path")
+
             return True
         
         else:
+
+            self.lg.writeLine("Could not find model weights to load (.../model_weights.pth)")
         
             return False
 
@@ -136,13 +159,17 @@ class TorchModelComponent(ModelComponent, StatefulComponent):
     def _initialize_mininum_model_architecture(self):
 
         '''Initializes the minimum architecture, this is used to load weights of the model, so the initial parameters are to be ignored'''
+
+        self.lg.writeLine("Initializing minimum model architecture...")
+
         pass
 
 
     def _initialize_model(self):
         '''Initializes a totally new model'''
-        raise Exception("Model initialization not implemented in base TorchModelComponent")
-
+        
+        self.lg.writeLine("Totally initializing model")
+        
     # EXPOSED METHODS --------------------------------------------
     
     @requires_input_proccess

@@ -25,19 +25,21 @@ class SB3WrapperTorch(TorchModelComponent):
         self.sb3_model = self.get_input_value("sb3_model")
     
 
-    def _load_model(self):
-        super()._load_model()
-        # TODO: nn model from sb3 model if needed
+    def _try_load_model(self):
+        
+        model_loaded = super()._try_load_model()
 
     
     def _initialize_model(self):
+
+        super()._initialize_model()
 
         sb3_model_name = self.get_input_value("sb3_model")
 
         if sb3_model_name == None:
             Exception("No sb3_model_provided")
 
-        globalWriteLine(f"Sb3 model component {self.name} has no model already loaded and has sb3_model defined with name {sb3_model_name}")
+        self.lg.writeLine(f"Sb3 model component {self.name} has no model already loaded and has sb3_model defined with name {sb3_model_name}, loading it...")
             
         # Clone network
         model_net, architecture = load_sb3_net(sb3_model_name)
@@ -55,9 +57,13 @@ class SB3WrapperTorch(TorchModelComponent):
         Rebuilds the model architecture using stored SB3 metadata (without re-downloading the checkpoint).
         """
 
+        super()._initialize_mininum_model_architecture()
+
         model_architecture = self.values["sb3_architecture"]
         
         self.model = load_policy_network_from_architecture(model_architecture)
+
+        self.lg.writeLine(f"Success in sb3 model using saved architecture and weights")
         
             
     @requires_input_proccess
