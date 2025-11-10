@@ -21,9 +21,10 @@ def experiment_base_commands(directory_to_store_experiment,
 
     # Basic parameters all commands will have
     base_command = {
+            **base_command,
             "create_new_directory" : "False",
             "path_to_store_experiment" : directory_to_store_experiments,
-            "experiment_relative_path" : "."
+            "experiment_relative_path" : experiment_name,
         }
 
     if base_commands == None:
@@ -35,22 +36,26 @@ def experiment_base_commands(directory_to_store_experiment,
                     "sampler" : "Random", # this is to gain some knowledge first
                     "hp_configuration_path" : hp_opt_config_path,
                     "to_optimize_configuration_path" : base_to_opt_config_path,
+                    "num_steps" : 1,
 
              },
 
             {
                 **base_command,
                     "num_trials" : 150,
-                    "sampler": "TreeParzen"
+                    "sampler": "TreeParzen",
+                    "num_steps" : 2
 
             },
         ]
 
-        print("\nBASE COMMANDS:\n")
 
-        hp_experiments_sequence.print_commands(base_commands)
 
-        print("END OF BASE COMMANDS\n")
+    print("\nBASE COMMANDS:\n")
+
+    hp_experiments_sequence.print_commands(base_commands)
+
+    print("\nEND OF BASE COMMANDS\n")
 
     return base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs
 
