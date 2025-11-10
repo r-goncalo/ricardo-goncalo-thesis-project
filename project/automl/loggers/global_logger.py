@@ -11,13 +11,13 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
     from automl.loggers.logger_component import LoggerSchema
 
     if DEFAULT_TO_PRINT_GLOBAL:
-        print(f"Global logger is being activated in directory: {global_logger_directory}")
+        print(f"Global logger is trying to be activated in directory: {global_logger_directory}")
 
 
     global _global_logger
 
     if is_global_logger_active():
-        print("WARNING: Tried to activate global logger after it was already activated, ignoring it...")
+        print(f"WARNING: Tried to activate global logger after it was already activated in directory {_global_logger.get_artifact_directory()}")
 
     else:
 
@@ -34,7 +34,7 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
 
         _global_logger = LoggerSchema(global_logger_input)
 
-        globalWriteLine(f"Global logger was activated")
+        globalWriteLine(f"Global logger activation as ended, activated in {_global_logger.get_artifact_directory()}")
         
 
 def is_global_logger_active():
