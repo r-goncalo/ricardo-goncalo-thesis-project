@@ -194,10 +194,6 @@ class LoggerSchema(ArtifactComponent):
         '''
         return pd.read_csv(os.path.join(self.get_artifact_directory(), directory, filename))
     
-    @requires_input_proccess
-    def openFile(self, *args, **kargs):
-        return self.lg.openFile(*args, **kargs)
-
                 
     def createDirIfNotExistent(self, dir): #creates a dir if it does no exist
         
@@ -252,7 +248,7 @@ class LoggerSchema(ArtifactComponent):
 
         if len(self.text_buffer[filename]) >= self.write_to_file_when_text_lines_over:
 
-            self.flush_buffer_of_file()
+            self.flush_buffer_of_file(filename)
 
 
     def flush_buffer_of_file(self, filename):
