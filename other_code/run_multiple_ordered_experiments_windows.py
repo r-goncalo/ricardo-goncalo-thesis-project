@@ -91,7 +91,8 @@ if __name__ == "__main__":
     
 
     base_command = {
-        "global_logger_level" : "INFO"
+        "global_logger_level" : "INFO",
+        "default_global_level" : "INFO"
     }
 
     command_sequences = experiment(

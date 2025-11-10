@@ -1,13 +1,13 @@
 
 from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 from automl.utils.json_utils.json_component_utils import gen_component_from_path
-from automl.loggers.logger_component import DEBUG_LEVEL
+from automl.loggers.logger_component import DEBUG_LEVEL, change_default_logger_level
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state
 from automl.loggers.global_logger import activate_global_logger, get_global_level_artifact_directory
 
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None):
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None, default_global_level=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
@@ -42,9 +42,16 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
 
     hp_optimization_pipeline.change_logger_level(DEBUG_LEVEL.INFO) # guarantees hp_optimization_pipeline has all its output
     
+
+
     if global_logger_level != None:
       
         activate_global_logger(hp_optimization_pipeline.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
+
+    if default_global_level != None:
+      
+        change_default_logger_level(default_global_level)
+
 
 
     hp_optimization_pipeline.run()
@@ -68,6 +75,8 @@ if __name__ == "__main__":
     parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
 
     parser.add_argument("--global_logger_level", type=str, default=None, help="Path to config to optimize")
+    parser.add_argument("--default_global_level", type=str, default=None, help="Path to config to optimize")
+    
 
     args = parser.parse_args()
 
@@ -77,6 +86,7 @@ if __name__ == "__main__":
          experiment_relative_path=args.experiment_relative_path,
          hp_configuration_path = args.hp_configuration_path,
          to_optimize_configuration_path = args.to_optimize_configuration_path,
-         global_logger_level = args.global_logger_level
+         global_logger_level = args.global_logger_level,
+         default_global_level=args.default_global_level
          )
     

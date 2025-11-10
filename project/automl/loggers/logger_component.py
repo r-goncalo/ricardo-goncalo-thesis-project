@@ -26,6 +26,15 @@ class DEBUG_LEVEL(SmartEnum):
 
 IDENT_SPACE = '    '
 
+
+DEFAULT_LOGGER_LEVEL = DEBUG_LEVEL.ERROR
+
+def change_default_logger_level(new_value):
+
+    global DEFAULT_LOGGER_LEVEL
+
+    DEFAULT_LOGGER_LEVEL = new_value
+
 # LOGGING SCHEMA  -------------------------------------------------------------------------------------------------   
 
 
@@ -41,7 +50,7 @@ class LoggerSchema(ArtifactComponent):
 
                        "necessary_logger_level" : InputSignature(
                             #default_value=DEBUG_LEVEL.INFO, 
-                            default_value=DEBUG_LEVEL.ERROR,
+                            default_value=DEFAULT_LOGGER_LEVEL,
                             ignore_at_serialization=True),
 
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
