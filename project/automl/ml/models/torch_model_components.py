@@ -168,7 +168,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     def _initialize_model(self):
         '''Initializes a totally new model'''
         
-        self.lg.writeLine("Totally initializing model")
+        self.lg.writeLine("Totally initialized model")
         
     # EXPOSED METHODS --------------------------------------------
     
