@@ -34,7 +34,7 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
 
         _global_logger = LoggerSchema(global_logger_input)
 
-        globalWriteLine(f"Global logger activation as ended, activated in {_global_logger.get_artifact_directory()}")
+        globalWriteLine(f"Global logger activation as ended, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
         
 
 def is_global_logger_active():
