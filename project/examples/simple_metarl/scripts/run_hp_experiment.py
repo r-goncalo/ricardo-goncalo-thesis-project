@@ -13,7 +13,7 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
 
-    limit_text_input = LoggerSchema.get_parameter_signature("write_to_file_when_text_lines_over")
+    limit_text_input = LoggerSchema.get_schema_parameter_signature("write_to_file_when_text_lines_over")
     limit_text_input.change_default_value(1000)
     
     if to_optimize_configuration_path != None:
