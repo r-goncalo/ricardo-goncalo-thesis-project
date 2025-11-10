@@ -171,6 +171,10 @@ def load_sb3_net(model_name: str):
         if model_name.endswith("-critic"):
             return load_sb3_ppo_critic(model_name.removesuffix('-critic'))
 
+        elif model_name.endswith("-actor"):
+            return load_sb3_ppo_critic(model_name.removesuffix('-actor'))
+
+
         else:
             return load_sb3_ppo_model(model_name)
     else:

@@ -156,6 +156,9 @@ def get_component_by_localization_list(component, localization : list):
     current_component  = component
 
     for operation in localization:
+
+        if current_component == None:
+            raise Exception(f"Tried to do operation on localization: <{operation}> when current component is None")
         
         if isinstance(operation, int):
             current_component = get_next_component_by_int_operation(current_component, operation)
@@ -169,6 +172,8 @@ def get_component_by_localization_list(component, localization : list):
         else:
             raise Exception(f"Invalid operation with type {type(operation)}, {operation} in localization {localization} for component {component.name}")
     
+
+
     return current_component
 
 
