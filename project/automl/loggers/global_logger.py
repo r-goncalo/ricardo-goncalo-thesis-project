@@ -11,7 +11,7 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
     from automl.loggers.logger_component import LoggerSchema
 
     if DEFAULT_TO_PRINT_GLOBAL:
-        print("GLOBAL LOGGER IS BEING ACTIVATED")
+        print(f"Global logger is being activated in directory: {global_logger_directory}")
 
 
     global _global_logger
