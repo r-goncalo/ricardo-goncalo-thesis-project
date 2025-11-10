@@ -24,7 +24,7 @@ def experiment_base_commands(directory_to_store_experiment,
             **base_command,
             "create_new_directory" : "False",
             "path_to_store_experiment" : directory_to_store_experiments,
-            "experiment_relative_path" : experiment_name,
+            "experiment_relative_path" : "exp",
         }
 
     if base_commands == None:
