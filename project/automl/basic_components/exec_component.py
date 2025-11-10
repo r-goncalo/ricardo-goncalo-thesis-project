@@ -1,6 +1,7 @@
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state
 from automl.utils.smart_enum import SmartEnum
+from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
 from ..component import InputSignature, Component, requires_input_proccess
 
 from abc import abstractmethod
@@ -66,6 +67,7 @@ class ExecComponent(Component):
         
         if self.__save_dataframes_on_run_end:
             save_all_dataframes_of_component_and_children(self)
+            flush_text_of_all_loggers_and_children(self)
             
         
 

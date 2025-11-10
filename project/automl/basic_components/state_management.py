@@ -16,6 +16,7 @@ import gc
 
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.loggers.global_logger import globalWriteLine
+from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
 import torch
                 
                 
@@ -266,6 +267,7 @@ class StatefulComponentLoader(ArtifactComponent):
 
         # if this or any children components had dataframes, results, or something, we save them
         save_all_dataframes_of_component_and_children(self.component_to_save_load)
+        flush_text_of_all_loggers_and_children(self.component_to_save_load)
                 
         weak_ref = weakref.ref(self.component_to_save_load)
 

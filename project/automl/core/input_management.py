@@ -61,6 +61,10 @@ class InputSignature():
             self.mandatory = DEFAULT_MANDATORY
 
 
+    def change_default_value(self, new_default_value):
+        self.default_value = new_default_value
+
+
 
     def get_value_from_input(self, component_with_input, key, is_none_ok=True):
 

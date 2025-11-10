@@ -2,15 +2,19 @@
 from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 from automl.utils.json_utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL, change_default_logger_level
-from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.basic_components.state_management import save_state
 from automl.loggers.global_logger import activate_global_logger, get_global_level_artifact_directory
+
+from automl.loggers.logger_component import LoggerSchema
 
 
 def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None, default_logger_level=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
+
+    limit_text_input = LoggerSchema.get_parameter_signature("write_to_file_when_text_lines_over")
+    limit_text_input.change_default_value(1000)
     
     if to_optimize_configuration_path != None:
         hp_pipeline_input["base_component_configuration_path"] = to_optimize_configuration_path

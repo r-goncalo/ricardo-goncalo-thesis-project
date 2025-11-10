@@ -5,7 +5,6 @@ from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.result_logger import ResultLogger
 
 from automl.core.input_management import InputSignature
-from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.loggers.global_logger import globalWriteLine
 
 class LastValuesAvgStdEvaluator(RLPipelineEvaluator):

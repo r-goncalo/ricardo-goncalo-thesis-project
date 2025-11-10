@@ -18,7 +18,6 @@ from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 from automl.utils.files_utils import saveDataframe
 from automl.utils.configuration_component_utils import save_configuration
 from automl.rl.agent.agent_components import AgentSchema
-from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 
 class EvaluatorWithPlayer(RLPipelineEvaluator):
     

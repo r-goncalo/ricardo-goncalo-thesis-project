@@ -26,7 +26,6 @@ class DEBUG_LEVEL(SmartEnum):
 
 IDENT_SPACE = '    '
 
-
 DEFAULT_LOGGER_LEVEL = DEBUG_LEVEL.ERROR
 
 def change_default_logger_level(new_value):
@@ -54,6 +53,8 @@ class LoggerSchema(ArtifactComponent):
                             ignore_at_serialization=True),
 
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
+
+                       "write_to_file_when_text_lines_over" : InputSignature(mandatory=False),
 
                        "artifact_relative_directory" : InputSignature(
                                 priority=1,
@@ -89,6 +90,12 @@ class LoggerSchema(ArtifactComponent):
         self.default_log_text_file = self.get_input_value("log_text_file")
         
         self.object_with_name = self.get_input_value("object_with_name") if "object_with_name" in self.input.keys() else None
+        
+        self.write_to_file_when_text_lines_over = self.get_input_value("write_to_file_when_text_lines_over")
+
+        if self.write_to_file_when_text_lines_over != None:
+            self.text_buffer : dict[str, str] = {}
+
 
     # LOGGING -----------------------------------------------------------------------------        
 
@@ -143,9 +150,15 @@ class LoggerSchema(ArtifactComponent):
             if toPrint:
                 print(string)
 
-            fd = open(os.path.join(self.get_artifact_directory(), file), 'a')
-            fd.write(f'{string}\n')
-            fd.close()
+            if self.write_to_file_when_text_lines_over == None:
+
+                fd = open(os.path.join(self.get_artifact_directory(), file), 'a')
+                fd.write(f'{string}\n')
+                fd.close()
+            
+            else:
+                self.write_to_buffer_file(filename=file, text=f"{string}\n")
+
         
         
     # note this does not necessary needs all input to be processed
@@ -220,7 +233,54 @@ class LoggerSchema(ArtifactComponent):
         return LoggerSchema(input=input_of_copy)
     
     
+    def create_buffer_for_file(self, filename):
+
+        self.text_buffer[filename] = ""
+
+
+    def write_to_buffer_file(self, filename, text):
+
+        buffer_for_file = self.text_buffer.get(filename, None)
+
+        if buffer_for_file == None:
+            self.create_buffer_for_file(filename)
+
+        self.text_buffer[filename] += text
+
+        if len(self.text_buffer[filename]) >= self.write_to_file_when_text_lines_over:
+
+            self.flush_buffer_of_file()
+
+
+    def flush_buffer_of_file(self, filename):
+
+            fd = open(os.path.join(self.get_artifact_directory(), filename), 'a')
+            fd.write(f'{self.text_buffer[filename]}')
+            fd.close()
+                    
+            self.text_buffer[filename] = ''
+
+    def flush_text(self):
+
+        if self.write_to_file_when_text_lines_over != None:
+
+            for filename in self.text_buffer.keys():
+                self.flush_buffer_of_file(filename)
     
+    
+def flush_text_of_all_loggers_and_children(component : Component):
+
+    if isinstance(component, LoggerSchema):
+        component.flush_text()
+
+    elif isinstance(component, ComponentWithLogging):
+        component.lg.flush_text()
+
+    for child_component in component.child_components:
+        flush_text_of_all_loggers_and_children(child_component)
+
+
+
 # COMPONENT WITH LOGGING -------------------------------------------------------------------------------------------------    
     
 def on_log_pass(self : Component):
