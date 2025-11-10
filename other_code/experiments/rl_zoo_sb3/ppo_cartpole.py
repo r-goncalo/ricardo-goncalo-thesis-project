@@ -11,7 +11,8 @@ def experiment_base_commands(directory_to_store_experiment,
                  directory_of_models,
                  models_to_test,
                  experiment_name,
-                 base_commands):
+                 base_commands,
+                 base_command):
     
 
     directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = hp_experiments_sequence.setup_experiment_directories(
@@ -24,7 +25,7 @@ def experiment_base_commands(directory_to_store_experiment,
             **base_command,
             "create_new_directory" : "False",
             "path_to_store_experiment" : directory_to_store_experiments,
-            "experiment_relative_path" : "exp",
+            "experiment_relative_path" : ".",
         }
 
     if base_commands == None:
@@ -69,7 +70,8 @@ def experiment_for_poo_actors(directory_to_store_experiment = "C:\\rgoncalo\\exp
                  directory_of_models="C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo\\models",
                  models_to_test=None,
                  experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
-                 base_commands=None):
+                 base_commands=None,
+                 base_command : dict = {}):
 
 
     base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands(
@@ -119,7 +121,8 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
                  directory_of_models,
                  models_to_test,
                  experiment_name,
-                 base_commands)
+                 base_commands,
+                 base_command)
 
     print("\nCOMMANDS FOR MODELS:\n")
 
