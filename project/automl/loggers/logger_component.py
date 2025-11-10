@@ -98,7 +98,8 @@ class LoggerSchema(ArtifactComponent):
         self.write_to_file_when_text_lines_over = None if self.write_to_file_when_text_lines_over <= 0 else self.write_to_file_when_text_lines_over
 
         if self.write_to_file_when_text_lines_over != None:
-            self.text_buffer : dict[str, str] = {}
+            self.text_buffer : dict[str, list] = {}
+            self.text_buffer_counts : dict[str, int] = {}
 
 
     # LOGGING -----------------------------------------------------------------------------        
@@ -235,7 +236,8 @@ class LoggerSchema(ArtifactComponent):
     
     def create_buffer_for_file(self, filename):
 
-        self.text_buffer[filename] = ""
+        self.text_buffer[filename] = []
+        self.text_buffer_counts[filename] = 0
 
 
     def write_to_buffer_file(self, filename, text):
@@ -245,25 +247,25 @@ class LoggerSchema(ArtifactComponent):
         if buffer_for_file == None:
             self.create_buffer_for_file(filename)
 
-        self.text_buffer[filename] += text
 
-        if len(self.text_buffer[filename]) >= self.write_to_file_when_text_lines_over:
+        self.text_buffer[filename].append(text)
+        self.text_buffer_counts[filename] += 1
 
-            globalWriteLine(f"Len ({len(self.text_buffer[filename]) }) is higher than limit: {self.write_to_file_when_text_lines_over}")
+
+        if self.text_buffer_counts[filename] >= self.write_to_file_when_text_lines_over:
 
             self.flush_buffer_of_file(filename)
-
-        else:
-            globalWriteLine(f"\nWrote text without flushing: {text}\n")
 
 
     def flush_buffer_of_file(self, filename):
 
             fd = open(os.path.join(self.get_artifact_directory(), filename), 'a')
-            fd.write(self.text_buffer[filename])
+            fd.write("".join(self.text_buffer[filename]))
             fd.close()
                     
-            self.text_buffer[filename] = ''
+            self.text_buffer[filename].clear()
+            self.text_buffer_counts[filename] = 0
+            
 
     def flush_text(self):
 
