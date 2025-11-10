@@ -93,6 +93,9 @@ class LoggerSchema(ArtifactComponent):
         
         self.write_to_file_when_text_lines_over = self.get_input_value("write_to_file_when_text_lines_over")
 
+        # if it was negative, revert it back to None
+        self.write_to_file_when_text_lines_over = None if self.write_to_file_when_text_lines_over <= 0 else self.write_to_file_when_text_lines_over
+
         if self.write_to_file_when_text_lines_over != None:
             self.text_buffer : dict[str, str] = {}
 

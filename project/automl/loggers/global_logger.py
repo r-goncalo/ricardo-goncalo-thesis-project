@@ -32,6 +32,9 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
         if "default_print" not in global_logger_input.keys():
             global_logger_input["default_print"] = DEFAULT_TO_PRINT_GLOBAL
 
+        if "write_to_file_when_text_lines_over" not in global_logger_input.keys():
+            global_logger_input["write_to_file_when_text_lines_over"] = -1 # global writes should be
+
         global_logger_input["base_directory"] = global_logger_directory
 
         _global_logger = LoggerSchema(global_logger_input)
