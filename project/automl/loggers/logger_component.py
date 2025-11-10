@@ -95,7 +95,7 @@ class LoggerSchema(ArtifactComponent):
         self.write_to_file_when_text_lines_over = self.get_input_value("write_to_file_when_text_lines_over")
 
         # if it was negative, revert it back to None
-        self.write_to_file_when_text_lines_over = None if self.write_to_file_when_text_lines_over <= 0 else self.write_to_file_when_text_lines_over
+        self.write_to_file_when_text_lines_over = None if self.write_to_file_when_text_lines_over != None and self.write_to_file_when_text_lines_over <= 0 else self.write_to_file_when_text_lines_over
 
         if self.write_to_file_when_text_lines_over != None:
             self.text_buffer : dict[str, list] = {}
@@ -256,6 +256,9 @@ class LoggerSchema(ArtifactComponent):
 
             self.flush_buffer_of_file(filename)
 
+        else:
+            globalWriteLine(f"Tried to write text: {text}")
+
 
     def flush_buffer_of_file(self, filename):
 
@@ -265,7 +268,7 @@ class LoggerSchema(ArtifactComponent):
                     
             self.text_buffer[filename].clear()
             self.text_buffer_counts[filename] = 0
-            
+
 
     def flush_text(self):
 
