@@ -36,3 +36,5 @@ echo Starting experiment at %TIME%
 %COMMAND%
 
 exit()
+
+pause

@@ -7,13 +7,14 @@ from automl.basic_components.state_management import save_state
 from automl.loggers.global_logger import activate_global_logger, get_global_level_artifact_directory
 
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None, default_global_level=None):
+def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None, default_logger_level=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
     
     if to_optimize_configuration_path != None:
         hp_pipeline_input["base_component_configuration_path"] = to_optimize_configuration_path
+        print(f"\nBase component to optimize configuration path defined: {to_optimize_configuration_path}")
     
     hp_pipeline_input["base_directory"] = path_to_store_experiment
 
@@ -48,9 +49,11 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
       
         activate_global_logger(hp_optimization_pipeline.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
 
-    if default_global_level != None:
+    if default_logger_level != None:
+
+        print(f"\nNew default logger level: {default_logger_level}")
       
-        change_default_logger_level(default_global_level)
+        change_default_logger_level(default_logger_level)
 
 
 
@@ -59,6 +62,8 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
 
 
 if __name__ == "__main__":
+
+    print(f"\nRunning hp experiment, processing input...")
 
     import argparse
     parser = argparse.ArgumentParser(description="Run hyperparameter optimization pipeline.")
@@ -75,10 +80,12 @@ if __name__ == "__main__":
     parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
 
     parser.add_argument("--global_logger_level", type=str, default=None, help="Path to config to optimize")
-    parser.add_argument("--default_global_level", type=str, default=None, help="Path to config to optimize")
+    parser.add_argument("--default_logger_level", type=str, default=None, help="Path to config to optimize")
     
 
     args = parser.parse_args()
+
+    print(f"\nStopped processing input")
 
     main(num_trials=args.num_trials, num_steps=args.num_steps,
          create_new_directory=args.create_new_directory, sampler=args.sampler,
@@ -87,6 +94,6 @@ if __name__ == "__main__":
          hp_configuration_path = args.hp_configuration_path,
          to_optimize_configuration_path = args.to_optimize_configuration_path,
          global_logger_level = args.global_logger_level,
-         default_global_level=args.default_global_level
+         default_logger_level=args.default_logger_level
          )
     
