@@ -3,8 +3,6 @@ from enum import Enum
 
 from automl.utils.smart_enum import SmartEnum
 
-from automl.consts import ONLY_IGNORE_AT_SERIALIZATION_AFTER_GET
-
 DEFAULT_GET_FROM_PARENT = False
 DEFAULT_IGNORE_AT_SERIALIZATION = False
 DEFAULT_PRIORITY = 50
@@ -195,7 +193,7 @@ class InputMetaData():
         self.origin = InputMetaData.InputOrigin.DEFAULT
         self.parameter_signature : InputSignature = parameter_signature
 
-        self.ignore_at_serialization = parameter_signature.ignore_at_serialization or ONLY_IGNORE_AT_SERIALIZATION_AFTER_GET
+        self.ignore_at_serialization = parameter_signature.ignore_at_serialization
     
         self.value_got = False
 

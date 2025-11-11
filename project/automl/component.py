@@ -50,8 +50,6 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         self.name = str(type(self).__name__) #defines the initial component name~
         self._was_custom_name_set = False
-
-        self.pass_input(input) #passes the input but note that it does not proccess it
         
         self.output = {} #output, if any, will be a dictionary
         
@@ -59,6 +57,9 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         self.__input_is_being_processed = False
 
         self.__notes = [] #notes are a list of strings
+
+        self.pass_input(input) #passes the input but note that it does not proccess it
+
 
     
     # NAMING STUFF --------------------------------------------------------------------------------------------------

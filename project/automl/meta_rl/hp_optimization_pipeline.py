@@ -1,18 +1,15 @@
 import gc
 import os
 from typing import Union
-from unittest import result
 from automl.component import InputSignature, Component, requires_input_proccess
-from automl.basic_components.artifact_management import ArtifactComponent
 from automl.basic_components.exec_component import ExecComponent
 from automl.core.advanced_input_management import ComponentInputSignature
-from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
+from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
-from automl.rl.rl_pipeline import RLPipelineComponent
 
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.loggers.logger_component import ComponentWithLogging
 
 from automl.utils.files_utils import write_text_to_file
 from automl.utils.json_utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, gen_component_from
@@ -20,8 +17,6 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 import optuna
 
 from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
-
-from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 from automl.basic_components.seeded_component import SeededComponent
@@ -698,6 +693,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"ERROR: CAN'T SAVE TRIAL {trial.number}")
 
+        component_to_test_path = os.path.abspath(component_to_test_path)
+
         error_report_specific_path = "on_save_error_report.txt"
         error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
 
@@ -712,6 +709,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def on_exception_evaluating_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial):
 
         self.lg.writeLine(f"ERROR: CAN'T EVALUATE TRIAL {trial.number}")
+
+        component_to_test_path = os.path.abspath(component_to_test_path)
 
         error_report_specific_path = "on_evaluate_error_report.txt"
         error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
@@ -729,6 +728,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.lg.writeLine(f"ERROR RUNNING TRIAL {trial.number}")
 
         error_report_specific_path = "on_run_error_report.txt"
+        
+        component_to_test_path = os.path.abspath(component_to_test_path)
+
         error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
