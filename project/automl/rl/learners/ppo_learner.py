@@ -182,6 +182,9 @@ class PPOLearner(LearnerSchema):
         
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
+        # this is the correction of the values computed by the critic using the advantage
+        returns = advantages + values.detach()
+
         # Compute new log probabilities from the policy
         new_log_probs, entropy = self._evaluate_actions(state_batch, action_batch)
 
@@ -193,9 +196,8 @@ class PPOLearner(LearnerSchema):
         surrogate2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
         policy_loss = -torch.min(surrogate1, surrogate2).mean()
 
-        # Compute value loss
-        values = self.critic.predict(state_batch).squeeze()
-        value_loss = F.mse_loss(values, reward_batch)
+        # Compute value loss for critic
+        value_loss = F.mse_loss(values, returns)
 
         # Total loss
         loss : torch.Tensor = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy.mean()
@@ -204,8 +206,6 @@ class PPOLearner(LearnerSchema):
         self.critic_optimizer.clear_optimizer_gradients()
 
         loss.backward() # we do the optimization here so it goes to both optimizers
-
-
 
         self.actor_optimizer.optimize_with_backward_pass_done()
         self.critic_optimizer.optimize_with_backward_pass_done()
