@@ -164,14 +164,10 @@ class PPOLearner(LearnerSchema):
         values = self.critic.predict(state_batch).squeeze(-1)
         with torch.no_grad():
             next_values = self.critic.predict(next_state_batch).squeeze(-1)
-    
+
         # Mask out terminal states (no bootstrapping after done)
         next_values = next_values * (1 - done_batch)
         
-        # separate non final states from final states and compute the values for those
-        next_non_final_states = next_state_batch[non_final_mask]
-        next_values_non_final = self.critic.predict(next_non_final_states).squeeze(-1).detach()
-        next_values[non_final_mask] = next_values_non_final # note that the next values are 0 for final states
         
         # Compute advantages using Generalized Advantage Estimation (GAE)
         deltas = reward_batch + discount_factor * next_values - values 
