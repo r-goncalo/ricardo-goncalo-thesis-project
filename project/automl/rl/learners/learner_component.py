@@ -56,8 +56,16 @@ class LearnerSchema(Component):
         
         else:
             reward_batch = trajectory.reward.view(-1) # TODO: This assumes the reward only has one dimension
+
+        if not isinstance(trajectory.done, torch.Tensor):
             
-        return state_batch, action_batch, next_state_batch, reward_batch
+            done_batch = torch.stack(trajectory.done, dim=0)  # Stack tensors along a new dimension (dimension 0)
+    
+        
+        else:
+            done_batch = trajectory.done.view(-1) # TODO: This assumes the reward only has one dimension
+            
+        return state_batch, action_batch, next_state_batch, reward_batch, done_batch
     
     
     def _non_final_states_mask(self, next_state_batch):

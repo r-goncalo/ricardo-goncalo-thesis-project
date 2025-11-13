@@ -65,11 +65,24 @@ class MemoryComponent(StatefulComponent):
         
     @requires_input_proccess
     def get_all(self):
-        raise NotImplementedError()
-    
+        '''Returns the total memory'''
+        pass
+
     @requires_input_proccess
-    def write_to_file(self):
-        raise NotImplementedError()
+    def get_all_transposed(self):
+        '''Returns total memory transposed'''
+        pass
+
+    @requires_input_proccess
+    def get_all_segmented(self, batch_size):
+        '''Returns ordered list of segmented memory with batch_size'''
+        pass
+
+    @requires_input_proccess
+    def get_all_segmented_transposed(self, batch_size):
+        '''Returns ordered list of transposed segmented memory with batch_size'''
+        pass
+    
 
     @requires_input_proccess
     def __len__(self):

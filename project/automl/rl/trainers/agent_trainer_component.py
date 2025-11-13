@@ -201,8 +201,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                 
                 self.lg.writeLine(f"In episode (total) {self.values['episodes_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
                 
-                for _ in range(self.times_to_learn):
-                    self.optimizeAgent()
+                self.optimizeAgent()
                     
             
         
@@ -225,7 +224,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                         
             self.values["episode_score"] = self.values["episode_score"] + reward
                             
-            self._observe_transiction_to(observation, action, reward)
+            self._observe_transiction_to(observation, action, reward, done)
             
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
@@ -264,10 +263,11 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
     def optimizeAgent(self):
 
-        '''Optimizes the trained agent'''
-                
-        self._optimize_policy_model() 
-        self.values["optimizations_done"] += 1
+        '''Optimizes the trained agent for the number of specified times''' 
+
+        for _ in range(self.times_to_learn):
+            self._optimize_policy_model() 
+            self.values["optimizations_done"] += 1
         
         
         

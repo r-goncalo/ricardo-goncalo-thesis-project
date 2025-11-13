@@ -71,7 +71,8 @@ class AgentTrainerDQN(AgentTrainer):
                                         ("state", self.agent.model_input_shape), 
                                         ("action", self.agent.get_policy().get_policy_shape(), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
-                                        ("reward", 1)
+                                        ("reward", 1),
+                                        ("done", 1)
                                     ]
             
         self.memory.pass_input({
@@ -87,7 +88,7 @@ class AgentTrainerDQN(AgentTrainer):
             self.lg.writeLine(f"Exploration strategy values: \n{self.exploration_strategy.values}\n")
         
 
-    def _observe_transiction_to(self, new_state, action, reward):
+    def _observe_transiction_to(self, new_state, action, reward, done):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
         
@@ -98,7 +99,7 @@ class AgentTrainerDQN(AgentTrainer):
         
         next_state_memory = self.agent.get_current_state_in_memory()
                 
-        self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward})
+        self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "done" : done})
         
 
         

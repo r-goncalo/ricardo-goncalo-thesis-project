@@ -104,7 +104,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
 
         batch_size = len(trajectory[0])
 
-        state_batch, action_batch, next_state_batch, reward_batch = self._interpret_trajectory(trajectory)
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self._interpret_trajectory(trajectory)
             
         non_final_mask = self._non_final_states_mask(next_state_batch) # tensor of indexes with non final states
         

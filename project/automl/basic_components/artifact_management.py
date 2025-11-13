@@ -1,7 +1,7 @@
 
 from automl.component import Component
 
-from automl.utils.files_utils import open_or_create_folder
+from automl.utils.files_utils import new_path_if_exists, open_or_create_folder
 
 from automl.core.input_management import InputSignature
 
@@ -118,6 +118,30 @@ class ArtifactComponent(Component):
             self.__generate_artifact_directory()
             
         return self.artifact_directory
+    
+
+    
+    def open_or_create_relative_folder(self, filename, sub_dir='', create_new_if_exists=True):
+
+        '''Creates a new relative folder'''
+
+        full_dir_path = os.path.join(self.get_artifact_directory(), sub_dir)
+
+        returned_path = open_or_create_folder(full_dir_path, filename, create_new_if_exists)
+
+        return os.path.relpath(returned_path, start=self.get_artifact_directory())
+    
+
+
+    def new_relative_path_if_exists(self, specific_path, dir = ''):
+
+        '''Generates a string for a path, the specific path is what is used to version the path'''
+
+        full_dir_path = os.path.join(self.get_artifact_directory(), dir)
+
+        returned_path = new_path_if_exists(specific_path, dir=full_dir_path)
+
+        return os.path.relpath(returned_path, start=self.get_artifact_directory())
     
     # CHANGE ARTIFACT DIRECTORY -------------------------------------------------
 

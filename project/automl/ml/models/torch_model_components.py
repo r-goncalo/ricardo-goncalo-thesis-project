@@ -207,11 +207,17 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     # UTIL -----------------------------------------------------
     
     @requires_input_proccess
-    def clone(self):
-        toReturn : TorchModelComponent = super().clone()
+    def clone(self, save_in_parent=True):
+        toReturn : TorchModelComponent = super().clone(save_in_parent)
         toReturn.proccess_input_if_not_proccesd()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn
+    
+    @requires_input_proccess
+    def clone_other_model_into_this(self, other_model):
+
+        other_model : TorchModelComponent = other_model
+        self.model.load_state_dict(other_model.model.state_dict())
     
     # STATE MANAGEMENT -----------------------------------------------------
 

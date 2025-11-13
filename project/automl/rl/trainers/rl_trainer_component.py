@@ -32,7 +32,6 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                        "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
                        "limit_steps" : InputSignature(default_value=-1),
-                       "save_interval" : InputSignature(default_value=100),
 
                        "predict_optimizations_to_do" : InputSignature(default_value=False),
                        
@@ -64,8 +63,6 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         self.env : EnvironmentComponent = self.get_input_value("environment")
             
-        self.save_interval = self.get_input_value("save_interval")
-
         self.values["episodes_done"] = 0
         self.values["total_steps"] = 0
         
@@ -239,9 +236,24 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     def run_episodes(self):
         
         '''
-        Starts training       
+        Starts and runs training      
         '''
-        
+
+        self.setup_training_session()        
+
+        while True: # loop of episodes and check end conditions
+    
+            self.run_single_episode(self.values["episodes_done"])
+                
+            if self._check_if_to_end_training_session():
+                break
+
+        self.end_training_session()
+
+
+
+    def setup_training_session(self):
+
         self.lg._writeLine(f"Starting to run training with number of episodes: {self.num_episodes} and total step limit: {self.limit_total_steps}")
 
         if self._fraction_training_to_do != None:
@@ -251,28 +263,17 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
             self.lg._writeLine(f"Only doing a fraction of {self._fraction_training_to_do} of the training")
         
-            
+
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_training_session() 
-            
+
 
         self.values["episode_done_in_session"] = 0
         self.values["steps_done_in_session"] = 0
-        
-        while True: # loop of episodes and check end conditions
-            
-            self.__run_episode(self.values["episodes_done"])
-            
-            for agent_in_training in self.agents_in_training.values():
-                agent_in_training.end_episode() 
-            
-            self.values["episodes_done"] = self.values["episodes_done"] + 1
-            self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
-            
-            self.calculate_and_log_results()
-                
-            if self._check_if_to_end_training_session():
-                break
+
+
+
+    def end_training_session(self):
 
         self.lg._writeLine(f"Ended training with values: {self.values}")
         
@@ -280,10 +281,10 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             agent_in_training.end_training()            
                 
         self.env.close()
-            
+
     
-    def __run_episode(self, i_episode):
-                        
+    def setup_single_episode(self, i_episode):
+
         self.env.reset()
         
         self.values["episode_steps"] = 0
@@ -291,26 +292,47 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.setup_episode(self.env) 
+
+    
+    def run_episode_step_for_agent_name(self, i_episode, agent_name):
+
+        agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
             
-                
-        for agent_name in self.env.agent_iter(): #iterates infinitely over the agents that should be acting in the environment
-                                            
-            agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
-            
-            reward, done = agent_in_training.do_training_step(i_episode, self.env)
+        reward, done = agent_in_training.do_training_step(i_episode, self.env)
                         
-            for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
-                if other_agent_name != agent_name:
+        for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
+            if other_agent_name != agent_name:
                     self.agents_in_training[other_agent_name].observe_new_state(self.env)
                     
-            self.values["episode_steps"] = self.values["episode_steps"] + 1
-            self.values["total_steps"] = self.values["total_steps"] + 1
-            self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
+        self.values["episode_steps"] = self.values["episode_steps"] + 1
+        self.values["total_steps"] = self.values["total_steps"] + 1
+        self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
             
-            self.values["episode_score"] = self.values["episode_score"] + reward
+        self.values["episode_score"] = self.values["episode_score"] + reward
+
+        return done
             
+
+    
+    def run_single_episode(self, i_episode):
+                        
+        self.setup_single_episode(i_episode)
+                
+        for agent_name in self.env.agent_iter(): #iterates infinitely over the agents that should be acting in the environment
+
+            done = self.run_episode_step_for_agent_name(i_episode, agent_name)
+                      
             if done or self._check_if_to_end_episode():
-                break
+                break                      
+
+
+        for agent_in_training in self.agents_in_training.values():
+            agent_in_training.end_episode() 
+        
+        self.values["episodes_done"] = self.values["episodes_done"] + 1
+        self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
+        
+        self.calculate_and_log_results()
             
         
                    

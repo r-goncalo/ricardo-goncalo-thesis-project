@@ -110,6 +110,34 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         batch = self.Transition(**batch_data)
         
         return batch
+    
+    @requires_input_proccess
+    def get_all(self):
+        '''Returns the total memory'''
+
+        batch_data = {
+            field_name: self.transitions[field_name]
+            for field_name in self.field_names
+        }
+        
+        batch = self.Transition(**batch_data)
+
+        return batch
+
+    @requires_input_proccess
+    def get_all_transposed(self):
+        '''Returns total memory transposed'''
+        pass
+
+    @requires_input_proccess
+    def get_all_segmented(self, batch_size):
+        '''Returns ordered list of segmented memory with batch_size'''
+        pass
+
+    @requires_input_proccess
+    def get_all_segmented_transposed(self, batch_size):
+        '''Returns ordered list of transposed segmented memory with batch_size'''
+        pass
 
 
 

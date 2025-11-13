@@ -15,6 +15,13 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         self_class.__set_parameter_signatures_with_super(bases)
         self_class.__setup_default_values_in_parameter_signatures()
         self_class.__setup_organized_parameters_signature()
+
+    def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values
+        
+        return {
+            "parameters_signature": {},
+            "exposed_values": {}
+        }
         
 
     def __set_exposed_values_with_super(self_class, bases):

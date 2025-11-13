@@ -6,6 +6,7 @@ from automl.rl.learners.learner_component import LearnerSchema
 
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.ml.optimizers.optimizer_components import AdamOptimizer, OptimizerSchema
+from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 
 from automl.rl.policy.policy import Policy
@@ -65,7 +66,7 @@ class PPOLearner(LearnerSchema):
         if isinstance(self.policy, StochasticPolicy) is False:
             raise Exception("PPO Learner requires a Stochastic Policy, but got {}".format(get_class_from(self.policy)))
         
-        self.model : ModelComponent = self.policy.model
+        self.model : TorchModelComponent = self.policy.model
         
         self.initialize_critic_model()
         self.initialize_optimizer()
@@ -82,7 +83,7 @@ class PPOLearner(LearnerSchema):
     
     def initialize_critic_model(self):
         
-        self.critic : ModelComponent = self.get_input_value("critic_model")
+        self.critic : TorchModelComponent = self.get_input_value("critic_model")
 
         if not self.critic.has_custom_name_passed():
             self.critic.pass_input({"name" : "critic"})
@@ -137,7 +138,7 @@ class PPOLearner(LearnerSchema):
 
     def _interpret_trajectory(self, trajectory):
         
-        state_batch, action_batch, next_state_batch, reward_batch = super()._interpret_trajectory(trajectory)
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch = super()._interpret_trajectory(trajectory)
         
         if not isinstance(trajectory.log_prob, torch.Tensor):
             log_prob_batch = torch.stack(trajectory.log_prob, dim=0)  # Stack tensors along a new dimension (dimension 0)
@@ -146,7 +147,7 @@ class PPOLearner(LearnerSchema):
             log_prob_batch = trajectory.log_prob
         
             
-        return state_batch, action_batch, next_state_batch, reward_batch, log_prob_batch
+        return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch
     
     
     
@@ -156,13 +157,16 @@ class PPOLearner(LearnerSchema):
         
         self.number_of_times_optimized += 1
         
-        state_batch, action_batch, next_state_batch, reward_batch, log_prob_batch = self._interpret_trajectory(trajectory)
-        non_final_mask = self._non_final_states_mask(next_state_batch) #list of indexes where the next state is not none (state was not terminal)
-        
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch = self._interpret_trajectory(trajectory)
+                
                         
         # Compute value estimates
-        values = self.critic.predict(state_batch).squeeze()
-        next_values = torch.zeros_like(values, device=self.device)
+        values = self.critic.predict(state_batch).squeeze(-1)
+        with torch.no_grad():
+            next_values = self.critic.predict(next_state_batch).squeeze(-1)
+    
+        # Mask out terminal states (no bootstrapping after done)
+        next_values = next_values * (1 - done_batch)
         
         # separate non final states from final states and compute the values for those
         next_non_final_states = next_state_batch[non_final_mask]
@@ -204,6 +208,8 @@ class PPOLearner(LearnerSchema):
         self.critic_optimizer.clear_optimizer_gradients()
 
         loss.backward() # we do the optimization here so it goes to both optimizers
+
+
 
         self.actor_optimizer.optimize_with_backward_pass_done()
         self.critic_optimizer.optimize_with_backward_pass_done()

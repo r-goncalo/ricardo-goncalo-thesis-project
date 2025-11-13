@@ -80,6 +80,82 @@ def config_dict():
 
                     "critic_model" : (FullyConnectedModelSchema, {"hidden_layers" : 2, "hidden_size" : 64, "output_shape" : 1}),
 
+                    "batch_size" : 256,
+
+                    "optimizer" :(
+                                   AdamOptimizer,
+                                   {
+                                       "name" : "AdamOpimizerComponent",
+                                       "learning_rate" : 2.3e-3,
+                                       "linear_decay_learning_rate_with_final_input_value_of" : ("relative", [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]),
+                                       "clip_grad_value" : (
+                                           DynamicLinearValueInRangeBasedOnComponent, {
+                                               "input_for_fun_key" : "optimizations_done",
+                                               "initial_value" : 0.2,
+                                               "final_value" : 0,
+                                               "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})),
+                                               "input_for_fun_max_value" : 
+                                                ('relative', 
+                                                 [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                                                )
+
+
+                                           }
+                                       )                 
+                                   }
+                    ),
+
+
+
+                }),
+
+                "discount_factor" : 0.98,
+            
+                "times_to_learn" : 20,
+            
+                "memory" : (TorchMemoryComponent, {
+                    "capacity" : 256
+                })
+                
+            
+            }
+
+            }
+        )
+        
+    }
+}
+
+
+
+def agent_and_agent_trainer():
+    
+    agent =    {
+        
+    "__type__": RLPipelineComponent,
+    "name": "agent",
+    "input": {
+
+    
+        
+        }
+    }
+
+    agent_trainer = {
+        
+    "__type__": AgentTrainerPPO,
+    "name": "agent_trainer",
+
+    "input": { #for each agent trainer
+                
+                "optimization_interval": 256,
+                
+                "learner" : (PPOLearner, {
+
+                    "lamda_gae" : 0.8,
+
+                    "critic_model" : (FullyConnectedModelSchema, {"hidden_layers" : 2, "hidden_size" : 64, "output_shape" : 1}),
+
                     "optimizer" :(
                                    AdamOptimizer,
                                    {
@@ -115,9 +191,6 @@ def config_dict():
                 
             
             }
-
-            }
-        )
-        
     }
-}
+
+    return agent, agent_trainer

@@ -54,6 +54,7 @@ class AgentTrainerPPO(AgentTrainer):
                                         ("action", self.agent_poliy.get_policy_shape(), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
+                                        ("done", 1),
                                         ("log_prob", 1) #log probability of chosing the stored action
                                     ]
             
@@ -79,7 +80,7 @@ class AgentTrainerPPO(AgentTrainer):
     # TRAINING_PROCESS ---------------------
          
 
-    def _observe_transiction_to(self, new_state, action, reward):
+    def _observe_transiction_to(self, new_state, action, reward, done):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
                 
@@ -90,7 +91,7 @@ class AgentTrainerPPO(AgentTrainer):
         next_state_memory = self.agent.get_current_state_in_memory()
                 
         #we can push in this way because the pushed tensors are actually cloned into memory
-        self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "log_prob" : self.last_log_prob})
+        self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "log_prob" : self.last_log_prob, "done" : done})
                
         
     def _select_action(self, state):
@@ -102,10 +103,23 @@ class AgentTrainerPPO(AgentTrainer):
         self.last_log_prob = log_prob
         
         return action
+        
     
+    def _optimize_policy_model(self):
+        
+        if len(self.memory) != self.BATCH_SIZE:
+            raise Exception(f"PPO agent trainer expects memory to be equal to batch_size, {self.BATCH_SIZE}")
+        
+        #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
+        batch = self.memory.get_all()
+        
+                
+        self.learner.learn(batch, self.discount_factor)
 
 
     def optimizeAgent(self):
+
+        '''Optimizes the agent for the specified number of times and then clears the memory'''
     
         super().optimizeAgent()
         
