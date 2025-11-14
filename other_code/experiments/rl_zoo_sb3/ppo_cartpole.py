@@ -3,8 +3,25 @@
 
 from experiments import hp_experiments_sequence
 
-
 def experiment_base_commands(directory_to_store_experiment,
+                 base_to_opt_config_path,
+                 hp_opt_config_path, 
+                 experiment_name,
+                 base_commands=None,
+                 base_command={}):
+
+
+    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands(directory_to_store_experiment,
+                 base_to_opt_config_path,
+                 hp_opt_config_path, 
+                 experiment_name,
+                 base_commands,
+                 base_command)
+    
+    return base_commands
+
+
+def experiment_base_commands_and_info(directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
                  experiment_name,
@@ -71,7 +88,7 @@ def experiment_for_poo_actors(directory_to_store_experiment = "C:\\rgoncalo\\exp
                  base_command : dict = {}):
 
 
-    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands(
+    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands_and_info(
         directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
@@ -107,7 +124,7 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
                  base_command : dict = {}):
 
 
-    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands(
+    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands_and_info(
         directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
