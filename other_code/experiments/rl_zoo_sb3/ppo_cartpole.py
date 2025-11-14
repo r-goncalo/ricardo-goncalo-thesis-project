@@ -7,12 +7,9 @@ from experiments import hp_experiments_sequence
 def experiment_base_commands(directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
-                 mantain_original,
-                 directory_of_models,
-                 models_to_test,
                  experiment_name,
-                 base_commands,
-                 base_command):
+                 base_commands=None,
+                 base_command={}):
     
 
     directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = hp_experiments_sequence.setup_experiment_directories(
@@ -78,9 +75,6 @@ def experiment_for_poo_actors(directory_to_store_experiment = "C:\\rgoncalo\\exp
         directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
-                 mantain_original,
-                 directory_of_models,
-                 models_to_test,
                  experiment_name,
                  base_commands)
 
@@ -117,9 +111,6 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
         directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
-                 mantain_original,
-                 directory_of_models,
-                 models_to_test,
                  experiment_name,
                  base_commands,
                  base_command)

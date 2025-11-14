@@ -80,8 +80,6 @@ def config_dict():
 
                     "critic_model" : (FullyConnectedModelSchema, {"hidden_layers" : 2, "hidden_size" : 64, "output_shape" : 1}),
 
-                    "batch_size" : 256,
-
                     "optimizer" :(
                                    AdamOptimizer,
                                    {
