@@ -11,7 +11,7 @@ def experiment_base_commands(directory_to_store_experiment,
                  base_command={}):
 
 
-    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands(directory_to_store_experiment,
+    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands_and_info(directory_to_store_experiment,
                  base_to_opt_config_path,
                  hp_opt_config_path, 
                  experiment_name,
