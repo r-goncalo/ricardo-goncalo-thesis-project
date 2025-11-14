@@ -15,7 +15,7 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         self_class.__save_original_parameters_signature()
         self_class.__reorganize_mro_so_debug_classes_come_last(bases)
         self_class.__set_exposed_values_with_super(bases)
-        self_class.__set_parameter_signatures_with_super(bases)
+        self_class.__fuse_parameter_signatures_with_super(bases)
         self_class.__setup_default_values_in_parameter_signatures()
         self_class.__setup_organized_parameters_signature()
 
@@ -24,6 +24,7 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         return {
             "parameters_signature": {},
             "original_parameters_signature" : {},
+            "fused_parameters_signature" : {},
             "exposed_values": {},
             "is_debug_schema" : False
         }
@@ -61,32 +62,32 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
 
 
 
-    def __set_parameter_signatures_with_super(self_class, bases):
+    def __fuse_parameter_signatures_with_super(self_class, bases):
         
         '''
-        Updates the exposed values with super classes for this squema
-        This assumes those squemas also had their exposed values processed, and so it only needs to deal with the super
+        Updates the input signatures with super classes for this squema
         '''
 
-        self_parameters_signature : dict[str, InputSignature] = self_class.parameters_signature
+        self_class.fused_parameters_signature : dict[str, InputSignature]  = copy.deepcopy(self_class.original_parameters_signature)
+        self_fused_parameters_signature : dict[str, InputSignature] = self_class.fused_parameters_signature
 
         # for each of the explicitly defined super classes
         for base_class in bases:
 
             # we look into its parameters signature
-            base_class_parameters_signature : dict[str, InputSignature] = base_class.parameters_signature
+            base_class_fused_parameters_signature : dict[str, InputSignature] = base_class.fused_parameters_signature
 
-            for input_key in base_class_parameters_signature.keys():
+            for input_key in base_class_fused_parameters_signature.keys():
 
-                base_class_signature = base_class_parameters_signature[input_key]
+                base_class_signature = base_class_fused_parameters_signature[input_key]
 
                 # if input key 
-                if input_key in self_parameters_signature.keys():
+                if input_key in self_fused_parameters_signature.keys():
 
-                    self_signature = self_parameters_signature[input_key]
+                    self_signature = self_fused_parameters_signature[input_key]
 
                     try:
-                        self_parameters_signature[input_key] = fuse_input_signatures(base_class_signature, self_signature)
+                        self_fused_parameters_signature[input_key] = fuse_input_signatures(base_class_signature, self_signature)
 
                     except Exception as e:
 
@@ -94,17 +95,19 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
 
                 else:
 
-                    self_parameters_signature[input_key] = base_class_signature
+                    self_fused_parameters_signature[input_key] = base_class_signature.clone()
 
 
 
     def __setup_default_values_in_parameter_signatures(self_class):
 
         self_parameters_signature : dict[str, InputSignature] = self_class.parameters_signature
+        self_fused_parameters_signature : dict[str, InputSignature] = self_class.fused_parameters_signature
 
-        for parameter_signature in self_parameters_signature.values():
+        for parameter_signature_key in self_fused_parameters_signature.keys():
 
-            parameter_signature.setup_default_values() 
+            self_parameters_signature[parameter_signature_key] = self_fused_parameters_signature[parameter_signature_key].clone()
+            self_parameters_signature[parameter_signature_key].setup_default_values()
 
     
     def __setup_organized_parameters_signature(self_class):

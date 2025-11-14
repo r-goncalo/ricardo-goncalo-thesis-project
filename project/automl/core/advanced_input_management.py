@@ -84,18 +84,12 @@ class ComponentInputSignature(InputSignature):
     def __init__(self, default_component_definition = None, **kwargs):
         
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
-
-        self.default_component_definition = default_component_definition
         
         if "possible_types" in kwargs.keys():
             kwargs["possible_types"] = [*ComponentInputSignature.possible_types, *kwargs["possible_types"]]
 
         else:
             kwargs["possible_types"] = ComponentInputSignature.possible_types
-    
-        if default_component_definition is not None and "generator" in kwargs.keys():
-            raise Exception("Geneator in arguments of Component Input Signature when there is a default component definition")
-        
 
         if default_component_definition is not None:
         
@@ -106,7 +100,9 @@ class ComponentInputSignature(InputSignature):
                 
                 return component
             
-            super().__init__(generator=generator, **kwargs)
+            kwargs["generator"] = generator
+            
+            super().__init__(**kwargs)
         
         else:
             super().__init__(**kwargs)            
@@ -114,26 +110,6 @@ class ComponentInputSignature(InputSignature):
             
     def setup_default_values(self):
         super().setup_default_values()
-
-
-    def fuse_with_new(self, other_input_signature : InputSignature):
-        super().fuse_with_new(other_input_signature)
-
-        if isinstance(other_input_signature, ComponentInputSignature):
-            self.default_component_definition = other_input_signature.default_component_definition
-    
-
-    def to_dict(self):
-
-        to_dict_to_return = {
-
-            **super().to_dict(),
-            "default_component_definition" : self.default_component_definition
-
-
-        }
-
-        return to_dict_to_return
 
 
 
@@ -172,9 +148,6 @@ class ComponentListInputSignature(InputSignature):
         
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
     
-        if default_component_definition is not None and "generator" in kwargs.keys():
-            raise Exception("Geneator in arguments of Component Input Signature when there is a default component definition")
-        
 
         if default_component_definition is not None:
             
@@ -187,9 +160,6 @@ class ComponentListInputSignature(InputSignature):
         super().setup_default_values()
         
 
-    def fuse_with_new(self, other_input_signature : InputSignature):
-        raise NotImplementedError()
-            
             
 class ComponentDictInputSignature(InputSignature):
     
