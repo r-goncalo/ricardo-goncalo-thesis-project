@@ -25,6 +25,10 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     parameters_signature : dict[str, InputSignature] = {
         "name" : InputSignature(on_pass=on_name_pass, ignore_at_serialization=True, mandatory=False, priority=0), #the name of the component
     }
+
+    original_parameters_signature : dict[str, InputSignature] = {} # this is not for users to change, as the schema automatically stores here the original parameters_signature as it was defined
+
+    is_debug_schema = False # meant to be True if a class is to be used as debug, this means it will always be counted last in the mro
     
     #A dictionary { "value_name" -> initial_value }
     #it tells other components what are the values exposed by this component, useful when checking the validity of the program before running it

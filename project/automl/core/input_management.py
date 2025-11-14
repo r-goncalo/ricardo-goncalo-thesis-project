@@ -58,7 +58,6 @@ class InputSignature():
         if self.mandatory == None:
             self.mandatory = DEFAULT_MANDATORY
 
-
     def change_default_value(self, new_default_value):
         self.default_value = new_default_value
 
@@ -80,7 +79,6 @@ class InputSignature():
 
 
         return to_return
-
     
     def fuse_with_new(self, other_input_signature):
 
@@ -98,6 +96,7 @@ class InputSignature():
         new_ignore_at_serialization = self.ignore_at_serialization if other_input_signature.ignore_at_serialization == None else other_input_signature.ignore_at_serialization
 
         new_priority = self.priority if other_input_signature.priority == None else other_input_signature.priority
+
 
         new_mandatory = self.mandatory if other_input_signature.mandatory == None else other_input_signature.mandatory
 
@@ -134,43 +133,66 @@ class InputSignature():
                 new_on_pass.append(new_on_pass_fun)
 
 
-        new_input_signature = InputSignature(
-                 get_from_parent = new_get_from_parent, 
-                 default_value = new_default_value, 
-                 generator = new_generator, 
-                 validity_verificator= new_validity_verificator, 
-                 possible_types = new_possible_types, 
-                 description= new_description, 
-                 ignore_at_serialization= new_ignore_at_serialization, 
-                 priority= new_priority, 
-                 on_pass= new_on_pass, 
-                 mandatory= new_mandatory
-        )
+        self.get_from_parent = new_get_from_parent
+        self.default_value = new_default_value
+        self.generator = new_generator
+        self.validity_verificator= new_validity_verificator
+        self.possible_types = new_possible_types
+        self.description= new_description
+        self.ignore_at_serialization= new_ignore_at_serialization
+        self.priority= new_priority
+        self.on_pass= new_on_pass
+        self.mandatory= new_mandatory
 
-        return new_input_signature
+
     
     def to_dict(self):
 
         to_dict_to_return = {
 
-            "get_from_parent" : str(self.get_from_parent),
-            "default_value" : str(self.default_value),
-            "generator" : str(self.generator),
-            "validity_verificator" : str(self.validity_verificator),
-            "possible_types" : str(self.possible_types),
-            "description" : str(self.description),
-            "ignore_at_serialization" : str(self.ignore_at_serialization),
-            "priority" : str(self.priority),
-            "on_pass" : str(self.on_pass),
-            "mandatory" : str(self.mandatory),
-
-
+            "get_from_parent" : self.get_from_parent,
+            "default_value" : self.default_value,
+            "generator" : self.generator,
+            "validity_verificator" : self.validity_verificator,
+            "possible_types" : self.possible_types,
+            "description" : self.description,
+            "ignore_at_serialization" : self.ignore_at_serialization,
+            "priority" : self.priority,
+            "on_pass" : self.on_pass,
+            "mandatory" : self.mandatory,
         }
 
         return to_dict_to_return
+    
+
+    def to_str_dict(self):
+
+        to_dict_to_return = self.to_dict()
+
+        for key in to_dict_to_return.keys():
+            to_dict_to_return[key] = str(to_dict_to_return[key])
+
+        return to_dict_to_return
+    
+
+    def clone(self):
+        return type(self)(**self.to_dict())
 
 
+def fuse_input_signatures(first_input_signature : InputSignature, second_input_signature : InputSignature):
 
+    if issubclass(type(first_input_signature), type(second_input_signature)):
+        to_return = first_input_signature.clone()
+        to_return.fuse_with_new(second_input_signature)
+    
+    elif issubclass(type(second_input_signature), type(first_input_signature)):
+        to_return = second_input_signature.clone()
+        to_return.fuse_with_new(first_input_signature)
+
+    else:
+        raise Exception(f"Tried to fuse input signatures that are not subclasses of eachother")
+
+    return to_return
 
 class InputMetaData():
     

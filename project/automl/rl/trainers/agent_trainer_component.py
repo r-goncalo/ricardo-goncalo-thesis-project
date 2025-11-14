@@ -16,6 +16,7 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema
+from automl.rl.policy.policy import Policy
 import torch
 import time
 
@@ -103,6 +104,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
         self.agent : AgentSchema = self.get_input_value("agent")
         self.agent.proccess_input_if_not_proccesd()
+
+        self.agent_poliy : Policy = self.agent.policy
         
         
     def initialize_learner(self):

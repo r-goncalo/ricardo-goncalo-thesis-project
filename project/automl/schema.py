@@ -1,4 +1,5 @@
-from automl.core.input_management import InputSignature
+import copy
+from automl.core.input_management import InputSignature, fuse_input_signatures
 from abc import ABCMeta
 
 
@@ -11,6 +12,8 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         # Create the schema, with its defined attributes
         super().__init__(name, bases, namespace)
 
+        self_class.__save_original_parameters_signature()
+        self_class.__reorganize_mro_so_debug_classes_come_last(bases)
         self_class.__set_exposed_values_with_super(bases)
         self_class.__set_parameter_signatures_with_super(bases)
         self_class.__setup_default_values_in_parameter_signatures()
@@ -20,8 +23,29 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         
         return {
             "parameters_signature": {},
-            "exposed_values": {}
+            "original_parameters_signature" : {},
+            "exposed_values": {},
+            "is_debug_schema" : False
         }
+    
+    def __save_original_parameters_signature(self_class):
+        self_class.original_parameters_signature = copy.deepcopy(self_class.parameters_signature)
+    
+
+    def __reorganize_mro_so_debug_classes_come_last(self_class, bases):
+
+        # TODO: REORGANIZE BASES INSTEAD OF RAISING EXCEPTION
+
+        found_non_debug_base = False
+        for base_class in bases:
+            if hasattr(base_class, "is_debug_schema") and base_class.is_debug_schema:
+                self_class.is_debug_schema = True
+                
+                if found_non_debug_base:
+                    raise Exception(f"When generating Schema {self_class}: found a non debug schema as parent class before debug schema {base_class}")
+
+            else:
+                found_non_debug_base = True
         
 
     def __set_exposed_values_with_super(self_class, bases):
@@ -61,7 +85,12 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
 
                     self_signature = self_parameters_signature[input_key]
 
-                    self_parameters_signature[input_key] = base_class_signature.fuse_with_new(self_signature)
+                    try:
+                        self_parameters_signature[input_key] = fuse_input_signatures(base_class_signature, self_signature)
+
+                    except Exception as e:
+
+                        raise Exception(f"Expcetion when fusing input signature with key '{input_key}' from base schema {base_class} into schema {self_class}: {e}") from e
 
                 else:
 

@@ -71,8 +71,6 @@ class AgentTrainerPPO(AgentTrainer):
         
         super().initialize_agent()
 
-        self.agent_poliy : StochasticPolicy = self.agent.policy
-
         if not isinstance(self.agent_poliy, StochasticPolicy):
             raise Exception("PPO trainer needs a stochastic policy")
         

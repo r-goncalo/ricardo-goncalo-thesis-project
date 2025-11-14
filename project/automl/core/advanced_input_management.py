@@ -39,10 +39,7 @@ class LookableInputSignature(InputSignature):
 
     def setup_default_values(self):
         super().setup_default_values()
-        
-
-    def fuse_with_new(self, other_input_signature : InputSignature):
-        super().setup_default_values(other_input_signature)
+    
 
 
 class ComponentInputSignature(InputSignature):
@@ -51,6 +48,7 @@ class ComponentInputSignature(InputSignature):
 
     
     possible_types = [Component, type, dict, str, tuple, list]
+
 
     @classmethod
     def proccess_value_in_input(cls, component_with_input, key, value, input_if_generated=None):
@@ -66,6 +64,9 @@ class ComponentInputSignature(InputSignature):
 
         return component
     
+
+    
+
     def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True, input_if_generated=None):
         
         '''Returns a component from a ComponentInputSignature passed value'''
@@ -79,6 +80,7 @@ class ComponentInputSignature(InputSignature):
     
     
     
+
     def __init__(self, default_component_definition = None, **kwargs):
         
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
@@ -115,15 +117,18 @@ class ComponentInputSignature(InputSignature):
 
 
     def fuse_with_new(self, other_input_signature : InputSignature):
-        raise NotImplementedError()
+        super().fuse_with_new(other_input_signature)
+
+        if isinstance(other_input_signature, ComponentInputSignature):
+            self.default_component_definition = other_input_signature.default_component_definition
     
 
     def to_dict(self):
 
         to_dict_to_return = {
 
-            ** super().to_dict(),
-            "default_component_definition" : str(self.default_component_definition)
+            **super().to_dict(),
+            "default_component_definition" : self.default_component_definition
 
 
         }
