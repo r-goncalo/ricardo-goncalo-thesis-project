@@ -38,8 +38,9 @@ class AgentTrainerPPO(AgentTrainer):
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()
-                                
-
+                            
+        if self.BATCH_SIZE != None:
+            raise NotImplementedError("PPO Agent traienr stil does not have a sampling strategy implemented with batch size")
         
 
     # INITIALIZATION ---------------------------------------------
@@ -74,6 +75,7 @@ class AgentTrainerPPO(AgentTrainer):
 
         if not isinstance(self.agent_poliy, StochasticPolicy):
             raise Exception("PPO trainer needs a stochastic policy")
+        
 
         
     
@@ -104,17 +106,7 @@ class AgentTrainerPPO(AgentTrainer):
         
         return action
         
-    
-    def _optimize_policy_model(self):
-        
-        if len(self.memory) != self.BATCH_SIZE:
-            raise Exception(f"PPO agent trainer expects memory to be equal to batch_size, {self.BATCH_SIZE}")
-        
-        #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
-        batch = self.memory.get_all()
-        
-                
-        self.learner.learn(batch, self.discount_factor)
+
 
 
     def optimizeAgent(self):

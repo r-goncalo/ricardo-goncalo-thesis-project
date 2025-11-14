@@ -40,7 +40,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                             
                         "agent" : ComponentInputSignature(),
 
-                       "batch_size" : InputSignature(default_value=32),
+                       "batch_size" : InputSignature(mandatory=False),
                     
                        "discount_factor" : InputSignature(default_value=0.95),
 
@@ -273,12 +273,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         
     def _optimize_policy_model(self):
+
+        if self.BATCH_SIZE != None:
         
-        if len(self.memory) < self.BATCH_SIZE:
-            return
-        
-        #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
-        batch = self.memory.sample_transposed(self.BATCH_SIZE)
+            if len(self.memory) < self.BATCH_SIZE:
+                return
+
+            #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
+            batch = self.memory.sample(self.BATCH_SIZE)
+
+        else:
+            batch = self.memory.get_all()
         
                 
         self.learner.learn(batch, self.discount_factor)
