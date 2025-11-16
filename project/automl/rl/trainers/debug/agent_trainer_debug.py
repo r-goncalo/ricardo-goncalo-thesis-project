@@ -17,7 +17,7 @@ class AgentTrainerDebug(AgentTrainer):
     
             self.model : TorchModelComponent = self.agent_poliy.model
     
-            self.temporary_model : TorchModelComponent = self.model.clone()
+            self.__temporary_model : TorchModelComponent = self.model.clone()
         
             self.lg.writeLine(f"total_step, episode, episode_step: state + action -> new_state, reward, done\n", file="observed_transitions.txt", use_time_stamp=False)
             self.lg.writeLine(f"total_step, episode, episode_step: reward, done\n", file="training_steps.txt", use_time_stamp=False)
@@ -33,25 +33,18 @@ class AgentTrainerDebug(AgentTrainer):
     
             return reward, done
     
-        def optimizeAgent(self):
+        def _optimize_policy_model(self):
         
-            self.temporary_model.clone_other_model_into_this(self.model)
+            self.__temporary_model.clone_other_model_into_this(self.model)
     
-            super().optimizeAgent()
+            super()._optimize_policy_model()
     
-            l2_distance, avg_distance, cosine_sim = model_parameter_distance(self.temporary_model, self.model)
+            l2_distance, avg_distance, cosine_sim = model_parameter_distance(self.__temporary_model, self.model)
     
-            self.lg.writeLine(f"Optimized agent, clone has id {id(self.temporary_model.model)} and optimized_model {id(self.model.model)}:", file="model_optimization.txt")
+            self.lg.writeLine(f"Optimized agent, clone has id {id(self.__temporary_model.model)} and optimized_model {id(self.model.model)}:", file="model_optimization.txt")
             self.lg.writeLine(f"    l2_distance: {l2_distance}\n    avg_distance: {avg_distance}\n    cosine_sime: {cosine_sim}\n", file="model_optimization.txt")
     
-            self.lg.writeLine("\nParam IDs of the model:", file="model_optimization.txt")
-            for p in self.model.model.parameters():
-                self.lg.writeLine(f"{id(p)} {p.shape}", file="model_optimization.txt")
-    
-            self.lg.writeLine("\nParam IDs being optimized by the actor optimizer:", file="model_optimization.txt")
-            for g in self.learner.actor_optimizer.torch_adam_opt.param_groups:
-                for p in g['params']:
-                    self.lg.writeLine(f"optimizer param id: {id(p)}", file="model_optimization.txt")
+
     
         def _observe_transiction_to(self, new_state, action, reward, done):
         

@@ -36,7 +36,6 @@ def change_default_logger_level(new_value):
 
 # LOGGING SCHEMA  -------------------------------------------------------------------------------------------------   
 
-
 class LoggerSchema(ArtifactComponent):
 
     '''
@@ -111,7 +110,8 @@ class LoggerSchema(ArtifactComponent):
         '''
 
         return self._writeLine(string, file, level, toPrint, use_time_stamp, str_before, ident_level)
-    
+
+
     @requires_input_proccess
     def change_logger_level(self, new_level : DEBUG_LEVEL):
 
@@ -125,7 +125,9 @@ class LoggerSchema(ArtifactComponent):
         It does not require the component to have its input processed
         '''
         
-        if self.necessary_logger_level.value <= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
+
+        #print(f"passed value: ({level}, {level.value}), necessary value: ({self.necessary_logger_level}, {self.necessary_logger_level.value})")
+        if self.necessary_logger_level.value >= level.value: #if the level of the message is lower than the default level, we write it (more important than what was asked)
 
             if toPrint == None:
                 toPrint = self.default_print
@@ -296,7 +298,7 @@ def on_log_pass(self : Component):
 def generate_logger_for_component(self : ArtifactComponent):
     return self.initialize_child_component(LoggerSchema, input={
             "create_new_directory" : False,
-            "base_directory" : self.get_artifact_directory(), 
+            "base_directory" : self, 
             "artifact_relative_directory" : ""}
         )
 
@@ -314,7 +316,8 @@ class ComponentWithLogging(ArtifactComponent):
                                                         generator = generate_logger_for_component , 
                                                         on_pass=on_log_pass),
 
-                        "logger_input" : InputSignature(ignore_at_serialization=True, default_value={})
+                        "logger_input" : InputSignature(ignore_at_serialization=True, default_value={}),
+
                        }
 
 

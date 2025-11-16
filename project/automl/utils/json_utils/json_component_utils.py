@@ -27,8 +27,6 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
         self.source_component = source_component
     
     def default(self, obj):
-
-        print(f"Doing: {obj}")
                         
         if isinstance(obj, Component):
 

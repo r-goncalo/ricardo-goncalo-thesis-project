@@ -201,7 +201,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
             agents[agent] = self.initialize_child_component(agent_class, input=agent_input)
 
-            self.lg.writeLine("Created agent in training " + agent_name + " with base directory " + agents[agent].input["base_directory"])
+            self.lg.writeLine("Created agent in training " + agent_name + " with base directory " + agents[agent].get_base_directory())
 
             agentId += 1
 

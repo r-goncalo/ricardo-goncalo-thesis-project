@@ -451,7 +451,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                         self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
                     
                     except Exception as e:
-                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}")
+                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}") from e
                     
     
     # INPUT META DATA ----------------------------------------------------------------
@@ -527,7 +527,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         from datetime import datetime
 
         if use_datetime:
-            string = f"{[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]}: {string}"
+            string = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: {string}"
 
         self.__notes.append(string)
 

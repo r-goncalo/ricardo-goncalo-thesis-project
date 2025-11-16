@@ -35,13 +35,20 @@ class SB3WrapperTorch(TorchModelComponent):
 
         super()._initialize_model()
 
+        self.initialize_model_with_sb3_architecture()
+
+
+
+
+    def initialize_model_with_sb3_architecture(self):
+    
         sb3_model_name = self.get_input_value("sb3_model")
 
         if sb3_model_name == None:
             Exception("No sb3_model_provided")
 
         self.lg.writeLine(f"Sb3 model component {self.name} has no model already loaded and has sb3_model defined with name {sb3_model_name}, loading it...")
-            
+        
         # Clone network
         model_net, architecture = load_sb3_net(sb3_model_name)
                 
@@ -51,6 +58,10 @@ class SB3WrapperTorch(TorchModelComponent):
  
         # Explicitly load weights (not strictly needed, deepcopy already does it)
         self.model.load_state_dict(model_net.state_dict())
+
+        self.write_line_to_notes(f"Loaded into this sb3 model using name {sb3_model_name}", use_datetime=True)
+
+
 
 
     def _initialize_mininum_model_architecture(self):

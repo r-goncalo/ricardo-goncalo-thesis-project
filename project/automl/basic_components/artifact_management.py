@@ -62,7 +62,7 @@ class ArtifactComponent(Component):
         while current_parent_component != None: #looks for a parent component which is an Artifact Component and sets its directory based on it
             
             if isinstance(current_parent_component, ArtifactComponent):
-                self.pass_input({"base_directory" : current_parent_component.get_artifact_directory()}) 
+                self.pass_input({"base_directory" : current_parent_component}) 
                 break
             
             current_parent_component = current_parent_component.parent_component
@@ -76,7 +76,15 @@ class ArtifactComponent(Component):
             raise Exception(f'Artifact {self.name} with type {type(self)} trying to create a directory without the necessary parameters, needs {necessary_parameters} and has {self.input.keys()}')
         
         self.artifact_relative_directory = self.get_input_value("artifact_relative_directory")
+        
         self.base_directory = self.get_input_value("base_directory")
+        
+        if isinstance(self.base_directory, Component):
+            if not isinstance(self.base_directory, ArtifactComponent):
+                raise Exception(f"Passed component as base directory but is not artifact component, as it is of type: {type(self.base_directory)}")
+            
+            self.base_directory = self.base_directory.get_artifact_directory()
+        
         self.create_new_directory = self.get_input_value("create_new_directory")
         
         if self.base_directory == '' and self.artifact_relative_directory == '':
@@ -93,6 +101,25 @@ class ArtifactComponent(Component):
                 
     def _force_generate_artifact_directory(self):
         self.__generate_artifact_directory()
+
+    def __generate_base_directory(self):
+
+        self.base_directory = self.get_input_value("base_directory")
+        
+        if isinstance(self.base_directory, Component):
+            if not isinstance(self.base_directory, ArtifactComponent):
+                raise Exception(f"Passed component as base directory but is not artifact component, as it is of type: {type(self.base_directory)}")
+            
+            self.base_directory = self.base_directory.get_artifact_directory()
+
+
+    def get_base_directory(self):
+
+        if not hasattr(self, "base_directory"):
+            self.__generate_base_directory()
+
+        return self.base_directory
+
 
     def generate_artifact_directory(self):
         

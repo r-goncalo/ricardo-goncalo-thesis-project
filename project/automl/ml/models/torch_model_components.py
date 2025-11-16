@@ -8,6 +8,7 @@ import torch.nn as nn
 from automl.component import InputSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
+
 class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLogging):
     
     
@@ -15,7 +16,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
 
     parameters_signature = {
         "device": InputSignature(get_from_parent=True, ignore_at_serialization=True),
-        "model" : InputSignature(mandatory=False, possible_types=[nn.Module])
+        "model" : InputSignature(mandatory=False, possible_types=[nn.Module]),
     }    
 
     exposed_values = {
@@ -93,7 +94,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     
 
     def _try_load_model(self):
-        '''Ties load model, and returns True if model was loaded, false otherwise'''
+        '''Tries load model, and returns True if model was loaded, false otherwise'''
 
         model_was_loaded = self._try_load_model_from_input()
 

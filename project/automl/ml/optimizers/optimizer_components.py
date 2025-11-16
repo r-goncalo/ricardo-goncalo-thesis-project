@@ -115,7 +115,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         self.clip_grad_norm = get_value_of_type_or_component(self, "clip_grad_norm", float)
 
         if self.clip_grad_norm != None:
-            self.lg.writeLine(f"Optimizer has clip grad norm of type: {type(self.clip_grad_norm)}, with value {self.clip_grad_value}")
+            self.lg.writeLine(f"Optimizer has clip grad norm of type: {type(self.clip_grad_norm)}, with value {self.clip_grad_norm}")
 
     # EXPOSED METHODS --------------------------------------------------------------------------
     
@@ -145,15 +145,19 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         self.torch_adam_opt.zero_grad() #clears previous accumulated gradients in the optimizer
 
 
-    
-    def optimize_with_backward_pass_done(self):
+    def _apply_clipping(self):
 
-        # In-place gradient clipping
+        '''Applies in place gradient clipping if any'''
+
         if self.clip_grad_value != None:
             nn.utils.clip_grad_value_(self.params, get_value_or_dynamic_value(self.clip_grad_value))
         
         if self.clip_grad_norm != None:
             nn.utils.clip_grad_norm_(self.params, get_value_or_dynamic_value(self.clip_grad_norm))
+    
+    def optimize_with_backward_pass_done(self):
+
+        self._apply_clipping()
         
         self.torch_adam_opt.step()
         

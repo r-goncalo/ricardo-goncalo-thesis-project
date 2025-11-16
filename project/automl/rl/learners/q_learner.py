@@ -1,5 +1,5 @@
 from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.logger_component import ComponentWithLogging
@@ -7,11 +7,9 @@ from automl.ml.models.model_components import ModelComponent
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 
-from automl.ml.models.torch_model_utils import model_parameter_distance
 import torch
 
 from automl.rl.policy.policy import Policy
-
 
 class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
     
@@ -95,47 +93,65 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
 
     
     # EXPOSED METHODS --------------------------------------------------------------------------
+
+    def _apply_model_prediction_given_state_action_pairs(self, state_batch, action_batch):
+
+        '''Returns the values predicted by the current model and the values for the specific actions that were passed'''
+
+        predicted_actions_values = self.model.predict(state_batch)
+        predicted_values_for_actions = predicted_actions_values.gather(1, action_batch) 
+
+        return predicted_actions_values, predicted_values_for_actions
     
+
+    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+
+        '''
+        Returns the predicted values for the next state
+        
+        They are given by appying the Q function to them and then chosing the next 
+
+        '''
+
+        with torch.no_grad():
+            next_state_q_values = self.target_net.predict(next_state_batch) # it returns the maximum q-action values of the next action
+            
+            next_state_v_values = next_state_q_values.max(1).values
+            next_state_v_values = next_state_v_values * (1 - done_batch)
+
+        return next_state_q_values, next_state_v_values
+    
+
+    def _calculate_chosen_actions_correct_q_values(self, next_state_v_values, discount_factor, reward_batch):
+
+        correct_q_values_for_chosen_action = next_state_v_values
+        correct_q_values_for_chosen_action.mul_(discount_factor).add_(reward_batch)
+
+        return correct_q_values_for_chosen_action
+    
+    def _optimize_with_predicted_model_values_and_correct_values(self, predicted_values, correct_values):
+    
+        #Optimizes the model given the optimizer defined
+        self.optimizer.optimize_model(predicted_values, correct_values)        
+        
+        self.number_optimizations_done += 1
     
     @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
         
         super().learn(trajectory, discount_factor)
 
-        batch_size = len(trajectory[0])
+        self.batch_size = len(trajectory[0])
 
         state_batch, action_batch, next_state_batch, reward_batch, done_batch = self._interpret_trajectory(trajectory)
-            
-        non_final_mask = self._non_final_states_mask(next_state_batch) # tensor of indexes with non final states
-        
-                
-        #predict the action we would take given the current state
-        
-        #predict, for each state, what the current policy would evaluate Q(s_t, a)
-        #remember the output of the policy, for a given state, is the Q-values for each possible action
-        predicted_actions_values = self.model.predict(state_batch) #what the current model would predict as the q values for
-        
-        #for each state s_t and chosen action a_t, what was the Q(s_t, a_t) our current policy gave that pair
-        state_action_values = predicted_actions_values.gather(1, action_batch) 
+                    
+        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(state_batch, action_batch) 
 
-        
-        #compute the V-values our target net predicts for the next_state (perceived reward)
-        #note this can be computed with the Q-values by simply chossing the max Q-values(s, a) for a given s
-        #if there is no next_state, we can use 0             
+        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(next_state_batch, done_batch, reward_batch, discount_factor)
 
-        next_state_values = torch.zeros(batch_size, device=self.device)
-        with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net.predict(next_state_batch[non_final_mask]).max(1).values # it returns the maximum q-action values of the next action
-            
-        # Compute the expected Q values
-        # Target_network prediction * dicount_factor + reward got from chossing the action a_t for the state s_t
-        # This is the "correct" value that Q(s_t, a_t) should take
-        next_state_values.mul_(discount_factor).add_(reward_batch)
+        correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
                         
-        #Optimizes the model given the optimizer defined
-        self.optimizer.optimize_model(state_action_values.squeeze(-1), next_state_values)        
-        
-        self.number_optimizations_done += 1
+        self._optimize_with_predicted_model_values_and_correct_values(state_action_values.squeeze(-1), correct_q_values_for_chosen_action)  
         
         if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()
@@ -146,3 +162,23 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
     def update_target_model(self):
         
         self.target_net.update_model_with_target(self.model, self.TAU)
+
+
+
+class DoubleDeepQLearnerSchema(DeepQLearnerSchema):
+
+
+    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+
+
+        with torch.no_grad():
+
+            q_values_that_would_be_given_next = self.model.predict(next_state_batch)
+            actions_that_would_be_chosen_next = q_values_that_would_be_given_next.argmax(1, keepdim=True)
+
+            next_state_q_values = self.target_net.predict(next_state_batch) # it returns the maximum q-action values of the next action
+            
+            next_state_v_values = next_state_q_values.gather(1, actions_that_would_be_chosen_next).squeeze(1)
+            next_state_v_values = next_state_v_values * (1 - done_batch)
+
+        return next_state_q_values, next_state_v_values
