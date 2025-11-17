@@ -6,7 +6,7 @@ from automl.utils.json_utils.json_component_utils import get_child_dict_from_loc
 from automl.utils.json_utils.custom_json_logic import CustomJsonLogic
 import optuna
 
-from automl.core.localizations import get_component_by_localization_list
+from automl.core.localizations import get_component_by_localization_list, get_last_collection_where_value_is, safe_get
 from automl.loggers.global_logger import globalWriteLine
 
 class HyperparameterSuggestion(CustomJsonLogic):
@@ -96,26 +96,13 @@ class HyperparameterSuggestion(CustomJsonLogic):
         return suggested_value
     
     
-    def _get_last_collection_where_value_should_be(self, component_input, hyperparameter_localizer):
-
-        current_input_dict = component_input
-        
-        for i in range(0, len(hyperparameter_localizer) - 1): # we go to the last collection, before the last indice
-        
-            try:
-                current_input_dict = current_input_dict[hyperparameter_localizer[i]]
-    
-            except Exception as e:
-                raise Exception(f'Exception when locating hyperparameter using localization {hyperparameter_localizer}, in key {hyperparameter_localizer[i]}, for current component input {current_input_dict}: {e}')
-        
-        return current_input_dict
 
 
     def _pass_input_to_component_input(self, component_input, hyperparameter_localizer, suggested_value):
         
         '''Passes the suggested value to the component input, using the localization'''
         
-        current_input_dict = self._get_last_collection_where_value_should_be(component_input, hyperparameter_localizer)
+        current_input_dict = get_last_collection_where_value_is(component_input, hyperparameter_localizer)
 
         try:
 
@@ -234,10 +221,10 @@ class HyperparameterSuggestion(CustomJsonLogic):
         
         '''Passes the suggested value to the component input, using the localization'''
         
-        current_input_dict = self._get_last_collection_where_value_should_be(component_input, hyperparameter_localizer)
+        current_input_dict = get_last_collection_where_value_is(component_input, hyperparameter_localizer)
 
         try:
-            return current_input_dict.get(hyperparameter_localizer[len(hyperparameter_localizer) - 1], None)
+            return safe_get(current_input_dict, hyperparameter_localizer[len(hyperparameter_localizer) - 1], default_value=None, non_exist_safe=True)
         
         except Exception as e:
             raise Exception(f"Exception when trying to get last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
