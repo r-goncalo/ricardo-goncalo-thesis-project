@@ -224,7 +224,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
         current_input_dict = get_last_collection_where_value_is(component_input, hyperparameter_localizer)
 
         try:
-            return safe_get(current_input_dict, hyperparameter_localizer[len(hyperparameter_localizer) - 1], default_value=None, non_exist_safe=True)
+            return safe_get(current_input_dict, hyperparameter_localizer[len(hyperparameter_localizer) - 1], default_value=None)
         
         except Exception as e:
             raise Exception(f"Exception when trying to get last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")

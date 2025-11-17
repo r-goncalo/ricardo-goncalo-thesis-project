@@ -27,7 +27,7 @@ from collections import deque
 
 # VALUE LOCALIZATION OPERATIONS --------------------------------------------------------------
 
-def safe_get(collection_where_value_is : dict, index, default_value=None, non_exist_safe=False):
+def safe_get(collection_where_value_is : dict, index, default_value=None):
 
     '''gets the value in a collection'''
 
@@ -35,10 +35,8 @@ def safe_get(collection_where_value_is : dict, index, default_value=None, non_ex
         return collection_where_value_is[index]
     
     except (IndexError, KeyError) as e:
-        if non_exist_safe:
             return default_value
-        else:
-            raise e
+
 
 
 def get_last_collection_where_value_is(collection_where_value_is : dict, localization, default_value=None, non_exist_safe=False):
@@ -69,7 +67,7 @@ def get_value_from_value_loc(collection_where_value_is : dict, localization, def
             if non_exist_safe:
                 return default_value
             else:
-                raise e
+                raise Exception(f"Error when getting collection before value, at index '{loc_index}', in localization: <{localization}> and collection {collection_where_value_is}") from e
 
     return current_value
 
