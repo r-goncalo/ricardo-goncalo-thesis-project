@@ -2,7 +2,7 @@ from automl.loggers.component_with_results import save_all_dataframes_of_compone
 from automl.basic_components.state_management import save_state
 from automl.utils.smart_enum import SmartEnum
 from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
-from project.automl.loggers.global_logger import globalWriteLine
+from automl.loggers.global_logger import globalWriteLine
 from ..component import InputSignature, Component, requires_input_proccess
 
 from abc import abstractmethod
