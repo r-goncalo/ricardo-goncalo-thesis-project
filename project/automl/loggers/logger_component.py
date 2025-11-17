@@ -267,7 +267,7 @@ class LoggerSchema(ArtifactComponent):
             self.text_buffer[filename].clear()
             self.text_buffer_counts[filename] = 0
 
-
+    @requires_input_proccess
     def flush_text(self):
 
         if self.write_to_file_when_text_lines_over != None:
@@ -281,8 +281,8 @@ def flush_text_of_all_loggers_and_children(component : Component):
     if isinstance(component, LoggerSchema):
         component.flush_text()
 
-    elif isinstance(component, ComponentWithLogging):
-        component.lg.flush_text()
+    #elif isinstance(component, ComponentWithLogging):
+    #    component.lg.flush_text()
 
     for child_component in component.child_components:
         flush_text_of_all_loggers_and_children(child_component)
