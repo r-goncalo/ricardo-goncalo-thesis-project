@@ -14,7 +14,7 @@ def experiment_for_poo_actors(directory_to_store_experiment = "C:\\rgoncalo\\exp
                  models_to_test=None,
                  experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
                  base_commands=None,
-                 base_command : dict = {}):
+                 base_command : dict = None):
 
 
     base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands_and_info(
@@ -50,7 +50,7 @@ def experiment_for_poo_actors_and_critics(directory_to_store_experiment = "C:\\r
                  mantain_critic_original=True,
                  experiment_name="sb3_zoo_dqn_cartpole_hp_opt_mult_samplers_pruners",
                  base_commands : list[dict] =None,
-                 base_command : dict = {}):
+                 base_command : dict = None):
 
 
     base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs = experiment_base_commands_and_info(
