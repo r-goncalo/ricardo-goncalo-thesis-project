@@ -75,17 +75,23 @@ def make_command_list_string(parameter_list : list):
 
 
 
-def make_command_collection_string(parameter_collection):
+def make_command_collection_string(parameter_collection, complete_commands=False):
 
 
     if isinstance(parameter_collection, dict):
-        return make_command_list_string(hp_opt_command_sequence_from_parameters(parameter_collection))
+        
+        command_sequence = hp_opt_command_sequence(parameter_collection) if complete_commands else hp_opt_command_sequence_from_parameters(parameter_collection)
+
+        return make_command_list_string(command_sequence)
 
     if isinstance(parameter_collection, str):
         return parameter_collection
 
-    else:
+    elif isinstance(parameter_collection, list):
         make_command_list_string(parameter_collection)
+
+    else:
+        raise Exception("Invalid type")
 
 
 
@@ -113,7 +119,7 @@ def hp_opt_command_sequence(
     return hp_opt_command_sequence_from_parameters(parameter_dict, [*BASE_COMMAND])
 
 
-def make_command_dicts_command_strings(command_dicts):
+def make_command_dicts_command_strings(command_dicts, complete_commands=True):
 
     '''Returns a collection with the same shape as the passed one, but command_dicts are transformed into correct strings'''
 
@@ -125,7 +131,7 @@ def make_command_dicts_command_strings(command_dicts):
     # if we called it for a single command
     elif isinstance(command_dicts, dict):
 
-        return make_command_collection_string(command_dicts)
+        return make_command_collection_string(command_dicts, complete_commands)
     
 
     else:
