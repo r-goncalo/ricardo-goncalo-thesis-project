@@ -505,29 +505,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     # RUNNING A TRIAL -----------------------------------------------------------------------
 
-    def objective(self, trial : optuna.Trial):
-        
-        '''Responsible for running the optimization trial and evaluating the component to test'''
-        
-        self.lg.writeLine()
-        self.lg.writeLine(f"Starting new training with hyperparameter cofiguration for trial {trial.number}")
-
-        component_to_test = self._create_or_load_component_to_test(trial)
-
-        input_to_pass_before_running = {}
-
-        input_to_pass_before_running["times_to_run"] = self.n_steps # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
-        
-        for step in range(self.n_steps):
+    def run_single_step_of_objective(self, trial : optuna.Trial, component_to_test : Component_to_opt_type, step, input_to_pass_before_running : dict):
 
             component_to_test_path = None
 
             self.lg.writeLine()
-            self.lg.writeLine(f"Starting step {step + 1} of {self.n_steps} total steps")
+            self.lg.writeLine(f"Starting step {step} of {self.n_steps} total steps for trial {trial.number}")
                         
             try:
-
-                self.lg.writeLine(f"Running trial {trial.number}")
 
                 component_to_test.pass_input(input_to_pass_before_running)
 
@@ -541,7 +526,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 evaluation_results = self._try_evaluate_component(component_to_test, component_to_test_path, trial) # and then, if all succeded, we try to evaluate it, which can also raise an exception
 
-                self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: \n{evaluation_results}")
+                self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: {evaluation_results}")
 
                 result = evaluation_results["result"]
 
@@ -556,10 +541,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                     
+                self.lg.writeLine(f"Ended step {step}") 
 
-                self.lg.writeLine(f"Ending training with hyperparameter cofiguration for trial {trial.number}\n\n") 
+                return evaluation_results
 
-                
             except Exception as e:
 
                 if isinstance(e, optuna.TrialPruned):
@@ -567,7 +552,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 # if we reached here, it means an exception other than the trial being pruned was got
 
-                self.lg.writeLine(f"Error in trial {trial.number}, prunning it...")
+                self.lg.writeLine(f"Error in trial {trial.number} at step {step}, prunning it...")
                 trial.set_user_attr("prune_reason", "error")
                 
                 if component_to_test_path != None:
@@ -588,9 +573,27 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 else: # if not, we propagate the exception
                     self.lg.writeLine("As <continue_after_error> was set to False, we end the Hyperparameter Optimization process and propagate the error to the caller")
                     raise e
-            
 
-            return evaluation_results["result"]   # this is the value the objective will optimize
+
+
+    def objective(self, trial : optuna.Trial):
+        
+        '''Responsible for running the optimization trial and evaluating the component to test'''
+        
+        self.lg.writeLine()
+        self.lg.writeLine(f"Starting new training with hyperparameter cofiguration for trial {trial.number}")
+
+        component_to_test = self._create_or_load_component_to_test(trial)
+
+        input_to_pass_before_running = {}
+
+        input_to_pass_before_running["times_to_run"] = self.n_steps # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
+        
+        for step in range(self.n_steps):
+
+            evaluation_results = self.run_single_step_of_objective(trial, component_to_test, step, input_to_pass_before_running)
+
+        return evaluation_results["result"]   # this is the value the objective will optimize
             
         
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
