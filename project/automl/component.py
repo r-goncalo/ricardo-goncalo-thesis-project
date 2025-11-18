@@ -41,7 +41,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     # INITIALIZATION -------------------------------------------------------------------------
     
-    def __init__(self, input : dict[str, any] = {}): #we can immediatly receive the input
+    def __init__(self, input : dict[str, any] = None): #we can immediatly receive the input
                         
         self.input : dict[str, any] = {} #the input will be a dictionary
         
@@ -63,7 +63,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         self.__notes = [] #notes are a list of strings
 
-        self.pass_input(input) #passes the input but note that it does not proccess it
+        if input != None:
+            self.pass_input(input) #passes the input but note that it does not proccess it
 
 
     
@@ -280,7 +281,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     # CHILD AND PARENT COMPONENTS AND LOCALIZATION ---------------------------------
     
-    def initialize_child_component(self, component_type : type, input : dict = {}):
+    def initialize_child_component(self, component_type : type, input : dict = None):
         
         '''Explicitly initializes a component of a certain type as a child component of this one'''
         

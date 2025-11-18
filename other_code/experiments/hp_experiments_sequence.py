@@ -55,8 +55,13 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
 
             for command_dict in command_dict_sequence[1:]:
 
+                print(f"Changing command {command_dict}...")
+
                 command_dict["path_to_store_experiment"] = path_to_store_experiment
                 command_dict["experiment_relative_path"] = experiment_relative_path
+                command_dict["create_new_directory"] = False
+
+                
 
         else:
 
@@ -65,19 +70,39 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
 
 def make_command_list_string(parameter_list : list):
 
-    if isinstance(parameter_list, str):
-        return parameter_list
+
+    return ' '.join([str(parameter_list_element) for parameter_list_element in parameter_list])
+
+
+
+def make_command_collection_string(parameter_collection, complete_commands=False):
+
+
+    if isinstance(parameter_collection, dict):
+        
+        command_sequence = hp_opt_command_sequence(parameter_collection) if complete_commands else hp_opt_command_sequence_from_parameters(parameter_collection)
+
+        return make_command_list_string(command_sequence)
+
+    if isinstance(parameter_collection, str):
+        return parameter_collection
+
+    elif isinstance(parameter_collection, list):
+        make_command_list_string(parameter_collection)
 
     else:
-        return ' '.join([str(parameter_list_element) for parameter_list_element in parameter_list])
+        raise Exception("Invalid type")
 
-def hp_opt_command_sequence(
+
+
+def hp_opt_command_sequence_from_parameters(
                                  parameter_dict : dict,
+                                 command_args_list : list = None
                             ):
     
     '''Transforms a given parameter dict in an actual command list for running hyperparameter optimization problems'''
     
-    command_args_list = [*BASE_COMMAND]
+    command_args_list = [] if command_args_list == None else command_args_list
 
     for key, value in parameter_dict.items():
         command_args_list.append(f"--{key}")
@@ -85,8 +110,16 @@ def hp_opt_command_sequence(
 
     return command_args_list
 
+def hp_opt_command_sequence(
+                                 parameter_dict : dict,
+                            ):
+    
+    '''Transforms a given parameter dict in an actual command list for running hyperparameter optimization problems'''
+    
+    return hp_opt_command_sequence_from_parameters(parameter_dict, [*BASE_COMMAND])
 
-def make_command_dicts_command_strings(command_dicts):
+
+def make_command_dicts_command_strings(command_dicts, complete_commands=True):
 
     '''Returns a collection with the same shape as the passed one, but command_dicts are transformed into correct strings'''
 
@@ -98,7 +131,7 @@ def make_command_dicts_command_strings(command_dicts):
     # if we called it for a single command
     elif isinstance(command_dicts, dict):
 
-        return make_command_list_string(hp_opt_command_sequence(command_dicts))
+        return make_command_collection_string(command_dicts, complete_commands)
     
 
     else:
@@ -131,7 +164,7 @@ def print_commands(command_dicts_str, ident_level=0):
             print(ident_str + "[----\n")
 
             for command_dicts_element in command_dicts_str:
-                print(ident_str + f"{make_command_list_string(command_dicts_element)}\n")
+                print(ident_str + f"{make_command_collection_string(command_dicts_element)}\n")
 
             print(ident_str + "----]\n")
 
@@ -206,7 +239,7 @@ def change_command_for_value_change(command_dict : dict,
             return command_dict_to_return
 
         else: # if not all necessary keys were in command
-            return command_dict
+            return {**command_dict}
 
 def process_original_without_value_change(command_dict : dict, 
                                     directory_to_store_definitions : str):
@@ -254,7 +287,10 @@ def process_original_without_value_change(command_dict : dict,
             return command_dict_to_return
 
         else: # if not all necessary keys were in command
-            return command_dict
+            return {**command_dict}
+
+
+
 
 
 def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc_of_value, experiment_names, directory_to_store_definitions, mantain_original=False):
@@ -304,7 +340,7 @@ def expand_commands_for_each_value_change(command_dicts_list, value_changes, loc
 
             new_command_list : list[dict] = []
         
-            # for each dict element
+            # for each original command
             for command_dicts_element in command_dicts_list: # for each command, we change it
 
                 new_command_list.append(
@@ -385,8 +421,6 @@ def unfold_sequences_to_correct_format(commands_collection_element : list) -> li
 
         to_return : list[list[dict]] = []
 
-        for element_in_collection_element in commands_collection_element:
-            print(element_in_collection_element)
 
         # each element is of list[?]
         for element_in_collection_element in commands_collection_element:
@@ -397,8 +431,6 @@ def unfold_sequences_to_correct_format(commands_collection_element : list) -> li
                     *to_return, *unfolded_list_element
                 ]
 
-        for element_in_collection_element in to_return:
-            print(element_in_collection_element)
 
         return to_return
 

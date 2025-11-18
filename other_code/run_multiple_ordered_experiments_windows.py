@@ -86,8 +86,9 @@ if __name__ == "__main__":
     #   ["python train.py --model m2", "python eval.py --model m2"]
     # ]
 
-    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings, unfold_sequences_to_correct_format
-    from experiments.rl_zoo_sb3.ppo_cartpole import experiment_for_poo_actors_and_critics as experiment
+    import experiments.base_experiment as base_exp
+    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings, expand_commands_for_each_model, unfold_sequences_to_correct_format, guarantee_same_path_in_commands
+    #from experiments.rl_zoo_sb3.ppo_cartpole import experiment_for_poo_actors_and_critics as experiment
     
 
     base_command = {
@@ -95,20 +96,35 @@ if __name__ == "__main__":
         "default_logger_level" : "INFO"
     }
 
-    command_sequences = experiment(
-        directory_to_store_experiment='C:\\rgoncalo\\experiments',
-        base_to_opt_config_path="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\definitions\\to_optimize.json",
-        hp_opt_config_path="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\definitions\\configuration.json", 
-        directory_of_models="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\models\\actor_models",
-        directory_of_critics="C:\\rgoncalo\\experiment_definitions\\ppo_cartpole_sb3_zoo\\models\\critic_models",
-        mantain_critic_original=True,
-        experiment_name="sb3_zoo_ppo_cartpole_hp_opt",
-        base_command = base_command
-    
+    base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs =base_exp.experiment_base_commands_and_info(directory_to_store_experiment='C:\\rgoncalo\\experiments',
+                 base_to_opt_config_path='C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo_2\\configurations\\to_optimize_configuration.json',
+                 hp_opt_config_path='C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo_2\\configurations\\configuration.json', 
+                 experiment_name="sb3_zoo_dqn_cartpole_hp_opt",
+                 base_command=base_command  
+
     )
 
-    print("EXPERIMENTS TO DO BEFORE UNFOLDING AND MAKING STRINGS:")
+    print("BASE COMMANDS BEFORE ANY PROCESSING")
+    print_commands(base_commands)
+
+
+    command_sequences = expand_commands_for_each_model(
+        command_dicts=base_commands,
+        directory_of_models='C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo_2\\models',
+        directory_to_store_definitions=directory_to_store_definitions,
+        mantain_original=True
+    )
+
+    print("EXPERIMENTS TO DO AS RETURNED BY THE EXPERIMENT (MAY HAVE WRONG FILE PATHS) AND BEFORE UNFOLDING")
     print_commands(command_sequences)
+
+
+    guarantee_same_path_in_commands(command_sequences)
+
+    print("EXPERIMENTS TO DO BEFORE UNFOLDING AND MAKING STRINGS BUT WITH RIGHT PATHS:")
+    print_commands(command_sequences)
+
+
 
     # we then treat the commands to make them in a correct format
     command_sequences = make_command_dicts_command_strings(command_sequences)
