@@ -76,7 +76,13 @@ class ComponentInputSignature(InputSignature):
         if value is None:
             return value
         
-        return ComponentInputSignature.proccess_value_in_input(component_with_input, key, value, input_if_generated)
+        try:
+        
+            return ComponentInputSignature.proccess_value_in_input(component_with_input, key, value, input_if_generated)
+        
+        except Exception as e:
+
+            raise Exception(f"Error when generating component from component input signature, with value {value}: {e}") from e
     
     
     
