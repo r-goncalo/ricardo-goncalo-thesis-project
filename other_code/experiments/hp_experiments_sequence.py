@@ -53,8 +53,6 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
             path_to_store_experiment = first_command["path_to_store_experiment"]
             experiment_relative_path = first_command["experiment_relative_path"]
 
-            print(f"\nfirst command was {first_command} and has paths {path_to_store_experiment} + {experiment_relative_path}")
-
             for command_dict in command_dict_sequence[1:]:
 
                 print(f"Changing command {command_dict}...")
@@ -62,10 +60,6 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
                 command_dict["path_to_store_experiment"] = path_to_store_experiment
                 command_dict["experiment_relative_path"] = experiment_relative_path
                 command_dict["create_new_directory"] = False
-
-                print(f"Changed to       {command_dict}")
-
-            print()
 
                 
 
