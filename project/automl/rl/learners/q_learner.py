@@ -83,7 +83,6 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
             self.target_net : ModelComponent = self.model.clone(input_for_clone={"name" : "target_network"}) #the target network has the same initial parameters as the policy being trained
             self.define_component_as_child(self.target_net)
             
-            self.target_net.pass_input({"name" : "target_network"})
             self.values["target_network"] = self.target_net
         
         
