@@ -6,7 +6,7 @@ import shutil
 
 from automl.utils.files_utils import open_or_create_folder
 from automl.utils.json_utils.json_component_utils import dict_from_json_string, json_string_of_component_dict
-from other_code.paths import HP_SCRIPT_PATH, SCRIPT_PATH
+from paths import HP_SCRIPT_PATH, SCRIPT_PATH
 
 
 BASE_COMMAND = [
