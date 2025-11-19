@@ -102,7 +102,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     def initialize_agent(self):
     
-        self.agent : AgentSchema = self.get_input_value("agent")
+        self.agent : AgentSchema = self.get_input_value("agent", look_in_attribute_with_name="agent")
         self.agent.proccess_input_if_not_proccesd()
 
         self.agent_poliy : Policy = self.agent.policy
@@ -110,14 +110,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
     def initialize_learner(self):
         
-        self.learner : LearnerSchema = self.get_input_value("learner")
+        self.learner : LearnerSchema = self.get_input_value("learner", look_in_attribute_with_name="learner")
         self.learner.pass_input({"device" : self.device, "agent" : self.agent})
         
 
 
     def initialize_memory(self):
         
-        self.memory : MemoryComponent = self.get_input_value("memory")
+        self.memory : MemoryComponent = self.get_input_value("memory", look_in_attribute_with_name="memory")
         
         self.memory_fields_shapes = [] # tuples of (name_of_field, dimension)
             
