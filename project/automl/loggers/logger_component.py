@@ -35,7 +35,7 @@ def change_default_logger_level(new_value):
 
     DEFAULT_LOGGER_LEVEL = new_value
 
-    LoggerSchema.get_schema_parameter_signature("necessary_logger_level").change_default_value(, new_value)
+    LoggerSchema.get_schema_parameter_signature("necessary_logger_level").change_default_value(new_value)
 
 # LOGGING SCHEMA  -------------------------------------------------------------------------------------------------   
 
