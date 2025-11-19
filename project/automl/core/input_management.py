@@ -38,6 +38,9 @@ class InputSignature():
         self.on_pass = on_pass if isinstance(on_pass, list) else [on_pass]
         self.validity_verificator = validity_verificator if isinstance(validity_verificator, list) else [validity_verificator]
 
+        self.child_parameter_signatures : list[InputSignature] = [] # a list with the input signatures that were fused with this one
+        self.parent_parameter_signatures : list[InputSignature] = []
+
     
     def setup_default_values(self):
         '''
@@ -145,6 +148,10 @@ class InputSignature():
         self.mandatory= new_mandatory
 
 
+        self.child_parameter_signatures.append(other_input_signature)
+        other_input_signature.parent_parameter_signatures.append(self)
+
+
     
     def to_dict(self):
 
@@ -177,8 +184,9 @@ class InputSignature():
 
     def clone(self):
         return type(self)(**self.to_dict())
+    
 
-
+# TODO: there should be a priority parameter to define which came first
 def fuse_input_signatures(first_input_signature : InputSignature, second_input_signature : InputSignature):
 
     if issubclass(type(first_input_signature), type(second_input_signature)):
@@ -193,6 +201,8 @@ def fuse_input_signatures(first_input_signature : InputSignature, second_input_s
         raise Exception(f"Tried to fuse input signatures that are not subclasses of eachother")
 
     return to_return
+
+
 
 class InputMetaData():
     
