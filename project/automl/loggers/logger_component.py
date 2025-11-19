@@ -348,5 +348,5 @@ class ComponentWithLogging(ArtifactComponent):
 
         self_json_str = json_string_of_component(self, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order)
 
-        self.lg.writeLine(string=self_json_str, file=filename, level=level)
+        self.lg.writeLine(string=self_json_str, file=filename, level=level, use_time_stamp=False)
     
