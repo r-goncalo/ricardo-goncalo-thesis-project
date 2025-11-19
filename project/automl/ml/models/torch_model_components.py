@@ -75,6 +75,9 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
                 self.lg.writeLine(f"Could not load model, initiating initialization strategy...")
                 self._initialize_model() # initializes the model using passed values
 
+        else:
+            self.lg.writeLine(f"Model was already loaded")
+
             
         self.__synchro_model_value_attr()
 
