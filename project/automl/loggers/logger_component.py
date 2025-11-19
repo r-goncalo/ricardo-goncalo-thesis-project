@@ -164,7 +164,7 @@ class LoggerSchema(ArtifactComponent):
                 path_to_write = os.path.join(self.get_artifact_directory(), file)
                 directory = os.path.dirname(path_to_write)
 
-                os.makedirs(directory)
+                os.makedirs(directory, exist_ok=True)
 
                 fd = open(path_to_write, 'a')
                 fd.write(f'{string}\n')
