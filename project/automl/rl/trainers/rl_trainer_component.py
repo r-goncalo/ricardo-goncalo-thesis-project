@@ -84,29 +84,29 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     
     def setup_agents(self):
         
-        agents : Dict[str, AgentTrainer | AgentSchema] = self.get_input_value("agents")
+        agents_in_input : Dict[str, AgentTrainer | AgentSchema] = self.get_input_value("agents", look_in_attribute_with_name="agents_in_training")
         
         self.agents_in_training : Dict[str, AgentTrainer] = {}
         
-        for key in agents:
+        for key, agent_in_input in agents_in_input.items():
             
             agent_trainer_input = {**self.agents_input}
                 
-            if isinstance(agents[key], AgentSchema):
+            if isinstance(agent_in_input, AgentSchema):
                 
                 self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
                 
-                agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agents[key]} 
+                agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agent_in_input} 
                 
                 agent_trainer = self.initialize_child_component(self.default_trainer_class, agent_trainer_input_in_creation)
                 
                 self.agents_in_training[key] = agent_trainer
-                agents[key] = agent_trainer #puts the agent trainer in input too
+                agents_in_input[key] = agent_trainer #puts the agent trainer in input too
     
-            elif isinstance(agents[key], AgentTrainer):
+            elif isinstance(agent_in_input, AgentTrainer):
                 
-                self.agents_in_training[key] = agents[key]
-                self.agents_in_training[key].pass_input(agent_trainer_input)
+                self.agents_in_training[key] = agent_in_input
+                agent_in_input.pass_input(agent_trainer_input)
 
 
     def _make_optimization_prediction_for_agent_episodes(self, agent_key):
