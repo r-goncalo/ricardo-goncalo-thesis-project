@@ -350,3 +350,31 @@ class ComponentWithLogging(ArtifactComponent):
 
         self.lg.writeLine(string=self_json_str, file=filename, level=level, use_time_stamp=False)
     
+
+    def _try_look_input_in_attribute(self, input_key, attribute_name):
+
+        self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'")
+
+        to_return = super()._try_look_input_in_attribute(input_key, attribute_name)
+
+        if to_return == None:
+            self.lg.writeLine(f"Did not have attribute '{attribute_name}' for input '{input_key}'")
+
+        else:
+            self.lg.writeLine(f"Attribute '{attribute_name}' for input '{input_key}' was found")
+
+        return to_return
+
+    def _try_look_input_in_values(self, input_key, value_name):
+
+        self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'")
+
+        to_return = super()._try_look_input_in_values(input_key, value_name)
+
+        if to_return == None:
+            self.lg.writeLine(f"Did not have value '{value_name}' for input '{input_key}'")
+
+        else:
+            self.lg.writeLine(f"Value '{value_name}' for input '{input_key}' was found") 
+
+        return to_return

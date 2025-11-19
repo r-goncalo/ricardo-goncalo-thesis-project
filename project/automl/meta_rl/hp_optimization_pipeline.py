@@ -130,7 +130,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.n_steps = self.get_input_value("steps")
         self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.get_input_value("hyperparameters_range_list")
         self.n_trials = self.get_input_value("n_trials")
-        self.evaluator_component : EvaluatorComponent = self.get_input_value("evaluator_component")
+        self.evaluator_component : EvaluatorComponent = self.get_input_value("evaluator_component", look_in_attribute_with_name="evaluator_component")
         
         self.continue_after_error = self.get_input_value("continue_after_error")
         

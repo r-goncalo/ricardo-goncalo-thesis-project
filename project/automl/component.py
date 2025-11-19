@@ -217,6 +217,18 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             raise Exception(f"Error getting input value from component {self.name} with key '{key}' and parameters {kwargs}: {e}") from e
 
 
+    def _try_look_input_in_attribute(self, input_key, attribute_name):
+
+        if hasattr(self, attribute_name):
+            return getattr(self, attribute_name)
+        else:
+            return None
+
+    def _try_look_input_in_values(self, input_key, value_name):
+
+        return self.values.get(value_name, None)
+ 
+
 
     def get_input_value(self, key, look_in_value_with_key=None, look_in_attribute_with_name=None, **kwargs):
 
@@ -227,13 +239,13 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         to_return = None
 
-        if look_in_attribute_with_name != None and hasattr(self, look_in_attribute_with_name):
-            to_return = getattr(self, look_in_attribute_with_name)
+        if look_in_attribute_with_name != None:
+            to_return = self._try_look_input_in_attribute(key, look_in_attribute_with_name)
             if to_return != None:
                 return to_return
 
         if look_in_value_with_key != None:
-            to_return = self.values.get(look_in_value_with_key, None)
+            to_return = self._try_look_input_in_values(key, look_in_value_with_key)
             if to_return != None:
                 return to_return
 

@@ -75,11 +75,7 @@ class ComponentWithEvaluator(Component):
         
         super()._proccess_input_internal()
         
-        if "component_evaluator" not in self.input.keys():
-            self.component_evaluator = None
-        
-        else:
-            self.component_evaluator : EvaluatorComponent = self.get_input_value("component_evaluator")        
+        self.component_evaluator : EvaluatorComponent = self.get_input_value("component_evaluator", look_in_attribute_with_name="component_evaluator")        
     
     def evaluate_this_component(self) -> dict:
         
