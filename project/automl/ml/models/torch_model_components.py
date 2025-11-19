@@ -151,7 +151,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
         else:
 
-            self.lg.writeLine("Could not find model weights to load (.../model_weights.pth)")
+            self.lg.writeLine("Could not find model weights to load (/model_weights.pth)")
         
             return False
 
