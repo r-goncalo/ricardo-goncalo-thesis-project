@@ -14,8 +14,6 @@ class QPolicy(Policy):
         
     parameters_signature = {
         
-        "state_shape": InputSignature(),
-        "action_shape": InputSignature()
     }   
     
     def _proccess_input_internal(self):
