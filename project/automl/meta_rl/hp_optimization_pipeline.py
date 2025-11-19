@@ -223,10 +223,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Initializing sampler with class {self.sampler}")
 
-
         try:
-        
-            self.sampler : sampler_class(seed=self._seed)
+            self.sampler = sampler_class(seed=self._seed)
 
         except Exception as e:
 
