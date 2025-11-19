@@ -512,7 +512,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             component_to_test_path = None
 
             self.lg.writeLine()
-            self.lg.writeLine(f"Starting step {step} of {self.n_steps} total steps for trial {trial.number}")
+            self.lg.writeLine(f"Starting step {step + 1} of {self.n_steps} total steps for trial {trial.number}")
                         
 
             try:
@@ -549,7 +549,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                     
-                self.lg.writeLine(f"Ended step {step}") 
+                self.lg.writeLine(f"Ended step {step + 1}") 
 
                 component_to_test.write_configuration_to_file(f"_configurations\\configuration_{step + 1}.json")
 
