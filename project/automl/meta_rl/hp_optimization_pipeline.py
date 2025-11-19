@@ -20,6 +20,7 @@ from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 from automl.basic_components.seeded_component import SeededComponent
+from automl.utils.configuration_component_utils import save_configuration
 import torch
 
 from automl.basic_components.state_management import save_state
@@ -33,7 +34,7 @@ TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
 
 MEMORY_REPORT_FILE = "memory_report.txt"
 
-Component_to_opt_type = Union[ExecComponent, StatefulComponent]
+Component_to_opt_type = Union[ExecComponent, StatefulComponent, ComponentWithLogging]
 
 OPTUNA_STUDY_PATH = 'study_results.db'
 
@@ -483,6 +484,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def _try_run_component(self, component_to_test : Component_to_opt_type, component_to_test_path, trial : optuna.Trial):
 
+        '''Tries running the component, raising and dealing with an exception if it appears'''
         try:
             return component_to_test.run()
 
@@ -492,8 +494,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
 
 
-    def _try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, component_to_test_path, trial = optuna.Trial):
+    def _try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, component_to_test_path, trial : optuna.Trial):
     
+        '''Tries saving the state of the component, raising and dealing with an exception if it appears'''
+
         try:
             self.lg.writeLine(f"Trying to save state of trial {trial.number}")                 
             return save_state(component_to_test, save_definition=True)
@@ -501,7 +505,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         except Exception as e:
             self.on_exception_saving_trial(e, component_to_test_path, trial)
             raise e
-
+        
 
     # RUNNING A TRIAL -----------------------------------------------------------------------
 
@@ -512,11 +516,17 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             self.lg.writeLine()
             self.lg.writeLine(f"Starting step {step} of {self.n_steps} total steps for trial {trial.number}")
                         
+
             try:
 
                 component_to_test.pass_input(input_to_pass_before_running)
 
                 component_to_test_path = component_to_test.get_artifact_directory()
+
+
+                if step == 0: # if this is the first step, we store the first configuration generated for the component
+                    component_to_test.write_configuration_to_file(f"_configurations\\configuration_{0}.json")
+
 
                 self._try_run_component(component_to_test, component_to_test_path, trial) # we try to run the trial, this can raise an exception
 
@@ -543,6 +553,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                 self.lg.writeLine(f"Ended step {step}") 
 
+                component_to_test.write_configuration_to_file(f"_configurations\\configuration_{step + 1}.json")
+
                 return evaluation_results
 
             except Exception as e:
@@ -558,6 +570,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 if component_to_test_path != None:
                     try:
                         self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
+                        component_to_test.save_configuration(save_exposed_values=True, config_filename=f'configurations\\configuration_{step + 1}')
                         self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial)
 
                     except:
@@ -603,6 +616,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         It is passed to optuna in the callbacks when the objective is defined
         '''        
                         
+        self.lg.writeLine(f"Reached after trial function, after trial {trial.number}")
+
         self._unload_component_to_test(trial)
 
     

@@ -13,6 +13,7 @@ import os
 import pandas as pd
 
 from automl.utils.smart_enum import SmartEnum
+from automl.utils.json_utils.json_component_utils import json_string_of_component
 
 
 class DEBUG_LEVEL(SmartEnum):
@@ -335,4 +336,10 @@ class ComponentWithLogging(ArtifactComponent):
 
         self.lg.pass_input({"necessary_logger_level" : new_level})
 
+    
+    def write_configuration_to_file(self, filename : str, level : DEBUG_LEVEL = DEBUG_LEVEL.INFO, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=False):
+
+        self_json_str = json_string_of_component(self, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order)
+
+        self.lg.writeLine(string=self_json_str, file=filename, level=level)
     

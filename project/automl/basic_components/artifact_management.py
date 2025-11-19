@@ -1,4 +1,5 @@
 
+import shutil
 from automl.component import Component
 
 from automl.utils.files_utils import new_path_if_exists, open_or_create_folder
@@ -9,6 +10,7 @@ import os
 
 from automl.utils.configuration_component_utils import save_configuration
 from automl.loggers.global_logger import globalWriteLine
+from automl.consts import CONFIGURATION_FILE_NAME
 
 def on_artifact_directory_change(self : Component):
         
@@ -202,12 +204,37 @@ class ArtifactComponent(Component):
         super()._proccess_input_internal()
         
         # self.get_artifact_directory()
+
         
+    def copy_relative_file_to(self, relative_filename, new_relative_filename, new_exists_ok=True, create_new_if_exists=False):
+
+        old_path = os.path.join(self.get_artifact_directory(), relative_filename)
+
+        if not os.path.exists(old_path):
+            raise Exception(f"Relative filename {relative_filename} does not exist, with path {old_path}")
+        
+        new_path = os.join(self.get_artifact_directory(), new_relative_filename)
+
+        # Ensure parent directory exists
+        os.makedirs(os.path.dirname(new_path), exist_ok=True)
+    
+        if os.path.exists(new_path):
+        
+            if not new_exists_ok and not create_new_if_exists:
+                raise FileExistsError(f"Destination file {new_relative_filename} already exists at {new_path}")
+            
+            elif create_new_if_exists:
+                new_path = self.new_relative_path_if_exists(new_relative_filename) 
+    
+        # Perform the copy
+        shutil.copy2(old_path, new_path)
+    
+        return new_path
 
 
-    def save_configuration(self, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=True):
+    def save_configuration(self, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=True, config_filename=CONFIGURATION_FILE_NAME):
         
-        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order)
+        save_configuration(self, self.get_artifact_directory(), save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order, config_filename=config_filename)
 
 
 

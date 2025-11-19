@@ -545,6 +545,8 @@ def component_from_tuple_definition(tuple_definition, context_component=None, as
     raise Exception(f"Invalid tuple definition: {tuple_definition} as len must be 2 and is {len(tuple_definition)}")
         
 
+
+
 def gen_component_from(definition :  Union[Component, dict, str, tuple, list], parent_component_for_generated : Component = None, input_if_generated=None) -> Component:
     
     '''Generates a component from a definition or returns it if it is already a component'''
@@ -568,6 +570,10 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple, list], p
 
                 except Exception as e:
                     raise Exception(f"Could not decode string as json and is not a path: \n{definition}\nException:\n{e}") from e
+
+
+
+
 
         elif isinstance(definition, tuple) or isinstance(definition, list):
 
