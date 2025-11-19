@@ -268,7 +268,13 @@ class LoggerSchema(ArtifactComponent):
 
     def flush_buffer_of_file(self, filename):
 
-            fd = open(os.path.join(self.get_artifact_directory(), filename), 'a')
+            path_to_write = os.path.join(self.get_artifact_directory(), filename)
+            directory = os.path.dirname(path_to_write)
+
+            os.makedirs(directory, exist_ok=True)
+
+            fd = open(path_to_write, 'a')
+
             fd.write("".join(self.text_buffer[filename]))
             fd.close()
                     
@@ -367,6 +373,7 @@ class ComponentWithLogging(ArtifactComponent):
             self.lg.writeLine(f"Attribute '{attribute_name}' for input '{input_key}' was found")
 
         return to_return
+    
 
     def _try_look_input_in_values(self, input_key, value_name):
 
