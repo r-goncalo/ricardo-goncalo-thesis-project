@@ -6,6 +6,7 @@ from automl.ml.models.model_components import ModelComponent
 from automl.utils.class_util import get_class_from
 
 from automl.utils.shapes_util import single_action_shape
+from automl.loggers.logger_component import ComponentWithLogging
 
 
 class PolicyInterface(Component):
@@ -26,7 +27,7 @@ class PolicyInterface(Component):
 
 
 
-class Policy(PolicyInterface):
+class Policy(PolicyInterface, ComponentWithLogging):
         
     '''
     It abstracts the usage of a model for the agent in determining its actions
@@ -56,7 +57,11 @@ class Policy(PolicyInterface):
         
         self.device = self.get_input_value("device")
                 
-        self.model.pass_input({"input_shape" : self.model_input_shape, "output_shape" : self.model_output_shape, "device" : self.device}) 
+        self.model.pass_input({
+            "input_shape" : self.model_input_shape, 
+            "output_shape" : self.model_output_shape, 
+            "device" : self.device
+            }) 
         
     
     @requires_input_proccess
@@ -74,18 +79,30 @@ class Policy(PolicyInterface):
         pass
 
     def _initialize_model(self):
+
+        self.lg.writeLine(f"Initializing policy model...")
         
-        if self.values["model"] != 0:
-                        
+        if hasattr(self, "model"):
+
+            self.lg.writeLine(f"Model already in attributes, using that one...")
+
+        elif self.values["model"] != 0:
+
+            self.lg.writeLine(f"Model for policy already in values, using that one...")
             self.model : ModelComponent = self.values["model"]
 
         else:
 
+            self.lg.writeLine(f"No model in attributes nor defined in values, using model in input...")
+
             self.model = self.get_input_value("model")
 
             if self.model == None:
+                self.lg.writeLine(f"No model found in attributes")
                 raise Exception(f"Policy had no model in input nor saved in its values")
             
+
+        self.lg.writeLine(f"Ended policy model setup")
         self.values["model"] = self.model
         
     

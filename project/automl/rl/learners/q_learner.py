@@ -39,9 +39,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
                         }    
     
     exposed_values = {
-        
         "target_network" : 0
-        
     }
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
@@ -64,6 +62,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         self.initialize_optimizer()
         
 
+
     def initialize_target_network(self):
         
         if self.values["target_network"] != 0:
@@ -84,6 +83,7 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
             self.define_component_as_child(self.target_net)
             
             self.values["target_network"] = self.target_net
+
         
         
     def initialize_optimizer(self):
