@@ -34,18 +34,20 @@ class Policy(PolicyInterface):
         
     parameters_signature = {
         
-        "model" : ComponentInputSignature(),
+        "model" : ComponentInputSignature(mandatory=False),
         
         "state_shape": InputSignature(),
         "action_shape": InputSignature(),
         "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }   
+
+    exposed_values = {"model" : 0}
     
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()
         
-        self.model : ModelComponent = self.get_input_value("model")
+        self._initialize_model()
         
         self.model_input_shape = self.get_input_value("state_shape")
         self.model_output_shape = self.get_input_value("action_shape")
@@ -70,6 +72,20 @@ class Policy(PolicyInterface):
         '''
         
         pass
+
+    def _initialize_model(self):
+        
+        if self.values["model"] != 0:
+                        
+            self.model : ModelComponent = self.values["model"]
+
+        else:
+
+            self.model = self.get_input_value("model")
+
+            if self.model == None:
+                raise Exception(f"Policy had no model in input nor saved in its values")
+        
     
     
     def random_prediction(self, state):
