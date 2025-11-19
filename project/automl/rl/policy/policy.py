@@ -85,6 +85,8 @@ class Policy(PolicyInterface):
 
             if self.model == None:
                 raise Exception(f"Policy had no model in input nor saved in its values")
+            
+        self.values["model"] = self.model
         
     
     
