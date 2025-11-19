@@ -336,7 +336,7 @@ class ComponentWithLogging(ArtifactComponent):
 
         self.lg.pass_input({"necessary_logger_level" : new_level})
 
-    
+    @requires_input_proccess
     def write_configuration_to_file(self, filename : str, level : DEBUG_LEVEL = DEBUG_LEVEL.INFO, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=False):
 
         self_json_str = json_string_of_component(self, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order)
