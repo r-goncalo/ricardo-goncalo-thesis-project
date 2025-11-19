@@ -568,7 +568,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 if component_to_test_path != None:
                     try:
                         self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
-                        component_to_test.save_configuration(save_exposed_values=True, config_filename=f'_configurations\\configuration_{step + 1}.json')
+                        component_to_test.save_configuration(save_exposed_values=True, config_filename=f'_configurations\\configuration_{step + 1}_error.json')
                         self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial)
 
                     except:

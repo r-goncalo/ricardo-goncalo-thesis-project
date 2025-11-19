@@ -358,7 +358,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
     # CLONING -------------------------------------------------
     
-    def clone(self, save_in_parent=True):
+    def clone(self, save_in_parent=True, input_for_clone=None):
         
         '''
         Creates a clone of this component, with the same input and exposed values.
@@ -373,6 +373,9 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         if save_in_parent and self.parent_component != None:
             self.parent_component.define_component_as_child(cloned_component) # the cloned component is also child of same parent
         
+        if input_for_clone != None:
+            cloned_component.pass_input(input_for_clone)
+
         return cloned_component
     
     # EXPOSED VALUES -------------------------------------------
