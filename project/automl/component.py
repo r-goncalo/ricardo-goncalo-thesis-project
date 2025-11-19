@@ -195,8 +195,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         self.__input_meta[key].custom_value_removed()
 
     
-
-    def get_input_value(self, key, **kwargs):
+    def _get_input_value_from_input(self, key, **kwargs):
 
         '''
         This is the method meant to get input from the component
@@ -216,6 +215,29 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         except Exception as e:
 
             raise Exception(f"Error getting input value from component {self.name} with key '{key}' and parameters {kwargs}: {e}") from e
+
+
+
+    def get_input_value(self, key, look_in_value_with_key=None, look_in_attribute_with_name=None, **kwargs):
+
+        '''
+        This is the method meant to get input from the component
+        It generalizes using the method giving from the InputSignature of the specific key
+        '''
+
+        to_return = None
+
+        if look_in_attribute_with_name != None and hasattr(self, look_in_attribute_with_name):
+            to_return = getattr(self, look_in_attribute_with_name)
+            if to_return != None:
+                return to_return
+
+        if look_in_value_with_key != None:
+            to_return = self.values.get(look_in_value_with_key, None)
+            if to_return != None:
+                return to_return
+
+        return self._get_input_value_from_input(key, **kwargs)
 
     
     def set_input_to_be_ignored_at_serialization(self, key : str, value : bool):

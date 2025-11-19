@@ -135,7 +135,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             rl_trainer_input["fraction_training_to_do"] = self.fraction_of_training_to_do_in_session
 
 
-        self.rl_trainer : RLTrainerComponent = self.get_input_value("rl_trainer")
+        self.rl_trainer : RLTrainerComponent = self.get_input_value("rl_trainer", look_in_value_with_key="rl_trainer", look_in_attribute_with_name="rl_trainer")
         
         self.rl_trainer.pass_input(rl_trainer_input)
 
@@ -144,7 +144,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         '''Initialize the agents, creating them if necessary first'''
 
-        self.agents = self.get_input_value("agents") #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
+        self.agents = self.get_input_value("agents", look_in_value_with_key="agents", look_in_attribute_with_name="agents") #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
 
         if self.agents  == {}:
             self.create_agents()
