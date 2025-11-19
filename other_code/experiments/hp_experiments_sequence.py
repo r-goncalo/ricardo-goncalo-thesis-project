@@ -6,15 +6,14 @@ import shutil
 
 from automl.utils.files_utils import open_or_create_folder
 from automl.utils.json_utils.json_component_utils import dict_from_json_string, json_string_of_component_dict
+from other_code.paths import HP_SCRIPT_PATH, SCRIPT_PATH
 
-
-SCRIPT_PATH = "C:\\rgoncalo\\ricardo-goncalo-thesis-project\\other_code\\RunSimplyHpExpCommand.bat"
 
 BASE_COMMAND = [
     SCRIPT_PATH,
     "--COMMAND",
     "python",
-    "C:\\rgoncalo\\ricardo-goncalo-thesis-project\\project\\examples\\simple_metarl\\scripts\\run_hp_experiment.py"
+    HP_SCRIPT_PATH
 ]
 
 '''
@@ -54,8 +53,6 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
             experiment_relative_path = first_command["experiment_relative_path"]
 
             for command_dict in command_dict_sequence[1:]:
-
-                print(f"Changing command {command_dict}...")
 
                 command_dict["path_to_store_experiment"] = path_to_store_experiment
                 command_dict["experiment_relative_path"] = experiment_relative_path
