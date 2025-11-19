@@ -162,8 +162,9 @@ class LoggerSchema(ArtifactComponent):
             if self.write_to_file_when_text_lines_over == None:
 
                 path_to_write = os.path.join(self.get_artifact_directory(), file)
+                directory = os.path.dirname(path_to_write)
 
-                os.makedirs(path_to_write)
+                os.makedirs(directory)
 
                 fd = open(path_to_write, 'a')
                 fd.write(f'{string}\n')
