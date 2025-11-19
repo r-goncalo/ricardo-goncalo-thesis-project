@@ -523,7 +523,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
 
                 if step == 0: # if this is the first step, we store the first configuration generated for the component
-                    component_to_test.write_configuration_to_file(f"_configurations\\configuration_{0}.json")
+                    component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{0}.json")
 
 
                 self._try_run_component(component_to_test, component_to_test_path, trial) # we try to run the trial, this can raise an exception
@@ -551,7 +551,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                 self.lg.writeLine(f"Ended step {step + 1}") 
 
-                component_to_test.write_configuration_to_file(f"_configurations\\configuration_{step + 1}.json")
+                component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{step + 1}.json")
 
                 return evaluation_results
 
@@ -568,7 +568,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 if component_to_test_path != None:
                     try:
                         self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
-                        component_to_test.save_configuration(save_exposed_values=True, config_filename=f'configurations\\configuration_{step + 1}')
+                        component_to_test.save_configuration(save_exposed_values=True, config_filename=f'_configurations\\configuration_{step + 1}')
                         self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial)
 
                     except:
