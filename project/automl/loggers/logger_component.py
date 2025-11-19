@@ -353,6 +353,9 @@ class ComponentWithLogging(ArtifactComponent):
 
     def _try_look_input_in_attribute(self, input_key, attribute_name):
 
+        if not hasattr(self, "lg"):
+            return super()._try_look_input_in_attribute(input_key, attribute_name)
+
         self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'")
 
         to_return = super()._try_look_input_in_attribute(input_key, attribute_name)
@@ -366,6 +369,9 @@ class ComponentWithLogging(ArtifactComponent):
         return to_return
 
     def _try_look_input_in_values(self, input_key, value_name):
+
+        if not hasattr(self, "lg"):
+            return super()._try_look_input_in_values(input_key, value_name)
 
         self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'")
 
