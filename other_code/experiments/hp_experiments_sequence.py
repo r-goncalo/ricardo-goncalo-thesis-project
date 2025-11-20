@@ -24,6 +24,41 @@ The specification of a command to do hyperparameter optimization defined as a di
 
 # COMMON FUNCTIONS FOR COMMANDS ------------------------------------------------------------------------------
 
+def copy_configurations_to_exp_paths(command_dict_collection : list[list[dict]]):
+
+    '''Instead of relying on the configurations in the original paths, copies them immediatly to the target path of the experiment'''
+
+    if not isinstance(command_dict_collection, list):
+            raise Exception("Must be list")
+    
+    if isinstance(command_dict_collection[0], list):
+
+        for command_dict_collection_element in command_dict_collection:
+            copy_configurations_to_exp_paths(command_dict_collection_element)
+
+    elif isinstance(command_dict_collection[0], dict):
+
+        for command_dict_collection_element in command_dict_collection:
+
+            command_dict_collection_element : dict = command_dict_collection_element
+
+            path_to_store_experiment = command_dict_collection_element.get("path_to_store_experiment", None)
+            experiment_relative_path = command_dict_collection_element.get("experiment_relative_path", None)
+            hp_configuration_path = command_dict_collection_element.get("hp_configuration_path", None)
+
+            if not None in [path_to_store_experiment, experiment_relative_path, hp_configuration_path]:
+
+                full_path_of_experiment = os.path.join(path_to_store_experiment, experiment_relative_path)
+                new_path_of_configuration = os.path.join(full_path_of_experiment, "configuration.json")
+                
+                shutil.copy(hp_configuration_path, new_path_of_configuration)
+
+                command_dict_collection_element["hp_configuration_path"] = new_path_of_configuration    
+    
+    else:
+        raise Exception("Invalid element type")
+
+
 
 
 def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
@@ -240,6 +275,7 @@ def change_command_for_value_change(command_dict : dict,
                 "experiment_relative_path" : current_experiment_relative_path,
                 "to_optimize_configuration_path" : to_optimize_config_path
                 }
+            
 
 
             return command_dict_to_return
