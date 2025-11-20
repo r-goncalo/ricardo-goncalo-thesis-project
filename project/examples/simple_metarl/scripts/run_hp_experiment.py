@@ -1,4 +1,5 @@
 
+import os
 from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 from automl.utils.json_utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL, change_default_logger_level
@@ -7,8 +8,25 @@ from automl.loggers.global_logger import activate_global_logger, get_global_leve
 
 from automl.loggers.logger_component import LoggerSchema
 
+def gen_default_hp_config_path(path_to_store_experiment, experiment_relative_path):
 
-def main(hp_configuration_path='.\\configuration.json', to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None, default_logger_level=None):
+    print(f"Generating default hp configuration path...")
+
+    to_return = os.path.join(path_to_store_experiment, experiment_relative_path, "configuration.json")
+
+    print(f"Generated path: {to_return}")
+
+    if not os.path.exists(to_return):
+        to_return = "configuration.json"
+        print(f"Path does not exist, new path: {to_return}")
+
+    if not os.path.exists(to_return):
+        raise Exception(f"In generating hp default configuration path, could not generate a path that exists")
+
+    return to_return
+
+
+def main(hp_configuration_path=None, to_optimize_configuration_path=None, path_to_store_experiment='.\\data\\experiments', num_trials=None, num_steps=None, sampler=None, create_new_directory=None, experiment_relative_path=None, global_logger_level=None, default_logger_level=None):
     
     # the input for the hp optimization pipeline component
     hp_pipeline_input = {}
@@ -40,6 +58,8 @@ def main(hp_configuration_path='.\\configuration.json', to_optimize_configuratio
     
     if sampler != None:
         hp_pipeline_input["sampler"] = sampler
+
+    hp_configuration_path = gen_default_hp_config_path(path_to_store_experiment, experiment_relative_path) if hp_configuration_path == None else hp_configuration_path
     
     # generate hp optimization pipeline component
     hp_optimization_pipeline : HyperparameterOptimizationPipeline = gen_component_from_path(hp_configuration_path)
@@ -82,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument("--path_to_store_experiment", type=str, default='.\\data\\experiments', help="Directory to save results.")
     parser.add_argument("--experiment_relative_path", type=str, default=None, help="Relative directory to save results.")
 
-    parser.add_argument("--hp_configuration_path", type=str, default='.\\configuration.json', help="Path to config of hp experiment.")
+    parser.add_argument("--hp_configuration_path", type=str, default=None, help="Path to config of hp experiment.")
     parser.add_argument("--to_optimize_configuration_path", type=str, default='.\\to_optimize_configuration.json', help="Path to config to optimize")
 
     parser.add_argument("--global_logger_level", type=str, default=None, help="Path to config to optimize")
