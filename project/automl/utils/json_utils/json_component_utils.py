@@ -51,9 +51,11 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
             return str(obj)
         
         elif hasattr(obj, "to_dict"): # if it has a custom to_dict method
+
+            globalWriteLine(f"Found object with to_dict method: {obj}")
             
             if not hasattr(type(obj), "from_dict"):
-                raise Exception(f"Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}, so it cannot be serialized")
+                globalWriteLine(f"WARNING: Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}")
 
             return {"__type__": str(type(obj)), "object" : self.default(obj.to_dict())}
         
@@ -69,8 +71,8 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
             return super().default(obj) # this will actually always raise an exception, the correct pre processing was already done
         
         # if it fails, we give it a null value
-        except:
-            
+        except Exception as e:
+            globalWriteLine(f"WARNING: Exception when decoding obj: {obj}, {e}")
             return None
         
 
