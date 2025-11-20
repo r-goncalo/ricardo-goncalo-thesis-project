@@ -3,7 +3,7 @@ from typing import Union
 from automl.component import Component
 
 from automl.utils.json_utils.json_component_utils import get_child_dict_from_localization
-from automl.utils.json_utils.custom_json_logic import CustomJsonLogic
+from automl.utils.json_utils.custom_json_logic import CustomJsonLogic, register_custom_strategy
 import optuna
 
 from automl.core.localizations import get_component_by_localization_list, get_last_collection_where_value_is, safe_get
@@ -265,7 +265,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
                 
         return HyperparameterSuggestion(dict["name"], dict["localizations"], dict["suggestion"])
     
-
+register_custom_strategy(HyperparameterSuggestion, HyperparameterSuggestion)
 
 
 class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
@@ -383,5 +383,7 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
 
         return disjoint_to_return
         
+register_custom_strategy(DisjointHyperparameterSuggestion, DisjointHyperparameterSuggestion)
+
         
         
