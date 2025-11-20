@@ -57,7 +57,7 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
             if not hasattr(type(obj), "from_dict"):
                 globalWriteLine(f"WARNING: Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}")
 
-            return {"__type__": str(type(obj)), "object" : self.default(obj.to_dict())}
+            return {"__type__": str(type(obj)), "object" : obj.to_dict()}
         
         # if we reached here, the type was none we treat by default
         custom_json_logic = get_custom_strategy(type(obj))
