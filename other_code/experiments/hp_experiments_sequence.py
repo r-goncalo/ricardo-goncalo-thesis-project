@@ -52,11 +52,20 @@ def guarantee_same_path_in_commands(command_dict_sequence : list[dict]):
             path_to_store_experiment = first_command["path_to_store_experiment"]
             experiment_relative_path = first_command["experiment_relative_path"]
 
+            to_optimize_config_path = first_command.get("to_optimize_configuration_path", None)
+            hp_configuration_path = first_command.get("hp_configuration_path", None)
+
             for command_dict in command_dict_sequence[1:]:
 
                 command_dict["path_to_store_experiment"] = path_to_store_experiment
                 command_dict["experiment_relative_path"] = experiment_relative_path
                 command_dict["create_new_directory"] = False
+
+                if to_optimize_config_path != None:
+                    command_dict["to_optimize_configuration_path"] = to_optimize_config_path
+
+                if to_optimize_config_path != None:
+                    command_dict["hp_configuration_path"] = hp_configuration_path
 
                 
 
