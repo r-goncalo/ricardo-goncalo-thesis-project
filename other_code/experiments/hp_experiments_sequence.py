@@ -51,6 +51,9 @@ def copy_configurations_to_exp_paths(command_dict_collection : list[list[dict]])
                 full_path_of_experiment = os.path.join(path_to_store_experiment, experiment_relative_path)
                 new_path_of_configuration = os.path.join(full_path_of_experiment, "configuration.json")
                 
+                new_path_dir = os.path.dirname(new_path_of_configuration)
+                os.makedirs(new_path_dir, exist_ok=True)
+
                 shutil.copy(hp_configuration_path, new_path_of_configuration)
 
                 command_dict_collection_element["hp_configuration_path"] = new_path_of_configuration    

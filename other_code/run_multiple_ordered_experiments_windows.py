@@ -3,7 +3,7 @@ import subprocess, win32job, win32process, win32con, win32api
 import multiprocessing
 
 # === Define Maximum Concurrent Jobs ===
-MAX_JOBS = 4
+MAX_JOBS = 3
 
 # --- Create a global Job Object ---
 job = win32job.CreateJobObject(None, "")
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # ]
 
     import experiments.base_experiment as base_exp
-    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings, expand_commands_for_each_model, unfold_sequences_to_correct_format, guarantee_same_path_in_commands
+    from experiments.hp_experiments_sequence import print_commands, make_command_dicts_command_strings, expand_commands_for_each_model, unfold_sequences_to_correct_format, guarantee_same_path_in_commands, copy_configurations_to_exp_paths
     #from experiments.rl_zoo_sb3.ppo_cartpole import experiment_for_poo_actors_and_critics as experiment
     
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     base_commands, directory_to_store_experiment, directory_to_store_definitions, directory_to_store_experiments, directory_to_store_logs =base_exp.experiment_base_commands_and_info(directory_to_store_experiment='C:\\rgoncalo\\experiments',
                  base_to_opt_config_path='C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo_2\\configurations\\to_optimize_configuration.json',
                  hp_opt_config_path='C:\\rgoncalo\\experiment_definitions\\dqn_cartpole_sb3_zoo_2\\configurations\\configuration.json', 
-                 experiment_name="sb3_zoo_dqn_cartpole_hp_opt",
+                 experiment_name="sb3_dqn_cartpole_hp",
                  base_command=base_command  
 
     )
@@ -118,13 +118,14 @@ if __name__ == "__main__":
     print("EXPERIMENTS TO DO AS RETURNED BY THE EXPERIMENT (MAY HAVE WRONG FILE PATHS) AND BEFORE UNFOLDING")
     print_commands(command_sequences)
 
-
-    guarantee_same_path_in_commands(command_sequences)
-
-    print("EXPERIMENTS TO DO BEFORE UNFOLDING AND MAKING STRINGS BUT WITH RIGHT PATHS:")
+    copy_configurations_to_exp_paths(command_sequences)
+    print("EXPERIMENTS TO DO AFTER CONFIGURATIONS ARE COPIED TO EXPERIMENT PATHS")
     print_commands(command_sequences)
 
 
+    guarantee_same_path_in_commands(command_sequences)
+    print("EXPERIMENTS TO DO AFTER GUARANTE OF SAME PATHS IN COMMANDS")
+    print_commands(command_sequences)
 
     # we then treat the commands to make them in a correct format
     command_sequences = make_command_dicts_command_strings(command_sequences)
