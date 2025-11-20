@@ -51,11 +51,9 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
             return str(obj)
         
         elif hasattr(obj, "to_dict"): # if it has a custom to_dict method
-
-            globalWriteLine(f"Found object with to_dict method: {obj}")
             
             if not hasattr(type(obj), "from_dict"):
-                globalWriteLine(f"WARNING: Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}")
+                globalWriteLine(f"WARNING: Object {obj} has a to_dict method, but not a from_dict method in its type {type(obj)}", file="encoding_decoding.txt")
 
             return {"__type__": str(type(obj)), "object" : obj.to_dict()}
         
@@ -72,7 +70,7 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
         
         # if it fails, we give it a null value
         except Exception as e:
-            globalWriteLine(f"WARNING: Exception when decoding obj: {obj}, {e}")
+            globalWriteLine(f"WARNING: Exception when decoding obj: {obj}, {e}", file="encoding_decoding.txt" )
             return None
         
 
@@ -444,7 +442,7 @@ def gen_component_from_special_dict(dict_representation : dict, parent_component
         to_return = parent_component_for_generated.look_for_component_with_name(dict_representation["__get_by_name__"])
 
         if to_return is None:
-            globalWriteLine(f"WARNING: Tried to get component by name {dict_representation['__get_by_name__']} with parent component {parent_component_for_generated.name} but couldn't get it")
+            globalWriteLine(f"WARNING: Tried to get component by name {dict_representation['__get_by_name__']} with parent component {parent_component_for_generated.name} but couldn't get it", file="encoding_decoding.txt")
     
     return to_return
 
