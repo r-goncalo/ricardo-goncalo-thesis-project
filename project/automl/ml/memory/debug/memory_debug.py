@@ -1,4 +1,4 @@
-from automl.loggers.logger_component import ComponentWithLogging
+from automl.loggers.logger_component import DEBUG_LEVEL, ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.component import requires_input_proccess
 
@@ -22,7 +22,7 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
                         
             str_pushing = f"{str_pushing}{field_name}: {transition[field_name]} "
 
-        self.lg.writeLine(f"Pushing: {str_pushing}", file="pushed_transitions.txt", use_time_stamp=False)
+        self.lg.writeLine(f"Pushing: {str_pushing}", file="pushed_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
 
     @requires_input_proccess
     def clear(self):
@@ -37,6 +37,6 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
                             
                 str_pushing = f"{str_pushing}{field_name}: {self.transitions[field_name][i]} " # TODO: there should be a clear way to get a single transition
     
-            self.lg.writeLine(f"{str_pushing}", file="on_clear_transitions.txt", use_time_stamp=False)
+            self.lg.writeLine(f"{str_pushing}", file="on_clear_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
 
         super().clear()

@@ -22,8 +22,8 @@ class DEBUG_LEVEL(SmartEnum):
     CRITICAL = 0
     ERROR = 1
     WARNING = 2
-    DEBUG = 3
-    INFO = 4
+    INFO = 3
+    DEBUG = 4
 
 
 IDENT_SPACE = '    '
@@ -368,15 +368,15 @@ class ComponentWithLogging(ArtifactComponent):
         if not hasattr(self, "lg"):
             return super()._try_look_input_in_attribute(input_key, attribute_name)
 
-        self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'")
+        self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
 
         to_return = super()._try_look_input_in_attribute(input_key, attribute_name)
 
         if to_return == None:
-            self.lg.writeLine(f"Did not have attribute '{attribute_name}' for input '{input_key}'")
+            self.lg.writeLine(f"Did not have attribute '{attribute_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
 
         else:
-            self.lg.writeLine(f"Attribute '{attribute_name}' for input '{input_key}' was found")
+            self.lg.writeLine(f"Attribute '{attribute_name}' for input '{input_key}' was found", level=DEBUG_LEVEL.DEBUG)
 
         return to_return
     
@@ -386,14 +386,14 @@ class ComponentWithLogging(ArtifactComponent):
         if not hasattr(self, "lg"):
             return super()._try_look_input_in_values(input_key, value_name)
 
-        self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'")
+        self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
 
         to_return = super()._try_look_input_in_values(input_key, value_name)
 
         if to_return == None:
-            self.lg.writeLine(f"Did not have value '{value_name}' for input '{input_key}'")
+            self.lg.writeLine(f"Did not have value '{value_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
 
         else:
-            self.lg.writeLine(f"Value '{value_name}' for input '{input_key}' was found") 
+            self.lg.writeLine(f"Value '{value_name}' for input '{input_key}' was found", level=DEBUG_LEVEL.DEBUG) 
 
         return to_return

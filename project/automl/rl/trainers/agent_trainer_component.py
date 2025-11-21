@@ -7,7 +7,7 @@ from typing import Dict
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.loggers.logger_component import DEBUG_LEVEL, LoggerSchema, ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
@@ -173,8 +173,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     @requires_input_proccess
     def setup_episode(self, env : EnvironmentComponent):
         
-        self.lg.writeLine(f"Setting up episode {self.values['episodes_done'] + 1}", file=self.TRAIN_LOG)
-
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
                 
@@ -186,9 +184,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def end_episode(self):
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1
-        
-        self.lg.writeLine("Ended episode: " + str(self.values["episodes_done"]) + " with duration: " + str(self.values["episode_steps"]) + ", total reward: " + str(self.values["episode_score"]), file=self.TRAIN_LOG)
-        
+                
         self.calculate_and_log_results()
 
         
