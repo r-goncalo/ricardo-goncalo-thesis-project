@@ -5,7 +5,8 @@ from automl.component import Component
 from automl.core.input_management import InputSignature
 from automl.basic_components.state_management import StatefulComponent
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.utils.random_utils import do_full_setup_of_seed, generate_seed
+from automl.utils.random_utils import SEED_GLOBAL_LOGGER, do_full_setup_of_seed, generate_seed
+from automl.loggers.global_logger import globalWriteLine
 
 
 class SeededComponent(Component):
@@ -24,7 +25,9 @@ class SeededComponent(Component):
         
         self._seed = self.get_input_value("seed")
         self._do_full_setup_of_seed = self.get_input_value("do_full_setup_of_seed")
+
+        globalWriteLine(f"{self}: Seed is {self._seed}", file=SEED_GLOBAL_LOGGER)
                 
         if self._do_full_setup_of_seed:
+            globalWriteLine(f"{self}: Activating full setup of seed", file=SEED_GLOBAL_LOGGER)
             do_full_setup_of_seed(self._seed)
-        

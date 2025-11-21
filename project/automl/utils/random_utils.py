@@ -1,8 +1,13 @@
 
 import random
 import numpy
+from automl.loggers.global_logger import globalWriteLine
 import torch
 
+SEED_GLOBAL_LOGGER = "seed_logging.txt"
+
+
+full_setup_of_seed_was_done = False
 
 def generate_and_setup_a_seed():
     
@@ -29,14 +34,18 @@ def do_full_setup_of_seed(seed):
 
 
 def setup_python_seed(seed):
+    globalWriteLine(f"Python seed {seed}", file=SEED_GLOBAL_LOGGER)
     random.seed(seed)    
 
 
 def setup_numpy_seed(seed):
+    globalWriteLine(f"Numpy seed {seed}", file=SEED_GLOBAL_LOGGER)
     numpy.random.seed(seed)     # NumPy    
 
 
 def setup_torch_seed(seed):
+
+    globalWriteLine(f"Torch seed {seed}", file=SEED_GLOBAL_LOGGER)
     
     torch.manual_seed(seed)  # PyTorch (CPU)
     torch.cuda.manual_seed_all(seed)  # PyTorch (GPU)
