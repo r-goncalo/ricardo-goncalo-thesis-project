@@ -13,7 +13,8 @@ import os
 import pandas as pd
 
 from automl.utils.smart_enum import SmartEnum
-from automl.utils.json_utils.json_component_utils import json_string_of_component
+from automl.utils.json_utils.json_compoglobalWriteLinenent_utils import json_string_of_component
+from automl.loggers.global_logger import globalWriteLine
 
 
 class DEBUG_LEVEL(SmartEnum):
@@ -254,6 +255,7 @@ class LoggerSchema(ArtifactComponent):
         buffer_for_file = self.text_buffer.get(filename, None)
 
         if buffer_for_file == None:
+            globalWriteLine(f"Creating buffer for filename: {filename}", file="logging_stuff.txt")
             self.create_buffer_for_file(filename)
 
 
@@ -267,6 +269,8 @@ class LoggerSchema(ArtifactComponent):
 
 
     def flush_buffer_of_file(self, filename):
+            
+            globalWriteLine(f"Flushing buffer for filename: {filename}")
 
             path_to_write = os.path.join(self.get_artifact_directory(), filename)
             directory = os.path.dirname(path_to_write)

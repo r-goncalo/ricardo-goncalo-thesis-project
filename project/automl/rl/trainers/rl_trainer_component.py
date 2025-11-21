@@ -50,6 +50,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Setting up RL trainer with initial values: {self.values}")
         
         self.device = self.get_input_value("device")
     
@@ -236,7 +238,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         Starts and runs training      
         '''
 
-        self.setup_training_session()        
+        self.setup_training_session()     
+
+        self.lg.writeLine(f"Starting to run episodes with initial values: {self.values}")   
 
         while True: # loop of episodes and check end conditions
     
