@@ -13,7 +13,7 @@ import os
 import pandas as pd
 
 from automl.utils.smart_enum import SmartEnum
-from automl.utils.json_utils.json_compoglobalWriteLinenent_utils import json_string_of_component
+from automl.utils.json_utils.json_component_utils import json_string_of_component
 from automl.loggers.global_logger import globalWriteLine
 
 
