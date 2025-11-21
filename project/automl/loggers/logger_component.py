@@ -92,7 +92,7 @@ class LoggerSchema(ArtifactComponent):
         
         self.default_log_text_file = self.get_input_value("log_text_file")
         
-        self.object_with_name = self.get_input_value("object_with_name") if "object_with_name" in self.input.keys() else None
+        self.object_with_name = self.get_input_value("object_with_name")
         
         self.write_to_file_when_text_lines_over = self.get_input_value("write_to_file_when_text_lines_over")
 
@@ -100,8 +100,8 @@ class LoggerSchema(ArtifactComponent):
         self.write_to_file_when_text_lines_over = None if self.write_to_file_when_text_lines_over != None and self.write_to_file_when_text_lines_over <= 0 else self.write_to_file_when_text_lines_over
 
         if self.write_to_file_when_text_lines_over != None:
-            self.text_buffer : dict[str, list] = {}
-            self.text_buffer_counts : dict[str, int] = {}
+            self.text_buffer : dict[str, list] = self.text_buffer if hasattr(self, "text_buffer") else {}
+            self.text_buffer_counts : dict[str, int] = self.text_buffer_counts if hasattr(self, "text_buffer_counts") else {}
 
 
     # LOGGING -----------------------------------------------------------------------------        
