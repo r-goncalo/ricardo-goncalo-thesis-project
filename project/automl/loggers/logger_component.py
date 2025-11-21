@@ -255,7 +255,7 @@ class LoggerSchema(ArtifactComponent):
         buffer_for_file = self.text_buffer.get(filename, None)
 
         if buffer_for_file == None:
-            globalWriteLine(f"Creating buffer for filename: {filename}, current buffers: {self.text_buffer.keys()}", file="logging_stuff.txt")
+            globalWriteLine(f"{self}: Creating buffer for filename: {filename}, current buffers: {self.text_buffer.keys()}", file="logging_stuff.txt")
             self.create_buffer_for_file(filename)
 
 
@@ -270,7 +270,7 @@ class LoggerSchema(ArtifactComponent):
 
     def flush_buffer_of_file(self, filename):
             
-            globalWriteLine(f"Flushing buffer for filename: {filename}", file="logging_stuff.txt")
+            globalWriteLine(f"{self}: Flushing buffer for filename: {filename}", file="logging_stuff.txt")
 
             path_to_write = os.path.join(self.get_artifact_directory(), filename)
             directory = os.path.dirname(path_to_write)
