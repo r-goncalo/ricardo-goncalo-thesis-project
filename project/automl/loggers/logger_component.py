@@ -285,6 +285,7 @@ class LoggerSchema(ArtifactComponent):
             self.text_buffer[filename].clear()
             self.text_buffer_counts[filename] = 0
 
+
     @requires_input_proccess
     def flush_text(self):
 
@@ -292,6 +293,7 @@ class LoggerSchema(ArtifactComponent):
 
             for filename in self.text_buffer.keys():
                 self.flush_buffer_of_file(filename)
+
     
     
 def flush_text_of_all_loggers_and_children(component : Component):
