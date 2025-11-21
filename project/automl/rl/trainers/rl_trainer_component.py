@@ -62,9 +62,6 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         self._initialize_limit_numbers()
         
         self.env : EnvironmentComponent = self.get_input_value("environment")
-            
-        self.values["episodes_done"] = 0
-        self.values["total_steps"] = 0
         
         self.setup_agents()
 
