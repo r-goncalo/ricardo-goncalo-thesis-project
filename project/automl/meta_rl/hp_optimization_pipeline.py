@@ -544,14 +544,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
                 self.log_results(results_to_log)  
 
+                self.lg.writeLine(f"Ended step {step + 1}") 
+
+                component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{step + 1}.json")
+
                 if trial.should_prune(): # we verify this after reporting the result
                     self.lg.writeLine("Prunning current experiment due to pruner...")
                     trial.set_user_attr("prune_reason", "pruner")
                     raise optuna.TrialPruned()
                     
-                self.lg.writeLine(f"Ended step {step + 1}") 
-
-                component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{step + 1}.json")
 
                 return evaluation_results
 
