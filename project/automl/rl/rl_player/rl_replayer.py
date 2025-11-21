@@ -22,7 +22,7 @@ import gc
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
-from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
+from automl.utils.random_utils import generate_seed, do_full_setup_of_single_seed
 
 class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator):
     

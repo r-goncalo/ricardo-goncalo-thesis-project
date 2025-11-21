@@ -23,7 +23,7 @@ from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
 from automl.core.advanced_input_management import ComponentInputSignature
 
-from automl.utils.random_utils import generate_seed, do_full_setup_of_seed
+from automl.utils.random_utils import generate_seed, do_full_setup_of_single_seed
 from automl.core.exceptions import common_exception_handling
 
 # TODO this is missing the evaluation component on a RLPipeline

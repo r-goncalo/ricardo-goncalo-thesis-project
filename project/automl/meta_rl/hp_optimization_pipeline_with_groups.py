@@ -19,7 +19,7 @@ from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 
-from automl.base_configurations import component_group as BaseComponentGroupConfig 
+from automl.basic_components.whole_configurations import component_group as BaseComponentGroupConfig 
 
 class HyperparameterOptimizationPipelineWithGroups(HyperparameterOptimizationPipeline):
     
