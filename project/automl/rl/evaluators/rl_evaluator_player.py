@@ -142,7 +142,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         if current_daframe == '':
             current_daframe = self._load_evaluation_result_df(evaluations_directory)
 
-        if current_daframe == None: # TODO: add column named "evaluation" which is the number of the row
+        if current_daframe is None: # TODO: add column named "evaluation" which is the number of the row
             saveDataframe(pandas.DataFrame([{"evaluation" : 0, **result}]), evaluations_directory, "evaluations.csv")
 
         else:
