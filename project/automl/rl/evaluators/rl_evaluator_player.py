@@ -169,7 +169,9 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         current_eval_dataframe = self._load_evaluation_result_df(evaluations_directory)
 
-        results_logger_of_new_plays = aggregate_results_logger(results_loggers_of_new_plays, evaluations_directory, new_results_filename=f"evaluation_results_{len(current_eval_dataframe)}.csv")
+        n_eval_done = 0 if current_eval_dataframe == None else len(current_eval_dataframe)
+
+        results_logger_of_new_plays = aggregate_results_logger(results_loggers_of_new_plays, evaluations_directory, new_results_filename=f"evaluation_results_{n_eval_done}.csv")
                 
         evaluation_to_return = self.base_evaluator.evaluate(results_logger_of_new_plays)
 
