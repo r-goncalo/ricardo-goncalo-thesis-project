@@ -229,7 +229,7 @@ def study_of_evaluations(configuration_name : str, results_logger : ResultLogger
     results_logger.plot_linear_regression(x_axis='evaluation', y_axis='result', to_show=False)
 
 
-    results_logger.plot_current_graph(title=f"{configuration_name}_evaluations", y_label=y_axis_to_use)
+    results_logger.plot_current_graph(title=f"{configuration_name}_evaluations", y_label=y_axis_to_use, y_min=0)
 
 
 def get_results_of_configurations(experiment_path,

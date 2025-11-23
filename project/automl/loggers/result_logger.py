@@ -542,12 +542,17 @@ class ResultLogger(LoggerSchema):
             plt.show()
 
 
-    def plot_current_graph(self, title: str = None, y_label : str = None):
+    def plot_current_graph(self, title: str = None, y_label : str = None, y_min =None):
         if title is not None:
             plt.title(title)
 
         if y_label != None:
             plt.ylabel(ylabel=y_label)
+
+        # Apply minimum y-axis limit if provided
+        if y_min is not None:
+            current_ylim = plt.ylim()          # (current_min, current_max)
+            plt.ylim(bottom=y_min, top=current_ylim[1])
 
         plt.show()
 
