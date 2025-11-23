@@ -162,34 +162,34 @@ class ResultLogger(LoggerSchema):
     # GRAPHS ------------------------------------------------------------------------------------------------------------------
 
     @requires_input_proccess
-    def plot_bar_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label='', lim_y=True):
+    def plot_bar_graph(self, x_axis : str, y_axis : str, title : str = '', save_path: str = None, to_show=True, y_label='', lim_y=True, fixed_value_tuple=None):
+        
         """
         Plots a graph using the dataframe stored in ResultLogger.
-
-        :param x_axis: The column key for the X-axis.
-        :param y_axis: A list of column keys for the Y-axis.
-        :param save_path: Optional path to save the plot as an image.
         """
+        
         if self.dataframe.empty:
             raise ValueError("Dataframe is empty. Log results before plotting.")
 
         if x_axis not in self.dataframe.columns:
             raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
-
-
-        if isinstance(y_axis, str):
-            y_axis = [y_axis]
             
-        for i in range(len(y_axis)):
-
-            if y_axis[i] not in self.dataframe.columns:
-                raise KeyError(f"Column '{y_axis[i]}' not found in dataframe.")
+        
+        if fixed_value_tuple is not None:
             
-        categories = [str(value) for value in self.dataframe[x_axis]]
+            (column_name, fixed_value) = fixed_value_tuple
+            
+            df = self.dataframe[self.dataframe[column_name] == fixed_value]
+            df = df.groupby(x_axis, as_index=False).last()
 
+        else:
 
-        for column_name in y_axis:
-            plt.bar(self.dataframe[x_axis], self.dataframe[column_name])
+            df = self.dataframe.groupby(x_axis, as_index=False).last()
+
+        x_values = df[x_axis]
+        y_values = df[y_axis]
+
+        plt.bar(x_values, y_values)
 
         plt.xlabel(x_axis)
         plt.ylabel(y_label)
@@ -328,7 +328,7 @@ class ResultLogger(LoggerSchema):
 
 
     @requires_input_proccess
-    def plot_linear_regression(self, x_axis: str, y_axis: list, title: str = '', save_path: str = None, to_show=True, y_label='', ax=None):
+    def plot_linear_regression(self, x_axis: str, y_axis: str, title: str = '', save_path: str = None, to_show=True, y_label='', ax=None, fixed_value_tuple=None):
 
        """
        Plots a graph with linear regression lines for the given columns in the dataframe.
@@ -349,30 +349,29 @@ class ResultLogger(LoggerSchema):
        if ax is None:
             ax = plt.gca()
 
-       if isinstance(y_axis, str):
-           y_axis = [y_axis]
 
-       for i in range(len(y_axis)):
-           if isinstance(y_axis[i], str):
-               y_axis[i] = (y_axis[i], y_axis[i])
+       if fixed_value_tuple != None:
+           
+           (column_name, fixed_value) = fixed_value_tuple
+           
+           df = self.dataframe[self.dataframe[column_name] == fixed_value]
+        
+       else:
+           df = self.dataframe
 
-           if y_axis[i][0] not in self.dataframe.columns:
-               raise KeyError(f"Column '{y_axis[i][0]}' not found in dataframe.")
+        # Extract X and Y data
+       X = df[[x_axis]].values  # X values (reshaped for regression)
+       Y = df[y_axis].values  # Y values
 
-       for (column_name, name_to_plot) in y_axis:
-           # Extract X and Y data
-           X = self.dataframe[[x_axis]].values  # X values (reshaped for regression)
-           Y = self.dataframe[column_name].values  # Y values
+       # Fit the linear regression model
+       model = LinearRegression()
+       model.fit(X, Y)
 
-           # Fit the linear regression model
-           model = LinearRegression()
-           model.fit(X, Y)
+        # Predict Y values from the linear model
+       Y_pred = model.predict(X)
 
-           # Predict Y values from the linear model
-           Y_pred = model.predict(X)
-
-           # Plot the regression line
-           ax.plot(self.dataframe[x_axis], Y_pred, label=f'{name_to_plot} Regression Line')
+        # Plot the regression line
+       ax.plot(df[x_axis], Y_pred, label=f'{y_axis} Regression Line')
 
        ax.set_xlabel(x_axis)
        ax.set_ylabel(y_label)
@@ -552,6 +551,11 @@ class ResultLogger(LoggerSchema):
 
         plt.show()
 
+    @requires_input_proccess
+    def list_of_unique_values(self, column):
+
+        return self.dataframe[column].unique().tolist()
+
 
  
 def get_results_logger_from_file(folder_path, results_filename=RESULTS_FILENAME) -> ResultLogger:
@@ -669,6 +673,8 @@ def aggregate_results_logger(results_logger_objects : list[ResultLogger], new_di
     resuls_logger.saveDataframe(datafrane, filename=new_results_filename)
     
     return resuls_logger
+
+
         
     
     ## WANDB --------------------------------

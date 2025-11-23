@@ -211,7 +211,8 @@ def get_evaluations_results_logger(base_path):
     return ResultLogger(input={
                                                 "base_directory" : evaluations_path,
                                                 "artifact_relative_directory" : '',
-                                                "create_new_directory" : False
+                                                "create_new_directory" : False,
+                                                "results_filename" : "evaluations.csv"
                                               })
 
 
@@ -219,11 +220,13 @@ def get_evaluations_results_logger(base_path):
 
 def study_of_evaluations(configuration_name : str, results_logger : ResultLogger,
                            #x_axis_to_use='episode',
-                           x_axis_to_use='episode_steps',
-                           y_axis_to_use='episode_reward'
+                           x_axis_to_use='evaluation',
+                           y_axis_to_use='result'
                            ):
     
     results_logger.plot_bar_graph(x_axis=x_axis_to_use, y_axis=y_axis_to_use, to_show=False)
+
+    results_logger.plot_linear_regression(x_axis='evaluation', y_axis='result', to_show=False)
 
 
     results_logger.plot_current_graph(title=f"{configuration_name}_evaluations", y_label=y_axis_to_use)
