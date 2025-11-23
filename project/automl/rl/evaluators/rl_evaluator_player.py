@@ -136,9 +136,11 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         except:
             return None
     
-    def _save_evaluation_result(self, result, evaluations_directory):
+    def _save_evaluation_result(self, result, evaluations_directory, current_daframe : pandas.DataFrame=''):
 
-        current_daframe = self._load_evaluation_result_df(evaluations_directory)
+
+        if current_daframe == '':
+            current_daframe = self._load_evaluation_result_df(evaluations_directory)
 
         if current_daframe == None: # TODO: add column named "evaluation" which is the number of the row
             saveDataframe(pandas.DataFrame([{"evaluation" : 0, **result}]), evaluations_directory, "evaluations.csv")
@@ -165,7 +167,9 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
             results_loggers_of_new_plays.append(rl_player_of_run.get_results_logger())
 
-        results_logger_of_new_plays = aggregate_results_logger(results_loggers_of_new_plays, evaluations_directory, new_results_filename=f"evaluation_results_{number_of_evals_done}.csv")
+        current_eval_dataframe = self._load_evaluation_result_df(evaluations_directory)
+
+        results_logger_of_new_plays = aggregate_results_logger(results_loggers_of_new_plays, evaluations_directory, new_results_filename=f"evaluation_results_{len(current_eval_dataframe)}.csv")
                 
         evaluation_to_return = self.base_evaluator.evaluate(results_logger_of_new_plays)
 
