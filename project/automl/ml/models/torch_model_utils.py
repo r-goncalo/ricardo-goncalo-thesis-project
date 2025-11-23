@@ -121,3 +121,38 @@ def model_output_difference(model_a : TorchModelComponent, model_b : TorchModelC
         out_b = model_b.model(inputs)
     mse = torch.nn.functional.mse_loss(out_a, out_b).item()
     return mse
+
+
+def plot_fc_weights(model : TorchModelComponent):
+
+    import matplotlib.pyplot as plt
+
+    for name, param in model.model.named_parameters():
+        if "weight" in name:
+            w = param.detach().cpu().numpy()
+            plt.figure(figsize=(6,4))
+            plt.imshow(w, aspect='auto')
+            plt.colorbar()
+            plt.title(name)
+            plt.show()
+
+
+def plot_weight_hist(model : TorchModelComponent):
+
+    import matplotlib.pyplot as plt
+
+
+    for name, param in model.model.named_parameters():
+        data = param.detach().cpu().flatten().numpy()
+        plt.figure(figsize=(4,3))
+        plt.hist(data, bins=50)
+        plt.title(f"{name} histogram")
+        plt.show()
+
+
+def print_weight_norms(model : TorchModelComponent):
+    for name, param in model.model.named_parameters():
+        data = param.detach().cpu()
+        print(name, 
+              "L2:", data.norm().item(),
+              "max:", data.abs().max().item())

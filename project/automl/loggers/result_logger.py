@@ -267,9 +267,10 @@ class ResultLogger(LoggerSchema):
             plt.show()
             
     @requires_input_proccess
-    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', 
-                                 show_std=True, aggregate_number = None, title : str = '', save_path: str = None, 
-                                 to_show=True, y_label='', x_slice_range=None):
+    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, aggregate_number = None, title : str = '', save_path: str = None, to_show=True, y_label='', x_slice_range=None, ax=None):
+
+        if ax is None:
+            ax = plt.gca()
 
         if self.dataframe.empty:
             raise ValueError("Dataframe is empty. Log results before plotting.")
@@ -293,40 +294,42 @@ class ResultLogger(LoggerSchema):
             x_values = x_values[aggregate_number:(len(x_values) - aggregate_number)]
 
             mean_values = np.mean(aggregated_values, axis=1)
-        
+
             if show_std:
                 std_values = np.std(aggregated_values, axis=1)
 
         else: # aggregate number is None
             mean_values = values
             std_values = None
-        
 
-        plt.plot(x_values, mean_values, label=y_values_label)
-        
+
+        ax.plot(x_values, mean_values, label=y_values_label)
+
         if show_std and std_values is not None:
-            plt.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=0.3)
+            ax.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=0.3)
 
 
-        plt.xlabel(x_axis)
-        plt.ylabel(y_label)
-        
+        ax.set_xlabel(x_axis)
+        ax.set_ylabel(y_label)
+
         if title != '':
-            plt.title(title)
-                
-        plt.legend()
-        plt.grid(True)
+            ax.set_title(title)
+
+        ax.legend()
+        ax.grid(True)
 
         if save_path:
-            plt.savefig(self.get_artifact_directory() + '\\' + save_path)
+            ax.figure.savefig(self.get_artifact_directory() + '\\' + save_path)
 
         if to_show:
             plt.show()
 
-    
+        return ax
+
+
     @requires_input_proccess
-    def plot_linear_regression(self, x_axis: str, y_axis: list, title: str = '', 
-                               save_path: str = None, to_show=True, y_label=''):
+    def plot_linear_regression(self, x_axis: str, y_axis: list, title: str = '', save_path: str = None, to_show=True, y_label='', ax=None):
+
        """
        Plots a graph with linear regression lines for the given columns in the dataframe.
 
@@ -343,17 +346,19 @@ class ResultLogger(LoggerSchema):
        if x_axis not in self.dataframe.columns:
            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
 
+       if ax is None:
+            ax = plt.gca()
 
        if isinstance(y_axis, str):
            y_axis = [y_axis]
-               
+
        for i in range(len(y_axis)):
            if isinstance(y_axis[i], str):
                y_axis[i] = (y_axis[i], y_axis[i])
 
            if y_axis[i][0] not in self.dataframe.columns:
                raise KeyError(f"Column '{y_axis[i][0]}' not found in dataframe.")
-       
+
        for (column_name, name_to_plot) in y_axis:
            # Extract X and Y data
            X = self.dataframe[[x_axis]].values  # X values (reshaped for regression)
@@ -367,19 +372,19 @@ class ResultLogger(LoggerSchema):
            Y_pred = model.predict(X)
 
            # Plot the regression line
-           plt.plot(self.dataframe[x_axis], Y_pred, label=f'{name_to_plot} Regression Line')
+           ax.plot(self.dataframe[x_axis], Y_pred, label=f'{name_to_plot} Regression Line')
 
-       plt.xlabel(x_axis)
-       plt.ylabel(y_label)
+       ax.set_xlabel(x_axis)
+       ax.set_ylabel(y_label)
 
        if title != '':
-            plt.title(title)
-                
-       plt.legend()
-       plt.grid(True)
+            ax.set_title(title)
+
+       ax.legend()
+       ax.grid(True)
 
        if save_path:
-           plt.savefig(self.logDir + '\\' + save_path)
+           ax.figure.savefig(self.logDir + '\\' + save_path)
 
        if to_show:
            plt.show()

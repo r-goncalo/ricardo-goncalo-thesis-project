@@ -47,8 +47,10 @@ class AgentTrainerDebug(AgentTrainer):
 
     
         def _observe_transiction_to(self, new_state, action, reward, done):
+
+            old_state = self.agent.get_current_state_in_memory().clone()
         
             super()._observe_transiction_to(new_state, action, reward, done)
     
-            self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {self.agent.get_current_state_in_memory()} + {action} -> {new_state}, {reward}, {done}", file="observed_transitions.txt", use_time_stamp=False)
+            self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {old_state} + {action} -> {new_state}, {reward}, {done}", file="observed_transitions.txt", use_time_stamp=False)
     
