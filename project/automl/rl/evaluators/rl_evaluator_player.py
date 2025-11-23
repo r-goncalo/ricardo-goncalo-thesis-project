@@ -15,7 +15,7 @@ from automl.core.input_management import InputSignature
 
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
-from automl.utils.files_utils import saveDataframe
+from automl.utils.files_utils import loadDataframe, saveDataframe
 from automl.utils.configuration_component_utils import save_configuration
 from automl.rl.agent.agent_components import AgentSchema
 
@@ -38,7 +38,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
     
     exposed_values = {
         
-        "last_evaluation" : {}
+        "last_evaluation" : {},
+        "number_of_evaluations" : 0
     
     }
     
@@ -125,26 +126,51 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             })
         
         return env
-       
+    
+
+    def _load_evaluation_result_df(self, evaluations_directory):
+
+        try:
+            return loadDataframe(evaluations_directory, "evaluations.csv")
+        
+        except:
+            return None
+    
+    def _save_evaluation_result(self, result, evaluations_directory):
+
+        current_daframe = self._load_evaluation_result_df(evaluations_directory)
+
+        if current_daframe == None: # TODO: add column named "evaluation" which is the number of the row
+            saveDataframe(pandas.DataFrame([{"evaluation" : 0, **result}]), evaluations_directory, "evaluations.csv")
+
+        else:
+            new_row = pandas.DataFrame([{"evaluation" : len(current_daframe), **result}])
+
+            updated = pandas.concat([current_daframe, new_row], ignore_index=True)
+            saveDataframe(updated, evaluations_directory, "evaluations.csv")
+
 
         
     def _evaluate_agents(self, agents, device, evaluations_directory, env=None):
 
         '''Evaluate agents using the RL player and the base evaluator'''
         
-        results_loggers_of_plays = []
+        
+        results_loggers_of_new_plays = []
                 
+        # compute new evaluations
         for i in range(self.number_of_evaluations): # evaluate plays and store their paths 
 
             rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env) 
 
-            results_loggers_of_plays.append(rl_player_of_run.get_results_logger())
+            results_loggers_of_new_plays.append(rl_player_of_run.get_results_logger())
 
-        results_logger = aggregate_results_logger(results_loggers_of_plays, evaluations_directory)
+        results_logger_of_new_plays = aggregate_results_logger(results_loggers_of_new_plays, evaluations_directory, new_results_filename=f"evaluation_results_{number_of_evals_done}.csv")
                 
-        evaluation_to_return = self.base_evaluator.evaluate(results_logger)
+        evaluation_to_return = self.base_evaluator.evaluate(results_logger_of_new_plays)
 
-        saveDataframe(pandas.DataFrame([evaluation_to_return]), evaluations_directory, "evaluation.csv")
+        self._save_evaluation_result(evaluation_to_return, evaluations_directory)
+
 
         return evaluation_to_return
     

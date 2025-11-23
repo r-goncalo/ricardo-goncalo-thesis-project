@@ -97,6 +97,24 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             else:
                 globalWriteLine(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
         
+
+    def pass_input_if_no_value(self, key, value): # pass input to this component, may need verification of input
+        '''
+        Passed the value if no custom value was passed
+        '''
+        
+        parameter_signature = self.get_parameter_signature(key)
+            
+        if parameter_signature != None:
+            
+            if not self.__input_meta[key].was_custom_value_passed():        
+        
+                self.__verified_pass_input(key, value)
+                
+        else:
+            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+                
+                   
         
                 
     def _setup_default_value_if_no_value(self, key):

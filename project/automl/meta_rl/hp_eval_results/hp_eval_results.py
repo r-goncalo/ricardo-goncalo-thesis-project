@@ -7,6 +7,7 @@ from automl.utils.optuna_utils import load_study_from_database
 from optuna.importance import get_param_importances
 import optuna
 from automl.loggers.global_logger import globalWriteLine
+from automl.utils.files_utils import get_first_path_with_name
 
 
 
@@ -161,7 +162,8 @@ def study_of_configuration(configuration_name : str, results_logger : ResultLogg
                            #x_axis_to_use='episode',
                            x_axis_to_use='total_steps',
                            y_axis_to_use='episode_reward',
-                           aggregate_number=10):
+                           aggregate_number=10,
+                                            study_evaluations=True):
 
 
     #results_logger.plot_graph(x_axis='episode', y_axis=[('total_reward', name)], to_show=False)
@@ -179,8 +181,52 @@ def study_of_configuration(configuration_name : str, results_logger : ResultLogg
 
     results_logger.plot_polynomial_regression(x_axis=x_axis_to_use, y_axis=y_axis_to_use, to_show=False, degrees=4)
 
-
     results_logger.plot_current_graph(title=configuration_name, y_label=y_axis_to_use)
+
+    if study_evaluations:
+
+        evaluations_logger = get_evaluations_results_logger(os.path.join(results_logger.get_artifact_directory(), ".."))
+
+        if evaluations_logger != None:
+            study_of_evaluations(configuration_name, evaluations_logger)
+
+        else:
+            print(f"Study has no evaluations to study")
+        
+
+
+def get_evaluations_path(base_path):
+
+    return get_first_path_with_name(base_path, "evaluations")
+
+
+def get_evaluations_results_logger(base_path):
+
+    evaluations_path = get_evaluations_path(base_path)
+
+    if evaluations_path == None:
+        return None
+    
+
+    return ResultLogger(input={
+                                                "base_directory" : evaluations_path,
+                                                "artifact_relative_directory" : '',
+                                                "create_new_directory" : False
+                                              })
+
+
+
+
+def study_of_evaluations(configuration_name : str, results_logger : ResultLogger,
+                           #x_axis_to_use='episode',
+                           x_axis_to_use='episode_steps',
+                           y_axis_to_use='episode_reward'
+                           ):
+    
+    results_logger.plot_bar_graph(x_axis=x_axis_to_use, y_axis=y_axis_to_use, to_show=False)
+
+
+    results_logger.plot_current_graph(title=f"{configuration_name}_evaluations", y_label=y_axis_to_use)
 
 
 def get_results_of_configurations(experiment_path,

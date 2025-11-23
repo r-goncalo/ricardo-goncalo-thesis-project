@@ -1,7 +1,7 @@
 
 
 import os
-
+import pandas
 from automl.loggers.global_logger import globalWriteLine
 
 
@@ -123,14 +123,49 @@ def read_text_from_file(dir, filename):
         return f.read()
 
 
-def saveDataframe(df, directory='', filename='dataframe.csv'): #saves a dataframe using this log object as a reference
-        
-        '''
-        Saves dataframe in artifact directory
-        This does not trigger input processing
-        '''
-        
+def saveDataframe(df : pandas.DataFrame, directory='', filename='dataframe.csv'): 
+                
         if(directory != ''):
             open_or_create_folder(directory, create_new=False)
 
         df.to_csv(os.path.join(directory, filename), index=False)
+
+
+def loadDataframe(directory='', filename='dataframe.csv') -> pandas.DataFrame:
+        
+    # Build full path
+    full_path = os.path.join(directory, filename)
+
+    # Safety: check existence
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f"Dataframe file not found: {full_path}")
+
+    # Read CSV
+    return pandas.read_csv(full_path)
+
+
+
+def get_first_path_with_name(base_path, name):
+    """
+    Returns the full path of the first directory or file with this exact name
+    that is a subdirectory or file inside base_path (recursive search).
+    If not found, returns None.
+    """
+
+    # Safety: if base_path does not exist
+    if not os.path.exists(base_path):
+        return None
+
+    # Walk the directory tree
+    for root, dirs, files in os.walk(base_path):
+        
+        # Check directories
+        if name in dirs:
+            return os.path.join(root, name)
+
+        # Check files
+        if name in files:
+            return os.path.join(root, name)
+
+    # Nothing found
+    return None
