@@ -249,7 +249,13 @@ class HyperparameterSuggestion(CustomJsonLogic):
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 
             
-            
+    def clone(self):
+        return HyperparameterSuggestion(
+            name=self.name,
+            hyperparameter_localizations=self.hyperparameter_localizations,
+            value_suggestion=self.value_suggestion
+        )        
+
     def to_dict(self):
         
         return {
@@ -356,6 +362,13 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
     
     # JSON ENCODING DECODING ------------------------------------------------------------------------
             
+
+    def clone(self):
+
+        return DisjointHyperparameterSuggestion(
+            name = self.name,
+            disjoint_hyperparameter_suggestions = [disjoint_hyperparameter_suggestion.clone()  for disjoint_hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values()]
+        )
             
     def to_dict(self):
         
@@ -385,5 +398,79 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
         
 register_custom_strategy(DisjointHyperparameterSuggestion, DisjointHyperparameterSuggestion)
 
+
+
+class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
+    
+    '''A class which defines a range of values a specific hyperparameter group can have'''
+    
+    def __init__(self, name : str, name_of_list : str, kwargs_for_list, hyperparameter_suggestion_for_list : HyperparameterSuggestion):
         
+        self.name = name
+
+        self.name_len_list = name_of_list
+        self.kwargs_for_list = kwargs_for_list
+
+        self.hyperparameter_suggestion_for_list : HyperparameterSuggestion =  hyperparameter_suggestion_for_list
+
+
+    def clone(self):
+        
+        return VariableListHyperparameterSuggestion(
+            name=self.name,
+            name_of_list=self.name_len_list,
+            kwargs_for_list = self.kwargs_for_list,
+            hyperparameter_suggestion_for_list=self.hyperparameter_suggestion_for_list.clone()
+        )
+
+
+    def make_suggestion(self, trial : optuna.Trial):
+        
+        '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
+        
+        list_len= trial.suggest_int(self.name_len_list, **self.kwargs_for_list)
+
+        list_to_return = []
+
+        for i in range(list_len):
+
+            suggestion_to_put_in_list = self.hyperparameter_suggestion_for_list.clone()
+
+            suggestion_to_put_in_list.name = f"{suggestion_to_put_in_list.name}_{i}"
+
+            list_to_return.append(suggestion_to_put_in_list)
+                
+            
+        return list_to_return
+
+
+    
+    # JSON ENCODING DECODING ------------------------------------------------------------------------
+            
+            
+    def to_dict(self):
+        
+        
+        return  {
+            "name" : self.name,
+            "name_of_list" : self.name_len_list,
+            "kwargs_for_list" : self.kwargs_for_list,
+            "hyperparameter_suggestion_for_list" : self.hyperparameter_suggestion_for_list
+        }
+                            
+            
+    def from_dict(dict, decode_elements_fun, source_component):
+
+        '''Decodes object dict'''
+                
+        return VariableListHyperparameterSuggestion(
+            name=dict["name"],
+            name_of_list=dict["name_of_list"], 
+            kwargs_for_list=dict["kwargs_for_list"],
+            hyperparameter_suggestion_for_list=decode_elements_fun(source_component, dict["hyperparameter_suggestion_for_list"])
+
+        )
+
+        
+register_custom_strategy(VariableListHyperparameterSuggestion, VariableListHyperparameterSuggestion)
         

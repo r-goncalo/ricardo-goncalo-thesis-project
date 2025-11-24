@@ -17,7 +17,6 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
 
     parameters_signature = { 
                        "environment" : InputSignature(default_value="cooperative_pong"),
-                       "render_mode" : InputSignature(default_value="none", validity_verificator= lambda x : x in ["none", "human"]),
                        "device" : InputSignature(ignore_at_serialization=True)
                        }    
     
@@ -34,8 +33,6 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
-
-        self.render_mode = self.get_input_value("render_mode")
         
     
     def _setup_environment(self):
@@ -106,7 +103,7 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
     def close(self):
         self.env.close()
         
-    def reset(self):
-        observations, info = self.env.reset()
+    def reset(self, seed):
+        observations, info = self.env.reset(seed=seed)
         self.reset_info = info
         return observations

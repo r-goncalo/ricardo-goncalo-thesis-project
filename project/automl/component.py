@@ -556,7 +556,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                     raise Exception(f"In component of type {type(self)}: Validity verification on key '{input_key}' returned a type other than bool")
 
                 elif is_a_correct_type == False:
-                    raise Exception(f"In component of type {type(self)}: Value with key '{input_key}' did not pass Component specified validity verificator") 
+                    raise Exception(f"In component of type {type(self)}: Value with key '{input_key}', of type {type(input_value)} did not pass Component specified validity verificator") 
 
 
 
