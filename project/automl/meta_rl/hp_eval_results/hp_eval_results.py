@@ -62,93 +62,71 @@ def print_optuna_param_importances(optuna_study):
 
 
 
-def plot_scattered_values_for_param(optuna_study, trial_to_highlight=None):
+def plot_scattered_values_for_param(optuna_study, highlight_trials=None):
 
     import optuna
     import matplotlib.pyplot as plt
-    import pandas as pd
     import numpy as np
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 
-    # Assume `optuna_study` is already loaded
-    df = optuna_study.trials_dataframe()  # columns: value, params_*, state, etc.
+    if highlight_trials is None:
+        highlight_trials = []
 
-    # Only consider completed trials
-    df = df[df['state'] == 'COMPLETE']
+    # DataFrame from study
+    df = optuna_study.trials_dataframe()
+    df = df[df["state"] == "COMPLETE"]
 
-    # Get all hyperparameter columns
+    # Hyperparameter columns
     param_cols = [c for c in df.columns if c.startswith("params_")]
 
-    # If highlight trial specified, extract it
-    highlighted_params = None
-    if trial_to_highlight is not None:
+    # Prepare highlighted trial data
+    highlighted_points = []
+    for tnum in highlight_trials:
         try:
-            trial = optuna_study.trials[trial_to_highlight]
-            highlighted_params = trial.params
-        except Exception as e:
-            print(f"Warning: Could not highlight trial {trial_to_highlight}: {e}")
+            t = optuna_study.trials[tnum]
+            highlighted_points.append(t)
+        except:
+            print(f"Warning: trial {tnum} not found, skipping.")
 
-
-    # Plot each hyperparameter vs objective with Gaussian Process regression
+    # Plot each parameter
     for param in param_cols:
         plt.figure(figsize=(7, 5))
 
-        # Extract values and objective
         x = df[param].values
-        y = df['value'].values
+        y = df["value"].values
 
-        # Scatter plot: parameter vs objective
-        plt.scatter(x, y, alpha=0.6, label="Trials")
+        # Base plot: all trials
+        plt.scatter(x, y, alpha=0.3, color="red", label="All trials")
 
-        # Only fit GP if the param is numeric
-        if np.issubdtype(x.dtype, np.number):
-            # Reshape for sklearn (expects 2D arrays)
-            X = x.reshape(-1, 1)
-            Y = y.reshape(-1, 1)
+        base_name = param.replace("params_", "")
 
-            # Kernel: RBF (smooth function) + WhiteKernel (noise)
-            kernel = RBF(length_scale=1.0) + WhiteKernel(noise_level=1.0)
+        # Collect all highlighted X,Y
+        hl_x = []
+        hl_y = []
+        for t in highlighted_points:
+            if base_name in t.params:
+                hl_x.append(t.params[base_name])
+                hl_y.append(t.value)
 
-            gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True, random_state=0)
-            gp.fit(X, Y)
-
-            # Predict on smooth range
-            x_range = np.linspace(min(x), max(x), 200).reshape(-1, 1)
-            y_mean, y_std = gp.predict(x_range, return_std=True)
-
-            # Plot GP mean
-            plt.plot(x_range, y_mean, "r-", lw=2, label="GP mean")
-
-            # Plot uncertainty band (±1 std)
-            plt.fill_between(
-                x_range.ravel(),
-                (y_mean - y_std).ravel(),
-                (y_mean + y_std).ravel(),
-                color="r",
-                alpha=0.2,
-                label="GP ±1σ"
+        # Scatter highlighted points (if exist)
+        if len(hl_x) > 0:
+            plt.scatter(
+                hl_x, hl_y,
+                color="blue",
+                s=70,
+                label="Highlighted trials"
             )
 
-        # Add vertical highlight line if needed
-        if highlighted_params is not None:
-            base_name = param.replace("params_", "")
-            if base_name in highlighted_params:
-                highlight_value = highlighted_params[base_name]
-                plt.axvline(
-                    highlight_value,
-                    color="green",
-                    linestyle="--",
-                    linewidth=2,
-                    label=f"Highlighted trial: {highlight_value}"
-                )
-
-        plt.xlabel(param)
-        plt.ylabel("Objective value")
-        plt.title(f"Effect of {param} on Objective (GP fit)")
+        plt.xlabel(base_name)
+        plt.ylabel("Objective")
+        plt.title(f"{base_name} vs Objective (highlighted trials as a group)")
         plt.legend()
         plt.grid(True)
         plt.show()
+
+
+
 
 
 #def partial dependency:
@@ -323,3 +301,45 @@ def get_pruned_trials(optuna_study):
     pruned_trials = [f'{BASE_CONFIGURATION_NAME}_{trial.number + 1}' for trial in optuna_study.trials if trial.state == optuna.trial.TrialState.PRUNED]
 
     return pruned_optuna_trials, pruned_optuna_trials_per_steps, pruned_trials
+
+
+def get_trials_with_decreasing_intermediates(study):
+
+    bad_trials = []
+
+    for trial in study.trials:
+        ivals = trial.intermediate_values
+
+        # Need at least 2 intermediate values to compare
+        if len(ivals) < 2:
+            continue
+
+        # Sort by step index (intermediate_values is a dict: step -> value)
+        steps = sorted(ivals.keys())
+        values = [ivals[s] for s in steps]
+
+        # Check if any later value is lower than any earlier value
+        ever_decreased = any(values[j] < values[i] 
+                             for i in range(len(values)) 
+                             for j in range(i + 1, len(values)))
+
+        if ever_decreased:
+            bad_trials.append(trial.number)
+
+    return bad_trials
+
+def print_intermidiate_values(trial_list, optuna_study):
+
+    import optuna
+
+    for trial_number in trial_list:
+
+        trial = optuna_study.trials[trial_number]
+
+        # Sort the intermediate values by step index
+        steps = sorted(trial.intermediate_values.keys())
+        values = [trial.intermediate_values[s] for s in steps]
+
+        # Format as: trial X: v1, v2, v3
+        values_str = ", ".join(str(v) for v in values)
+        print(f"trial {trial_number}: {values_str}")
