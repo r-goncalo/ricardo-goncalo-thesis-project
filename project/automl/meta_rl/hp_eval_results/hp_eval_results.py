@@ -62,7 +62,7 @@ def print_optuna_param_importances(optuna_study):
 
 
 
-def plot_scattered_values_for_param(optuna_study):
+def plot_scattered_values_for_param(optuna_study, trial_to_highlight=None):
 
     import optuna
     import matplotlib.pyplot as plt
@@ -79,6 +79,16 @@ def plot_scattered_values_for_param(optuna_study):
 
     # Get all hyperparameter columns
     param_cols = [c for c in df.columns if c.startswith("params_")]
+
+    # If highlight trial specified, extract it
+    highlighted_params = None
+    if trial_to_highlight is not None:
+        try:
+            trial = optuna_study.trials[trial_to_highlight]
+            highlighted_params = trial.params
+        except Exception as e:
+            print(f"Warning: Could not highlight trial {trial_to_highlight}: {e}")
+
 
     # Plot each hyperparameter vs objective with Gaussian Process regression
     for param in param_cols:
@@ -119,6 +129,19 @@ def plot_scattered_values_for_param(optuna_study):
                 alpha=0.2,
                 label="GP ±1σ"
             )
+
+        # Add vertical highlight line if needed
+        if highlighted_params is not None:
+            base_name = param.replace("params_", "")
+            if base_name in highlighted_params:
+                highlight_value = highlighted_params[base_name]
+                plt.axvline(
+                    highlight_value,
+                    color="green",
+                    linestyle="--",
+                    linewidth=2,
+                    label=f"Highlighted trial: {highlight_value}"
+                )
 
         plt.xlabel(param)
         plt.ylabel("Objective value")
@@ -163,7 +186,8 @@ def study_of_configuration(configuration_name : str, results_logger : ResultLogg
                            x_axis_to_use='total_steps',
                            y_axis_to_use='episode_reward',
                            aggregate_number=10,
-                                            study_evaluations=True):
+                                    study_evaluations=True,
+                            ):
 
 
     #results_logger.plot_graph(x_axis='episode', y_axis=[('total_reward', name)], to_show=False)
