@@ -33,15 +33,14 @@ class StatefulComponent(ArtifactComponent):
     '''
     
     @final
-    def save_state(self, save_definition=False):
+    def save_state(self, save_definition=True):
         '''
         Saves the state of this component        
         This method should not typically be called directly, as it does not save the state of child components
         '''
             
         if save_definition:
-            
-            self.save_configuration(save_exposed_values=True)
+            self.save_configuration(save_exposed_values=True, ignore_defaults=False, respect_ignore_order=False)
             
         self._save_state_internal()
 
@@ -59,7 +58,7 @@ class StatefulComponent(ArtifactComponent):
         This assumes that the input, exposed values, and so on are already correctly set in the component
         This method should not typically be called directly, but rather through the load_component_with_state_from_folder function
         '''
-        
+
         folder_path = self.get_artifact_directory()
             
         if not os.path.exists(folder_path):
@@ -98,15 +97,12 @@ class StatefulComponent(ArtifactComponent):
 def __load_state_recursive_child_components(origin_component : Component):
         
     '''Loads state of child components recursively'''
+
+    origin_component.setup_default_value_if_no_value("artifact_relative_directory")
+    origin_component.pass_input({"create_new_directory" : False})
     
     for child_component in origin_component.child_components:
-        
         __load_state_recursive_child_components(child_component)
-        
-        if isinstance(child_component, StatefulComponent): # for all the stateful components, we load their state
-            
-            child_component.load_state()
-            
     
     if isinstance(origin_component, StatefulComponent):
         origin_component.load_state()
@@ -137,7 +133,7 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
     component_to_return.write_line_to_notes(f"Component generated from folder {folder_path}", use_datetime=True)
     
     if not isinstance(component_to_return, ArtifactComponent):
-        globalWriteLine(f"{self.name}: WARNING: Tried to load state of component which is not a ArtifactComponent component")
+        globalWriteLine(f"WARNING: Tried to load state of component which is not a ArtifactComponent component: {component_to_return}")
         #raise Exception("Tried to load state of component which is not a ArtifactComponent component")
 
     else: # is instance of ArtifactComponent

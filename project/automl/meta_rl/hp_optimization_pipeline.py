@@ -89,9 +89,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _setup_hp_to_optimize_config_file(self):
         
         # make sure values for artifact directory generation are set
-        self._setup_default_value_if_no_value("artifact_relative_directory")
-        self._setup_default_value_if_no_value("base_directory")
-        self._setup_default_value_if_no_value("create_new_directory")
+        self.setup_default_value_if_no_value("artifact_relative_directory")
+        self.setup_default_value_if_no_value("base_directory")
+        self.setup_default_value_if_no_value("create_new_directory")
         
         
         self._initialize_config_dict() # initializes self.config_dict from the input

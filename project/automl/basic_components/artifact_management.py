@@ -26,6 +26,18 @@ def on_artifact_directory_change(self : Component):
         #    self.get_artifact_directory()
         
         
+def define_base_directory_with_parent(self : Component):
+
+        current_parent_component = self.parent_component
+        
+        while current_parent_component != None: #looks for a parent component which is an Artifact Component and sets its directory based on it
+            
+            if isinstance(current_parent_component, ArtifactComponent):
+                return current_parent_component
+            
+            current_parent_component = current_parent_component.parent_component
+
+        return 0
 
 
 class ArtifactComponent(Component):
@@ -48,7 +60,7 @@ class ArtifactComponent(Component):
                         "base_directory" : InputSignature(
                             priority=2,
                             ignore_at_serialization=True,
-                            default_value='',
+                            generator=define_base_directory_with_parent,
                             on_pass=on_artifact_directory_change,
                             description='This path is used as basis to calculate the artifact directory of a component'
                         )
@@ -59,15 +71,11 @@ class ArtifactComponent(Component):
         '''Artifact Components try to get the directory of a parent component to use as a base directory'''
         super().on_parent_component_defined()
                 
-        current_parent_component = self.parent_component
+        new_base_directory = define_base_directory_with_parent(self)
+
+        if new_base_directory != 0:
+            self.pass_input({"base_directory" : new_base_directory}) 
         
-        while current_parent_component != None: #looks for a parent component which is an Artifact Component and sets its directory based on it
-            
-            if isinstance(current_parent_component, ArtifactComponent):
-                self.pass_input({"base_directory" : current_parent_component}) 
-                break
-            
-            current_parent_component = current_parent_component.parent_component
             
     
     def __generate_artifact_directory(self):
@@ -81,11 +89,18 @@ class ArtifactComponent(Component):
         
         self.base_directory = self.get_input_value("base_directory")
         
-        if isinstance(self.base_directory, Component):
+
+        
+        if self.base_directory == 0:
+            self.base_directory = ''
+
+        elif isinstance(self.base_directory, Component):
             if not isinstance(self.base_directory, ArtifactComponent):
                 raise Exception(f"Passed component as base directory but is not artifact component, as it is of type: {type(self.base_directory)}")
             
             self.base_directory = self.base_directory.get_artifact_directory()
+
+
         
         self.create_new_directory = self.get_input_value("create_new_directory")
         

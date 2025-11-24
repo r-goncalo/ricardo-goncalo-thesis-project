@@ -211,8 +211,11 @@ def json_string_of_component_dict(component_dict : dict, ignore_defaults = True,
 
 
 # TODO: maybe it should be source_component.get_source_component()?
-def json_string_of_component(component, ignore_defaults = False, save_exposed_values = False, respect_ignore_order = True):
-    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values, source_component=component, respect_ignore_order=respect_ignore_order)
+def json_string_of_component(component, ignore_defaults = False, save_exposed_values = False, respect_ignore_order = True, source_component=None):
+
+    source_component = component if source_component is None else source_component
+
+    return json.dumps(component, cls=ComponentEncoder, indent=4, ignore_defaults=ignore_defaults, save_exposed_values = save_exposed_values, source_component=source_component, respect_ignore_order=respect_ignore_order)
 
 # DECODING --------------------------------------------------------------------------
 

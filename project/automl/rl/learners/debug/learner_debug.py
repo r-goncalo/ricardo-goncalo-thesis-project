@@ -4,6 +4,8 @@ from automl.rl.learners.learner_component import LearnerSchema
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.component import requires_input_proccess
 from automl.rl.learners.q_learner import DeepQLearnerSchema
+from automl.ml.models.torch_model_components import TorchModelComponent
+from automl.ml.models.torch_model_utils import model_parameter_distance
 import torch
 
 class LearnerDebug(LearnerSchema, ComponentWithLogging):
@@ -16,7 +18,7 @@ class LearnerDebug(LearnerSchema, ComponentWithLogging):
 
         self.__agent_model = self.agent.policy.model
                 
-        self.__temporary_model = self.__agent_model.clone()
+        self.__temporary_model : TorchModelComponent = self.__agent_model.clone()        
     
     @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
@@ -57,6 +59,8 @@ class DQNLearnerDebug(LearnerDebug, DeepQLearnerSchema):
         self.__agent_model = self.agent.policy.model
                 
         self.__temporary_target_model = self.target_net.clone()
+
+        self.__temporary_target_model_v2 = self.target_net.clone()
     
     @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
@@ -84,3 +88,19 @@ class DQNLearnerDebug(LearnerDebug, DeepQLearnerSchema):
                 new_model_precitions_val = new_model_precitions[i].detach().cpu().numpy()
 
                 self.lg.writeLine(f"{i}: {action_val}, {reward_val}, {done_val}, {old_model_prediction_val}, {new_model_precitions_val}", file="target_batch_comparison.txt", use_time_stamp=False)
+
+
+    @requires_input_proccess            
+    def update_target_model(self):
+
+        self.lg.writeLine(f"Updating target model\n", file="target_update.txt")
+
+        self.__temporary_target_model_v2.clone_other_model_into_this(self.target_net)
+
+        super().update_target_model()
+
+        l2_distance, avg_distance, cosine_sim = model_parameter_distance(self.__temporary_target_model_v2, self.target_net)
+
+        self.lg.writeLine(f"Difference between old and new target model", use_time_stamp=False, file="target_update.txt")
+        self.lg.writeLine(f"    l2_distance: {l2_distance}\n    avg_distance: {avg_distance}\n    cosine_sime: {cosine_sim}\n\n", file="target_update.txt", use_time_stamp=False)
+    

@@ -117,7 +117,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                    
         
                 
-    def _setup_default_value_if_no_value(self, key):
+    def setup_default_value_if_no_value(self, key):
 
         '''
         Internally sets up the default value for an input if it has no default value
@@ -496,7 +496,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                     self.input[input_key] = self.get_attr_from_parent(input_key)
                     
                     if self.input[input_key] == None:
-                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Getting attribute from parent resulted in a None value")
+                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Getting attribute '{input_key}' from parent resulted in a None value")
                     
                                                                    
                 elif not parameter_signature.default_value == None:
