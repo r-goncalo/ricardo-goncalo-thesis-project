@@ -1,6 +1,6 @@
 
 import os
-from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
+from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 from automl.utils.json_utils.json_component_utils import gen_component_from_path
 from automl.loggers.logger_component import DEBUG_LEVEL, change_default_logger_level
 from automl.basic_components.state_management import save_state

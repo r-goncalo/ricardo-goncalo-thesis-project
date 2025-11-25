@@ -1,7 +1,7 @@
-from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.base_configurations.base_configurations import load_configuration_dict
 import optuna
-from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline
+from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 
 
 RL_PIPELINE = ([])

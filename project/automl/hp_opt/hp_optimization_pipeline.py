@@ -16,7 +16,7 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 import optuna
 
-from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 from automl.basic_components.seeded_component import SeededComponent
@@ -522,7 +522,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 component_to_test_path = component_to_test.get_artifact_directory()
 
 
-                if step == 0: # if this is the first step, we store the first configuration generated for the component
+                if step == 0 and isinstance(component_to_test, ComponentWithLogging): # if this is the first step, we store the first configuration generated for the component
                     component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{0}.json")
 
 
@@ -546,7 +546,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 self.lg.writeLine(f"Ended step {step + 1}") 
 
-                component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{step + 1}.json")
+                if isinstance(component_to_test, ComponentWithLogging):
+                    component_to_test.write_configuration_to_relative_file(f"_configurations\\configuration_{step + 1}.json")
 
                 if trial.should_prune(): # we verify this after reporting the result
                     self.lg.writeLine("Prunning current experiment due to pruner...")

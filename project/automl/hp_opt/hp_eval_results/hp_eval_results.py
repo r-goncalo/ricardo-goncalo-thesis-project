@@ -2,7 +2,7 @@
 
 import os
 from automl.loggers.result_logger import ResultLogger, RESULTS_FILENAME
-from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline, OPTUNA_STUDY_PATH, BASE_CONFIGURATION_NAME
+from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline, OPTUNA_STUDY_PATH, BASE_CONFIGURATION_NAME
 from automl.utils.optuna_utils import load_study_from_database
 from optuna.importance import get_param_importances
 import optuna

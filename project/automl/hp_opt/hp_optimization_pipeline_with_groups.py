@@ -4,7 +4,7 @@ from automl.basic_components.artifact_management import ArtifactComponent
 from automl.basic_components.exec_component import ExecComponent
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
-from automl.meta_rl.hp_optimization_pipeline import HyperparameterOptimizationPipeline, Component_to_opt_type
+from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline, Component_to_opt_type
 from automl.rl.rl_pipeline import RLPipelineComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
@@ -13,7 +13,7 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 import optuna
 
-from automl.meta_rl.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
 
 from automl.utils.random_utils import generate_and_setup_a_seed
 

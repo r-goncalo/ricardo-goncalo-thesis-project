@@ -5,7 +5,7 @@ from automl.loggers.logger_component import ComponentWithLogging
 import torch
 import torch.nn as nn
 
-from automl.component import InputSignature, requires_input_proccess
+from automl.component import Component, InputSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
 
@@ -211,7 +211,8 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     # UTIL -----------------------------------------------------
     
     @requires_input_proccess
-    def clone(self, save_in_parent=True, input_for_clone=None):
+    def clone(self, save_in_parent=True, input_for_clone=None) -> Component:
+
         toReturn : TorchModelComponent = super().clone(save_in_parent, input_for_clone)
         toReturn.proccess_input_if_not_proccesd()
         toReturn.model.load_state_dict(self.model.state_dict())
