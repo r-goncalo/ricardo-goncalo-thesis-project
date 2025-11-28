@@ -55,17 +55,15 @@ class DQNLearnerDebug(LearnerDebug, DeepQLearnerSchema):
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
-
-        self.__agent_model = self.agent.policy.model
                 
-        self.__temporary_target_model = self.target_net.clone()
+        #self.__temporary_target_model = self.target_net.clone()
 
-        self.__temporary_target_model_v2 = self.target_net.clone()
+        #self.__temporary_target_model_v2 = self.target_net.clone()
     
     @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
 
-        self.__temporary_target_model.clone_other_model_into_this(self.target_net)
+        #self.__temporary_target_model.clone_other_model_into_this(self.target_net)
         
         state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self._interpret_trajectory(trajectory)
 
@@ -76,7 +74,7 @@ class DQNLearnerDebug(LearnerDebug, DeepQLearnerSchema):
             self.lg.writeLine("\naction, reward, done, old_target_predictions, new_model_predictions, new_target_precitions\n", file="target_batch_comparison.txt", use_time_stamp=False)
 
             with torch.no_grad():
-                old_model_predictions = self.__temporary_target_model.predict(state_batch)
+                #old_model_predictions = self.__temporary_target_model.predict(state_batch)
                 new_model_precitions = self.target_net.predict(state_batch)
 
             for i in range(len(state_batch)):
@@ -84,23 +82,24 @@ class DQNLearnerDebug(LearnerDebug, DeepQLearnerSchema):
                 action_val = action_batch[i].detach().cpu().numpy()
                 reward_val = reward_batch[i].detach().cpu().numpy()
                 done_val = done_batch[i].detach().cpu().numpy()
-                old_model_prediction_val = old_model_predictions[i].detach().cpu().numpy()
+                #old_model_prediction_val = old_model_predictions[i].detach().cpu().numpy()
                 new_model_precitions_val = new_model_precitions[i].detach().cpu().numpy()
 
-                self.lg.writeLine(f"{i}: {action_val}, {reward_val}, {done_val}, {old_model_prediction_val}, {new_model_precitions_val}", file="target_batch_comparison.txt", use_time_stamp=False)
+                #self.lg.writeLine(f"{i}: {action_val}, {reward_val}, {done_val}, {old_model_prediction_val}, {new_model_precitions_val}", file="target_batch_comparison.txt", use_time_stamp=False)
+                self.lg.writeLine(f"{i}: {action_val}, {reward_val}, {done_val}, {new_model_precitions_val}", file="target_batch_comparison.txt", use_time_stamp=False)
 
 
     @requires_input_proccess            
     def update_target_model(self):
 
-        self.lg.writeLine(f"Updating target model\n", file="target_update.txt")
-
-        self.__temporary_target_model_v2.clone_other_model_into_this(self.target_net)
+        #self.lg.writeLine(f"Updating target model\n", file="target_update.txt")
+#
+        #self.__temporary_target_model_v2.clone_other_model_into_this(self.target_net)
 
         super().update_target_model()
 
-        l2_distance, avg_distance, cosine_sim = model_parameter_distance(self.__temporary_target_model_v2, self.target_net)
-
-        self.lg.writeLine(f"Difference between old and new target model", use_time_stamp=False, file="target_update.txt")
-        self.lg.writeLine(f"    l2_distance: {l2_distance}\n    avg_distance: {avg_distance}\n    cosine_sime: {cosine_sim}\n\n", file="target_update.txt", use_time_stamp=False)
+        #l2_distance, avg_distance, cosine_sim = model_parameter_distance(self.__temporary_target_model_v2, self.target_net)
+#
+        #self.lg.writeLine(f"Difference between old and new target model", use_time_stamp=False, file="target_update.txt")
+        #self.lg.writeLine(f"    l2_distance: {l2_distance}\n    avg_distance: {avg_distance}\n    cosine_sime: {cosine_sim}\n\n", file="target_update.txt", use_time_stamp=False)
     

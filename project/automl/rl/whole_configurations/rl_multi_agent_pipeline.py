@@ -12,7 +12,8 @@ from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.parallel_petting_zoo_env import PettingZooEnvironmentWrapperParallel
 from automl.rl.trainers.rl_trainer.parallel_rl_trainer import RLTrainerComponentParallel
-from automl.fundamentals.translator.image_state_translator import ImageReverter
+from automl.fundamentals.translator.image_state_translator import ImageReverterToSingleChannel, ImageNormalizer
+from automl.fundamentals.translator.translator import TranslatorSequence
 
 
 def config_dict():
@@ -29,7 +30,12 @@ def config_dict():
         "agents_input": {
             "state_memory_size" : 2,
 
-            "state_translator" : (ImageReverter, {}),
+            "state_translator" : (TranslatorSequence, {
+                "translators_sequence" : [
+                    (ImageReverterToSingleChannel, {}),
+                    (ImageNormalizer, {})
+                ]
+            }),
 
             "policy" : ( QPolicy,
                         {
@@ -48,10 +54,13 @@ def config_dict():
             
             {
             "num_episodes" : 100,
-            "optimization_interval": 300,
+            
             "default_trainer_class" : AgentTrainerDQN,
             "agents_trainers_input" : { #for each agent trainer
                 
+                "optimization_interval": 50,
+                "times_to_learn" : 2,
+
                 "learner" : (DeepQLearnerSchema, {
                                "target_update_rate" : 0.05,
                                "optimizer" :(
