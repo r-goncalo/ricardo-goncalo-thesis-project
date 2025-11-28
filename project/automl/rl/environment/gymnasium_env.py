@@ -2,7 +2,7 @@ import itertools
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 
 from automl.rl.environment.environment_sampler import EnvironmentSampler
@@ -12,7 +12,7 @@ import gymnasium as gym
 import torch
 
 
-class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, StatefulComponent):
+class GymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, StatefulComponent):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
         self.last_observation = None
         self.last_reward = 0
         self.last_done = False
+        self.last_truncation = False
         self.last_info = {}
         
         self.reset_info = {}
@@ -116,7 +117,7 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
     
 
     def last(self):
-        return self.state_translator(self.last_observation, self.device), self.last_reward, self.last_done, self.last_info
+        return self.state_translator(self.last_observation, self.device), self.last_reward, self.last_done, self.last_truncation, self.last_info
 
 
     def agents(self):
@@ -133,15 +134,14 @@ class GymnasiumEnvironmentWrapper(EnvironmentComponent, SeededComponent, Statefu
             action = action.item()
 
         obs, reward, terminated, truncated, info = self.env.step(action)       
-        
-        done = terminated or truncated
-        
+                
         self.last_observation = obs
         self.last_reward = reward
-        self.last_done = done
+        self.last_done = terminated
+        self.last_truncation = truncated
         self.last_info = info
                 
-        return self.state_translator(obs, self.device), reward, done, info
+        return self.state_translator(obs, self.device), reward, terminated, truncated, info
 
 
     def render(self):
@@ -180,5 +180,5 @@ class GymnasiumEnvironmentWrapperSampler(EnvironmentSampler):
     }
 
     @requires_input_proccess
-    def sample(self) -> EnvironmentComponent:
+    def sample(self) -> AECEnvironmentComponent:
         return GymnasiumEnvironmentWrapper(self.environment_input)

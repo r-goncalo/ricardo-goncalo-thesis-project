@@ -27,7 +27,7 @@ class AgentTrainerDebug(AgentTrainer):
     
         def do_training_step(self, i_episode, env):
         
-            reward, done = super().do_training_step(i_episode, env)
+            reward, done, truncated = super().do_training_step(i_episode, env)
     
             self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt", use_time_stamp=False)
     

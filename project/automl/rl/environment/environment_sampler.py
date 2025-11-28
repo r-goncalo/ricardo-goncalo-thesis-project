@@ -4,7 +4,7 @@ from automl.basic_components.sampler import Sampler
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 
 from automl.utils.shapes_util import torch_state_shape_from_space
@@ -26,7 +26,7 @@ def sampled_environment_fun(func : FunctionType):
 
     return wrapper
 
-class EnvironmentSampler(Sampler, EnvironmentComponent):
+class EnvironmentSampler(Sampler, AECEnvironmentComponent):
     
     '''
     A component which samples environments and also works as a wrapper for them
@@ -52,7 +52,7 @@ class EnvironmentSampler(Sampler, EnvironmentComponent):
         self.environment_input = self.get_input_value("environment_input")
                 
         
-    def sample(self) -> EnvironmentComponent:
+    def sample(self) -> AECEnvironmentComponent:
         raise NotImplementedError()
         
         
@@ -130,7 +130,7 @@ class EnvironmentCycler(EnvironmentSampler):
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
 
-        self.environments : EnvironmentComponent = self.get_input_value("environments") 
+        self.environments : AECEnvironmentComponent = self.get_input_value("environments") 
         self.generate_name = self.get_input_value("generate_name")
         self.next_index = 0
 
@@ -144,7 +144,7 @@ class EnvironmentCycler(EnvironmentSampler):
 
     
     @requires_input_proccess
-    def sample(self) -> EnvironmentComponent:
+    def sample(self) -> AECEnvironmentComponent:
 
         to_return = self.environments[self.next_index]
         self.next_index = ( self.next_index + 1 ) % len(self.environments)

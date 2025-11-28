@@ -2,13 +2,13 @@
 
 
 from automl.rl.agent.agent_components import AgentSchema
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 from automl.utils.json_utils.json_component_utils import gen_component_from
 
 # TODO: Use this in RL Pipeline
 
 
-def initialize_agents_components(agents, env : EnvironmentComponent, agents_input={}, caller_component=None) -> dict[str, AgentSchema]:
+def initialize_agents_components(agents, env : AECEnvironmentComponent, agents_input={}, caller_component=None) -> dict[str, AgentSchema]:
         
         '''Initialize the agents given the specifications'''
 
@@ -52,7 +52,7 @@ def configure_agent_component( agent_name, agent : AgentSchema, env, agents_inpu
         agent.pass_input(agents_input)
             
             
-def setup_agent_state_action_shape( agent_name, agent : AgentSchema, env : EnvironmentComponent):       
+def setup_agent_state_action_shape( agent_name, agent : AgentSchema, env : AECEnvironmentComponent):       
         
         '''Setups the agent state space and action shape'''
          

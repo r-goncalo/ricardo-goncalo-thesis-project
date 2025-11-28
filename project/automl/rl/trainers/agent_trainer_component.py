@@ -12,7 +12,7 @@ from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema
@@ -51,7 +51,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                        
                        "learner" : ComponentInputSignature(
                             default_component_definition=(DeepQLearnerSchema, {})
-                        )
+                        ),
                        
                        }
     
@@ -171,11 +171,11 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
     
     @requires_input_proccess
-    def setup_episode(self, env : EnvironmentComponent):
+    def setup_episode(self, env : AECEnvironmentComponent):
         
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
-                
+        
         self.agent.reset_agent_in_environment(env.observe(self.agent.name))
         
             
@@ -205,7 +205,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             
         
     @requires_input_proccess
-    def do_training_step(self, i_episode, env : EnvironmentComponent):
+    def do_training_step(self, i_episode, env : AECEnvironmentComponent):
         
             '''
             Does a step, in which the agent acts and observers the transition
@@ -215,12 +215,19 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             observation = env.observe(self.name)
             
             with torch.no_grad():                
-                action = self._select_action(observation) # decides the next action to take (can be random)
+                action = self.select_action(observation) # decides the next action to take (can be random)
                                                                                          
             env.step(action.item()) #makes the game proccess the action that was taken
                 
-            observation, reward, done, info = env.last()
+            observation, reward, done, truncated, info = env.last()
                         
+            self.do_after_training_step(i_episode, action, observation, reward, done, truncated)
+                
+            return reward, done, truncated
+             
+                            
+    def do_after_training_step(self, i_episode, action, observation, reward, done, truncated):
+
             self.values["episode_score"] = self.values["episode_score"] + reward
                             
             self._observe_transiction_to(observation, action, reward, done)
@@ -230,13 +237,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             
             self._learn_if_needed() # uses the learning strategy to learn if it verifies the conditions to do so
                 
-            return reward, done
-         
-                            
-        #if we reached a point where it is supposed to save
-        #if(i_episode > 0 and i_episode < self.num_episodes - 1 and i_episode % self.save_interval == 0):
-        #    self.lg.writeLine("Doing intermedian saving of results during training...", file=self.TRAIN_LOG)
-        #    self.saveData()
         
 
     def _observe_transiction_to(self, new_state, action, reward):
@@ -247,16 +247,21 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
         
         
-    def observe_new_state(self, env : EnvironmentComponent):
+    def observe_new_state(self, env : AECEnvironmentComponent):
         '''Makes the agent observe a new state, remembering it in case it needs that information in future computations'''
         self.agent.update_state_memory(env.observe(self.name))
         
 
-    def _select_action(self, state):
+    def select_action(self, state):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
 
         return self.agent.policy_predict(state)
+    
+
+    def select_action_with_memory(self):
+        
+        return self.agent.policy_predict_with_memory()
 
 
 
@@ -282,7 +287,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             batch = self.memory.sample(self.BATCH_SIZE)
 
         else:
-            batch = self.memory.get_all()
-        
+            batch = self.memory.get_all()        
                 
         self.learner.learn(batch, self.discount_factor)

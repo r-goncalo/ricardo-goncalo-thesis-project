@@ -40,3 +40,16 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
             self.lg.writeLine(f"{str_pushing}", file="on_clear_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
 
         super().clear()
+
+    @requires_input_proccess
+    def get_all(self):
+        '''Returns the total memory'''
+
+        batch_data = {
+            field_name: self.transitions[field_name]
+            for field_name in self.field_names
+        }
+        
+        batch = self.Transition(**batch_data)
+
+        return batch

@@ -12,10 +12,15 @@ from automl.loggers.logger_component import ComponentWithLogging
 # ACTUAL AGENT COMPONENT ---------------------------
 
 from automl.component import InputSignature, requires_input_proccess
+from automl.fundamentals.translator.translator import Translator
 import torch
 from automl.utils.class_util import get_class_from
 
 from automl.utils.shapes_util import torch_zeros_for_space
+
+
+def no_proccess_state_for_agent(state):
+    return state
 
 
 class AgentSchema(ComponentWithLogging, StatefulComponent):
@@ -33,6 +38,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        "policy" : ComponentInputSignature(
                             priority=100, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
                        ),
+                    
+                    "state_translator" : ComponentInputSignature(mandatory=False)
+
                        
                     }
 
@@ -48,11 +56,33 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.model_input_shape = self.state_shape #shape of the state as it is processed by the model of the policy
         
         self.model_output_shape = self.get_input_value("action_shape") #shape of the action
-    
+
+
+        self.initialize_state_translator()
         self.initialize_state_memory()
         self.initialize_policy()
         self.initialize_necessary_cache()
-        
+
+    
+    def initialize_state_translator(self):
+
+        self.state_translator : Translator = self.get_input_value("state_translator")
+
+        if self.state_translator is not None:
+
+            self.state_translator.proccess_input_if_not_proccesd()
+
+            self.lg.writeLine(f"Agent has state translator: {self.state_translator}")
+            self.proccess_env_state = self.state_translator.translate_state
+            
+            old_model_input_shape = self.model_input_shape
+            self.model_input_shape = self.state_translator.get_shape(self.model_input_shape)
+
+            self.lg.writeLine(f"Model input shape was translated from {old_model_input_shape} to {self.model_input_shape}")
+
+
+        else:
+            self.proccess_env_state = no_proccess_state_for_agent
         
 
     def initialize_state_memory(self):
@@ -87,8 +117,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
     
     
-        
-
+    
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
     
@@ -100,14 +129,21 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         '''makes a prediction based on the new state for a new action, using the current memory'''
         
-        return self.policy.predict(state)
+        return self.policy.predict(self.proccess_env_state(state))
+    
+    @requires_input_proccess
+    def policy_predict_with_memory(self):
+        
+        '''makes a prediction based on the new state for a new action, using the current memory'''
+        
+        return self.policy.predict(self.state_memory)
     
     @requires_input_proccess
     def call_policy_method(self, policy_method, state):
         
         '''calls the method of the policy with this Agent's state management strategy'''
         
-        return policy_method(state)
+        return policy_method(self.proccess_env_state(state))
                     
     
     @requires_input_proccess
@@ -120,12 +156,12 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     @requires_input_proccess
     def reset_agent_in_environment(self, initial_state): # resets anything the agent has saved regarding the environment
-        self.update_state_memory(initial_state)
+        self.update_state_memory(self.proccess_env_state(initial_state))
     
 
     @requires_input_proccess    
     def update_state_memory(self, new_state): #update memory shared accross agents
-        self.state_memory.copy_(new_state)
+        self.state_memory.copy_(self.proccess_env_state(new_state))
         
 
     @requires_input_proccess

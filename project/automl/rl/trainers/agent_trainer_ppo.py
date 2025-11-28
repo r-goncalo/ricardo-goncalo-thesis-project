@@ -12,7 +12,7 @@ from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
@@ -94,7 +94,7 @@ class AgentTrainerPPO(AgentTrainer):
         self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "log_prob" : self.last_log_prob, "done" : done})
                
         
-    def _select_action(self, state):
+    def select_action(self, state):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
                 

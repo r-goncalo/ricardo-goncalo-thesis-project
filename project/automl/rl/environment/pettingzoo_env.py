@@ -2,7 +2,7 @@
 
 from automl.basic_components.seeded_component import SeededComponent
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 from automl.rl.environment.gymnasium_env import GymnasiumEnvironmentWrapper
 import torch
@@ -85,7 +85,7 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
         observation, reward, termination, truncation, info = self.env.last()
         
         #returns state, reward, done, info
-        return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, truncation or termination, info
+        return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, termination, truncation, info
     
     def agent_iter(self):
         return self.env.agent_iter()

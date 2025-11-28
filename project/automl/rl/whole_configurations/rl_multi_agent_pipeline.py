@@ -10,6 +10,9 @@ from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
+from automl.rl.environment.parallel_petting_zoo_env import PettingZooEnvironmentWrapperParallel
+from automl.rl.trainers.rl_trainer.parallel_rl_trainer import RLTrainerComponentParallel
+from automl.fundamentals.translator.image_state_translator import ImageReverter
 
 
 def config_dict():
@@ -21,10 +24,12 @@ def config_dict():
     "name": "RLPipelineComponent",
     "input": {
         "device" : "cuda",
-        "environment": (PettingZooEnvironmentWrapper, {
+        "environment": (PettingZooEnvironmentWrapperParallel, {
                             "environment": "cooperative_pong"}),
         "agents_input": {
             "state_memory_size" : 2,
+
+            "state_translator" : (ImageReverter, {}),
 
             "policy" : ( QPolicy,
                         {
@@ -39,7 +44,7 @@ def config_dict():
                 )
         },
         
-        "rl_trainer" : (RLTrainerComponent,
+        "rl_trainer" : (RLTrainerComponentParallel,
             
             {
             "num_episodes" : 100,
@@ -57,8 +62,8 @@ def config_dict():
                 )
                 }),
             
-                "memory" : (TorchDiskMemoryComponent, {
-                    "capacity" : 500
+                "memory" : (TorchMemoryComponent, {
+                    "capacity" : 100
                 }),
                 
                 "exploration_strategy" : (EpsilonGreedyStrategy,

@@ -6,7 +6,7 @@ from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
@@ -63,7 +63,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         self._initialize_limit_numbers()
         
-        self.env : EnvironmentComponent = self.get_input_value("environment")
+        self.env : AECEnvironmentComponent = self.get_input_value("environment")
         
         self.setup_agents()
 
@@ -80,6 +80,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
         self._fraction_training_to_do = self.get_input_value("fraction_training_to_do")
 
+
     
     def setup_agents(self):
         
@@ -87,8 +88,20 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         
         self.agents_in_training : Dict[str, AgentTrainer] = {}
         
-        for key, agent_in_input in agents_in_input.items():
+        self.agents_names_in_environment = self.env.agents()
+        agents_names_in_environment = [*self.agents_names_in_environment]
+        passed_agents_in_input = agents_in_input.keys()
+
+        for key in passed_agents_in_input:
+
+            if key in agents_names_in_environment:
+                agents_names_in_environment.pop(agents_names_in_environment.index(key))
+
+            else:
+                raise Exception(f"Passed name for agent not in environment: {key}")
             
+            agent_in_input = agents_in_input[key]
+
             agent_trainer_input = {**self.agents_input}
                 
             if isinstance(agent_in_input, AgentSchema):
@@ -299,7 +312,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
 
         agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
             
-        reward, done = agent_in_training.do_training_step(i_episode, self.env)
+        reward, done, truncated = agent_in_training.do_training_step(i_episode, self.env)
                         
         for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
             if other_agent_name != agent_name:
@@ -311,7 +324,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             
         self.values["episode_score"] = self.values["episode_score"] + reward
 
-        return done
+        return done, truncated
             
 
     
@@ -321,9 +334,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
                 
         for agent_name in self.env.agent_iter(): #iterates infinitely over the agents that should be acting in the environment
 
-            done = self.run_episode_step_for_agent_name(i_episode, agent_name)
+            done, truncated = self.run_episode_step_for_agent_name(i_episode, agent_name)
                       
-            if done or self._check_if_to_end_episode():
+            if done or truncated or self._check_if_to_end_episode():
                 break                      
 
 

@@ -104,8 +104,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         batch_data = {
             field_name: self.transitions[field_name][indices]
             for field_name in self.field_names
-        }
-        
+        }        
 
         batch = self.Transition(**batch_data)
         
@@ -116,7 +115,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         '''Returns the total memory'''
 
         batch_data = {
-            field_name: self.transitions[field_name]
+            field_name: self.transitions[field_name][:self.total_size]
             for field_name in self.field_names
         }
         

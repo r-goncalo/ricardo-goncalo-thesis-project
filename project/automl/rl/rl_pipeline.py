@@ -10,7 +10,7 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.utils.files_utils import open_or_create_folder
 from automl.basic_components.state_management import StatefulComponent
@@ -33,7 +33,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
                         "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
                                                                                
-                       "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {}), possible_types=[EnvironmentComponent]),
+                       "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {}), possible_types=[AECEnvironmentComponent]),
                        
                        "agents" : InputSignature(default_value={}),
                        "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
@@ -74,7 +74,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         
     def setup_environment(self):
-        self.env : EnvironmentComponent = self.get_input_value("environment")
+        self.env : AECEnvironmentComponent = self.get_input_value("environment")
                 
         self.env.pass_input({"device" : self.device})
         
@@ -82,6 +82,9 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         self.lg.writeLine(f"Setting up RL pipeline with environment: {self.env.get_env_name()}")
 
+        self.agents_names_in_environment = self.env.agents()
+
+        self.lg.writeLine(f"Agents in environment: {self.agents_names_in_environment}")
     
     
     def rl_setup_evaluator(self):
@@ -177,6 +180,21 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         agent.pass_input({"state_shape" : state_shape })
         agent.pass_input({"action_shape" : action_shape })
             
+
+    def __create_agent_name(self, base_name : str, created_names : list):
+
+        if not base_name in created_names:
+            return base_name
+        
+        i = 0
+        name_to_try = base_name
+
+        while True:
+            name_to_try = f"{base_name}_{i}"
+            if not name_to_try in created_names:
+                return name_to_try
+            i += 1
+
             
             
     def create_agents(self):
@@ -188,20 +206,20 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         agents = {}
 
         agentId = 1        
-        for agent in self.env.agents(): #worth remembering that the order of the initialization of the agents is defined by the environment
+        for agent_name in self.agents_names_in_environment: #worth remembering that the order of the initialization of the agents is defined by the environment
 
             agent_input = {} #the input of the agent, with base values defined by "agents_input"
 
-            agent_name = "agent_" + str(agentId)
+            agent_name = self.__create_agent_name(agent_name, agents.keys())
             agent_input["name"] = agent_name
             
             agent_input["base_directory"] = os.path.join(self.get_artifact_directory(), "agents" )
             
             agent_class = get_sub_class_with_correct_parameter_signature(AgentSchema, self.agents_input) #gets the agent class with the correct parameter signature
 
-            agents[agent] = self.initialize_child_component(agent_class, input=agent_input)
+            agents[agent_name] = self.initialize_child_component(agent_class, input=agent_input)
 
-            self.lg.writeLine("Created agent in training " + agent_name + " with base directory " + agents[agent].get_base_directory())
+            self.lg.writeLine("Created agent in training " + agent_name + " with base directory " + agents[agent_name].get_base_directory())
 
             agentId += 1
 

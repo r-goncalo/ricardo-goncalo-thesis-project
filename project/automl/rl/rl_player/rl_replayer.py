@@ -11,7 +11,7 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.utils.files_utils import open_or_create_folder
 from automl.basic_components.state_management import StatefulComponent
@@ -50,7 +50,7 @@ class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Stat
 
 
     def setup_environment(self):
-        self.env : EnvironmentComponent = self.get_input_value("environment")
+        self.env : AECEnvironmentComponent = self.get_input_value("environment")
 
     def setup_memories_of_agents(self):        
         self.memory_dict : dict[MemoryComponent] = self.get_input_value("memory_list")

@@ -5,7 +5,7 @@ from automl.component import InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
-from automl.rl.environment.environment_components import EnvironmentComponent
+from automl.rl.environment.environment_components import AECEnvironmentComponent
 from automl.basic_components.state_management import StatefulComponent
 
 from automl.rl.rl_setup_util import initialize_agents_components
@@ -46,7 +46,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         super()._proccess_input_internal()
 
-        self.env : EnvironmentComponent = self.get_input_value("environment")
+        self.env : AECEnvironmentComponent = self.get_input_value("environment")
         self.num_episodes = self.get_input_value("num_episodes")
         
         self.limit_steps = self.get_input_value("limit_steps")
@@ -99,17 +99,17 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         for agent_name in self.env.agent_iter():
             
-            reward, done = self.__do_agent_step(agent_name)
+            reward, done, truncated = self.__do_agent_step(agent_name)
             
             for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
                     self.agents[other_agent_name].observe_new_state(self.env)
                             
-            if done:
+            if done or truncated:
                 break
-            if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
-                self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
-                break
+            #if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
+            #    self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
+            #    break
             
             
     def __do_agent_step(self, agent_name):
@@ -123,14 +123,14 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                 
         self.env.step(action) #makes the game proccess the action that was taken
                 
-        observation, reward, done, info = self.env.last()
+        observation, reward, done, truncated, info = self.env.last()
                         
         self.values["episode_score"] = self.values["episode_score"] + reward
                       
         self.values["episode_steps"] = self.values["episode_steps"] + 1
         self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step
         
-        return reward, done
+        return reward, done, truncated
     
     
     @requires_input_proccess
