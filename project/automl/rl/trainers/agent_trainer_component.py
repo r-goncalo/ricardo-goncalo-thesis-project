@@ -12,7 +12,7 @@ from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import AECEnvironmentComponent
+from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema

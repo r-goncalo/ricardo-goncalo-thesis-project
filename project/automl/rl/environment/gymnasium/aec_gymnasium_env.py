@@ -2,17 +2,17 @@ import itertools
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.rl.environment.environment_components import AECEnvironmentComponent
+from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 
-from automl.rl.environment.environment_sampler import EnvironmentSampler
+from automl.rl.environment.environment_components import EnvironmentSampler
 from automl.utils.shapes_util import torch_state_shape_from_space
 
 import gymnasium as gym
 import torch
 
 
-class GymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, StatefulComponent):
+class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, StatefulComponent):
     
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -181,4 +181,4 @@ class GymnasiumEnvironmentWrapperSampler(EnvironmentSampler):
 
     @requires_input_proccess
     def sample(self) -> AECEnvironmentComponent:
-        return GymnasiumEnvironmentWrapper(self.environment_input)
+        return AECGymnasiumEnvironmentWrapper(self.environment_input)

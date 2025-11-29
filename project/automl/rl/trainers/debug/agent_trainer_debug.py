@@ -31,7 +31,7 @@ class AgentTrainerDebug(AgentTrainer):
     
             self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt", use_time_stamp=False)
     
-            return reward, done
+            return reward, done, truncated
     
         def _optimize_policy_model(self):
         

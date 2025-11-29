@@ -2,16 +2,16 @@
 
 from automl.basic_components.seeded_component import SeededComponent
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.rl.environment.environment_components import AECEnvironmentComponent
+from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
-from automl.rl.environment.gymnasium_env import GymnasiumEnvironmentWrapper
+from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
 import torch
 
 from pettingzoo import ParallelEnv
 
 
 # TODO: This should probably extend Gymnasium
-class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
+class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
     
         
     def observe(self, *args):
-        return PettingZooEnvironmentWrapper.state_translator(self.env.observe(*args), self.device)
+        return AECPettingZooEnvironmentWrapper.state_translator(self.env.observe(*args), self.device)
     
     
     @requires_input_proccess
@@ -85,7 +85,7 @@ class PettingZooEnvironmentWrapper(GymnasiumEnvironmentWrapper):
         observation, reward, termination, truncation, info = self.env.last()
         
         #returns state, reward, done, info
-        return PettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, termination, truncation, info
+        return AECPettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, termination, truncation, info
     
     def agent_iter(self):
         return self.env.agent_iter()

@@ -7,7 +7,7 @@ from automl.rl.policy.qpolicy import QPolicy
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.learners.ppo_learner import PPOLearner
 
-from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
+from automl.rl.environment.pettingzoo.pettingzoo_env import PettingZooEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO

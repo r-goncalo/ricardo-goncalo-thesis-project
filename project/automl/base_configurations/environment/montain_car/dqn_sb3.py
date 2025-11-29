@@ -31,7 +31,7 @@ from automl.ml.memory.torch_disk_memory_component import TorchDiskMemoryComponen
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
-from automl.rl.environment.gymnasium_env import GymnasiumEnvironmentWrapper
+from automl.rl.environment.gymnasium.gymnasium_env import GymnasiumEnvironmentWrapper
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyLinearStrategy, EpsilonGreedyStrategy
 from automl.rl.learners.q_learner import DeepQLearnerSchema
 from automl.rl.policy.qpolicy import QPolicy

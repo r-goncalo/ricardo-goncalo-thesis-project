@@ -10,8 +10,8 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
-from automl.rl.environment.environment_components import AECEnvironmentComponent
-from automl.rl.environment.pettingzoo_env import PettingZooEnvironmentWrapper
+from automl.rl.environment.aec_environment import AECEnvironmentComponent
+from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
 from automl.utils.files_utils import open_or_create_folder
 from automl.basic_components.state_management import StatefulComponent
 
@@ -29,11 +29,15 @@ from automl.core.exceptions import common_exception_handling
 # TODO this is missing the evaluation component on a RLPipeline
 class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator, SeededComponent):
     
+    '''
+    This component represents a whole RL training proccess, from the setup of the agents and the environment, to training, to the evaluation of results
+    '''
+
     parameters_signature = {
         
                         "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
                                                                                
-                       "environment" : ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {}), possible_types=[AECEnvironmentComponent]),
+                       "environment" : ComponentInputSignature(default_component_definition=(AECPettingZooEnvironmentWrapper, {}), possible_types=[AECEnvironmentComponent]),
                        
                        "agents" : InputSignature(default_value={}),
                        "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
@@ -122,6 +126,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             "device" : self.device,
             "logger_object" : self.lg,
             "environment" : self.env,
+            "times_to_run" : self._times_to_run,
             "agents" : self.agents.copy() # so changes to the rl trainer dict do not translate to the agents passed
         }        
         
@@ -248,7 +253,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         gc.collect() #this forces the garbage collector to collect any abandoned objects
         torch.cuda.empty_cache() #this clears cache of cuda
         
-        self.rl_trainer.run_episodes()
+        self.rl_trainer.run()
         
         if self.save_in_between:
             self.save_state()

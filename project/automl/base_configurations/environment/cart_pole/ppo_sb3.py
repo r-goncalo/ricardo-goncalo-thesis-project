@@ -27,7 +27,7 @@ CartPole-v1:
 '''
 
 from automl.ml.models.neural_model import FullyConnectedModelSchema
-from automl.rl.environment.gymnasium_env import GymnasiumEnvironmentWrapper
+from automl.rl.environment.gymnasium.gymnasium_env import GymnasiumEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy

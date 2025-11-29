@@ -6,13 +6,14 @@ from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import AECEnvironmentComponent
+from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.basic_components.exec_component import ExecComponent
 
 
 
-class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
+class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecComponent):
 
     TRAIN_LOG = 'train.txt'
     
@@ -79,6 +80,11 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
             raise Exception("No stop condition defined")
 
         self._fraction_training_to_do = self.get_input_value("fraction_training_to_do")
+
+        if self._fraction_training_to_do is None and self._times_to_run is not None:
+            self._fraction_training_to_do = 1 / self._times_to_run
+
+            self.lg.writeLine(f"As no fraction of training to do was specified, and times to run was specified ({self._times_to_run}), fraction of training is now 1 / {self._times_to_run}: {self._fraction_training_to_do}")
 
 
     
@@ -347,6 +353,15 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults):
         self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
         
         self.calculate_and_log_results()
+
+
+
+    def _algorithm(self):
+        
+        self.run_episodes() #trains the agents in the reinforcement learning pipeline
+        
+        
+
             
         
                    
