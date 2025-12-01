@@ -4,7 +4,6 @@ import os
 import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
-from automl.rl.environment.environment_sampler import EnvironmentSampler
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
@@ -18,6 +17,7 @@ from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 from automl.utils.files_utils import loadDataframe, saveDataframe
 from automl.utils.configuration_component_utils import save_configuration
 from automl.rl.agent.agent_components import AgentSchema
+from automl.rl.environment.environment_components import EnvironmentSampler
 
 class EvaluatorWithPlayer(RLPipelineEvaluator):
     

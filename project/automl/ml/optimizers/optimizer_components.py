@@ -52,7 +52,10 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-                       "learning_rate" : InputSignature(default_value=0.001),
+                       "learning_rate" : InputSignature(
+                           default_value=0.001,
+                           custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 1.5e-8, "high": 9e-2 }]}
+                           ),
                        "amsgrad" : InputSignature(default_value=False),
 
                        "clip_grad_value" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given value"),

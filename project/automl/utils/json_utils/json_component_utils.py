@@ -507,6 +507,19 @@ def generate_component_from_class_input_definition(class_of_component, input : d
     return component_to_return
 
 
+
+def is_valid_component_tuple_definition(tuple_definition):
+
+    if isinstance(tuple_definition, (tuple, list)):
+
+        if len(tuple_definition) == 2:
+
+            return isinstance(tuple_definition[0], (type, str)) and isinstance(tuple_definition[1], dict)
+        
+    return False
+
+
+
 def component_from_tuple_definition(tuple_definition, context_component=None, assume_localization=True) -> Component:
 
     '''

@@ -271,6 +271,12 @@ class HyperparameterSuggestion(CustomJsonLogic):
                 
         return HyperparameterSuggestion(dict["name"], dict["localizations"], dict["suggestion"])
     
+
+    def get_nested_hyperparameter_suggestions():
+        '''Gets the hyperparameter suggestions that are nested in this one'''
+        return []
+
+
 register_custom_strategy(HyperparameterSuggestion, HyperparameterSuggestion)
 
 
@@ -395,6 +401,9 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
 
 
         return disjoint_to_return
+    
+    def get_nested_hyperparameter_suggestions():
+        to_return = [*super().get_nested_hyperparameter_suggestions(), ]
         
 register_custom_strategy(DisjointHyperparameterSuggestion, DisjointHyperparameterSuggestion)
 

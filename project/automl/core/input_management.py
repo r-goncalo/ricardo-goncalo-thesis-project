@@ -21,7 +21,8 @@ class InputSignature():
                  ignore_at_serialization=None, 
                  priority=None, 
                  on_pass=[], 
-                 mandatory=None):
+                 mandatory=None,
+                 custom_dict=None):
         
         self.default_value = default_value
         self.generator = generator
@@ -37,6 +38,8 @@ class InputSignature():
 
         self.on_pass = on_pass if isinstance(on_pass, list) else [on_pass]
         self.validity_verificator = validity_verificator if isinstance(validity_verificator, list) else [validity_verificator]
+
+        self.custom_dict = custom_dict
 
         self.child_parameter_signatures : list[InputSignature] = [] # a list with the input signatures that were fused with this one
         self.parent_parameter_signatures : list[InputSignature] = []
@@ -147,6 +150,14 @@ class InputSignature():
         self.on_pass= new_on_pass
         self.mandatory= new_mandatory
 
+        if self.custom_dict is not None and other_input_signature.custom_dict is not None:
+            for key, value in other_input_signature.custom_dict.items():
+                self.custom_dict[key] = value
+        
+        elif other_input_signature.custom_dict is not None:
+            self.custom_dict = other_input_signature
+
+
 
         self.child_parameter_signatures.append(other_input_signature)
         other_input_signature.parent_parameter_signatures.append(self)
@@ -167,6 +178,8 @@ class InputSignature():
             "priority" : self.priority,
             "on_pass" : self.on_pass,
             "mandatory" : self.mandatory,
+            "custom_dict" : self.custom_dict
+
         }
 
         return to_dict_to_return

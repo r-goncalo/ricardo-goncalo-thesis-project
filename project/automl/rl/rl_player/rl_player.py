@@ -5,12 +5,12 @@ from automl.component import InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
-from automl.rl.environment.environment_components import AECEnvironmentComponent
 from automl.basic_components.state_management import StatefulComponent
 
 from automl.rl.rl_setup_util import initialize_agents_components
 
 from automl.utils.configuration_component_utils import save_configuration
+from automl.rl.environment.aec_environment import AECEnvironmentComponent
 import torch
 
 

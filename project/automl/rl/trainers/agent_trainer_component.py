@@ -43,7 +43,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
                        "batch_size" : InputSignature(mandatory=False),
                     
-                       "discount_factor" : InputSignature(default_value=0.95),
+                       "discount_factor" : InputSignature(
+                           default_value=0.95,
+                           custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.7, "high": 0.99999 }]}
+                           ),
 
                        "memory" : ComponentInputSignature(
                             default_component_definition=(TorchMemoryComponent, {}),

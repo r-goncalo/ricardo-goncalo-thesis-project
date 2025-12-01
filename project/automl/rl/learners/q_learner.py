@@ -22,7 +22,11 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
 
     parameters_signature = {
                                
-                        "target_update_rate" : InputSignature(default_value=0.05),
+                        "target_update_rate" : InputSignature(
+                            default_value=0.05,
+                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.5, "high": 1.0 }]}
+                            ),
+
                         "target_update_learn_interval" : InputSignature(default_value=1, description="How many optimization times before we update the target model"),
                         
                         "device" : InputSignature(ignore_at_serialization=True),
