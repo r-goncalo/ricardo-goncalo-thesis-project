@@ -1,9 +1,8 @@
 from automl.basic_components.seeded_component import SeededComponent
 from automl.component import Component, InputSignature, requires_input_proccess
-from automl.rl.environment.environment_components import AECEnvironmentComponent, ParallelEnvironmentComponent
 
-from automl.rl.environment.gymnasium.gymnasium_env import GymnasiumEnvironmentWrapper
 from automl.fundamentals.translator.translator import Translator
+from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
 import torch
 
 from pettingzoo import ParallelEnv

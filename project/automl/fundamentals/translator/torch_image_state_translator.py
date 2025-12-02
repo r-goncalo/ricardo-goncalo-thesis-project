@@ -8,17 +8,24 @@ import torch
 class ImageReverter(Translator):
 
     parameters_signature = {
-                       "device" : InputSignature(default_value="", ignore_at_serialization=True, get_from_parent=True)
         }    
 
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()
 
-        self.device = self.get_input_value("device")
+    def _setup_shape_cache(self):
+
+        super()._setup_shape_cache()
+
+        if self.buffered_operations: # if we are to initialize buffer
+            self._out_buffer = torch.empty(self.new_shape, dtype=torch.float32, device=self.device)
+        
+        else:
+            self._out_buffer = None
 
 
-    def translate_state(self, state):
+    def translate_state(self, state : torch.Tensor):
 
         """
         Transforms a pixel observation (H,W,C) -> torch(C,H,W)
@@ -26,14 +33,21 @@ class ImageReverter(Translator):
 
         if state is None:
             return None
+        
+        with torch.no_grad(): 
+        
+            if self._out_buffer == None:
+                return state.permute(2, 0, 1)
+            
+            else:
 
-        return (
-            torch.tensor(state, dtype=torch.float32, device=self.device)
-            .permute(2, 0, 1)
-        )
+                # tmp is (H, W, C). We need (C, H, W) in buffer.
+                self._out_buffer.copy_(self._in_buffer.permute(2, 0, 1))
 
-    def get_shape(self, original_shape):
+                return self._out_buffer
 
+
+    def _get_shape(self, original_shape):
 
         shape = torch_shape_from_space(original_shape)  # torch.Size([H, W, C])
 
@@ -53,10 +67,8 @@ class ImageSingleChannel(Translator):
         
         super()._proccess_input_internal()
 
-        self.device = self.get_input_value("device")
 
-
-    def translate_state(self, state):
+    def translate_state(self, state : torch.Tensor):
 
         """
         Only uses the first of 3 channels
@@ -68,7 +80,7 @@ class ImageSingleChannel(Translator):
         return state[0]
     
 
-    def get_shape(self, original_shape):
+    def _get_shape(self, original_shape):
 
         shape = torch_shape_from_space(original_shape)  # torch.Size([H, W, C])
 
@@ -87,20 +99,29 @@ class ImageNormalizer(Translator):
 
 
 
-    def translate_state(self, state):
+    def translate_state(self, state : torch.Tensor):
 
         """
         Transforms a pixel observation (H,W,C) -> torch(C,H,W) normalized.
         """
 
+
         if state is None:
             return None
+        
+        with torch.no_grad(): 
+        
+            if self.in_place_translation:
+                state.div_(255.0)
+                return state
 
-        return state / 255.0 
+            else:
+                return state / 255.0 
 
-    def get_shape(self, original_shape):
-
+        
+    def _get_shape(self, original_shape):
         return original_shape
+    
     
 
 class ImageReverterToSingleChannel(Translator):
@@ -108,24 +129,35 @@ class ImageReverterToSingleChannel(Translator):
     '''Directly reverts an image to single channel'''
 
     parameters_signature = {
-                       "device" : InputSignature(default_value="", ignore_at_serialization=True, get_from_parent=True)
         }    
     
 
     def _proccess_input_internal(self):
-        
         super()._proccess_input_internal()
 
-        self.device = self.get_input_value("device")
+
+    def _setup_shape_cache(self):
+        super()._setup_shape_cache()
+
+        if self.buffered_operations: # if we are to initialize buffer
+            self._out_buffer = torch.empty(self.new_shape, dtype=torch.float32, device=self.device)
+        
+        else:
+            self._out_buffer = None
 
     
-    def translate_state(self, state):
+    def translate_state(self, state : torch.Tensor):
     
-        first_channel = state[:, :, 0]
+        if self._out_buffer == None:
+            return state[:, :, 0]
+        
+        else:
+            self._out_buffer._copy(state[:, :, 0])
+            return self._out_buffer
 
-        return torch.tensor(first_channel, dtype=torch.float32, device=self.device)
+
     
-    def get_shape(self, original_shape):
+    def _get_shape(self, original_shape):
         """
         Expected input shape: (H, W, C)
         Output shape: (H, W)

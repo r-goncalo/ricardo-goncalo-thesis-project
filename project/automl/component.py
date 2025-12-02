@@ -274,6 +274,10 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         self.__input_meta[key].set_to_ignore_at_serialization(value)
 
+    def was_custom_value_passed_for_input(self, key):
+
+        return self.__input_meta[key].was_custom_value_passed()
+
 
     # PROCCESS INPUT ---------------------------------------------------------------------------------------
 

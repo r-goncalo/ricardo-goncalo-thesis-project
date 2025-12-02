@@ -11,9 +11,9 @@ class AgentTrainerDebug(AgentTrainer):
 
         is_debug_schema = True
 
-        def proccess_input(self):
+        def _proccess_input_internal(self):
 
-            super().proccess_input()
+            super()._proccess_input_internal()
     
             self.model : TorchModelComponent = self.agent_poliy.model
     

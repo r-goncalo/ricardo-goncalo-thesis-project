@@ -6,12 +6,11 @@ from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import AECEnvironmentComponent
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
-from automl.rl.environment.environment_components import ParallelEnvironmentComponent
 
+from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
 import torch
 
 class RLTrainerComponentParallel(RLTrainerComponent):
