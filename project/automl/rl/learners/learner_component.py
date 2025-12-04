@@ -17,6 +17,7 @@ class LearnerSchema(Component):
         
         self.agent : AgentSchema = self.get_input_value("agent")
         
+        
     def learn(self, trajectory, discount_factor) -> None:
         
         '''
@@ -35,35 +36,35 @@ class LearnerSchema(Component):
     def _interpret_trajectory(self, trajectory):
         
         if not isinstance(trajectory.state, torch.Tensor):
-            state_batch = torch.stack(trajectory.state, dim=0)  # Stack tensors along a new dimension (dimension 0)
+            state_batch = torch.stack(trajectory.state, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
         
         else:
-            state_batch = trajectory.state
+            state_batch = trajectory.state.to(self.device)
             
         
         action_batch = trajectory.action
             
         if not isinstance(trajectory.next_state, torch.Tensor):
-            next_state_batch = torch.stack(trajectory.next_state, dim=0)  # Stack tensors along a new dimension (dimension 0)
+            next_state_batch = torch.stack(trajectory.next_state, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
         
         else:
-            next_state_batch = trajectory.next_state
+            next_state_batch = trajectory.next_state.to(self.device)
             
         if not isinstance(trajectory.reward, torch.Tensor):
             
-            reward_batch = torch.stack(trajectory.reward, dim=0)  # Stack tensors along a new dimension (dimension 0)
+            reward_batch = torch.stack(trajectory.reward, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
     
         
         else:
-            reward_batch = trajectory.reward.view(-1) # TODO: This assumes the reward only has one dimension
+            reward_batch = trajectory.reward.view(-1).to(self.device) # TODO: This assumes the reward only has one dimension
 
         if not isinstance(trajectory.done, torch.Tensor):
             
-            done_batch = torch.stack(trajectory.done, dim=0)  # Stack tensors along a new dimension (dimension 0)
+            done_batch = torch.stack(trajectory.done, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
     
         
         else:
-            done_batch = trajectory.done.view(-1) # TODO: This assumes the reward only has one dimension
+            done_batch = trajectory.done.view(-1).to(self.device) # TODO: This assumes the reward only has one dimension
             
         return state_batch, action_batch, next_state_batch, reward_batch, done_batch
     

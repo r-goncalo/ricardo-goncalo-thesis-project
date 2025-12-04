@@ -9,6 +9,7 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
 
 
     def _proccess_input_internal(self):
+
         super()._proccess_input_internal()
     
     
@@ -19,10 +20,41 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
         str_pushing = ' '
 
         for field_name in self.field_names:
+
+            str_value = str(transition[field_name])
+
+            if len(str_value) > 15:
+                str_value = str_value[:7] + '...' + str_value[len(str_value) - 7:]
                         
-            str_pushing = f"{str_pushing}{field_name}: {transition[field_name]} "
+            str_pushing = f"{str_pushing}{field_name}: {str_value} "
 
         self.lg.writeLine(f"Pushing: {str_pushing}", file="pushed_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
+
+
+    @requires_input_proccess
+    def sample(self, batch_size):
+
+        batch = super().sample(batch_size)
+
+        self.lg.writeLine(f"\nSampling:\n", file="on_sample.txt", use_time_stamp=False)
+        
+        for i in range(batch_size):
+
+            str_sampling = ' '
+
+            for field_name in self.field_names:
+            
+                str_value = str(getattr(batch, field_name)[i])
+
+                if len(str_value) > 15:
+                    str_value = str_value[:7] + '...' + str_value[len(str_value) - 7:]
+
+                str_sampling = f"{str_sampling}{field_name}: {str_value} "
+
+            self.lg.writeLine(f"{i}: {str_sampling}", file="on_sample.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
+
+
+        return batch
 
     @requires_input_proccess
     def clear(self):
@@ -35,21 +67,9 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
     
             for field_name in self.field_names:
                             
-                str_pushing = f"{str_pushing}{field_name}: {self.transitions[field_name][i]} " # TODO: there should be a clear way to get a single transition
+                str_pushing = f"{str_pushing}{field_name}: {self.transitions[field_name][i][:30]} " # TODO: there should be a clear way to get a single transition
     
             self.lg.writeLine(f"{str_pushing}", file="on_clear_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
 
         super().clear()
 
-    @requires_input_proccess
-    def get_all(self):
-        '''Returns the total memory'''
-
-        batch_data = {
-            field_name: self.transitions[field_name]
-            for field_name in self.field_names
-        }
-        
-        batch = self.Transition(**batch_data)
-
-        return batch

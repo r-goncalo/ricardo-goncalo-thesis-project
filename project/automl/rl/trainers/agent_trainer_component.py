@@ -108,7 +108,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.agent : AgentSchema = self.get_input_value("agent", look_in_attribute_with_name="agent")
         self.agent.proccess_input_if_not_proccesd()
 
-        self.agent_poliy : Policy = self.agent.policy
+        self.agent_policy : Policy = self.agent.policy
         
         
     def initialize_learner(self):
@@ -214,7 +214,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             Does a step, in which the agent acts and observers the transition
             Note that any other agents will not notice this change
             '''
-        
+                    
             observation = env.observe(self.name)
             
             with torch.no_grad():                
@@ -242,7 +242,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                 
         
 
-    def _observe_transiction_to(self, new_state, action, reward):
+    def _observe_transiction_to(self, new_state, action, reward, done):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''        
         

@@ -15,7 +15,7 @@ class AgentTrainerDebug(AgentTrainer):
 
             super()._proccess_input_internal()
     
-            self.model : TorchModelComponent = self.agent_poliy.model
+            self.model : TorchModelComponent = self.agent_policy.model
     
             self.__temporary_model : TorchModelComponent = self.model.clone()
         
@@ -28,10 +28,18 @@ class AgentTrainerDebug(AgentTrainer):
         def do_training_step(self, i_episode, env):
         
             reward, done, truncated = super().do_training_step(i_episode, env)
-    
-            self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt", use_time_stamp=False)
-    
+
+            # we could do something here
+
             return reward, done, truncated
+        
+        
+        def do_after_training_step(self, i_episode, action, observation, reward, done, truncated):
+             
+            super().do_after_training_step(i_episode, action, observation, reward, done, truncated)
+
+            self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt", use_time_stamp=False)
+
     
         def _optimize_policy_model(self):
         

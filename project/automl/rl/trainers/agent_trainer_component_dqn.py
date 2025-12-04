@@ -92,7 +92,6 @@ class AgentTrainerDQN(AgentTrainer):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
         
-        
         self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
         
         self.agent.update_state_memory(new_state)
@@ -113,4 +112,4 @@ class AgentTrainerDQN(AgentTrainer):
             return self.exploration_strategy.select_action(self.agent, state)  
 
         else:
-            return super().select_action(self.agent, state)
+            return super().select_action(state)

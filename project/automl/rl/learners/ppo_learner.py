@@ -141,10 +141,10 @@ class PPOLearner(LearnerSchema):
         state_batch, action_batch, next_state_batch, reward_batch, done_batch = super()._interpret_trajectory(trajectory)
         
         if not isinstance(trajectory.log_prob, torch.Tensor):
-            log_prob_batch = torch.stack(trajectory.log_prob, dim=0)  # Stack tensors along a new dimension (dimension 0)
+            log_prob_batch = torch.stack(trajectory.log_prob, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
         
         else:
-            log_prob_batch = trajectory.log_prob
+            log_prob_batch = trajectory.log_prob.to(self.device)
         
             
         return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch

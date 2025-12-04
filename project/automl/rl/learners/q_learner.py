@@ -11,7 +11,81 @@ import torch
 
 from automl.rl.policy.policy import Policy
 
-class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
+
+class QLearnerSchema(LearnerSchema, ComponentWithLogging):
+    
+    '''
+    This represents a Deep Q Learner
+    It has decouples the prediction of the q values by having not only having the policy network but also a target network
+    '''
+
+    # INITIALIZATION --------------------------------------------------------------------------
+
+    parameters_signature = {
+                        }    
+    
+
+    
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+        
+        super()._proccess_input_internal()
+                
+        
+        
+        
+    def initialize_optimizer(self):
+        
+        self.optimizer : OptimizerSchema = self.get_input_value("optimizer")        
+        self.optimizer.pass_input({"model" : self.model})
+
+    
+    # EXPOSED METHODS --------------------------------------------------------------------------
+
+    def _apply_model_prediction_given_state_action_pairs(self, state_batch, action_batch):
+
+        '''Returns the values predicted by the current model and the values for the specific actions that were passed'''
+        pass
+    
+
+    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+
+        '''
+        Returns the predicted values for the next state
+        
+        They are given by appying the Q function to them and then chosing the next 
+
+        '''
+        pass
+    
+
+    def _calculate_chosen_actions_correct_q_values(self, next_state_v_values, discount_factor, reward_batch):
+        pass
+    
+    def _optimize_with_predicted_model_values_and_correct_values(self, predicted_values, correct_values):
+        pass
+    
+    @requires_input_proccess
+    def learn(self, trajectory, discount_factor) -> None:
+        
+        super().learn(trajectory, discount_factor)
+
+        self.batch_size = len(trajectory[0])
+
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self._interpret_trajectory(trajectory)
+                    
+        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(state_batch, action_batch) 
+
+        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(next_state_batch, done_batch, reward_batch, discount_factor)
+
+        correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
+                        
+        self._optimize_with_predicted_model_values_and_correct_values(state_action_values.squeeze(-1), correct_q_values_for_chosen_action)  
+        
+
+        
+
+
+class DeepQLearnerSchema(QLearnerSchema):
     
     '''
     This represents a Deep Q Learner
@@ -145,18 +219,6 @@ class DeepQLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super().learn(trajectory, discount_factor)
 
-        self.batch_size = len(trajectory[0])
-
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self._interpret_trajectory(trajectory)
-                    
-        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(state_batch, action_batch) 
-
-        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(next_state_batch, done_batch, reward_batch, discount_factor)
-
-        correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
-                        
-        self._optimize_with_predicted_model_values_and_correct_values(state_action_values.squeeze(-1), correct_q_values_for_chosen_action)  
-        
         if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()
 

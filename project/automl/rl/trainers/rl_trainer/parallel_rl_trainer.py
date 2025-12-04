@@ -100,9 +100,9 @@ class RLTrainerComponentParallel(RLTrainerComponent):
                         
         self.setup_single_episode(i_episode)
 
-        agent_names = self.env.parallel_agents() 
+        agent_names = [*self.env.parallel_agents()] 
 
-        while agent_names:
+        while True:
 
             actions = self.choose_actions_for_agents(agent_names, i_episode)
 
@@ -116,11 +116,8 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
             self.values["episode_score"] = self.values["episode_score"] + sum(rewards.values())
 
-
             if done or self._check_if_to_end_episode():
                 break    
-
-            agent_names = self.env.parallel_agents()              
 
         for agent_in_training in self.agents_in_training.values():
             agent_in_training.end_episode() 

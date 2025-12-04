@@ -10,6 +10,20 @@ class ParallelEnvironmentComponent(EnvironmentComponent):
     @requires_input_proccess    
     def reset(self):
         raise NotImplementedError()
+    
+
+    def step(self, actions):
+        """
+        Args:
+            actions: {agent: action}
+        Returns:
+            next_obs_dict, rewards, terminations, truncations, infos
+        """
+        raise NotImplementedError()
+
+
+    def parallel_agents(self):
+        raise NotImplementedError()
 
         
     @requires_input_proccess   

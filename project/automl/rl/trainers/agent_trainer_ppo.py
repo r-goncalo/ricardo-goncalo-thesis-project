@@ -52,7 +52,7 @@ class AgentTrainerPPO(AgentTrainer):
                 
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", self.agent_poliy.get_policy_shape(), torch.int64),
+                                        ("action", self.agent_policy.get_policy_shape(), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
                                         ("done", 1),
@@ -71,7 +71,7 @@ class AgentTrainerPPO(AgentTrainer):
         
         super().initialize_agent()
 
-        if not isinstance(self.agent_poliy, StochasticPolicy):
+        if not isinstance(self.agent_policy, StochasticPolicy):
             raise Exception("PPO trainer needs a stochastic policy")
         
 
@@ -98,7 +98,7 @@ class AgentTrainerPPO(AgentTrainer):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
                 
-        action, log_prob = self.agent.call_policy_method(self.agent_poliy.predict_with_log, state) 
+        action, log_prob = self.agent.call_policy_method(self.agent_policy.predict_with_log, state) 
         
         self.last_log_prob = log_prob
         
