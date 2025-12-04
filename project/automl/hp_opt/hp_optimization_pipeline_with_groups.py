@@ -13,8 +13,6 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 import optuna
 
-from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
-
 from automl.utils.random_utils import generate_and_setup_a_seed
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader

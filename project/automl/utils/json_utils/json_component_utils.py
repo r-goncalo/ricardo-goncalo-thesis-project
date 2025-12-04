@@ -252,8 +252,12 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
                         
             return instanced_object
         
+        # this is a more dangerous branch as there is no separation from "__type__"
         else:
-            raise Exception("No object defined when decoding element of type " + element_type_str)
+            instanced_object = element_type.from_dict(element_dict, decode_components_input_element, source_component)
+                        
+            return instanced_object
+
     
     custom_strategy = get_custom_strategy(element_type)
 

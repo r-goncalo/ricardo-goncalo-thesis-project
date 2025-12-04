@@ -1,0 +1,89 @@
+from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.utils.json_utils.custom_json_logic import register_custom_strategy
+from automl.utils.json_utils.json_component_utils import decode_components_input_element
+import optuna
+
+
+class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
+    
+    '''A class which defines a range of values a specific hyperparameter group can have'''
+    
+    def __init__(self, name : str, min_len, max_len, hyperparameter_suggestion_for_list : HyperparameterSuggestion, hyperparameter_localizations=None):
+        
+        super().__init__(name=name, hyperparameter_localizations=hyperparameter_localizations)
+
+        self.name_len_list = f"{self.name}_len"
+        self.min_len = min_len
+        self.max_len = max_len
+
+        self.hyperparameter_suggestion_for_list : HyperparameterSuggestion =  hyperparameter_suggestion_for_list.clone()
+
+        if isinstance(self.hyperparameter_suggestion_for_list, dict):
+            self.hyperparameter_suggestion_for_list = decode_components_input_element(self.hyperparameter_suggestion_for_list)
+
+
+    def make_suggestion(self, trial : optuna.Trial):
+        
+        '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
+        
+        list_len= trial.suggest_int(self.name_len_list, low=self.min_len, high=self.max_len)
+
+        list_to_return = []
+
+        for i in range(list_len):
+
+            suggestion_to_put_in_list = self.hyperparameter_suggestion_for_list
+
+            suggestion_to_put_in_list_base_name = self.get_base_name()
+            suggestion_to_put_in_list.change_name(f"{self.name}_{suggestion_to_put_in_list_base_name}_{i}")
+
+            list_to_return.append(suggestion_to_put_in_list.make_suggestion(trial))
+                
+            
+        return list_to_return
+
+
+    
+    # JSON ENCODING DECODING ------------------------------------------------------------------------
+
+    def clone(self):
+        
+        return VariableListHyperparameterSuggestion(
+            name=self.base_name,
+            min_len=self.min_len,
+            max_len=self.max_len,
+            hyperparameter_suggestion_for_list=self.hyperparameter_suggestion_for_list,
+            hyperparameter_localizations=self.hyperparameter_localizations
+        )
+
+            
+    def to_dict(self) -> dict:
+        
+        return  {
+            **super().to_dict(),
+            "min_len" : self.min_len,
+            "max_len" : self.max_len,
+            "hyperparameter_suggestion_for_list" : self.hyperparameter_suggestion_for_list
+        }
+                            
+            
+    def from_dict(dict : dict, decode_elements_fun, source_component):
+
+        '''Decodes object dict'''
+                
+        return VariableListHyperparameterSuggestion(
+            name=dict["name"],
+            hyperparameter_localizations=dict.get("localizations", None),
+            min_len=dict["min_len"],
+            max_len=dict["max_len"],
+            hyperparameter_suggestion_for_list=decode_elements_fun(source_component, dict["hyperparameter_suggestion_for_list"])
+
+        )
+    
+    def get_nested_hyperparameter_suggestions(self) -> list[HyperparameterSuggestion]:
+
+        return [*super().get_nested_hyperparameter_suggestions(), *self.hyperparameter_suggestion_for_list.get_nested_hyperparameter_suggestions()]
+
+
+        
+register_custom_strategy(VariableListHyperparameterSuggestion, VariableListHyperparameterSuggestion)

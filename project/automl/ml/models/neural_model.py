@@ -1,5 +1,6 @@
 import os
 from automl.ml.models.torch_model_components import TorchModelComponent
+from automl.hp_opt.hyperparameter_suggestion import VariableListHyperparameterSuggestion
 import torch
 import torch.nn as nn
 import torch.nn.functional as F    
@@ -52,6 +53,15 @@ class FullyConnectedModelSchema(TorchModelComponent):
     parameters_signature = {
         "hidden_layers" : InputSignature(description="Number of hidden layers"),
         "hidden_size": InputSignature(description="Size of hidden layers"),
+        "layers" : InputSignature(mandatory=False, 
+                                  custom_dict={"hyperparameter_suggestion" : 
+                                               {"__type__" : VariableListHyperparameterSuggestion,
+                                                "min_len" : 2,
+                                                "max_len" : 4,
+
+                                                }
+                                            }
+                                    )
     }    
     
     def _proccess_input_internal(self):

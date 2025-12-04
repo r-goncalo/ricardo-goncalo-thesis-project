@@ -1,16 +1,11 @@
 
-from typing import Union
 from automl.component import Component
 
-from automl.utils.json_utils.json_component_utils import get_child_dict_from_localization, is_valid_component_tuple_definition
-from automl.utils.json_utils.custom_json_logic import CustomJsonLogic, register_custom_strategy
-import optuna
+from automl.utils.json_utils.json_component_utils import decode_components_input_element, get_child_dict_from_localization, is_valid_component_tuple_definition
 
-from automl.core.localizations import get_component_by_localization_list, get_last_collection_where_value_is, safe_get
-from automl.loggers.global_logger import globalWriteLine
-from automl.core.input_management import InputSignature
 from automl.utils.class_util import get_class_from
-from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
 
 
 def generate_hyperparameter_suggestion_list_for_config_dict(config_dict):
@@ -133,10 +128,22 @@ def gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion, current_lo
     if isinstance(hyperparameter_suggestion, HyperparameterSuggestion):
         return hyperparameter_suggestion.clone()
     
+    elif isinstance(hyperparameter_suggestion, dict) and ("__type__" in hyperparameter_suggestion.keys() or "name" in hyperparameter_suggestion.keys()):
+
+        # guarantee hp suggestion has type
+        hp_suggestion_type : type[HyperparameterSuggestion] = get_class_from(hyperparameter_suggestion.get("__type__", HyperparameterSuggestion))
+        hyperparameter_suggestion["__type__"] = hp_suggestion_type
+
+        # guarantee hp suggestion has name
+        hp_suggestion_name : str = hyperparameter_suggestion.get("name", current_localization[len(current_localization) - 1])
+        hyperparameter_suggestion["name"] = hp_suggestion_name
+
+        return decode_components_input_element(hyperparameter_suggestion)
+    
     else:
         hyperparameter_name = current_localization[len(current_localization) - 1]
         hyperparameter_localizations = [current_localization]
         value_suggestion = hyperparameter_suggestion
 
-        return HyperparameterSuggestion(hyperparameter_name, hyperparameter_localizations, value_suggestion)
+        return SingleHyperparameterSuggestion(name=hyperparameter_name, hyperparameter_localizations=hyperparameter_localizations, value_suggestion=value_suggestion)
 

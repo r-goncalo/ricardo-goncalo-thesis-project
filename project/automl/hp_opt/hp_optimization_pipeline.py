@@ -5,6 +5,7 @@ from automl.component import InputSignature, Component, requires_input_proccess
 from automl.basic_components.exec_component import ExecComponent
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.basic_components.evaluator_component import EvaluatorComponent
+from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
@@ -15,8 +16,6 @@ from automl.utils.files_utils import write_text_to_file
 from automl.utils.json_utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, gen_component_from
 
 import optuna
-
-from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 from automl.basic_components.seeded_component import SeededComponent
