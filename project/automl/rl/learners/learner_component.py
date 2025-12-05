@@ -38,7 +38,7 @@ class LearnerSchema(Component):
         '''
         
         for _ in range(self.optimizations_per_learn):
-            self._learn()
+            self._learn(trajectory, discount_factor)
 
     
     def _interpret_trajectory(self, trajectory):
