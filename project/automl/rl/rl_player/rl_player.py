@@ -16,7 +16,6 @@ import torch
 
 from automl.loggers.logger_component import  ComponentWithLogging
 
-# TODO this is missing the evaluation component on a RLPipeline
 class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent):
     
     
@@ -53,10 +52,10 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
         self.store_env_at_end = self.get_input_value("store_env_at_end")
 
-        self.__setup_agents()
+        self._setup_agents()
 
         
-    def __setup_agents(self):
+    def _setup_agents(self):
 
         self.agents = self.get_input_value("agents")
         self.agents_input = self.get_input_value("agents_input")
@@ -71,7 +70,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         
     
-    def __setup_episode(self):
+    def _setup_episode(self):
 
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
@@ -79,14 +78,14 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         self.lg.writeLine("Starting episode " + str(self.values["episodes_done"] + 1) + " with agents: " + str(self.agents.keys()))
         
-        self.lg.writeLine(f"The environment is: {self.env.name} with info: {self.env.get_env_info()}")
+        self.lg.writeLine(f"The environment is named {self.env.name} of type {type(self.env)}")
                 
         for agent in self.agents.values():
             agent.reset_agent_in_environment(self.env.observe(agent.name))
 
 
 
-    def __end_episode(self):
+    def _end_episode(self):
         self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]
         self.values["episodes_done"] = self.values["episodes_done"] + 1
         
@@ -95,7 +94,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         self.calculate_and_log_results()
 
 
-    def __run_episode(self):
+    def _run_episode(self):
         
         for agent_name in self.env.agent_iter():
             
@@ -107,10 +106,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                             
             if done or truncated:
                 break
-            #if self.limit_steps >= 1 and self.values["episode_steps"] >= self.limit_steps:
-            #    self.lg.writeLine("In episode " + str(self.values["episodes_done"]) + ", reached step " + str(self.values["episode_steps"]) + " that is beyond the current limit, " + str(self.limit_steps))
-            #    break
-            
+
             
     def __do_agent_step(self, agent_name):
         
@@ -138,11 +134,11 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         for ep in range(self.num_episodes):
 
-            self.__setup_episode()
+            self._setup_episode()
 
-            self.__run_episode()
+            self._run_episode()
 
-            self.__end_episode()
+            self._end_episode()
             
         if self.store_env_at_end:
             save_configuration(self.env, self.get_artifact_directory(), "env_config.json", save_exposed_values=True, ignore_defaults=False)

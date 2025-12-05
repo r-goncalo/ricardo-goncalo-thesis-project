@@ -24,7 +24,7 @@ def config_dict():
     "__type__": RLPipelineComponent,
     "name": "RLPipelineComponent",
     "input": {
-        "device" : "cuda",
+        "device" : "cpu",
         "environment": (PettingZooEnvironmentWrapperParallel, {
                             "environment": "cooperative_pong"}),
         "agents_input": {
@@ -78,7 +78,7 @@ def config_dict():
                 }),
             
                 "memory" : (TorchMemoryComponent, {
-                    "device" : "cuda",
+                    "device" : "cpu",
                     "capacity" : 1000
                 }),
                 
