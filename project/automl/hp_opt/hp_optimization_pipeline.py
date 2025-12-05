@@ -539,7 +539,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 trial.report(result, step) # we report the results to optuna
 
-                results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial.number], "result" : [result]}
+                results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial.number], "result" : result}
+
+                for key, value in results_to_log.items():
+                    results_to_log[key] = [value]
                 
                 self.log_results(results_to_log)  
 
