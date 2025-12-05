@@ -8,8 +8,14 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
     
     '''A class which defines a range of values a specific hyperparameter group can have'''
     
-    def __init__(self, name : str, min_len, max_len, hyperparameter_suggestion_for_list : HyperparameterSuggestion, hyperparameter_localizations=None):
+    def __init__(self, name : str = '', min_len=1, max_len=None, hyperparameter_suggestion_for_list : HyperparameterSuggestion = None, hyperparameter_localizations=None):
         
+        if max_len is None:
+            raise Exception("Max len must be defined")
+        
+        if hyperparameter_suggestion_for_list is None:
+            raise Exception("Hyperparameter suggesiton for list must be defined")
+
         super().__init__(name=name, hyperparameter_localizations=hyperparameter_localizations)
 
         self.name_len_list = f"{self.name}_len"
@@ -34,7 +40,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
 
             suggestion_to_put_in_list = self.hyperparameter_suggestion_for_list
 
-            suggestion_to_put_in_list_base_name = self.get_base_name()
+            suggestion_to_put_in_list_base_name = suggestion_to_put_in_list.get_base_name()
             suggestion_to_put_in_list.change_name(f"{self.name}_{suggestion_to_put_in_list_base_name}_{i}")
 
             list_to_return.append(suggestion_to_put_in_list.make_suggestion(trial))
@@ -63,7 +69,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
             **super().to_dict(),
             "min_len" : self.min_len,
             "max_len" : self.max_len,
-            "hyperparameter_suggestion_for_list" : self.hyperparameter_suggestion_for_list
+            "hyperparameter_suggestion_for_list" : self.hyperparameter_suggestion_for_list.to_dict()
         }
                             
             

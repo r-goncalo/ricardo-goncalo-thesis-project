@@ -1,7 +1,7 @@
 
 from automl.component import Component
 
-from automl.utils.json_utils.json_component_utils import decode_components_input_element, get_child_dict_from_localization, is_valid_component_tuple_definition
+from automl.utils.json_utils.json_component_utils import decode_components_input_element, is_valid_component_tuple_definition
 
 from automl.utils.class_util import get_class_from
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
@@ -74,14 +74,16 @@ def gen_hp_suggestions_for_instanced_component(component : Component, current_lo
     class_definition = type(component)
     input_of_component = component.input
 
+    new_localization = [*current_localization, "__get_input_value__"]
+
     return [
             *gen_hp_suggestions_for_component_and_input(
                                 class_definition, 
                                 input_of_component,
-                                current_localization
+                                new_localization
                             ),
             
-             *_gen_hp_suggestions_for_collection(input_of_component, [*current_localization, "__get_input_value__"])
+             *_gen_hp_suggestions_for_collection(input_of_component, new_localization)
                             
             ]
 
@@ -91,14 +93,17 @@ def gen_hp_suggestions_for_tuple_definition(tuple_definition, current_localizati
     (class_definition, input_of_component) = tuple_definition
     class_definition : type[Component] = get_class_from(class_definition)
 
+    new_localization = [*current_localization, 1]
+
+
     return [
             *gen_hp_suggestions_for_component_and_input(
                                 class_definition, 
                                 input_of_component,
-                                current_localization
+                                new_localization
                             ),
             
-             *_gen_hp_suggestions_for_collection(input_of_component, [*current_localization, 1])
+             *_gen_hp_suggestions_for_collection(input_of_component, new_localization)
                             
             ]
 
@@ -116,7 +121,7 @@ def gen_hp_suggestions_for_component_and_input(component_class : type[Component]
     
             if hyperparameter_suggestion_in_parameter_signature is not None:
                 to_return.append(
-                    gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion_in_parameter_signature, [*current_localization, "__get_input_value__", key])
+                    gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion_in_parameter_signature, [*current_localization, key])
                 )
 
     return to_return
@@ -126,7 +131,13 @@ def gen_hp_suggestions_for_component_and_input(component_class : type[Component]
 def gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion, current_localization):
 
     if isinstance(hyperparameter_suggestion, HyperparameterSuggestion):
-        return hyperparameter_suggestion.clone()
+
+        to_return = hyperparameter_suggestion.clone()
+
+        if to_return.get_localizations() == None: 
+            to_return.change_localizations([current_localization])
+
+        return to_return
     
     elif isinstance(hyperparameter_suggestion, dict) and ("__type__" in hyperparameter_suggestion.keys() or "name" in hyperparameter_suggestion.keys()):
 

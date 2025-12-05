@@ -58,7 +58,10 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
                            ),
                        "amsgrad" : InputSignature(default_value=False),
 
-                       "clip_grad_value" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given value"),
+                       "clip_grad_value" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given value",
+                                                          custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.05, "high": 0.5 }]}
+                                                                                                      ),
+
                        "clip_grad_norm" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given norm"),
 
                        "linear_decay_learning_rate_with_final_input_value_of" : LookableInputSignature(mandatory=False)

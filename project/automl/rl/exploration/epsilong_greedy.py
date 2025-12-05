@@ -11,7 +11,10 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = { "epsilon_end" : InputSignature(default_value=0.025),
+    parameters_signature = { "epsilon_end" : InputSignature(default_value=0.025,
+                                custom_dict={
+                                    "hyperparameter_suggestion" : ("float", {"low" : 0.001, "high" : 0.15})
+                                }),
                        "epsilon_start" : InputSignature(default_value=1.0),
                        "epsilon_decay" : InputSignature(default_value=0.01),
                        "training_context" : InputSignature(

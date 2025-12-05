@@ -1,7 +1,7 @@
 
 
 from automl.component import Component
-from automl.hp_opt import optuna
+import optuna
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.utils.json_utils.custom_json_logic import register_custom_strategy
 
@@ -10,7 +10,10 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
     
     '''A class which defines a range of values a specific hyperparameter group can have'''
     
-    def __init__(self, name : str,  disjoint_hyperparameter_suggestions : list[HyperparameterSuggestion], hyperparameter_localizations=None):
+    def __init__(self, name : str = '',  disjoint_hyperparameter_suggestions : list[HyperparameterSuggestion]=None, hyperparameter_localizations=None):
+        
+        if disjoint_hyperparameter_suggestions is None:
+            raise Exception(f"Disjoint hyperparameter suggestions must not be none")
         
         self.disjoint_hyperparameter_suggestions : dict[str, HyperparameterSuggestion] = {}
         for hyperparameter_suggestion in disjoint_hyperparameter_suggestions:

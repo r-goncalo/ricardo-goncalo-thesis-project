@@ -29,14 +29,14 @@ class LearnerDebug(LearnerSchema, ComponentWithLogging):
             self.__temporary_model : TorchModelComponent = self.__agent_model.clone()        
     
     @requires_input_proccess
-    def learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory, discount_factor) -> None:
 
         if self.compare_old_and_new_model_predictions:
             self.__temporary_model.clone_other_model_into_this(self.__agent_model)
 
             state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self._interpret_trajectory(trajectory)
 
-        super().learn(trajectory, discount_factor)
+        super()._learn(trajectory, discount_factor)
 
         self.lg.writeLine("\naction, reward, done, old_model_predictions, new_model_predictions, new_model_precitions\n", file="batch_comparison.txt", use_time_stamp=False)
 
@@ -129,11 +129,11 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         super()._optimize_with_predicted_model_values_and_correct_values(predicted_values, correct_values)
 
 
-    def learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory, discount_factor) -> None:
 
         self.__path_to_write = self.lg.new_relative_path_if_exists("computation.txt", dir="learning")
         
-        super().learn(trajectory, discount_factor)
+        super()._learn(trajectory, discount_factor)
 
 
 
@@ -163,7 +163,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
             self.__temporary_target_model_v2 = self.target_net.clone()
     
     @requires_input_proccess
-    def learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory, discount_factor) -> None:
 
         if self.compare_old_and_new_target_predictions:
 
@@ -171,7 +171,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
 
             state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self._interpret_trajectory(trajectory)
 
-        super().learn(trajectory, discount_factor)
+        super()._learn(trajectory, discount_factor)
 
         if self.compare_old_and_new_target_predictions and self.number_optimizations_done % self.target_update_learn_interval == 0:
 

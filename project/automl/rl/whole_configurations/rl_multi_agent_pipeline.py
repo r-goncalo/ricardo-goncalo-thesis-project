@@ -46,8 +46,8 @@ def config_dict():
                         "model" : (
                             FullyConnectedModelSchema, 
                             {
-                            "hidden_layers" : 3,
-                            "hidden_size" : 64
+                            "device" : "cuda",
+                            "layers" : [64, 64, 64]
                             }
                             ),
                         }
@@ -57,33 +57,36 @@ def config_dict():
         "rl_trainer" : (RLTrainerComponentParallel,
             
             {
-            "num_episodes" : 100,
+            "limit_total_steps" : 10e4,
             
             "default_trainer_class" : AgentTrainerDQN,
             "agents_trainers_input" : { #for each agent trainer
                 
                 "optimization_interval": 50,
-                "times_to_learn" : 2,
+                "times_to_learn" : 8,
+                "batch_size" : 16,
 
                 "learner" : (DeepQLearnerSchema, {
+                                "device" : "cuda",
                                "target_update_rate" : 0.05,
                                "optimizer" :(
                                    AdamOptimizer,
                                    {
-                                       "learning_rate" : 0.0001
+                                       "learning_rate" : 0.00001
                                    }
                 )
                 }),
             
                 "memory" : (TorchMemoryComponent, {
-                    "capacity" : 100
+                    "device" : "cuda",
+                    "capacity" : 1000
                 }),
                 
                 "exploration_strategy" : (EpsilonGreedyStrategy,
                                                                   {
-                                            "epsilon_end" : 0.1,
-                                            "epsilon_start" : 0.99,
-                                            "epsilon_decay" : 0.99
+                                            "epsilon_end" : 0.04,
+                                            "epsilon_start" : 1.0,
+                                            "epsilon_decay" : 0.16
                                                                   }
                                           )
     

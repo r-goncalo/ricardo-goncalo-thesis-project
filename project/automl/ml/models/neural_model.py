@@ -1,6 +1,8 @@
 import os
+from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
+from automl.hp_opt.hp_suggestion.variable_list_hp_suggestion import VariableListHyperparameterSuggestion
+from automl.loggers.global_logger import globalWriteLine
 from automl.ml.models.torch_model_components import TorchModelComponent
-from automl.hp_opt.hyperparameter_suggestion import VariableListHyperparameterSuggestion
 import torch
 import torch.nn as nn
 import torch.nn.functional as F    
@@ -24,7 +26,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
     # The actual model architecture
     class Model_Class(nn.Module):
         
-        def __init__(self, input_size, hidden_size, output_size, hidden_layers):
+        def __init__(self, input_size, output_size, hidden_layers : list[int]):
             super(FullyConnectedModelSchema.Model_Class, self).__init__()
             
             self.input_size = input_size
@@ -32,12 +34,12 @@ class FullyConnectedModelSchema(TorchModelComponent):
             layers = []
             prev_size = input_size
             
-            for _ in range(hidden_layers):
-                layers.append(nn.Linear(prev_size, hidden_size))
+            for i in range(len(hidden_layers)):
+                layers.append(nn.Linear(prev_size, hidden_layers[i]))
                 layers.append(nn.ReLU())
-                prev_size = hidden_size
+                prev_size = hidden_layers[i]
             
-            layers.append(nn.Linear(hidden_size, output_size))
+            layers.append(nn.Linear(prev_size, output_size))
             
             self.network = nn.Sequential(*layers)
 
@@ -51,15 +53,18 @@ class FullyConnectedModelSchema(TorchModelComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "hidden_layers" : InputSignature(description="Number of hidden layers"),
-        "hidden_size": InputSignature(description="Size of hidden layers"),
+        "hidden_layers" : InputSignature(mandatory=False, description="Number of hidden layers"),
+        "hidden_size": InputSignature(mandatory=False, description="Size of hidden layers"),
         "layers" : InputSignature(mandatory=False, 
                                   custom_dict={"hyperparameter_suggestion" : 
-                                               {"__type__" : VariableListHyperparameterSuggestion,
-                                                "min_len" : 2,
-                                                "max_len" : 4,
-
-                                                }
+                                               VariableListHyperparameterSuggestion(
+                                                   name="layers",
+                                                   min_len=2,
+                                                   max_len=4,
+                                                   hyperparameter_suggestion_for_list=
+                                                   SingleHyperparameterSuggestion(
+                                                       value_suggestion=("cat", {"choices" : [16, 32, 64, 128, 256]})
+                                                   ))
                                             }
                                     )
     }    
@@ -78,14 +83,42 @@ class FullyConnectedModelSchema(TorchModelComponent):
         if self.output_shape == None:
             raise Exception(f"{type(self)} needs output shape to be passed to setup its values, input: {self.input}")
         
-
         self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
         
-        self.hidden_size: int = self.get_input_value("hidden_size", is_none_ok=False)
-        self.hidden_layers: int = self.get_input_value("hidden_layers", is_none_ok=False)
+        self._setup_layers()
         
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
-                       
+
+    def _setup_layers(self):
+
+        self.hidden_size: int = self.get_input_value("hidden_size")
+        self.hidden_layers: int = self.get_input_value("hidden_layers")
+        self.layers = self.get_input_value("layers")
+
+        if self.hidden_size is None or self.hidden_layers is None and self.hidden_layers != self.hidden_size:
+            self.lg.writeLine(f"{self.name}: had hidden layers {self.hidden_layers} and hidden size {self.hidden_size}, both should not be None to be used")
+            self.remove_input("hidden_layers")
+            self.remove_input("hidden_size")
+            self.hidden_size = None
+            self.hidden_layers = None
+        
+        elif self.hidden_size is None and self.hidden_layers is None and self.layers is not None:
+            self.lg.writeLine(f"{self.name}: had hidden layers {self.hidden_layers} and hidden size {self.hidden_size}, but layers were defined, using layers...")
+            self.remove_input("hidden_layers")
+            self.remove_input("hidden_size")
+            self.hidden_size = None
+            self.hidden_layers = None
+
+        elif self.layers is None and self.hidden_size is None and self.hidden_layers is None:
+            raise Exception(f"Must specify either hidden_layers and hidden_size or layers")
+
+
+        if self.layers is None:
+            self.layers = [self.hidden_size for _ in range(self.hidden_layers)]
+
+        self.lg.writeLine(f"Setup of layes of FCN over, layers are: {self.layers}")
+
+        
 
 
     def _initialize_mininum_model_architecture(self):
@@ -101,9 +134,8 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size, 
-                hidden_size=self.hidden_size, 
                 output_size=self.output_size,
-                hidden_layers=self.hidden_layers
+                hidden_layers=self.layers
             )
 
     def _initialize_model(self):
@@ -114,9 +146,8 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self.model : nn.Module = type(self).Model_Class(
             input_size=self.input_size,
-                hidden_size=self.hidden_size, 
                 output_size=self.output_size,
-                hidden_layers=self.hidden_layers
+                hidden_layers=self.layers
             )
         
     def _is_model_well_formed(self):

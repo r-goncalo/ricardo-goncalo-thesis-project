@@ -65,9 +65,9 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         pass
     
     @requires_input_proccess
-    def learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory, discount_factor) -> None:
         
-        super().learn(trajectory, discount_factor)
+        super()._learn(trajectory, discount_factor)
 
         self.batch_size = len(trajectory[0])
 
@@ -215,9 +215,9 @@ class DeepQLearnerSchema(QLearnerSchema):
         self.number_optimizations_done += 1
     
     @requires_input_proccess
-    def learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory, discount_factor) -> None:
         
-        super().learn(trajectory, discount_factor)
+        super()._learn(trajectory, discount_factor)
 
         if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()

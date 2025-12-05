@@ -10,9 +10,13 @@ class SingleHyperparameterSuggestion(HyperparameterSuggestion):
         An Hyperparameter Suggestion that is a simple optuna wrapper
     '''
     
-    def __init__(self, name : str, value_suggestion, hyperparameter_localizations=None):
+    def __init__(self, name : str = '', value_suggestion=None, hyperparameter_localizations=None):
         
+        if value_suggestion is None:
+            raise Exception("Value suggestion must be different than none")
+
         super().__init__(name=name, hyperparameter_localizations=hyperparameter_localizations)
+
         self.value_suggestion = value_suggestion
 
     # SUGGESTIONS ------------------------------------    

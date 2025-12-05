@@ -28,7 +28,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     
     parameters_signature = {
         
-                       "optimization_interval" : InputSignature(description="How many steps between optimizations", default_value=1),
+                       "optimization_interval" : InputSignature(description="How many steps between optimizations", default_value=1,
+                                                                custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 100, "high": 500 }]}
+                                                                ),
                        
                        "times_to_learn" : InputSignature(default_value=1, description="How many times to optimize at learning time"), 
                        

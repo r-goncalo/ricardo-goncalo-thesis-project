@@ -32,6 +32,8 @@ def safe_get(collection_where_value_is : dict, index, default_value=None):
     '''gets the value in a collection'''
 
     try:
+        print(f"index: {index}")
+        print(f"Collection: {collection_where_value_is}")
         return collection_where_value_is[index]
     
     except (IndexError, KeyError) as e:
@@ -43,8 +45,6 @@ def get_last_collection_where_value_is(collection_where_value_is : dict, localiz
 
     '''Given a collection and a localization, returns the element before the last, that should be a collection'''
 
-    if not isinstance(localization, list):
-        localization = [localization]
 
     return get_value_from_value_loc(collection_where_value_is, localization[:-1], default_value, non_exist_safe)
 
@@ -70,6 +70,7 @@ def get_value_from_value_loc(collection_where_value_is : dict, localization, def
                 raise Exception(f"Error when getting collection before value, at index '{loc_index}', in localization: <{localization}> and collection {collection_where_value_is}") from e
 
     return current_value
+
 
 # LOCALIZATION OPERATIONS -------------------------------------------------------------------- 
 

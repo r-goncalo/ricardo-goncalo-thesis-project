@@ -17,7 +17,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
     It can have defined localizations, in which case it is able to set suggested values in those localizations or get already suggested values
     '''
     
-    def __init__(self, name : str, hyperparameter_localizations=None):
+    def __init__(self, name : str = '', hyperparameter_localizations=None):
         
         self.name = name
         self.base_name = name
@@ -29,7 +29,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
 
     def get_name(self):
-        '''Gets the curren name of the Hyperparameter Suggestion, should be unique'''
+        '''Gets the current name of the Hyperparameter Suggestion, should be unique'''
         return self.name
 
     def get_base_name(self):
@@ -83,15 +83,15 @@ class HyperparameterSuggestion(CustomJsonLogic):
         
         '''Sets the suggested value in the component, using the localization'''
     
-        for (component_localizer, hyperparameter_localizer) in hyperparameter_localizations:
+        for hyperparameter_localizer in hyperparameter_localizations:
             
             # gets the component change 
-            component_to_change : Component = get_component_by_localization_list(component_localizer, hyperparameter_localizer) 
+            component_to_change : Component = get_component_by_localization_list(component, hyperparameter_localizer[:-1]) 
             
             if component_to_change == None:
                 raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   
             
-            self._pass_input(component_to_change, hyperparameter_localizer, suggested_value)
+            component_to_change.pass_input({hyperparameter_localizer[-1] : suggested_value})
 
 
 
@@ -99,60 +99,18 @@ class HyperparameterSuggestion(CustomJsonLogic):
     
         '''Sets the suggested value in the dictionary representing a component, using the localization'''
 
-        for (component_localizer, hyperparameter_localizer) in hyperparameter_localizations:
+        for hyperparameter_localizer in hyperparameter_localizations:
             
-            component_dict : dict = get_child_dict_from_localization(component_dict, component_localizer)
-            
-            if not "input" in component_dict:
-                component_input_dict = {}
-            
-            else:
-                component_input_dict = component_dict["input"]
+            component_dict : dict = get_last_collection_where_value_is(component_dict, hyperparameter_localizer)
 
-            if component_dict == None:
-                raise Exception(f"Could not find component with localization <{component_localizer}>")   
-
-            self._pass_input_to_component_input(component_input_dict, hyperparameter_localizer, suggested_value)
-    
-
-
-    def _pass_input_to_component_input(self, component_input, hyperparameter_localizer, suggested_value):
-        
-        '''Passes the suggested value to the component input, using the localization'''
-        
-        current_input_dict = get_last_collection_where_value_is(component_input, hyperparameter_localizer)
-
-        try:
-
-            current_input_dict[hyperparameter_localizer[len(hyperparameter_localizer) - 1]] = suggested_value
-
-        except Exception as e:
-
-            raise Exception(f"Exception when setting last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
-
-        
-        
-    
-    def _pass_input(self, component_to_change : Component, hyperparameter_localizer, suggested_value):
-                        
-        '''Passes the suggested value to the component, using the localization'''
-                        
-        if isinstance(hyperparameter_localizer, str):
-            component_to_change.pass_input({hyperparameter_localizer : suggested_value})
-            return        
-        
-        elif len(hyperparameter_localizer) == 1:
-            component_to_change.pass_input({hyperparameter_localizer[0] : suggested_value})
-            return
-        
-        else:
-            self._pass_input_to_component_input(component_to_change.input, hyperparameter_localizer, suggested_value)
+            component_dict[hyperparameter_localizer[-1]] = suggested_value
+                
 
 
     # GET VALUE IN LOCALIZATION ---------------------------------------------------------
 
 
-    def try_get_suggested_value(self, component_definition : Union[Component, dict], localization):
+    def try_get_suggested_value(self, component_definition : Union[Component, dict], localization=None):
         
         '''Gets the suggested value in the component (or component input), using the localization'''
         
@@ -178,14 +136,14 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
         suggested_value = None
 
-        for (component_localizer, hyperparameter_localizer) in hyperparameter_localizations:
+        for hyperparameter_localizer in hyperparameter_localizations:
             
-            component_to_change : Component = get_component_by_localization_list(component, component_localizer) 
+            component_to_change : Component = get_component_by_localization_list(component, hyperparameter_localizer[:-1]) 
             
             if component_to_change == None:
-                raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   
+                raise Exception(f"Could not find component with localization <{hyperparameter_localizer}> in {component.name}")   
             
-            localization_suggested_value = self._try_get_already_passed_input(component_to_change, hyperparameter_localizer)
+            localization_suggested_value = component_to_change.get_input_value(hyperparameter_localizer[-1])
 
             if suggested_value != None and localization_suggested_value != suggested_value:
                 globalWriteLine(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
@@ -209,22 +167,15 @@ class HyperparameterSuggestion(CustomJsonLogic):
     
         '''Sets the suggested value in the dictionary representing a component, using the localization'''
 
-        for (component_localizer, hyperparameter_localizer) in hyperparameter_localizations:
-            
-            component_dict : dict = get_child_dict_from_localization(component_dict, component_localizer)
-            
-            if not "input" in component_dict:
-                component_input_dict = {}
-            
-            else:
-                component_input_dict = component_dict["input"]
+        suggested_value = None
 
-            if component_dict == None:
-                raise Exception(f"Could not find component with localization <{component_localizer}>")   
+        for hyperparameter_localizer in hyperparameter_localizations:
+            
+            colleciton_where_hyperparameter_is : dict = get_last_collection_where_value_is(component_dict, hyperparameter_localizer)
 
+            print(f"Trying to get value from {hyperparameter_localizer}")
 
-            localization_suggested_value = self._try_get_already_passed_input_to_component_input(component_input_dict, hyperparameter_localizer)
-        
+            localization_suggested_value = safe_get(colleciton_where_hyperparameter_is, hyperparameter_localizer[-1], None)
 
             if suggested_value != None and localization_suggested_value != suggested_value:
                 globalWriteLine(f"WARNING: Trying to get already suggested value in configuration with name {self.name}, and localizations have different values. This is still not implemented, and the value will be treated as if it is non existent")
@@ -241,8 +192,6 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
         return suggested_value
 
-    
-
 
     
     def _try_get_already_passed_input_to_component_input(self, component_input, hyperparameter_localizer):
@@ -257,22 +206,6 @@ class HyperparameterSuggestion(CustomJsonLogic):
         except Exception as e:
             raise Exception(f"Exception when trying to get last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
         
-    
-    def _try_get_already_passed_input(self, component_to_change : Component, hyperparameter_localizer):
-                        
-        '''Passes the suggested value to the component, using the localization'''
-                        
-        if isinstance(hyperparameter_localizer, str):
-
-            return component_to_change.input.get(hyperparameter_localizer, None)     
-        
-        elif len(hyperparameter_localizer) == 1:
-            return component_to_change.input.get(hyperparameter_localizer[0], None)   
-        
-        else:
-            
-            return self._try_get_already_passed_input_to_component_input(component_to_change.input, hyperparameter_localizer)
-            
         
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 
@@ -282,7 +215,8 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     def to_dict(self) -> dict:
 
-        to_return = {"name" : self.base_name}
+        to_return = {"name" : self.base_name,
+                     "__type__" : type(self)}
 
         if self.hyperparameter_localizations != None:
             to_return["localizations"] = self.hyperparameter_localizations

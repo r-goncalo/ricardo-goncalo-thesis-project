@@ -8,6 +8,7 @@ class LearnerSchema(Component):
         
     parameters_signature = {
         "agent" : InputSignature(),
+        "optimizations_per_learn" : InputSignature(default_value=1)
 
     }
         
@@ -16,6 +17,12 @@ class LearnerSchema(Component):
         super()._proccess_input_internal()
         
         self.agent : AgentSchema = self.get_input_value("agent")
+
+        self.optimizations_per_learn : int = self.get_input_value("optimizations_per_learn")
+
+    
+    def _learn(self, trajectory, discount_factor):
+        pass
         
         
     def learn(self, trajectory, discount_factor) -> None:
@@ -30,7 +37,8 @@ class LearnerSchema(Component):
                 
         '''
         
-        pass
+        for _ in range(self.optimizations_per_learn):
+            self._learn()
 
     
     def _interpret_trajectory(self, trajectory):

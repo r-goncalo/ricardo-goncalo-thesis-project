@@ -152,8 +152,8 @@ class PPOLearner(LearnerSchema):
     
     
     @requires_input_proccess
-    def learn(self, trajectory, discount_factor):
-        super().learn(trajectory, discount_factor)
+    def _learn(self, trajectory, discount_factor):
+        super()._learn(trajectory, discount_factor)
         
         self.number_of_times_optimized += 1
         
