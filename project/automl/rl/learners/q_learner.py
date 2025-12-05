@@ -64,7 +64,6 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
     def _optimize_with_predicted_model_values_and_correct_values(self, predicted_values, correct_values):
         pass
     
-    @requires_input_proccess
     def _learn(self, trajectory, discount_factor) -> None:
         
         super()._learn(trajectory, discount_factor)
@@ -214,7 +213,6 @@ class DeepQLearnerSchema(QLearnerSchema):
         
         self.number_optimizations_done += 1
     
-    @requires_input_proccess
     def _learn(self, trajectory, discount_factor) -> None:
         
         super()._learn(trajectory, discount_factor)
