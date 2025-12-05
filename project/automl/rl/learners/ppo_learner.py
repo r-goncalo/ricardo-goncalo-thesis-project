@@ -151,7 +151,6 @@ class PPOLearner(LearnerSchema):
     
     
     
-    @requires_input_proccess
     def _learn(self, trajectory, discount_factor):
         super()._learn(trajectory, discount_factor)
         

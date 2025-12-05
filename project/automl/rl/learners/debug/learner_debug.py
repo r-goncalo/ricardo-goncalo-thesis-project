@@ -28,7 +28,6 @@ class LearnerDebug(LearnerSchema, ComponentWithLogging):
         if self.compare_old_and_new_model_predictions:
             self.__temporary_model : TorchModelComponent = self.__agent_model.clone()        
     
-    @requires_input_proccess
     def _learn(self, trajectory, discount_factor) -> None:
 
         if self.compare_old_and_new_model_predictions:
@@ -162,7 +161,6 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
         if self.compare_old_and_new_target_model_params:
             self.__temporary_target_model_v2 = self.target_net.clone()
     
-    @requires_input_proccess
     def _learn(self, trajectory, discount_factor) -> None:
 
         if self.compare_old_and_new_target_predictions:

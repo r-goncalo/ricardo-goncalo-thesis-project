@@ -24,7 +24,7 @@ class LearnerSchema(Component):
     def _learn(self, trajectory, discount_factor):
         pass
         
-        
+    @requires_input_proccess
     def learn(self, trajectory, discount_factor) -> None:
         
         '''
