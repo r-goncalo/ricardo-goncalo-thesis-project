@@ -47,6 +47,29 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
                 
             
         return list_to_return
+    
+
+    def _try_get_suggested_optuna_values(self, component_definition, localization):
+
+        suggested_values = self.try_get_suggested_value(component_definition, localization)
+
+        if suggested_values is None:
+            return None
+
+        to_return = {self.name_len_list : len(suggested_values)}
+
+        for index in range(len(suggested_values)):
+
+            suggestion_to_put_in_list_base_name = self.hyperparameter_suggestion_for_list.get_base_name()
+            self.hyperparameter_suggestion_for_list.change_name(f"{self.name}_{suggestion_to_put_in_list_base_name}_{index}")
+
+            to_return = {
+                         **to_return
+                         **self.hyperparameter_suggestion_for_list.try_get_suggested_optuna_values(component_definition, [*localization, index])
+                        }      
+
+        
+        return to_return
 
 
     

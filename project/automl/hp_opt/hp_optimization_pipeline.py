@@ -438,10 +438,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         for hp_suggestion in self.hyperparameters_range_list:
 
-            initial_value = hp_suggestion.try_get_suggested_value(self.config_dict)
+            initial_optuna_values : dict = hp_suggestion.try_get_suggested_optuna_values(self.config_dict)
 
-            if initial_value != None:
-                initial_suggestion[hp_suggestion.name] = initial_value
+            if initial_optuna_values != None:
+                initial_suggestion = {**initial_suggestion, **initial_optuna_values}
 
             else:
                 self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")

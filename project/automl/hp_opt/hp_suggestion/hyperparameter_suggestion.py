@@ -109,6 +109,22 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     # GET VALUE IN LOCALIZATION ---------------------------------------------------------
 
+    def try_get_suggested_optuna_values(self, component_definition, localizaiton=None):
+
+        localization = self.hyperparameter_localizations if localization is None else localization
+
+        if localization is None:
+            raise Exception(f"No localization specified in function call nor in object to get suggested value in component")
+
+        return self._try_get_suggested_optuna_values(component_definition, localization)
+    
+
+
+    def _try_get_suggested_optuna_values(self, component_definition, localization):
+        
+        return {self.name : self.try_get_suggested_value(component_definition, localization)}
+
+
 
     def try_get_suggested_value(self, component_definition : Union[Component, dict], localization=None):
         
@@ -119,6 +135,12 @@ class HyperparameterSuggestion(CustomJsonLogic):
         if localization is None:
             raise Exception(f"No localization specified in function call nor in object to get suggested value in component")
 
+        return self._try_get_suggested_value(component_definition, localization)
+
+
+    def _try_get_suggested_value(self, component_definition : Union[Component, dict], localization):
+        
+        '''Gets the suggested value in the component (or component input), using the localization'''
         
         if isinstance(component_definition, Component):
             return self._try_get_already_suggested_value_in_component(component_definition, localization)
