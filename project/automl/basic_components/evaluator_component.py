@@ -1,9 +1,9 @@
 
 
-import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
-from automl.core.input_management import InputSignature
+from automl.utils.json_utils.json_component_utils import gen_component_from
+
 
 from abc import abstractmethod
 
@@ -44,6 +44,10 @@ class EvaluatorComponent(Component):
         Returns a dictionary with the results of the evaluation
         A value for the key "result" will always exist
         '''
+
+        if not isinstance(component_to_evaluate, Component):
+            component_to_evaluate = gen_component_from(component_to_evaluate)
+
         results = self._evaluate(component_to_evaluate)
 
         self.values["last_evaluation"] = results
