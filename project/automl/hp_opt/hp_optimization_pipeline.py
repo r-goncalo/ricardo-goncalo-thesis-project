@@ -6,6 +6,7 @@ from automl.basic_components.exec_component import ExecComponent
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
+from automl.hp_opt.optuna.custom_pruners import MixturePruner
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
@@ -230,55 +231,89 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             raise Exception(f"Could not instatiate sampler from class {sampler_class}") from e
     
     
-        
-    def _initialize_pruning_strategy(self):
+    def _initialize_pruning_strategy(self, passed_pruner, pruner_input):
         
         passed_pruner = self.get_input_value("pruner")
-        
-        if passed_pruner != None:
-            
-            self.lg.writeLine("Prunning strategy was defined")
-                        
-            if isinstance(passed_pruner, optuna.pruners.BasePruner):
-                
-                self.lg.writeLine(f"Passed instanced pruner of type: {type(passed_pruner)}")
-                self.pruning_strategy = passed_pruner
-            
-            elif isinstance(passed_pruner, str):
-            
-                self._initialize_pruner_from_string(passed_pruner)
-                self.lg.writeLine(f"Passed pruner string: {passed_pruner}")
-        
+
+        if passed_pruner is not  None:
+
+            if "pruner_input" in self.input.keys():
+                pruner_input = {**pruner_input, **self.get_input_value("pruner_input")}
+                self.lg.writeLine(f"Pruner input passed: {pruner_input}")
+
             else:
-                raise NotImplementedError(f"Pruner type {type(passed_pruner)} is not implemented")
+                pruner_input = {}
+
+            self.pruning_strategy = self._return_pruning_strategy(self, passed_pruner, pruner_input)
         
         else:
-            self.lg.writeLine("Won't use prunning strategy, none passed")
+            self.lg.writeLine(f"We won't use a pruning strategy, none passed")
+
+        
+    def _return_pruning_strategy(self, passed_pruner, pruner_input):
+                
+            
+        self.lg.writeLine("Prunning strategy was defined")
+                    
+        if isinstance(passed_pruner, optuna.pruners.BasePruner):
+            
+            self.lg.writeLine(f"Passed instanced pruner of type: {type(passed_pruner)}")
+            pruning_strategy = passed_pruner
+        
+        elif isinstance(passed_pruner, str):
+
+            self.lg.writeLine(f"Passed pruner string: {passed_pruner}")
+        
+            pruning_strategy = self._initialize_pruner_from_string(passed_pruner, pruner_input)
+            
+
+        else:
+            raise NotImplementedError(f"Pruner type {type(passed_pruner)} is not implemented")
+        
+        return pruning_strategy
             
             
         
-    def _initialize_pruner_from_string(self, passed_pruner_str : str):
+    def _initialize_pruner_from_string(self, passed_pruner_str : str, pruner_input):
 
-        self.lg.writeLine(f"Initializing pruner from string {passed_pruner_str}")
+        self.lg.writeLine(f"Initializing pruner from string {passed_pruner_str} and input {pruner_input}")
         
-        pruner_input = {}
-        
-        if "pruner_input" in self.input.keys():
-            pruner_input = {**pruner_input, **self.get_input_value("pruner_input")}
-            self.lg.writeLine(f"Pruner input passed: {pruner_input}")
-
         
         if passed_pruner_str == "Median":
-                self.pruning_strategy = optuna.pruners.MedianPruner(**pruner_input)
+                pruning_strategy = optuna.pruners.MedianPruner(**pruner_input)
                 
         elif passed_pruner_str == "PercentilePruner":
-                self.pruning_strategy = optuna.pruners.PercentilePruner(**pruner_input)
+                pruning_strategy = optuna.pruners.PercentilePruner(**pruner_input)
 
         elif passed_pruner_str == "HyperbandPruner":
-                self.pruning_strategy = optuna.pruners.HyperbandPruner(**pruner_input)
+                pruning_strategy = optuna.pruners.HyperbandPruner(**pruner_input)
+
+        elif passed_pruner_str == 'MixturePruner':
+            
+            pruners_for_mixture = pruner_input["pruners"]
+            instanced_pruners_for_mixture = []
+
+
+            for pruner_definition in pruners_for_mixture:
+                
+                pruner_for_mixture = pruner_definition[0]
+                pruner_for_mixture_input = pruner_definition[1]
+
+                instanced_pruners_for_mixture.append(
+                    self._return_pruning_strategy(pruner_for_mixture, pruner_for_mixture_input)
+                )
+
+                pruning_strategy = MixturePruner([
+
+                ])
+
+
         
         else:
             raise NotImplementedError(f"Pruner '{passed_pruner_str}' is not implemented")
+        
+
+        return pruning_strategy
     
     
         
