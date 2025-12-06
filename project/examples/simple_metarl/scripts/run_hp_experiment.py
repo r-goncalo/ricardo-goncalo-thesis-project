@@ -35,6 +35,13 @@ def main(hp_configuration_path=None, to_optimize_configuration_path=None, path_t
     limit_text_input.change_default_value(1000) # this is because we don't want every single thing logging and taking up resources
 
     hp_pipeline_input["logger_input"] = {"write_to_file_when_text_lines_over" : -1}
+
+    if default_logger_level != None:
+
+        print(f"\nNew default logger level: {default_logger_level}")
+      
+        change_default_logger_level(default_logger_level)
+
     
     if to_optimize_configuration_path != None:
         hp_pipeline_input["base_component_configuration_path"] = to_optimize_configuration_path
@@ -75,11 +82,6 @@ def main(hp_configuration_path=None, to_optimize_configuration_path=None, path_t
       
         activate_global_logger(hp_optimization_pipeline.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
 
-    if default_logger_level != None:
-
-        print(f"\nNew default logger level: {default_logger_level}")
-      
-        change_default_logger_level(default_logger_level)
 
 
 
