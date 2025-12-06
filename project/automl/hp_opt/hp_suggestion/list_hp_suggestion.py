@@ -26,7 +26,7 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
                 self.hyperparameter_suggestions[key] = hyperparameter_suggestion.clone()
         
 
-    def make_suggestion(self, trial : optuna.Trial) -> dict:
+    def _make_suggestion(self, trial : optuna.Trial) -> dict:
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         

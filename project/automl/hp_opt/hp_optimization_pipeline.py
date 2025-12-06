@@ -162,7 +162,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _initialize_config_dict(self):
         
         if "base_component_configuration_path" in self.input.keys():
-            self.load_configuration_dict_from_path()
+
+            self.rl_pipeline_config_path : str = self.get_input_value("base_component_configuration_path")
+            self.load_configuration_dict_from_path(self.rl_pipeline_config_path)
   
         elif "configuration_dict" in self.input.keys():
 
@@ -173,7 +175,17 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             self.config_dict = dict_from_json_string(self.get_input_value("configuration_string"))
             
         else:
-            raise Exception("No configuration defined")
+
+            hp_component_path = self.get_artifact_directory()
+            possible_configuration_file = os.path.join(hp_component_path, "to_optimize_configuration.json")
+
+            if os.path.exists(possible_configuration_file):
+
+                self.rl_pipeline_config_path : str = possible_configuration_file
+                self.load_configuration_dict_from_path(self.rl_pipeline_config_path)
+
+            else:
+                raise Exception("No configuration defined")
         
     
     #it constructs the path for the database        
@@ -319,11 +331,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
         
-    def load_configuration_dict_from_path(self):
+    def load_configuration_dict_from_path(self, path):
         
-        self.rl_pipeline_config_path : str = self.get_input_value("base_component_configuration_path")
-        
-        fd = open(self.rl_pipeline_config_path, 'r') 
+        fd = open(path, 'r') 
         self.config_str = fd.read()
         fd.close()
         

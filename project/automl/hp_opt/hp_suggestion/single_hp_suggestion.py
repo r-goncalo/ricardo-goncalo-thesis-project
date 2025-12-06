@@ -21,7 +21,7 @@ class SingleHyperparameterSuggestion(HyperparameterSuggestion):
 
     # SUGGESTIONS ------------------------------------    
         
-    def make_suggestion(self, trial : optuna.Trial):
+    def _make_suggestion(self, trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         

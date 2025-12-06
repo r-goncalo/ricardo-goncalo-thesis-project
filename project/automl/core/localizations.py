@@ -32,8 +32,6 @@ def safe_get(collection_where_value_is : dict, index, default_value=None):
     '''gets the value in a collection'''
 
     try:
-        print(f"index: {index}")
-        print(f"Collection: {collection_where_value_is}")
         return collection_where_value_is[index]
     
     except (IndexError, KeyError) as e:

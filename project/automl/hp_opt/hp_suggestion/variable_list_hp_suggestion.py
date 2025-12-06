@@ -28,7 +28,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
             self.hyperparameter_suggestion_for_list = decode_components_input_element(self.hyperparameter_suggestion_for_list)
 
 
-    def make_suggestion(self, trial : optuna.Trial):
+    def _make_suggestion(self, trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         
@@ -41,6 +41,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
             suggestion_to_put_in_list = self.hyperparameter_suggestion_for_list
 
             suggestion_to_put_in_list_base_name = suggestion_to_put_in_list.get_base_name()
+
             suggestion_to_put_in_list.change_name(f"{self.name}_{suggestion_to_put_in_list_base_name}_{i}")
 
             list_to_return.append(suggestion_to_put_in_list.make_suggestion(trial))
@@ -49,23 +50,24 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
         return list_to_return
     
 
-    def _try_get_suggested_optuna_values(self, component_definition, localization):
+    def _try_get_suggested_optuna_values(self, component_definition, localizations):
 
-        suggested_values = self.try_get_suggested_value(component_definition, localization)
+        suggested_values = self.try_get_suggested_value(component_definition, localizations)
 
         if suggested_values is None:
-            return None
+            return {}
 
         to_return = {self.name_len_list : len(suggested_values)}
 
         for index in range(len(suggested_values)):
 
             suggestion_to_put_in_list_base_name = self.hyperparameter_suggestion_for_list.get_base_name()
+
             self.hyperparameter_suggestion_for_list.change_name(f"{self.name}_{suggestion_to_put_in_list_base_name}_{index}")
 
             to_return = {
-                         **to_return
-                         **self.hyperparameter_suggestion_for_list.try_get_suggested_optuna_values(component_definition, [*localization, index])
+                         **to_return,
+                         **self.hyperparameter_suggestion_for_list.try_get_suggested_optuna_values(suggested_values, [[index]])
                         }      
 
         

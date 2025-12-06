@@ -48,6 +48,16 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     def make_suggestion(self, trial : optuna.Trial):
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
+        
+        try:
+            return self._make_suggestion(trial)
+        
+        except Exception as e:
+            raise Exception(f"Exception when making suggestion for hyperparameter with name {self.name}: \n{e}") from e
+
+
+    def _make_suggestion(self, trial : optuna.Trial):
+        '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
 
     # LOCALIZATIONS ---------------------------------------
 
@@ -109,21 +119,25 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     # GET VALUE IN LOCALIZATION ---------------------------------------------------------
 
-    def try_get_suggested_optuna_values(self, component_definition, localizaiton=None):
+    def try_get_suggested_optuna_values(self, component_definition, localizations=None):
 
-        localization = self.hyperparameter_localizations if localization is None else localization
+        localizations = self.hyperparameter_localizations if localizations is None else localizations
 
-        if localization is None:
+        if localizations is None:
             raise Exception(f"No localization specified in function call nor in object to get suggested value in component")
 
-        return self._try_get_suggested_optuna_values(component_definition, localization)
+        return self._try_get_suggested_optuna_values(component_definition, localizations)
     
 
 
-    def _try_get_suggested_optuna_values(self, component_definition, localization):
-        
-        return {self.name : self.try_get_suggested_value(component_definition, localization)}
+    def _try_get_suggested_optuna_values(self, component_definition, localizations):
 
+        value_to_return = self.try_get_suggested_value(component_definition, localizations)
+
+        if value_to_return is None:
+            return {} 
+        
+        return {self.name : value_to_return}
 
 
     def try_get_suggested_value(self, component_definition : Union[Component, dict], localization=None):
@@ -145,11 +159,11 @@ class HyperparameterSuggestion(CustomJsonLogic):
         if isinstance(component_definition, Component):
             return self._try_get_already_suggested_value_in_component(component_definition, localization)
             
-        elif isinstance(component_definition, dict):
+        elif isinstance(component_definition, (dict, list)):
             return self._try_get_suggested_value_in_dict(component_definition, localization)
             
         else:   
-            raise Exception(f"Component definition is not a Component or a dict, but {type(component_definition)}") 
+            raise Exception(f"Component definition is not a Component or a (dict | list), but {type(component_definition)}") 
 
 
     def _try_get_already_suggested_value_in_component(self, component : Component, hyperparameter_localizations):
@@ -194,8 +208,6 @@ class HyperparameterSuggestion(CustomJsonLogic):
         for hyperparameter_localizer in hyperparameter_localizations:
             
             colleciton_where_hyperparameter_is : dict = get_last_collection_where_value_is(component_dict, hyperparameter_localizer)
-
-            print(f"Trying to get value from {hyperparameter_localizer}")
 
             localization_suggested_value = safe_get(colleciton_where_hyperparameter_is, hyperparameter_localizer[-1], None)
 
