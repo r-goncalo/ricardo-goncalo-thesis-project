@@ -237,12 +237,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         if passed_pruner is not  None:
 
-            if "pruner_input" in self.input.keys():
-                pruner_input = {**pruner_input, **self.get_input_value("pruner_input")}
-                self.lg.writeLine(f"Pruner input passed: {pruner_input}")
-
-            else:
-                pruner_input = {}
+            pruner_input = self.get_input_value("pruner_input", {})
+            self.lg.writeLine(f"Pruner input passed: {pruner_input}")
 
             self.pruning_strategy = self._return_pruning_strategy(passed_pruner, pruner_input)
         
