@@ -231,7 +231,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             raise Exception(f"Could not instatiate sampler from class {sampler_class}") from e
     
     
-    def _initialize_pruning_strategy(self, passed_pruner, pruner_input):
+    def _initialize_pruning_strategy(self):
         
         passed_pruner = self.get_input_value("pruner")
 
@@ -244,7 +244,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             else:
                 pruner_input = {}
 
-            self.pruning_strategy = self._return_pruning_strategy(self, passed_pruner, pruner_input)
+            self.pruning_strategy = self._return_pruning_strategy(passed_pruner, pruner_input)
         
         else:
             self.lg.writeLine(f"We won't use a pruning strategy, none passed")
@@ -303,8 +303,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     self._return_pruning_strategy(pruner_for_mixture, pruner_for_mixture_input)
                 )
 
-                pruning_strategy = MixturePruner([
-
+            pruning_strategy = MixturePruner([
+                    instanced_pruners_for_mixture        
                 ])
 
 
