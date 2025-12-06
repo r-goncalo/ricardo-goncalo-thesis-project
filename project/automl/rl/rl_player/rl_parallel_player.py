@@ -11,7 +11,7 @@ class RLParallelPlayer(RLPlayer):
         """
         super()._proccess_input_internal()
 
-        self.env :ParallelEnvironmentComponent = self.env
+        self.env : ParallelEnvironmentComponent = self.env
 
         if not isinstance(self.env, ParallelEnvironmentComponent):
             raise Exception(f"RLParallelPlayer requires ParallelEnvironmentComponent, got {type(self.env)}")
@@ -43,6 +43,7 @@ class RLParallelPlayer(RLPlayer):
         return total_reward, done
 
 
+
     def _run_episode(self):
         """
         Overrides RLPlayer.__run_episode()  
@@ -62,4 +63,3 @@ class RLParallelPlayer(RLPlayer):
 
             if self.limit_steps > 0 and self.values["episode_steps"] >= self.limit_steps:
                 break
-
