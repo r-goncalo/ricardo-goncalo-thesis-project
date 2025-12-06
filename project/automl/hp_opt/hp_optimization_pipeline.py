@@ -275,6 +275,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         elif passed_pruner_str == "PercentilePruner":
             
                 self.pruning_strategy = optuna.pruners.PercentilePruner(**pruner_input)
+
+        elif passed_pruner_str == optuna.pruners.HyperbandPruner(**pruner_input)
         
         else:
             raise NotImplementedError(f"Pruner '{passed_pruner_str}' is not implemented")
