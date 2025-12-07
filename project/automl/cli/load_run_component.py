@@ -10,7 +10,7 @@ def generate_path(component_path, target_path_dir='', target_path_name=None):
 
     target_path_dir = '' if target_path_dir is None else target_path_dir
 
-    experiment_path = open_or_create_folder(target_path_dir, target_path_dir) if target_path_name is not None else target_path_dir
+    experiment_path = open_or_create_folder(target_path_dir, target_path_name, create_new=True) if target_path_name is not None else target_path_dir
 
     shutil.copytree(component_path, experiment_path, dirs_exist_ok=True)
 
