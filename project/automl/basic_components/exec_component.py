@@ -72,8 +72,6 @@ class ExecComponent(Component):
     def __on_exception(self, exception):
         '''To be called when a non treated exception happens'''
 
-        globalWriteLine(f"Component {self.name} of type {type(self)} is dealing with the exception: {exception}")
-
         self._deal_with_exception(exception)
     
     def _deal_with_exception(self, exception):
@@ -112,5 +110,5 @@ class ExecComponent(Component):
         except Exception as e:
             self.values["running_state"] = State.ERROR
             self.__on_exception(e)
-            raise e # TODO: decide on this, are the elements that run this responsible for caughting the exception?
+            raise e
     

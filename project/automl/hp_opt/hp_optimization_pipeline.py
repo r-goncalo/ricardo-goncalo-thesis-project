@@ -1,4 +1,3 @@
-import gc
 import os
 from typing import Union
 from automl.component import InputSignature, Component, requires_input_proccess
@@ -68,7 +67,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                         "start_with_given_values" : InputSignature(default_value=True),
 
-                        "continue_after_error" : InputSignature(default_value=False, description="If trials should continue after an error or not")
+                        "continue_after_error" : InputSignature(default_value=False, description="If trials should continue after an error or not"),
                                                     
                        }
             
@@ -432,6 +431,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         component_saver_loader.unload_component()
 
 
+    def _get_path_of_component_of_trial(self, trial : optuna.Trial):
+
+        return self.trial_loaders[trial.number].get_artifact_directory()
+
+
     # SETUP TRIALS AND SUGGESTIONS -------------------------------------------------------------------------
 
 
@@ -610,32 +614,39 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             except Exception as e:
 
                 if isinstance(e, optuna.TrialPruned):
-                    raise # don't consume exception, let it pass, so optuna can deal with it
+                    raise e # don't consume exception, let it pass, so optuna can deal with it
+                
                 
                 # if we reached here, it means an exception other than the trial being pruned was got
-
                 self.lg.writeLine(f"Error in trial {trial.number} at step {step}, prunning it...")
                 trial.set_user_attr("prune_reason", "error")
-                
+
                 if component_to_test_path != None:
                     try:
                         self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
                         component_to_test.save_configuration(save_exposed_values=True, config_filename=f'_configurations\\configuration_{step + 1}_error.json')
                         self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial)
-
                     except:
                         self.lg.writeLine(f"Saving state of trial due to error failed")
                         pass
-                
+                    
                 else:
                     self.lg.writeLine(f"Can't try to save state of trial because its path could not be computed")
-
+                
                 if self.continue_after_error: # if we are to continue after an error, we count the trial simply as pruned, and let optuna deal with it
                     raise optuna.TrialPruned("error")
                 
                 else: # if not, we propagate the exception
                     self.lg.writeLine("As <continue_after_error> was set to False, we end the Hyperparameter Optimization process and propagate the error to the caller")
                     raise e
+                
+            except KeyboardInterrupt as e:
+            
+                self.lg.writeLine(f"User interrupted experiment in trial {trial.number} at step {step}, prunning it...")
+                trial.set_user_attr("prune_reason", "user_interrupt")
+
+                raise e
+
 
 
 
@@ -651,10 +662,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         input_to_pass_before_running = {}
 
         input_to_pass_before_running["times_to_run"] = self.n_steps # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
-        
+
         for step in range(self.n_steps):
 
             evaluation_results = self.run_single_step_of_objective(trial, component_to_test, step, input_to_pass_before_running)
+
+        
+
 
         return evaluation_results["result"]   # this is the value the objective will optimize
             

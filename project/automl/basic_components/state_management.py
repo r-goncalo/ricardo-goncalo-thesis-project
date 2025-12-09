@@ -213,9 +213,6 @@ def unload_component(component : Component) -> None:
         
                         
             
-                
-                
-    
 
 # TODO: REVIEW THIS, it is weird and unecessarly complex
 class StatefulComponentLoader(ArtifactComponent):
@@ -237,7 +234,7 @@ class StatefulComponentLoader(ArtifactComponent):
         
         self.input["artifact_relative_directory"] = ''
         self.input["base_directory"] = component.get_artifact_directory()
-        
+        self.input["create_new_directory"] = False        
 
         
     def _proccess_input_internal(self):
