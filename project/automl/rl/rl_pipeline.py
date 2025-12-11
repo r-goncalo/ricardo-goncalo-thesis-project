@@ -168,6 +168,10 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         self.setup_agent_state_action_shape(agent_name, agent)
                             
         agent.pass_input(self.agents_input)
+
+        
+
+
             
             
     def setup_agent_state_action_shape(self, agent_name, agent : AgentSchema):       

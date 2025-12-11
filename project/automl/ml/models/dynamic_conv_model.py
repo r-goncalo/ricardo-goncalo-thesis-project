@@ -8,26 +8,18 @@ from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
 
-from ...component import InputSignature
-import torch
-import random
-import math
-import numpy as nn
-
 from automl.ml.models.model_components import ModelComponent
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.component import InputSignature
 from automl.utils.shapes_util import  discrete_output_layer_size_of_space
 
 
-class CNNModelSchema(TorchModelComponent):
+class DynamicConvModelSchema(TorchModelComponent):
 
     class Model_Class(nn.Module):
-        def __init__(self, input_shape, output_size, cnn_layers):
+
+        def __init__(self, input_shape, cnn_layers, output_size=None):
             """
             input_shape: (C, H, W)
             cnn_layers: list of dicts with out_channels, kernel_size, stride
@@ -36,6 +28,8 @@ class CNNModelSchema(TorchModelComponent):
             super().__init__()
 
             C, H, W = input_shape
+
+            self.input_shape = [C, H, W]
 
             layers = []
             in_channels = C
@@ -57,17 +51,38 @@ class CNNModelSchema(TorchModelComponent):
 
             self.feature_extractor = nn.Sequential(*layers)
 
+            self.last_H = H
+            self.last_W = W
+            self.last_out_channels = oc
+
             # Flatten size after CNN
             flatten_size = in_channels * H * W
             self.flatten_size = flatten_size
 
-            # Final linear layer
-            self.output_layer = nn.Linear(flatten_size, output_size)
+            self.output_size = output_size
+            if output_size != None:
+                self.output_layer = nn.Linear(flatten_size, output_size)
+
+            else:
+                self.output_layer = None
 
         def forward(self, x):
             x = self.feature_extractor(x)
-            x = torch.flatten(x, 1)
-            return self.output_layer(x)
+
+            if self.output_layer is not None:
+                x = torch.flatten(x, 1)
+                return self.output_layer(x)
+            
+            return x
+        
+        def get_input_shape(self):
+           return self.input_shape
+       
+        def get_output_shape(self):
+           if self.output_size is not None:
+               return self.output_size
+           else:
+               return [self.last_out_channels, self.last_H, self.last_W]
 
     # ----------------------------------------------------------
     # INPUT SIGNATURE
@@ -107,10 +122,11 @@ class CNNModelSchema(TorchModelComponent):
         if self.input_shape is None:
             raise Exception(f"{type(self)} requires input_shape")
 
-        if self.output_shape is None:
-            raise Exception(f"{type(self)} requires output_shape")
+        if self.output_shape is not None:
+            self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
 
-        self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
+        else:
+            self.output_size = None
 
         # CNN layers list (list of dicts)
         self.cnn_layers = self.get_input_value("cnn_layers")

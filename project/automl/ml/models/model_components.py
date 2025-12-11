@@ -1,15 +1,11 @@
-from ...component import Component, InputSignature, requires_input_proccess
-import torch
-import random
-import math
-import numpy as nn
+from automl.component import Component, InputSignature, requires_input_proccess
 
 
 class ModelComponent(Component):
         
     parameters_signature = {
         "input_shape": InputSignature(mandatory=False, description="Used for models which can still change their input shape"),
-        "output_shape": InputSignature(mandatory=False, description="Used for models which can still change their output shape"),
+        "output_shape": InputSignature(mandatory=False, description="Used for models which can still change their output shape"), #output shape can have a default value
     }    
     
     def _proccess_input_internal(self):
@@ -43,6 +39,14 @@ class ModelComponent(Component):
     def update_model_with_target(self, target_model, target_model_weight):
         pass
     
+    @requires_input_proccess
+    def get_model_input_shape(self):
+        return self.input_shape
+    
+    @requires_input_proccess
+    def get_model_output_shape(self):
+        return self.output_shape
+        
     
     
     

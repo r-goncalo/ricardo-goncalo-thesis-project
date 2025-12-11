@@ -56,9 +56,12 @@ def discrete_input_layer_size_of_space(state_space) -> int:
     elif isinstance(state_space, gymnasium.spaces.Space):
         return discrete_input_layer_size_of_space_gym(state_space)
     
-    elif isinstance(state_space, tuple):
+    elif isinstance(state_space, (tuple, list)):
         
-        return prod([ (s if isinstance(s, int) else discrete_input_layer_size_of_space(s)) for s in state_space])
+        return prod([ discrete_input_layer_size_of_space(s) for s in state_space])
+    
+    elif isinstance(state_space, int):
+        return state_space
     
     else:
         raise NotImplementedError(f"Unkown space type: {type(state_space)} with value: {state_space}")
@@ -114,7 +117,7 @@ def discrete_output_layer_size_of_space_gym(action_space : gymnasium.Space):
         return sum(discrete_output_layer_size_of_space(s) for s in action_space.spaces.values())  # Sum of all dictionary subspaces
     
     else:
-        raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
+        raise NotImplementedError(f"Unknown gym action space type: {type(action_space)} with value {action_space}")
     
     
 def discrete_output_layer_size_of_space(action_space):
@@ -130,7 +133,7 @@ def discrete_output_layer_size_of_space(action_space):
         return action_space
     
     else:
-        raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
+        raise NotImplementedError(f"Unknown action space type: {type(action_space)} with value {action_space}")
     
     
 # ACTION SHAPE SIZE ---------------------------------------------------------------------

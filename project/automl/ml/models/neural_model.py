@@ -1,14 +1,11 @@
-import os
 from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
 from automl.hp_opt.hp_suggestion.variable_list_hp_suggestion import VariableListHyperparameterSuggestion
 from automl.loggers.global_logger import globalWriteLine
 from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
-import torch.nn.functional as F    
 
-from automl.component import Component, InputSignature, requires_input_proccess
-import random
+from automl.component import InputSignature
 
 from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
 
@@ -26,20 +23,28 @@ class FullyConnectedModelSchema(TorchModelComponent):
     # The actual model architecture
     class Model_Class(nn.Module):
         
-        def __init__(self, input_size, output_size, hidden_layers : list[int]):
-            super(FullyConnectedModelSchema.Model_Class, self).__init__()
+        def __init__(self, hidden_layers : list[int], activation_function="relu"):
+            super().__init__()
             
-            self.input_size = input_size
+            self.input_size = hidden_layers[0]
+            self.output_size = hidden_layers[-1]
+
+
+            if activation_function == "relu":
+                activation_function  : type = nn.ReLU
+            else:
+                raise Exception(f"Unkown activation function")
             
+
             layers = []
-            prev_size = input_size
+
+            # for each layer except the last two, connect them with activation function
+            for i in range(len(hidden_layers) - 2):
+                layers.append(nn.Linear(hidden_layers[i], hidden_layers[i + 1]))
+                layers.append(activation_function())
             
-            for i in range(len(hidden_layers)):
-                layers.append(nn.Linear(prev_size, hidden_layers[i]))
-                layers.append(nn.ReLU())
-                prev_size = hidden_layers[i]
-            
-            layers.append(nn.Linear(prev_size, output_size))
+            # the last is just a linear, without activation function
+            layers.append(nn.Linear(hidden_layers[-2], hidden_layers[-1]))
             
             self.network = nn.Sequential(*layers)
 
@@ -47,8 +52,14 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
             if isinstance(x, torch.Tensor):
                 x = x.reshape(-1, self.input_size) #the x is reshaped so it has 2 dimensions, the first one is the batch and the second the input size 
-                        
+            
             return self.network(x)
+        
+        def get_output_shape(self):
+            return self.output_size
+        
+        def get_input_shape(self):
+            return self.input_size
     
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -66,7 +77,8 @@ class FullyConnectedModelSchema(TorchModelComponent):
                                                        value_suggestion=("cat", {"choices" : [16, 32, 64, 128, 256]})
                                                    ))
                                             }
-                                    )
+                                    ),
+        "activation_function" : InputSignature(default_value="relu")
     }    
     
     def _proccess_input_internal(self):
@@ -83,11 +95,11 @@ class FullyConnectedModelSchema(TorchModelComponent):
         if self.output_shape == None:
             raise Exception(f"{type(self)} needs output shape to be passed to setup its values, input: {self.input}")
         
-        self.input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
-        
+
+        self.activation_function = self.get_input_value("activation_function")
+
         self._setup_layers()
         
-        self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
 
     def _setup_layers(self):
 
@@ -112,13 +124,23 @@ class FullyConnectedModelSchema(TorchModelComponent):
         elif self.layers is None and self.hidden_size is None and self.hidden_layers is None:
             raise Exception(f"Must specify either hidden_layers and hidden_size or layers")
 
-
         if self.layers is None:
             self.layers = [self.hidden_size for _ in range(self.hidden_layers)]
 
-        self.lg.writeLine(f"Setup of layes of FCN over, layers are: {self.layers}")
+        if self.input_shape is not None:
+            input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
+            self.layers.insert(0, input_size)
+            self.lg.writeLine(f"Input shape was specified: {self.input_shape}")
+            self.lg.writeLine(f"First layer will have size of: {input_size}")
 
-        
+
+        if self.output_shape is not None:
+            output_size = discrete_output_layer_size_of_space(self.output_shape)
+            self.layers.append(output_size)
+            self.lg.writeLine(f"Output shape was specified: {self.output_shape}")
+            self.lg.writeLine(f"Last layer will have size of: {output_size}")
+         
+        self.lg.writeLine(f"Setup of layes of FCN over, layers are: {self.layers}")
 
 
     def _initialize_mininum_model_architecture(self):
@@ -133,9 +155,8 @@ class FullyConnectedModelSchema(TorchModelComponent):
         self._setup_values() # this needs the values from the input fully setup
 
         self.model : nn.Module = type(self).Model_Class(
-            input_size=self.input_size, 
-                output_size=self.output_size,
-                hidden_layers=self.layers
+                hidden_layers=self.layers,
+                activation_function=self.activation_function
             )
 
     def _initialize_model(self):
@@ -145,15 +166,15 @@ class FullyConnectedModelSchema(TorchModelComponent):
         super()._initialize_model()
 
         self.model : nn.Module = type(self).Model_Class(
-            input_size=self.input_size,
-                output_size=self.output_size,
-                hidden_layers=self.layers
+                hidden_layers=self.layers,
+                activation_function=self.activation_function
             )
         
     def _is_model_well_formed(self):
         super()._is_model_well_formed()
         
         # TODO: verify if size and so on are coherent
+
         
                             
     # EXPOSED METHODS --------------------------------------------

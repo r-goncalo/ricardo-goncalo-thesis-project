@@ -1,5 +1,8 @@
 from automl.ml.memory.torch_disk_memory_component import TorchDiskMemoryComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
+from automl.ml.models.conv_model import ConvModel
+from automl.ml.models.dynamic_conv_model import DynamicConvModelSchema
+from automl.ml.models.joint_model import ModelSequenceComponent
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.ml.models.neural_model import FullyConnectedModelSchema
@@ -43,15 +46,24 @@ def config_dict():
 
             "policy" : ( QPolicy,
                         {
+
                         "model" : (
-                            FullyConnectedModelSchema, 
-                            {
-                            "device" : "cuda",
-                            "layers" : [64, 64, 64]
-                            }
-                            ),
+                            ModelSequenceComponent,
+                             {"models": [ 
+
+                                [("__get_by_name__", {"name_of_component" : "shared_model"})], 
+                                
+                                (FullyConnectedModelSchema, 
+                                {
+                                "device" : "cuda",
+                                "layers" : [64, 32]
+                                }
+                                ),
+                             ]}
+
+                        )
                         }
-                )
+            )
         },
         
         "rl_trainer" : (RLTrainerComponentParallel,
@@ -62,13 +74,13 @@ def config_dict():
             "default_trainer_class" : AgentTrainerDQN,
             "agents_trainers_input" : { #for each agent trainer
                 
-                "optimization_interval": 50,
-                "times_to_learn" : 8,
-                "batch_size" : 16,
+                "optimization_interval": 1000,
+                "times_to_learn" : 64,
+                "batch_size" : 64,
 
                 "learner" : (DeepQLearnerSchema, {
                                 "device" : "cuda",
-                               "target_update_rate" : 0.05,
+                               "target_update_rate" : 1.0,
                                "optimizer" :(
                                    AdamOptimizer,
                                    {
@@ -95,5 +107,20 @@ def config_dict():
             }
         )
         
-    }
+    },
+    "child_components" : [
+        {
+            "__type__" : DynamicConvModelSchema,
+            "name" : "shared_model",
+            "input" : {
+                "cnn_layers" : [
+                    {"kernel_size" : 8, "out_channels" : 32, "stride" : 4},
+                    {"kernel_size" : 4, "out_channels" : 64, "stride" : 2},
+                    {"kernel_size" : 3, "out_channels" : 64, "stride" : 1},
+                    
+
+                ]
+            }
+        }
+    ]
 }

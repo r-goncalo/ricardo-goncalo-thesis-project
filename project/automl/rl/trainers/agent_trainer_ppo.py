@@ -52,7 +52,7 @@ class AgentTrainerPPO(AgentTrainer):
                 
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", self.agent_policy.get_policy_shape(), torch.int64),
+                                        ("action", self.agent_policy.get_policy_output_shape(), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
                                         ("done", 1),

@@ -156,7 +156,7 @@ class DeepQLearnerSchema(QLearnerSchema):
         else:
             self.lg.writeLine("No target network previously defined, creating a new one...")
             
-            self.target_net : ModelComponent = self.model.clone(input_for_clone={"name" : "target_network"}) #the target network has the same initial parameters as the policy being trained
+            self.target_net : ModelComponent = self.model.clone(input_for_clone={"name" : "target_network"}, is_deep_clone=True) #the target network has the same initial parameters as the policy being trained
             self.define_component_as_child(self.target_net)
             
             self.values["target_network"] = self.target_net

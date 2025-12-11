@@ -10,8 +10,8 @@ from automl.ml.models.model_components import ModelComponent
 
 
 class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLogging):
-    
-    
+
+
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
@@ -27,11 +27,13 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
         super()._proccess_input_internal()
 
+        self.device = self.get_input_value("device")
+
         self.__synchro_model_value_attr()
                         
         self._setup_model()
 
-        self.device = self.get_input_value("device")
+        
         
         if self.device != None:
             self.model.to(self.device)
@@ -195,25 +197,30 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
         @param target_model_weight is the relevance of the target model, 1 will mean a total copy, 0 will do nothing, 0.5 will be an average between the models
         '''
-        
-        with torch.no_grad():
-            this_model_state_dict = self.model.state_dict()
-            target_model_state_dict = target_model.model.state_dict()
 
-            for key in target_model_state_dict:
-                this_model_state_dict[key] = (
-                    target_model_state_dict[key] * target_model_weight + 
-                    this_model_state_dict[key] * (1 - target_model_weight)
-                )
-            
-            self.model.load_state_dict(this_model_state_dict)
+        if target_model_weight == 1:
+            self.clone_other_model_into_this(target_model)
+
+        else:
+        
+            with torch.no_grad():
+                this_model_state_dict = self.model.state_dict()
+                target_model_state_dict = target_model.model.state_dict()
+    
+                for key in target_model_state_dict:
+                    this_model_state_dict[key] = (
+                        target_model_state_dict[key] * target_model_weight + 
+                        this_model_state_dict[key] * (1 - target_model_weight)
+                    )
+                
+                self.model.load_state_dict(this_model_state_dict)
     
     # UTIL -----------------------------------------------------
     
     @requires_input_proccess
-    def clone(self, save_in_parent=True, input_for_clone=None) -> Component:
+    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=False) -> Component:
 
-        toReturn : TorchModelComponent = super().clone(save_in_parent, input_for_clone)
+        toReturn : TorchModelComponent = super().clone(save_in_parent, input_for_clone, is_deep_clone)
         toReturn.proccess_input_if_not_proccesd()
         toReturn.model.load_state_dict(self.model.state_dict())
         return toReturn
@@ -241,3 +248,12 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
         super()._load_state_internal()
                 
+
+
+    @requires_input_proccess
+    def get_model_input_shape(self):
+        return self.model.get_input_shape()
+    
+    @requires_input_proccess
+    def get_model_output_shape(self):
+        return self.model.get_output_shape()

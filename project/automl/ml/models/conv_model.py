@@ -24,7 +24,7 @@ from automl.component import InputSignature
 from automl.utils.shapes_util import  discrete_output_layer_size_of_space
 
 
-class CNNModelSchema(TorchModelComponent):
+class ConvModel(TorchModelComponent):
 
     class Model_Class(nn.Module):
 

@@ -29,7 +29,7 @@ class SB3Wrapper(PolicyInterface):
         action, hidden_state = self.sb3_model.predict(state, deterministic=True) #deterministic = True uses policy, deterministic = False simulates training behavior
         return action
     
-    def get_policy_shape(self):
+    def get_policy_output_shape(self):
         raise NotImplementedError()
     
     

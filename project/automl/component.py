@@ -277,6 +277,19 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     def was_custom_value_passed_for_input(self, key):
 
         return self.__input_meta[key].was_custom_value_passed()
+    
+
+    def get_attr_or_input(self, key):
+
+        '''
+        Gets an attribute with this name from a component or from the input if it does not have one
+        '''
+
+        if hasattr(self, key):
+            return getattr(self, key)
+        
+        else:
+            return self.get_input_value(self, key)
 
 
     # PROCCESS INPUT ---------------------------------------------------------------------------------------
@@ -414,7 +427,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
     # CLONING -------------------------------------------------
     
-    def clone(self, save_in_parent=True, input_for_clone=None):
+    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=False):
         
         '''
         Creates a clone of this component, with the same input and exposed values.

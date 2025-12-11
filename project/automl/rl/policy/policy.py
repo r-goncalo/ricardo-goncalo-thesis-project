@@ -16,7 +16,10 @@ class PolicyInterface(Component):
     This abstracts wrappers and our own implemented strategies
     '''
         
-    def get_policy_shape(self):
+    def get_policy_output_shape(self):
+        raise NotImplementedError()
+    
+    def get_policy_input_shape(self):
         raise NotImplementedError()
         
     def predict(self, state):
@@ -48,24 +51,36 @@ class Policy(PolicyInterface, ComponentWithLogging):
         
         super()._proccess_input_internal()
         
-        self._initialize_model()
-        
-        self.model_input_shape = self.get_input_value("state_shape")
-        self.model_output_shape = self.get_input_value("action_shape")
-        
-        self.policy_output_shape = single_action_shape(self.model_output_shape)
-        
+        self.input_state_shape = self.get_input_value("state_shape")
+        self.output_action_shape = self.get_input_value("action_shape")
+
+        self.policy_output_shape = single_action_shape(self.output_action_shape)
+
+        self.lg.writeLine(f"Action shape {self.output_action_shape} means policy chooses action value with shape {self.policy_output_shape}")
+
         self.device = self.get_input_value("device")
+
+        self._initialize_model()
+
+        self._setup_model()
+        
+        
+        
+        
+        
                 
+
+        
+    def _setup_model(self):
         self.model.pass_input({
-            "input_shape" : self.model_input_shape, 
-            "output_shape" : self.model_output_shape, 
+            "input_shape" : self.input_state_shape, 
+            "output_shape" : self.output_action_shape, 
             "device" : self.device
             }) 
-        
+
     
     @requires_input_proccess
-    def get_policy_shape(self):
+    def get_policy_output_shape(self):
         return self.policy_output_shape
         
         
@@ -106,8 +121,5 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self.values["model"] = self.model
         
     
-    
     def random_prediction(self, state):
         pass
-    
-

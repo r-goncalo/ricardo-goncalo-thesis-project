@@ -6,6 +6,8 @@ import torch
 import random
 
 from automl.rl.policy.policy import Policy
+from automl.utils.shapes_util import single_action_shape
+
 
 class QPolicy(Policy):
     '''
@@ -19,6 +21,8 @@ class QPolicy(Policy):
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()       
+
+        
         
         
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
