@@ -543,7 +543,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
 
 
-    def _try_save_stat_of_trial(self, component_to_test : Component_to_opt_type, component_to_test_path, trial : optuna.Trial):
+    def _try_save_state_of_trial(self, component_to_test : Component_to_opt_type, component_to_test_path, trial : optuna.Trial):
     
         '''Tries saving the state of the component, raising and dealing with an exception if it appears'''
 
@@ -579,7 +579,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 self._try_run_component(component_to_test, component_to_test_path, trial) # we try to run the trial, this can raise an exception
 
-                self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial) # we try to save the state of the trial, this can raise an exception
+                self._try_save_state_of_trial(component_to_test, component_to_test_path, trial) # we try to save the state of the trial, this can raise an exception
 
                 self.lg.writeLine(f"Evaluating trial {trial.number}...")
 
@@ -625,7 +625,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     try:
                         self.lg.writeLine(f"Trying to save state of trial {trial.number} after an error ended it")
                         component_to_test.save_configuration(save_exposed_values=True, config_filename=f'_configurations\\configuration_{step + 1}_error.json')
-                        self._try_save_stat_of_trial(component_to_test, component_to_test_path, trial)
+                        self._try_save_state_of_trial(component_to_test, component_to_test_path, trial)
                     except:
                         self.lg.writeLine(f"Saving state of trial due to error failed")
                         pass
