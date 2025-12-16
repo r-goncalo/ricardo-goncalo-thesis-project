@@ -56,8 +56,6 @@ def _gen_hp_suggestions_for_config(config_dict : dict, current_localization):
 
 def gen_hp_suggestions_for_new_localization_and_value(suggestions, new_localization, value):
         
-        print(f"current value: {value}")
-
         if isinstance(value, Component):
             return [ *suggestions,
                 *gen_hp_suggestions_for_instanced_component(value, new_localization)]
@@ -69,8 +67,6 @@ def gen_hp_suggestions_for_new_localization_and_value(suggestions, new_localizat
         if isinstance(value, dict) and "__type__" in value.keys():
 
             value_type = get_class_from(value["__type__"])
-
-            print(f"TYPE: {value_type}")
             
             if issubclass(value_type, Component):
                 

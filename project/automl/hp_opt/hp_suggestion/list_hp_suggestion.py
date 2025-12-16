@@ -32,7 +32,7 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
         
         dict_to_return = {}
 
-        for key, hyperparameter_suggestion in self.hyperparameter_suggestions:
+        for key, hyperparameter_suggestion in self.hyperparameter_suggestions.items():
 
             suggestion_to_put_in_list_base_name = hyperparameter_suggestion.get_base_name()
             hyperparameter_suggestion.change_name(f"{self.name}_{suggestion_to_put_in_list_base_name}_{key}")
