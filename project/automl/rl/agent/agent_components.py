@@ -13,8 +13,6 @@ from automl.loggers.logger_component import ComponentWithLogging
 
 from automl.component import InputSignature, requires_input_proccess
 from automl.fundamentals.translator.translator import Translator
-import torch
-from automl.utils.class_util import get_class_from
 
 from automl.utils.shapes_util import torch_zeros_for_space
 

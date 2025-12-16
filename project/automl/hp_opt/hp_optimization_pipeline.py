@@ -67,7 +67,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                         "start_with_given_values" : InputSignature(default_value=True),
 
-                        "continue_after_error" : InputSignature(default_value=False, description="If trials should continue after an error or not"),
+                        "continue_after_error" : InputSignature(default_value=True, ignore_at_serialization=True, description="If trials should continue after an error or not"),
                                                     
                        }
             

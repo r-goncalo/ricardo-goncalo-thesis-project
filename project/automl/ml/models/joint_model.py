@@ -13,7 +13,7 @@ class ModelSequenceComponent(TorchModelComponent):
 
             super().__init__()
             
-            self.models = models
+            self.models = nn.ModuleList(models)
 
         def forward(self, x : torch.Tensor):
             
@@ -102,28 +102,34 @@ class ModelSequenceComponent(TorchModelComponent):
         self.model : nn.Module = type(self).Model_Class(
             models=[model.model for model in self.models]
             )
+        
+    def _input_to_clone(self):
+        input_to_clone = super()._input_to_clone()
 
-    @requires_input_proccess
-    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=False) -> TorchModelComponent:
+        input_to_clone.pop("models", None)
 
-        cloned_models = None
-        if is_deep_clone:
+        return input_to_clone
 
-            if input_for_clone is None:
-                input_for_clone = {}
+    def _clone(self, input_for_clone=None, is_deep_clone=False) -> TorchModelComponent:
 
+        cloned_component = super()._clone(input_for_clone, is_deep_clone)
+
+        if input_for_clone is None:
+            input_for_clone = {}
+
+        if not "models" in input_for_clone.keys():
             cloned_models = []
-            if not "models" in input_for_clone:
-                cloned_models = [model.clone() for model in self.models]
-                input_for_clone["models"] = cloned_models
+            if is_deep_clone:
+                cloned_models = [model.clone(save_in_parent=False, is_deep_clone=True, input_for_clone={"base_directory" : cloned_component, "create_new_directory" : True}) for model in self.models]
+                for cloned_model in cloned_models:
+                    cloned_component.define_component_as_child(cloned_model)
+            
+            else:
+                cloned_models = [model for model in self.models]
+        
+            input_for_clone["models"] = cloned_models
 
-        toReturn : TorchModelComponent = super().clone(save_in_parent, input_for_clone, is_deep_clone)    
-
-        if cloned_models is not None:
-            for cloned_model in cloned_models:
-                toReturn.define_component_as_child(cloned_model)
-    
-        return toReturn
+        return cloned_component
 
     
     def _is_model_well_formed(self):

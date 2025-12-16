@@ -7,6 +7,8 @@ import random
 import math
 import torch
 
+from automl.rl.agent.agent_components import AgentSchema
+
 class EpsilonGreedyStrategy(ExplorationStrategySchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
@@ -34,17 +36,22 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
 
     
     # EXPOSED METHOD --------------------------------------------------------------------------
+
+    def select_random_action(self):
+
+        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.training_context["episodes_done"] / self.EPS_DECAY)
+
+        sample = random.random()
+
+        return sample > eps_threshold
+
     
-    def select_action(self, agent,  state):
+    def select_action(self, agent : AgentSchema,  state):
                 
         super().select_action(agent, state)
-                
-        sample = random.random()
-        
-        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.training_context["episodes_done"] / self.EPS_DECAY)
         
         #in the case we use our policy net to predict our next action    
-        if sample > eps_threshold:
+        if self.select_random_action():
             
             self.values["n_greedy"] = self.values["n_greedy"] + 1
             return  agent.policy_predict(state)
@@ -54,6 +61,21 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
             self.values["n_random"] = self.values["n_random"] + 1
             return agent.policy_random_predict() 
         
+    
+    def select_action_with_memory(self, agent : AgentSchema):
+
+        super().select_action_with_memory(agent)
+        
+        #in the case we use our policy net to predict our next action    
+        if self.select_random_action():
+            
+            self.values["n_greedy"] = self.values["n_greedy"] + 1
+            return  agent.policy_predict_with_memory()
+        
+        #in the case we choose a random action
+        else:
+            self.values["n_random"] = self.values["n_random"] + 1
+            return agent.policy_random_predict()         
         
 
 

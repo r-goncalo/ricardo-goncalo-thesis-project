@@ -107,9 +107,22 @@ class AgentTrainerDQN(AgentTrainer):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
 
+
         if self.exploration_strategy is not None:
   
             return self.exploration_strategy.select_action(self.agent, state)  
 
         else:
             return super().select_action(state)
+        
+
+    def select_action_with_memory(self):
+
+        if self.exploration_strategy is not None:
+  
+            return self.exploration_strategy.select_action_with_memory(self.agent)  
+
+        else:
+            return self.agent.policy_predict_with_memory()
+        
+        

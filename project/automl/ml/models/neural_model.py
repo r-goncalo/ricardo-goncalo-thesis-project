@@ -105,7 +105,9 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self.hidden_size: int = self.get_input_value("hidden_size")
         self.hidden_layers: int = self.get_input_value("hidden_layers")
-        self.layers = self.get_input_value("layers")
+        self.layers = [*self.get_input_value("layers")]
+
+        self.lg.writeLine(f"Model specification: hidden size: {self.hidden_size}, hidden_layers: {self.hidden_layers}, layers: {self.layers}")
 
         if self.hidden_size is None or self.hidden_layers is None and self.hidden_layers != self.hidden_size:
             self.lg.writeLine(f"{self.name}: had hidden layers {self.hidden_layers} and hidden size {self.hidden_size}, both should not be None to be used")
@@ -121,7 +123,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
             self.hidden_size = None
             self.hidden_layers = None
 
-        elif self.layers is None and self.hidden_size is None and self.hidden_layers is None:
+        elif self.layers is None and (self.hidden_size is None or self.hidden_layers is None):
             raise Exception(f"Must specify either hidden_layers and hidden_size or layers")
 
         if self.layers is None:
@@ -174,6 +176,19 @@ class FullyConnectedModelSchema(TorchModelComponent):
         super()._is_model_well_formed()
         
         # TODO: verify if size and so on are coherent
+
+
+    def _input_to_clone(self):
+        input_to_clone = super()._input_to_clone()
+
+        #input_to_clone.pop("hidden_layers", None)
+        #input_to_clone.pop("hidden_size", None)
+#
+        #input_to_clone["layers"] = self.layers
+
+        return input_to_clone
+    
+
 
         
                             

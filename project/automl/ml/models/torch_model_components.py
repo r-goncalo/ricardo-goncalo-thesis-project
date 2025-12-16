@@ -80,7 +80,6 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         else:
             self.lg.writeLine(f"Model was already loaded")
 
-            
         self.__synchro_model_value_attr()
 
         self._is_model_well_formed() # throws exception if model is not well formed
@@ -217,18 +216,30 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     
     # UTIL -----------------------------------------------------
     
-    @requires_input_proccess
-    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=False) -> Component:
+    def _input_to_clone(self):
+        input_to_clone = super()._input_to_clone()
 
-        toReturn : TorchModelComponent = super().clone(save_in_parent, input_for_clone, is_deep_clone)
-        toReturn.proccess_input_if_not_proccesd()
-        toReturn.model.load_state_dict(self.model.state_dict())
-        return toReturn
+        input_to_clone.pop("model", None)
+
+        return input_to_clone
+    
+    def _values_to_clone(self):
+        
+        values_to_clone =  super()._values_to_clone()
+
+        values_to_clone["model"] = None
+
+        return values_to_clone
+
+    
+    def _after_clone(self, original, is_deep_clone):
+        self.clone_other_model_into_this(original)
     
     @requires_input_proccess
     def clone_other_model_into_this(self, other_model):
 
         other_model : TorchModelComponent = other_model
+        other_model.proccess_input_if_not_proccesd()
         self.model.load_state_dict(other_model.model.state_dict())
     
     # STATE MANAGEMENT -----------------------------------------------------

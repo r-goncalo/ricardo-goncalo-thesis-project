@@ -19,6 +19,9 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         self_class.__setup_default_values_in_parameter_signatures()
         self_class.__setup_organized_parameters_signature()
 
+        if not hasattr(self_class, "default_name") or self_class.default_name is None:
+            self_class.default_name = self_class.__name__
+
     def __prepare__(cls_name, bases, **kwds): #all Schemes have a parameter_signature and exposed_values
         
         return {
@@ -26,11 +29,12 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
             "original_parameters_signature" : {},
             "fused_parameters_signature" : {},
             "exposed_values": {},
-            "is_debug_schema" : False
+            "is_debug_schema" : False,
+            "default_name" : None
         }
     
     def __save_original_parameters_signature(self_class):
-        self_class.original_parameters_signature = copy.deepcopy(self_class.parameters_signature)
+        self_class.original_parameters_signature = {**self_class.parameters_signature}
     
 
     def __reorganize_mro_so_debug_classes_come_last(self_class, bases):
@@ -68,7 +72,8 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         Updates the input signatures with super classes for this squema
         '''
 
-        self_class.fused_parameters_signature : dict[str, InputSignature]  = copy.deepcopy(self_class.original_parameters_signature)
+        self_class.fused_parameters_signature : dict[str, InputSignature]  = {**self_class.original_parameters_signature}
+
         self_fused_parameters_signature : dict[str, InputSignature] = self_class.fused_parameters_signature
 
         # for each of the explicitly defined super classes

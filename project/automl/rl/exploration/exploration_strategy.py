@@ -4,7 +4,7 @@ import numpy as nn
 
 from abc import abstractmethod
 
-
+from automl.rl.agent.agent_components import AgentSchema
 
 
 class ExplorationStrategySchema(Component):
@@ -16,7 +16,7 @@ class ExplorationStrategySchema(Component):
     
     @abstractmethod
     @requires_input_proccess
-    def select_action(self, agent, state):
+    def select_action(self, agent : AgentSchema, state):
         
         '''
             Selects an action based on the agent's state (using things like its policy) and this exploration strategy
@@ -28,5 +28,11 @@ class ExplorationStrategySchema(Component):
                 The index of the action selected
         '''
         
+        pass
+    
+
+    @abstractmethod
+    @requires_input_proccess
+    def select_action_with_memory(self, agent : AgentSchema):
         pass
     

@@ -31,6 +31,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
     is_debug_schema = False # meant to be True if a class is to be used as debug, this means it will always be counted last in the mro
     
+    default_name = None
+
     #A dictionary { "value_name" -> initial_value }
     #it tells other components what are the values exposed by this component, useful when checking the validity of the program before running it
     #this does not need to be stored in the component, the only reason it is is to standardize this kind of exposure
@@ -48,12 +50,12 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         self.__input_meta : dict[str, InputMetaData] = {} # will store meta data according to the input
         self.__initialize_input_meta_data()
         
-        self.values = type(self).exposed_values.copy() #this is where the exposed values will be stored
+        self.values = {**type(self).exposed_values} #this is where the exposed values will be stored
         
         self.child_components : list[Component] = []
         self.parent_component : Component = None
         
-        self.name = str(type(self).__name__) #defines the initial component name~
+        self.name = type(self).default_name
         self._was_custom_name_set = False
         
         self.output = {} #output, if any, will be a dictionary
@@ -426,18 +428,49 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             
 
     # CLONING -------------------------------------------------
+
+    def _input_to_clone(self):
+        '''Defines what input this component clones into a new one'''
+        return {**self.input}
     
-    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=False):
+    def _values_to_clone(self):
+        '''Defines what exposed values this component clones into a new one'''
+        return {**self.values}
+
+    def _output_to_clone(self):
+        '''Defines what output this component clones into a new one'''
+        return {**self.output}
+    
+    def _clone(self, input_for_clone, is_deep_clone):
+        '''Returns an instance with the values but non of the after proccess'''
+
+        input_to_clone = {**self._input_to_clone(), **input_for_clone}
+        values_to_clone = self._values_to_clone()
+        output_to_clone = self._output_to_clone()
+
+        to_return : Component = type(self)(input_to_clone)
+
+        to_return.values = values_to_clone
+        to_return.output = output_to_clone
+        to_return.__notes = self.__notes # copy the notes
+
+        return to_return
+    
+    def _after_clone(self, original, is_deep_clone):
+        '''What to do after cloning the instance, this can have some input proccessing for example'''
+
+    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=True):
         
         '''
         Creates a clone of this component, with the same input and exposed values.
-        Not that the clone will not have the same parent component
+        Note that the clone will not have the same parent component
         '''
-        
-        cloned_component = type(self)(copy.deepcopy(self.input))
-        cloned_component.values = copy.deepcopy(self.values) #copy the exposed values
-        cloned_component.output = copy.deepcopy(self.output) #copy the output
-        cloned_component.__notes = copy.deepcopy(self.__notes) # copy the notes
+
+        self.proccess_input_if_not_proccesd()
+
+        input_for_clone = {} if input_for_clone is None else input_for_clone    
+
+        cloned_component : Component = self._clone(input_for_clone, is_deep_clone)
 
         if save_in_parent and self.parent_component != None:
             self.parent_component.define_component_as_child(cloned_component) # the cloned component is also child of same parent
@@ -445,13 +478,23 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         if input_for_clone != None:
             cloned_component.pass_input(input_for_clone)
 
+        cloned_component._after_clone(self, is_deep_clone)
+
         return cloned_component
     
     # EXPOSED VALUES -------------------------------------------
     
 
+    @classmethod
+    def get_schema_exposed_values(cls) -> dict[str, InputSignature]:
+        
+        '''Returns the parameters signatures for this Schema'''
 
+        return cls.exposed_values
+    
+    def set_value_with_initial(self, value_key):
 
+        self.values[key] = self.exposed_values[value_key]
 
     # INPUT PROCCESSING ---------------------------------------------      
     
@@ -474,6 +517,9 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         '''Returns the parameters signatures for this Schema'''
 
         return cls.parameters_signature
+
+
+
     
     
 

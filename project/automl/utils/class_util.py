@@ -138,3 +138,56 @@ def make_classes_in_collection_strings(collection):
     else:
         return collection
     
+
+def organize_collection_from_subclass_to_super_class(subclasses_list : list[type]):
+
+    for i in range(len(subclasses_list) - 1):
+
+        for u in range(i, len(subclasses_list) - 1):
+
+            current_class = subclasses_list[u]
+            next_class = subclasses_list[u + 1]
+
+            if issubclass(next_class, current_class):
+                subclasses_list[u] = next_class
+                subclasses_list[u + 1] = current_class
+    
+def substitute_classes_by_subclasses(collection, subclasses_list : list[type]):
+
+    organize_collection_from_subclass_to_super_class(subclasses_list)
+
+    return __substitute_classes_by_subclasses(collection, subclasses_list)
+
+
+def __substitute_classes_by_subclasses(collection, subclasses_list : list[type]):
+
+    if isinstance(collection, type):
+        
+        for subclass in subclasses_list:
+            if issubclass(subclass, collection):
+                return subclass
+        
+        return collection
+    
+    elif isinstance(collection, dict):
+
+        to_return = {}
+
+        for key, value in collection.items():
+
+            to_return[key] = __substitute_classes_by_subclasses(value)
+
+        return to_return
+    
+    elif isinstance(collection, list):
+
+        return [__substitute_classes_by_subclasses(element) for element in collection]
+    
+    elif isinstance(collection, tuple):
+
+        return tuple(__substitute_classes_by_subclasses(element) for element in collection)
+    
+    else:
+        return collection
+
+    

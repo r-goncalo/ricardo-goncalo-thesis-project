@@ -43,7 +43,7 @@ class QPolicy(Policy):
     def random_prediction(self):    
         return torch.randint(
             0, #low
-            int(self.model_output_shape.n), #high
+            int(self.policy_output_shape), #high
             (1,), #size
             device=self.device
         )
