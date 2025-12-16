@@ -59,7 +59,7 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
 
         hyperparameter_suggestions = {}
 
-        for key, hyperparameter_suggestion in self.hyperparameter_suggestions:
+        for key, hyperparameter_suggestion in self.hyperparameter_suggestions.items():
             hyperparameter_suggestions[key] = hyperparameter_suggestion.to_dict()
         
         return  {

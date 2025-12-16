@@ -55,17 +55,36 @@ def _gen_hp_suggestions_for_config(config_dict : dict, current_localization):
     return to_return
 
 def gen_hp_suggestions_for_new_localization_and_value(suggestions, new_localization, value):
+        
+        print(f"current value: {value}")
 
         if isinstance(value, Component):
-            suggestions = [ *suggestions,
+            return [ *suggestions,
                 *gen_hp_suggestions_for_instanced_component(value, new_localization)]
             
-        elif is_valid_component_tuple_definition(value):
-            suggestions = [ *suggestions,
+        if is_valid_component_tuple_definition(value):
+            return [ *suggestions,
                 *gen_hp_suggestions_for_tuple_definition(value, new_localization)]
 
-        elif isinstance(value, (dict, list)):
-            suggestions = [*suggestions, *_gen_hp_suggestions_for_collection(value, new_localization)]
+        if isinstance(value, dict) and "__type__" in value.keys():
+
+            value_type = get_class_from(value["__type__"])
+
+            print(f"TYPE: {value_type}")
+            
+            if issubclass(value_type, Component):
+                
+                return [*suggestions, 
+                        *gen_hp_suggestion_for_dict_definition(
+                            value_type,
+                            value,
+                            new_localization
+                        )
+                ]
+
+        if isinstance(value, (dict, list)):
+
+            return [*suggestions, *_gen_hp_suggestions_for_collection(value, new_localization)]
 
         return suggestions
 
@@ -86,6 +105,35 @@ def gen_hp_suggestions_for_instanced_component(component : Component, current_lo
              *_gen_hp_suggestions_for_collection(input_of_component, new_localization)
                             
             ]
+
+def gen_hp_suggestion_for_dict_definition(class_definition : type[Component], dict_def : dict, current_localization):
+
+    input_of_component = dict_def["input"]
+    child_components = dict_def.get("child_components", {})
+
+
+    suggestions_for_component = gen_hp_suggestions_for_component_and_input(
+        class_definition,
+        input_of_component,
+        [*current_localization, "input"]
+    )
+
+    suggestions_following_input = _gen_hp_suggestions_for_collection(
+        input_of_component,
+        [*current_localization, "input"]
+    )
+
+    suggestions_following_child_components = _gen_hp_suggestions_for_collection(
+        child_components,
+        [*current_localization, "child_components"]
+    )
+
+    return [
+        *suggestions_for_component,
+        *suggestions_following_input,
+        *suggestions_following_child_components
+    ]
+
 
 
 def gen_hp_suggestions_for_tuple_definition(tuple_definition, current_localization):
@@ -129,6 +177,8 @@ def gen_hp_suggestions_for_component_and_input(component_class : type[Component]
 
 
 def gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion, current_localization):
+
+    print(f"Hyperparameter suggestion found: {hyperparameter_suggestion}")
 
     if isinstance(hyperparameter_suggestion, HyperparameterSuggestion):
 

@@ -4,7 +4,7 @@ from typing import Union
 
 from automl.component import Component, InputSignature, InputMetaData
 
-from automl.utils.class_util import get_class_from
+from automl.utils.class_util import get_class_from, is_valid_str_class_definition
 
 from enum import Enum
 
@@ -512,13 +512,21 @@ def generate_component_from_class_input_definition(class_of_component, input : d
 
 
 
+
 def is_valid_component_tuple_definition(tuple_definition):
 
     if isinstance(tuple_definition, (tuple, list)):
 
         if len(tuple_definition) == 2:
 
-            return isinstance(tuple_definition[0], (type, str)) and isinstance(tuple_definition[1], dict)
+            if not isinstance(tuple_definition[1], dict):
+                return False
+            
+            if isinstance(tuple_definition[0], type):
+                return True
+            
+            if isinstance(tuple_definition[0], str) and is_valid_str_class_definition(tuple_definition[0]):
+                return True
         
     return False
 
