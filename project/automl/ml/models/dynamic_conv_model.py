@@ -93,6 +93,7 @@ class DynamicConvModelSchema(TorchModelComponent):
         "cnn_layers": InputSignature(
             custom_dict={"hyperparameter_suggestion": 
                 VariableListHyperparameterSuggestion(
+                    name='cnn_layers',
                     min_len=2,
                     max_len=4,
                     hyperparameter_suggestion_for_list=DictHyperparameterSuggestion(

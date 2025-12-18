@@ -131,6 +131,8 @@ class ModelSequenceComponent(TorchModelComponent):
 
         return cloned_component
 
+    def _save_model(self):
+        self.lg.writeLine(f"Model is being saved... Naturally ther referenced models will have their parameters saved")
     
     def _is_model_well_formed(self):
         super()._is_model_well_formed()

@@ -244,13 +244,17 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     
     # STATE MANAGEMENT -----------------------------------------------------
 
+    def _save_model(self):
+        torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
+    
+
     def _save_state_internal(self):
         
         super()._save_state_internal()
 
         if hasattr(self, "model"):
-            torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
-    
+            self._save_model()
+            
         else:
             globalWriteLine(f"{self.name}: WARNING: Saving state of Torch model state without ever reaching the point of initializing its model")
     
