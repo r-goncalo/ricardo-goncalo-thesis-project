@@ -3,6 +3,12 @@
 
 
 
+
+
+
+from automl.utils.files_utils import write_text_to_file
+
+
 def generate_path(component_path, target_path_dir='', target_path_name=None):
 
     import shutil
@@ -31,12 +37,23 @@ def run_component(component):
     component.run()
 
 
-def main(component_path, target_dir=None, target_dir_name=None):
+def main(component_path, target_dir=None, target_dir_name=None, global_logger_level=None):
 
     if target_dir is not None or target_dir_name is not None:
         component_path = generate_path(component_path, target_dir, target_dir_name)
     
     component = load_component(component_path)
+
+    if global_logger_level != None:
+        try:
+            from automl.loggers.global_logger import activate_global_logger
+            activate_global_logger(component.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
+        
+        except Exception as e:
+            print(f"Error trying to activate global logger: {e}")
+            write_text_to_file(component.get_artifact_directory(), filename="error_global.txt", text=str(e))
+
+
     run_component(component)
 
 
@@ -49,13 +66,15 @@ if __name__ == '__main__':
     parser.add_argument("--component_path", type=str, default='.', help="Path of experiment")
     parser.add_argument("--target_dir", type=str, default=None, help="Directory where to put the component run")
     parser.add_argument("--target_dir_name", type=str, default=None, help="Last folder where to put the run")
+    parser.add_argument("--global_logger_level", type=str, default=None, help="If to activate global logger and with what level")
     
     args = parser.parse_args()
 
     main(
         component_path=args.component_path,
         target_dir=args.target_dir,
-        target_dir_name=args.target_dir_name
+        target_dir_name=args.target_dir_name,
+        global_logger_level=args.global_logger_level
          )
 
     

@@ -14,6 +14,7 @@ def on_name_pass(self):
     self.name = self.input["name"] #sets the name of the component to the input name
     self._was_custom_name_set = True
 
+INPUT_LOGGER_FILE='input_stuff.txt'
 
 class Component(metaclass=Schema): # a component that receives and verifies input
 
@@ -97,7 +98,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 self.__verified_pass_input(passed_key, input[passed_key])
                 
             else:
-                globalWriteLine(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored")
+                globalWriteLine(f"WARNING: input with key {passed_key} passed to component {self.name} but not in its input signature, will be ignored", file=INPUT_LOGGER_FILE)
         
 
     def pass_input_if_no_value(self, key, value): # pass input to this component, may need verification of input
@@ -114,7 +115,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 self.__verified_pass_input(key, value)
                 
         else:
-            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored", file=INPUT_LOGGER_FILE)
                 
                    
         
@@ -134,7 +135,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 self.__verified_setup_default_value(key)
                 
         else:
-            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored", file=INPUT_LOGGER_FILE)
                 
                    
 
@@ -147,7 +148,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             self.__verified_setup_default_value(key)
                 
         else:
-            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} passed to component {self.name} but not in its input signature, will be ignored", file=INPUT_LOGGER_FILE)
                 
     
     def remove_input(self, key):
@@ -162,7 +163,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             self.__verified_remove_input(key)
             
         else:
-            globalWriteLine(f"WARNING: input with key {key} tried to remove from component {self.name} but not in its input signature, will be ignored")
+            globalWriteLine(f"WARNING: input with key {key} tried to remove from component {self.name} but not in its input signature, will be ignored", file=INPUT_LOGGER_FILE)
         
         
     def __some_updated_input(self): # some input was changed
@@ -199,6 +200,9 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             self.__input_meta[key].default_value_was_set()
         
         elif parameter_signature.generator != None:
+
+            print(f"CALLING GENERATOR FOR KEY: {key}")
+
             self.input[key] = parameter_signature.generator(self)
             self.__input_meta[key].generator_value_was_set()
             

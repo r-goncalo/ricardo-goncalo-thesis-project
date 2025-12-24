@@ -85,7 +85,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         if self.env is not None:
             env = self.env
         else:
-            env = component_to_evaluate.env
+            env = component_to_evaluate.get_env()
 
 
         agents = component_to_evaluate.agents

@@ -2,6 +2,7 @@
 
 
 import shutil
+import subprocess
 from typing import final
 from automl.component import Component, requires_input_proccess
 from automl.utils.json_utils.json_component_utils import decode_components_from_dict, dict_from_json_string, gen_component_from, json_string_of_component, component_from_json_string, set_values_of_dict_in_component
@@ -19,7 +20,7 @@ from automl.loggers.global_logger import globalWriteLine
 from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
 import torch
                 
-                
+import sys
                 
                 
 
@@ -252,6 +253,11 @@ class StatefulComponentLoader(ArtifactComponent):
     def save_component(self):
         '''Saves component to its folder'''
         save_state(self.component_to_save_load, save_definition=True)
+
+    @requires_input_proccess
+    def unload_if_loaded(self):
+        if hasattr(self, 'component_to_save_load'):
+            self.unload_component() 
     
     @requires_input_proccess
     def unload_component(self):
@@ -303,7 +309,46 @@ class StatefulComponentLoader(ArtifactComponent):
         
         return self.component_to_save_load
     
-    
+    @requires_input_proccess
+    def detach_run_component(self, to_wait = False, global_logger_level = None):
+        '''
+        If the component is loaded, saves it and unloads it
+        It then uses the load_and_run_component command to start a subproccess to run the component
+        '''
+        artifact_dir = self.get_artifact_directory()
+
+        if hasattr(self, 'component_to_save_load'):
+            self.save_component()
+            self.unload_component()
+
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "automl.cli.load_run_component",
+            "--component_path",
+            artifact_dir,
+        ]
+
+        if global_logger_level is not None:
+            cmd = [*cmd, "--global_logger_level", global_logger_level]
+
+        print(f"Running command {cmd}")
+
+        popen_proccess = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,  # fully detached (POSIX)
+        )
+
+        if to_wait:
+
+            print(f"Will wait for proccess to end")
+            return_code = popen_proccess.wait()
+            print(f"Return code: {return_code}")
+
+        return popen_proccess
     
     @requires_input_proccess
     def load_component(self):

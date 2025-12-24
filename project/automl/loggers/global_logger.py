@@ -3,7 +3,7 @@
 
 
 _global_logger = None
-DEFAULT_TO_PRINT_GLOBAL = True
+DEFAULT_TO_PRINT_GLOBAL = False
 
 
 def activate_global_logger(global_logger_directory, global_logger_input : dict ={}):

@@ -290,8 +290,10 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                 "episodes_done" : self.rl_trainer.values["episodes_done"],
             })
         
-        
     
+    @requires_input_proccess
+    def get_env(self):
+        return self.env
         
     # RESULTS --------------------------------------
     
