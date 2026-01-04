@@ -41,11 +41,12 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
                        
                     }
-
         
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Processing agent input with values {self.values}\n")
         
         self.device = self.get_input_value("device")
     
@@ -60,6 +61,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.initialize_state_memory()
         self.initialize_policy()
         self.initialize_necessary_cache()
+
+        self.lg.writeLine(f"Finished processing basic agent input with values {self.values}\n")
 
     
     def initialize_state_translator(self):

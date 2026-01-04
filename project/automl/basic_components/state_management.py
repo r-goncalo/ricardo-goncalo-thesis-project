@@ -275,7 +275,7 @@ class StatefulComponentLoader(ArtifactComponent):
         gc.collect()
 
         if weak_ref() is not None:
-            raise Exception("Component was not fully unloaded — still referenced elsewhere.")
+            raise Exception("Component was not fully unloaded, still referenced elsewhere.")
         
         if torch.cuda.is_available():
             device = torch.device("cuda")
@@ -305,6 +305,7 @@ class StatefulComponentLoader(ArtifactComponent):
         '''Gets the component, if not loaded yet, it is loaded'''
         
         if not hasattr(self, 'component_to_save_load'):
+            print(f"Loading component because no component in memory")
             self.load_component() 
         
         return self.component_to_save_load

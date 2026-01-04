@@ -21,7 +21,7 @@ import gc
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentDictInputSignature, ComponentInputSignature
 
 from automl.utils.random_utils import generate_seed, do_full_setup_of_single_seed
 from automl.core.exceptions import common_exception_handling
@@ -39,10 +39,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                                                                                
                        "environment" : ComponentInputSignature(default_component_definition=(AECPettingZooEnvironmentWrapper, {}), possible_types=[AECEnvironmentComponent]),
                        
-                       "agents" : InputSignature(default_value={}),
+                       "agents" : ComponentDictInputSignature(default_component_definition={}),
                        "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
-
-                       "save_in_between" : InputSignature(default_value=True),
                        
                        "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
 
@@ -59,6 +57,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
                 
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Processing RL pipeline with values {self.values}\n")
                 
         self.device = self.get_input_value("device")
 
@@ -67,14 +67,14 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         self.configure_device(self.device)
         
         self.setup_environment()
-                        
-        self.save_in_between = self.get_input_value("save_in_between")
-        
+                                
         self.initialize_agents_components()
     
         self.setup_trainer()
         
         self.rl_setup_evaluator()
+
+        self.lg.writeLine(f"Finished processing rl pipeline with values {self.values}\n")
 
         
     def setup_environment(self):
@@ -88,7 +88,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         self.agents_names_in_environment = self.env.agents()
 
-        self.lg.writeLine(f"Agents in environment: {self.agents_names_in_environment}")
+        self.lg.writeLine(f"Agents in environment: {self.agents_names_in_environment}\n")
     
     
     def rl_setup_evaluator(self):
@@ -115,7 +115,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             self.device = torch.device("cpu")
             self.lg.writeLine(f"There was an error trying to setup the device in '{str_device_str}': {str(e)}")
 
-        self.lg.writeLine("The model will trained and evaluated on: " + str(self.device))
+        self.lg.writeLine(f"The device used will be: {self.device}\n")
         
         
     def setup_trainer(self):    
@@ -124,7 +124,6 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
                 
         rl_trainer_input = {
             "device" : self.device,
-            "logger_object" : self.lg,
             "environment" : self.env,
             "times_to_run" : self._times_to_run,
             "agents" : self.agents.copy() # so changes to the rl trainer dict do not translate to the agents passed
@@ -147,27 +146,42 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         self.rl_trainer.pass_input(rl_trainer_input)
 
+        self.input.pop("rl_trainer_input", None)
+
             
     def initialize_agents_components(self):
         
         '''Initialize the agents, creating them if necessary first'''
 
-        self.agents = self.get_input_value("agents", look_in_value_with_key="agents", look_in_attribute_with_name="agents") #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
+        self.agents : dict[str, AgentSchema] = self.get_input_value("agents", look_in_attribute_with_name="agents") #this is a dictionary with {agentName -> AgentSchema}, the environment must be able to return the agent name
 
-        if self.agents  == {}:
-            self.create_agents()
+        for agent_name, agent in self.agents.items():
+            self.configure_exisent_agent_component(agent_name, agent)
+
+        self.create_agents()
+        
         
         for agent_name, agent in self.agents.items():
-            self.configure_agent_component(agent_name, agent)                                                
+            self.configure_agent_component(agent_name, agent)
+
+    
+        self.input.pop("agents_input", None)
+        self.input["agents"] = self.agents
+
+
                                                                                     
+    def configure_exisent_agent_component(self, agent_name, agent : AgentSchema):
+        '''Configures agents that were not created by the RL Pipeline'''
             
+
+
+
     def configure_agent_component(self, agent_name, agent : AgentSchema):
         
         '''Configures the agents, setting up their action and state spaces, the logger and more'''
             
         self.setup_agent_state_action_shape(agent_name, agent)
                             
-        agent.pass_input(self.agents_input)
 
         
 
@@ -184,7 +198,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
 
         action_shape = self.env.get_agent_action_space(agent_name)
 
-        self.lg.writeLine(f"Action space of agent {agent.name} has shape: {action_shape}")
+        self.lg.writeLine(f"Action space of agent {agent.name} has shape: {action_shape}\n")
 
         agent.pass_input({"state_shape" : state_shape })
         agent.pass_input({"action_shape" : action_shape })
@@ -208,35 +222,33 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
             
     def create_agents(self):
         
-        '''Creates agents'''
+        '''Creates agents that did not exist'''
 
-        self.lg.writeLine("No agents defined, creating them...")
+        agents_to_create = [*self.agents_names_in_environment]
+        for agent_name in self.agents.keys():
+            agents_to_create.pop(agents_to_create.index(agent_name))
 
-        agents = {}
+        if len(agents_to_create) > 0:
+            self.lg.writeLine(f"Agents to create (not passed in input): {agents_to_create}")
 
-        agentId = 1        
-        for agent_name in self.agents_names_in_environment: #worth remembering that the order of the initialization of the agents is defined by the environment
+        for agent_name in agents_to_create: #worth remembering that the order of the initialization of the agents is defined by the environment
 
             agent_input = {} #the input of the agent, with base values defined by "agents_input"
 
-            agent_name = self.__create_agent_name(agent_name, agents.keys())
+            agent_name = self.__create_agent_name(agent_name, self.agents.keys())
             agent_input["name"] = agent_name
             
             agent_input["base_directory"] = os.path.join(self.get_artifact_directory(), "agents" )
             
             agent_class = get_sub_class_with_correct_parameter_signature(AgentSchema, self.agents_input) #gets the agent class with the correct parameter signature
 
-            agents[agent_name] = self.initialize_child_component(agent_class, input=agent_input)
+            self.agents[agent_name] = self.initialize_child_component(agent_class, input=agent_input)
 
-            self.lg.writeLine("Created agent in training " + agent_name + " with base directory " + agents[agent_name].get_base_directory())
+            self.lg.writeLine("Created agent in training " + agent_name + " with base directory " + self.agents[agent_name].get_base_directory() + '\n')
 
-            agentId += 1
+            self.agents[agent_name].pass_input(self.agents_input)
 
-        self.lg.writeLine("Initialized agents")
 
-        self.agents : dict[str, AgentSchema] = agents  
-        self.input["agents"] = agents #this is done because we want to save these agents in the configuration  
-        
     
         
     # TRAINING_PROCCESS ----------------------
@@ -244,23 +256,27 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
     def _deal_with_exception(self, exception : Exception):
         
         super()._deal_with_exception(exception)
+
+        try:
+            self.lg.writeLine(f"RL pipeline had an exception, current state is {self.values.get('running_state', None)}")
+        except:
+            pass
         
         common_exception_handling(self, exception, 'error_report.txt')
-
-        raise exception        
     
         
     @requires_input_proccess
     def train(self):        
         '''Executes the training part of the algorithm with a specified number of episodes < than the number specified'''
         
+        self.lg.writeLine(f"Initiating training process with rl trainer {self.rl_trainer.name}")
+
         gc.collect() #this forces the garbage collector to collect any abandoned objects
         torch.cuda.empty_cache() #this clears cache of cuda
         
         self.rl_trainer.run()
-        
-        if self.save_in_between:
-            self.save_state()
+
+        self.lg.writeLine(f"Finished training proccess\n")
         
     
     @requires_input_proccess

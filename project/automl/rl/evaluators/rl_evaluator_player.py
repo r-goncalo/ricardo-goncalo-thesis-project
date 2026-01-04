@@ -1,6 +1,7 @@
 
 import os
 
+from automl.basic_components.state_management import json_string_of_component
 import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
@@ -71,7 +72,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         return [*super().get_metrics_strings(), *self.base_evaluator.get_metrics_strings()]
     
     def _evaluate(self, component_to_evaluate : RLPipelineComponent):
-        
+
         if isinstance(component_to_evaluate, tuple):
             return self._evaluate_from_tuple(component_to_evaluate)
     

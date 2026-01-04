@@ -7,6 +7,8 @@ import torch
 
 SEED_GLOBAL_LOGGER = "seed_logging.txt"
 
+is_full_seed_setup_done = False
+
 
 def generate_and_setup_a_seed():
     
@@ -38,46 +40,71 @@ def generate_seed_configuration(seed_configuration : dict = None):
     return seed_configuration
 
 
-def setup_seed_from_dict_configuration(seed_configuration : dict):
+def setup_seed_from_dict_configuration(seed_configuration : dict = None, force_new = False):
 
-    seed_configuration = generate_seed_configuration(seed_configuration)
-
-    setup_python_seed(seed_configuration["python"])
-
-    setup_torch_seed(seed_configuration["torch"])
-
-    setup_numpy_seed(seed_configuration["numpy"])
-                     
-    return seed_configuration
     
 
-def do_full_setup_of_single_seed(seed):
+    global is_full_seed_setup_done
+
+    if not is_full_seed_setup_done or force_new:
+
+        seed_configuration = generate_seed_configuration(seed_configuration)
+
+        globalWriteLine(f"Setting up seeds:", file=SEED_GLOBAL_LOGGER)
+
+        setup_python_seed(seed_configuration["python"])
+
+        setup_torch_seed(seed_configuration["torch"])
+
+        setup_numpy_seed(seed_configuration["numpy"])
+
+        is_full_seed_setup_done = True
+
+        return seed_configuration
+
+    else:
+        globalWriteLine(f"Tried to setup seeds when seeds were already setup, ignoring it...", file=SEED_GLOBAL_LOGGER)
+                     
+        return None    
+
+def do_full_setup_of_single_seed(seed, force_new=False):
 
     setup_python_seed(seed)
     
     return setup_seed_from_dict_configuration(
         {
             "python" : seed
-        }
+        },
+        force_new=False
     )
 
 
 def setup_python_seed(seed):
-    globalWriteLine(f"Python seed {seed}", file=SEED_GLOBAL_LOGGER)
+    globalWriteLine(f"    Python seed {seed}", file=SEED_GLOBAL_LOGGER)
 
     random.seed(seed)    
 
 
 def setup_numpy_seed(seed):
-    globalWriteLine(f"Numpy seed {seed}", file=SEED_GLOBAL_LOGGER)
+    globalWriteLine(f"    Numpy seed {seed}", file=SEED_GLOBAL_LOGGER)
     numpy.random.seed(seed)     # NumPy    
 
 
 def setup_torch_seed(seed):
 
-    globalWriteLine(f"Torch seed {seed}", file=SEED_GLOBAL_LOGGER)
+    globalWriteLine(f"    Torch (cuda included) seed {seed}", file=SEED_GLOBAL_LOGGER)
     
     torch.manual_seed(seed)  # PyTorch (CPU)
     torch.cuda.manual_seed_all(seed)  # PyTorch (GPU)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def get_random_state() -> str:
+    
+    python_state_str = str(random.getstate())
+    numpy_state_str = str(numpy.random.get_state())
+    torch_state_str = str(torch.get_rng_state())
+    torch_cuda_state = str(torch.cuda.get_rng_state_all())
+
+    return f"Python:\n{python_state_str}\n\nNummpy:\n{numpy_state_str}\n\nTorch:\n{torch_state_str}\n\nTorch cuda:\n{torch_cuda_state}"

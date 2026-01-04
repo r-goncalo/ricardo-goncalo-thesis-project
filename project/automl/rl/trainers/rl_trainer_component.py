@@ -2,6 +2,7 @@
 import math
 from typing import Dict
 from automl.component import InputSignature, Component, requires_input_proccess
+from automl.core.advanced_input_management import ComponentDictInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
@@ -28,7 +29,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
                        "environment" : InputSignature(),
                        
-                       "agents" : InputSignature(),
+                       "agents" : ComponentDictInputSignature(),
                        "agents_trainers_input" : InputSignature(default_value={}, ignore_at_serialization=True),
                        "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
@@ -58,7 +59,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
     
         self.limit_steps = self.get_input_value("limit_steps")
 
-        self.agents_input = self.get_input_value("agents_trainers_input")
+        self.agents_trainers_input = self.get_input_value("agents_trainers_input")
 
         self.default_trainer_class = self.get_input_value("default_trainer_class")
         
@@ -90,10 +91,11 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
     
     def setup_agents(self):
         
-        agents_in_input : Dict[str, AgentTrainer | AgentSchema] = self.get_input_value("agents", look_in_attribute_with_name="agents_in_training")
+        agents_in_input : Dict[str, AgentTrainer | AgentSchema] = self.get_input_value("agents", look_in_attribute_with_name="agents")
         
-        self.agents_in_training : Dict[str, AgentTrainer] = {}
-        
+        self.agents_trainers : Dict[str, AgentTrainer] = self.values.get("agents_trainers", {})
+        self.values["agents_trainers"] = self.agents_trainers
+                
         self.agents_names_in_environment = self.env.agents()
         agents_names_in_environment = [*self.agents_names_in_environment]
         passed_agents_in_input = agents_in_input.keys()
@@ -108,30 +110,45 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             
             agent_in_input = agents_in_input[key]
 
-            agent_trainer_input = {**self.agents_input}
+            agent_trainer_input = {**self.agents_trainers_input}
                 
             if isinstance(agent_in_input, AgentSchema):
                 
-                self.lg.writeLine(f"Agent {key} came without a trainer, creating one...")
-                
-                agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agent_in_input} 
-                
-                agent_trainer = self.initialize_child_component(self.default_trainer_class, agent_trainer_input_in_creation)
-                
-                self.agents_in_training[key] = agent_trainer
+                self.lg.writeLine(f"Agent {key} came without a trainer in input")
+
+                if key in self.agents_trainers.keys():
+                    self.lg.writeLine(f"Agent {key} already had a loaded trainer")
+                    agent_trainer = self.agents_trainers[key]
+                    agent_trainer.pass_input(agent_trainer_input)
+
+                else:
+                    self.lg.writeLine(f"Agent {key} did not have a loaded trainer, creating one...")
+                    agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agent_in_input} 
+
+                    agent_trainer = self.initialize_child_component(self.default_trainer_class, agent_trainer_input_in_creation)
+
+                    self.agents_trainers[key] = agent_trainer
+
                 agents_in_input[key] = agent_trainer #puts the agent trainer in input too
     
             elif isinstance(agent_in_input, AgentTrainer):
+
+                self.lg.writeLine(f"Agent {key} is already a trainer...")
                 
-                self.agents_in_training[key] = agent_in_input
+                self.agents_trainers[key] = agent_in_input
                 agent_in_input.pass_input(agent_trainer_input)
+
+        self.input.pop("agents_trainers_input", None)
+
+        
+
 
 
     def _make_optimization_prediction_for_agent_episodes(self, agent_key):
         raise NotImplementedError()
     
     def _make_optimization_prediction_for_agent_total_steps(self, agent_key):
-        return self.agents_in_training[agent_key].make_optimization_prediction_for_agent_steps(self.limit_total_steps)
+        return self.agents_trainers[agent_key].make_optimization_prediction_for_agent_steps(self.limit_total_steps)
         
 
     def _make_optimization_prediction_for_agent(self, agent_key):
@@ -160,7 +177,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
             self.values["optimizations_to_do_per_agent"] = {}
 
-            for key in self.agents_in_training:
+            for key in self.agents_trainers:
 
                 optimizations_for_agent = int(math.ceil(self._make_optimization_prediction_for_agent(key)))
 
@@ -278,13 +295,13 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         if self._fraction_training_to_do != None:
 
-            if self._fraction_training_to_do <= 0 or self._fraction_training_to_do >= 1:
-                raise Exception("Fraction of training to do must be between 0 and 1")
+            if self._fraction_training_to_do <= 0 or self._fraction_training_to_do > 1:
+                raise Exception(f"Fraction of training to do must be between 0 and 1, was {self._fraction_training_to_do}")
 
             self.lg._writeLine(f"Only doing a fraction of {self._fraction_training_to_do} of the training")
         
 
-        for agent_in_training in self.agents_in_training.values():
+        for agent_in_training in self.agents_trainers.values():
             agent_in_training.setup_training_session() 
 
 
@@ -297,7 +314,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         self.lg._writeLine(f"Ended training with values: {self.values}")
         
-        for agent_in_training in self.agents_in_training.values():
+        for agent_in_training in self.agents_trainers.values():
             agent_in_training.end_training()            
                 
         self.env.close()
@@ -310,19 +327,19 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
         
-        for agent_in_training in self.agents_in_training.values():
+        for agent_in_training in self.agents_trainers.values():
             agent_in_training.setup_episode(self.env) 
 
     
     def run_episode_step_for_agent_name(self, i_episode, agent_name):
 
-        agent_in_training = self.agents_in_training[agent_name] #gets the agent trainer for the current agent
+        agent_in_training = self.agents_trainers[agent_name] #gets the agent trainer for the current agent
             
         reward, done, truncated = agent_in_training.do_training_step(i_episode, self.env)
                         
-        for other_agent_name in self.agents_in_training.keys(): #make the other agents observe the transiction without remembering it
+        for other_agent_name in self.agents_trainers.keys(): #make the other agents observe the transiction without remembering it
             if other_agent_name != agent_name:
-                    self.agents_in_training[other_agent_name].observe_new_state(self.env)
+                    self.agents_trainers[other_agent_name].observe_new_state(self.env)
                     
         self.values["episode_steps"] = self.values["episode_steps"] + 1
         self.values["total_steps"] = self.values["total_steps"] + 1
@@ -346,7 +363,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                 break                      
 
 
-        for agent_in_training in self.agents_in_training.values():
+        for agent_in_training in self.agents_trainers.values():
             agent_in_training.end_episode() 
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1

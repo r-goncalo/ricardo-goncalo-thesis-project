@@ -27,17 +27,19 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
         super()._proccess_input_internal()
 
+        self.lg.writeLine(f"Processing model input...\n")
+
         self.device = self.get_input_value("device")
 
         self.__synchro_model_value_attr()
                         
         self._setup_model()
 
-        
-        
         if self.device != None:
+            self.lg.writeLine(f"Model will be on device {self.device}\n")
             self.model.to(self.device)
 
+        self.lg.writeLine(f"Finished processing model input\n")
 
     def __synchro_model_value_attr(self):
 
@@ -84,7 +86,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
 
         self._is_model_well_formed() # throws exception if model is not well formed
 
-        self.lg.writeLine(f"Model setup is over")
+        self.lg.writeLine(f"Model setup is over\n")
 
 
     def _is_model_well_formed(self):

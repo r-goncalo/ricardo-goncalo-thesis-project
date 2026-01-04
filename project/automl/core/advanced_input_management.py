@@ -177,28 +177,31 @@ class ComponentDictInputSignature(InputSignature):
         
         dict_of_components : dict = super().get_value_from_input(component_with_input, key, is_none_ok)
         
+        if dict_of_components is None:
+            dict_of_components = {}
+
         to_return : dict[Component] = {}
 
-        for key, value in dict_of_components.values():
+        for value_key, value in dict_of_components.items():
         
             if isinstance(value, Component):
-                to_return[key] = value
+                to_return[value_key] = value
 
             else:
             
                 component = gen_component_from(value)
                 component_with_input.define_component_as_child(component)
 
-                to_return[key] = component
+                to_return[value_key] = component
 
         if CHANGE_INPUT:
-            component_with_input.input[key] = dict_of_components
+            component_with_input.input[key] = to_return
 
         return dict_of_components
     
     
     
-    def __init__(self, default_component_definition = None, **kwargs):
+    def __init__(self, default_component_definition : dict = None, **kwargs):
         
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
     
@@ -208,8 +211,27 @@ class ComponentDictInputSignature(InputSignature):
 
         if default_component_definition is not None:
             
-            raise NotImplementedError("Default component definitions in component dicts is not implemented")
-        
+            def generator(self : Component): # will return the component to be saved in 
+                
+                to_return : dict[Component] = {}
+
+                for value_key, value in default_component_definition.items():
+                
+                    if isinstance(value, Component):
+                        to_return[value_key] = value
+
+                    else:
+                    
+                        component = gen_component_from(value)
+                        self.define_component_as_child(component)
+
+                        to_return[value_key] = component
+                
+                return to_return
+            
+            kwargs["generator"] = generator
+            
+            super().__init__(**kwargs)
         else:
             super().__init__(**kwargs)
 
@@ -217,9 +239,6 @@ class ComponentDictInputSignature(InputSignature):
     def setup_default_values(self):
         super().setup_default_values()
         
-
-    def fuse_with_new(self, other_input_signature : InputSignature):
-        raise NotImplementedError()
             
 
         

@@ -110,5 +110,15 @@ class ExecComponent(Component):
         except Exception as e:
             self.values["running_state"] = State.ERROR
             self.__on_exception(e)
+
+            self.values["times_ran"] += 1
+
+            if self.__save_state_on_run_end:
+                save_state(self)
+
+            if self.__save_dataframes_on_run_end:
+                save_all_dataframes_of_component_and_children(self)
+                flush_text_of_all_loggers_and_children(self)
+
             raise e
     

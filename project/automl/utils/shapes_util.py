@@ -5,6 +5,8 @@ import numpy as np
 import gymnasium
 import torch
 
+import automl.utils.json_utils.shape_json_utils # this is just so the code runs and we're sure shapes are serialized / deserialized
+
 from math import prod
 
 # INPUT LAYER SIZE --------------------------------------------------------------------------

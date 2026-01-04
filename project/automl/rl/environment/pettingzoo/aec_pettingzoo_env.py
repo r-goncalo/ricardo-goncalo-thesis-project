@@ -103,7 +103,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     def close(self):
         self.env.close()
         
-    def reset(self, seed):
-        observations, info = self.env.reset(seed=seed)
+    def reset(self):
+        observations, info = self.env.reset(seed=self.seed)
         self.reset_info = info
         return observations

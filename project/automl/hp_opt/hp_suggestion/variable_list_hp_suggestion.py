@@ -98,7 +98,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
         }
                             
             
-    def from_dict(dict : dict, decode_elements_fun, source_component):
+    def from_dict(dict : dict, element_type, decode_elements_fun, source_component):
 
         '''Decodes object dict'''
                 

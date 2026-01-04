@@ -34,7 +34,7 @@ class CustomJsonLogic():
         raise NotImplementedError()
             
             
-    def from_dict(dict, decode_elements_fun, source_component):
+    def from_dict(dict, element_type : type, decode_elements_fun, source_component):
 
         '''
         An instance is generated from the dictionary

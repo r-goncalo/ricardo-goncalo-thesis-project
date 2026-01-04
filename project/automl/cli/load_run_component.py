@@ -33,7 +33,7 @@ def load_component(component_path):
 
 def run_component(component):
 
-    component.pass_input({"logger_input" : {"necessary_logger_level" : "INFO"}})
+    #component.pass_input({"logger_input" : {"necessary_logger_level" : "INFO"}})
     component.run()
 
 
@@ -47,11 +47,11 @@ def main(component_path, target_dir=None, target_dir_name=None, global_logger_le
     if global_logger_level != None:
         try:
             from automl.loggers.global_logger import activate_global_logger
-            activate_global_logger(component.get_artifact_directory(), global_logger_input={"necessary_logger_level" : global_logger_level})
+            activate_global_logger(component_path, global_logger_input={"necessary_logger_level" : global_logger_level})
         
         except Exception as e:
             print(f"Error trying to activate global logger: {e}")
-            write_text_to_file(component.get_artifact_directory(), filename="error_global.txt", text=str(e))
+            write_text_to_file(component_path, filename="error_global.txt", text=str(e))
 
 
     run_component(component)

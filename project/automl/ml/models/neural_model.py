@@ -89,13 +89,6 @@ class FullyConnectedModelSchema(TorchModelComponent):
     def _setup_values(self):
         super()._setup_values()    
 
-        if self.input_shape == None:
-            raise Exception(f"{type(self)} needs input shape to be passed to setup its values, input: {self.input}")
-        
-        if self.output_shape == None:
-            raise Exception(f"{type(self)} needs output shape to be passed to setup its values, input: {self.input}")
-        
-
         self.activation_function = self.get_input_value("activation_function")
 
         self._setup_layers()
@@ -109,7 +102,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self.lg.writeLine(f"Model specification: hidden size: {self.hidden_size}, hidden_layers: {self.hidden_layers}, layers: {self.layers}")
 
-        if self.hidden_size is None or self.hidden_layers is None and self.hidden_layers != self.hidden_size:
+        if (self.hidden_size is None or self.hidden_layers is None) and self.hidden_layers != self.hidden_size:
             self.lg.writeLine(f"{self.name}: had hidden layers {self.hidden_layers} and hidden size {self.hidden_size}, both should not be None to be used")
             self.remove_input("hidden_layers")
             self.remove_input("hidden_size")
@@ -129,20 +122,22 @@ class FullyConnectedModelSchema(TorchModelComponent):
         if self.layers is None:
             self.layers = [self.hidden_size for _ in range(self.hidden_layers)]
 
+        self._final_layers = [*self.layers]
+
         if self.input_shape is not None:
             input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
-            self.layers.insert(0, input_size)
+            self._final_layers.insert(0, input_size)
             self.lg.writeLine(f"Input shape was specified: {self.input_shape}")
             self.lg.writeLine(f"First layer will have size of: {input_size}")
 
 
         if self.output_shape is not None:
             output_size = discrete_output_layer_size_of_space(self.output_shape)
-            self.layers.append(output_size)
+            self._final_layers.append(output_size)
             self.lg.writeLine(f"Output shape was specified: {self.output_shape}")
             self.lg.writeLine(f"Last layer will have size of: {output_size}")
          
-        self.lg.writeLine(f"Setup of layes of FCN over, layers are: {self.layers}")
+        self.lg.writeLine(f"Setup of layes of FCN over, layers are: {self._final_layers}")
 
 
     def _initialize_mininum_model_architecture(self):
@@ -157,7 +152,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
         self._setup_values() # this needs the values from the input fully setup
 
         self.model : nn.Module = type(self).Model_Class(
-                hidden_layers=self.layers,
+                hidden_layers=self._final_layers,
                 activation_function=self.activation_function
             )
 
@@ -168,7 +163,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
         super()._initialize_model()
 
         self.model : nn.Module = type(self).Model_Class(
-                hidden_layers=self.layers,
+                hidden_layers=self._final_layers,
                 activation_function=self.activation_function
             )
         

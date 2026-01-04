@@ -10,6 +10,14 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Debugger: Load and run component",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "C:\\ricardo-goncalo-thesis-project\\project\\automl\\cli\\load_run_component.py",
+            "console": "integratedTerminal",
+            "args": "--global_logger_level DEBUG --target_dir C:\\ricardo-goncalo-thesis-project\\project\\__debugs --target_dir_name debug  --component_path C:\\ricardo-goncalo-thesis-project\\project\\examples\\hp_optimization\\data\\hp_configurations\\HyperparameterOptimizationPipelineLoaderDetach"
         }
     ]
 }

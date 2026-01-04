@@ -44,8 +44,8 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
                 }
 
         
-        elif isinstance(obj, Enum):
-            return obj.value
+        #elif isinstance(obj, Enum):
+        #    return obj.value
         
         elif isinstance(obj, type):
             return str(obj)
@@ -248,13 +248,13 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
         if "object" in element_dict.keys():
             
             # from dict can also use the decoding function we're using to decode nested elements
-            instanced_object = element_type.from_dict(element_dict["object"], decode_components_input_element, source_component)
+            instanced_object = element_type.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
                         
             return instanced_object
         
         # this is a more dangerous branch as there is no separation from "__type__"
         else:
-            instanced_object = element_type.from_dict(element_dict, decode_components_input_element, source_component)
+            instanced_object = element_type.from_dict(element_dict, element_type, decode_components_input_element, source_component)
                         
             return instanced_object
 
@@ -263,7 +263,7 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
 
     if custom_strategy != None: # if there is a custom strategy to deal with this types
 
-        instanced_object = custom_strategy.from_dict(element_dict["object"], decode_components_input_element, source_component)
+        instanced_object = custom_strategy.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
         
         return instanced_object
 

@@ -219,10 +219,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         if self.sampler == "TreeParzen":
             
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self._seed)
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.seed)
 
         elif self.sampler == "Random":
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self._seed)
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.seed)
         
         else:
             raise NotImplementedError(f"Non valid string for sampler '{self.sampler}'") 
@@ -234,7 +234,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.lg.writeLine(f"Initializing sampler with class {self.sampler}")
 
         try:
-            self.sampler = sampler_class(seed=self._seed)
+            self.sampler = sampler_class(seed=self.seed)
 
         except Exception as e:
 
@@ -637,8 +637,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         super()._deal_with_exception(exception)
         
         common_exception_handling(self, exception, 'error_report.txt')
-
-        raise exception
     
     
                     

@@ -70,11 +70,25 @@ class ArtifactComponent(Component):
     def on_parent_component_defined(self):
         '''Artifact Components try to get the directory of a parent component to use as a base directory'''
         super().on_parent_component_defined()
-                
-        new_base_directory = define_base_directory_with_parent(self)
 
-        if new_base_directory != 0:
-            self.pass_input({"base_directory" : new_base_directory}) 
+        if not "base_directory" in self.input.keys() and not hasattr(self, "base_directory"):
+                
+            new_base_directory = define_base_directory_with_parent(self)
+
+            if new_base_directory != 0:
+                self.pass_input({"base_directory" : new_base_directory})
+
+
+    def clean_artifact_directory(self):
+
+        self.remove_input("base_directory")
+        self.remove_input("create_new_directory")
+        self.remove_input("artifact_relative_directory") 
+
+        del self.base_directory
+        del self.artifact_relative_directory
+        del self.create_new_directory
+        del self.artifact_directory
         
             
     

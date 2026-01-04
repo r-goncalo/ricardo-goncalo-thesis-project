@@ -55,6 +55,8 @@ class RLTrainerComponentParallel(RLTrainerComponent):
         if not isinstance(self.env, ParallelEnvironmentComponent):
             raise Exception(f"Parallel RL training requires parallel component")
         
+        self.lg.writeLine(f"Setting up RL trainer Component Parallel")
+        
         self.chosen_actions = {}
                                                                                      
 
@@ -63,7 +65,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
         for agent_name in agents_names:
 
-            agent_trainer = self.agents_in_training[agent_name]
+            agent_trainer = self.agents_trainers[agent_name]
         
             with torch.no_grad():                
                 action = agent_trainer.select_action_with_memory() # decides the next action to take (can be random)
@@ -80,7 +82,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
         for agent_name in agents_names:
             
-            agent_trainer = self.agents_in_training[agent_name]
+            agent_trainer = self.agents_trainers[agent_name]
 
             action = actions[agent_name]
             observation = observations[agent_name]
@@ -119,7 +121,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
             if done or self._check_if_to_end_episode():
                 break    
 
-        for agent_in_training in self.agents_in_training.values():
+        for agent_in_training in self.agents_trainers.values():
             agent_in_training.end_episode() 
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1

@@ -58,7 +58,7 @@ class SingleHyperparameterSuggestion(HyperparameterSuggestion):
             }
                     
             
-    def from_dict(dict : dict, decode_elements_fun, source_component): # we have no use for the function for nested components, there are none
+    def from_dict(dict : dict, element_type, decode_elements_fun, source_component): # we have no use for the function for nested components, there are none
         return SingleHyperparameterSuggestion(name=dict["name"], hyperparameter_localizations=dict.get("localizations", None), value_suggestion=dict["suggestion"])
 
 

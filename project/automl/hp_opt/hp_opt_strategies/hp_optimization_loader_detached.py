@@ -1,6 +1,6 @@
 import os
 from typing import Union
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.component import InputSignature, Component, globalWriteLine, requires_input_proccess
 from automl.basic_components.exec_component import ExecComponent
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.basic_components.evaluator_component import EvaluatorComponent
@@ -27,6 +27,8 @@ from automl.basic_components.state_management import save_state
  
 import copy
 
+from automl.basic_components.exec_component import State
+
 MEMORY_REPORT_FILE = "memory_report.txt"
 
 class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizationPipeline):
@@ -37,7 +39,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     '''
 
     parameters_signature = {
-                         
+                         "setup_seed_of_testing" : InputSignature(default_value=True, ignore_at_serialization=True)
                        }
             
 
@@ -52,7 +54,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 
                 
         self.trial_loaders : dict[str, StatefulComponentLoader] = {}
-        
+        self.setup_seed_of_testing = self.get_input_value("setup_seed_of_testing")
                 
     
     # OPTIMIZATION -------------------------------------------------------------------------
@@ -61,7 +63,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         self.lg.writeLine(f"Creating loader for trial {trial.number}")
 
-        component_saver_loader = StatefulComponentLoader()
+        component_saver_loader = StatefulComponentLoader({"name" : f"loader_trial_{trial.number}"})
         component_saver_loader.define_component_to_save_load(component_to_opt)
 
         return component_saver_loader
@@ -72,18 +74,40 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         '''Creates the component to optimize and and saver / loader for it, returning the component to optimize itself'''
                 
         component_to_opt = super()._create_component_to_optimize(trial)
+
+        if self.setup_seed_of_testing and isinstance(component_to_opt, SeededComponent):
+            component_to_opt.generate_and_setup_input_seed()
+    
+        elif self.setup_seed_of_testing:
+            globalWriteLine(f"WARNING: {self.name}: component to test is not a seeded component, will not setup any stochastic environment for it")
+        
         
         self.trial_loaders[trial.number] = self._create_loader_for_component(trial, component_to_opt)
                 
         return component_to_opt
     
     
+    def _check_running_state_of_component(self, component_to_opt : Component):
+
+        running_state = component_to_opt.values.get("running_state", None)
+
+        if running_state is not None:
+
+            self.lg.writeLine(f"Component loaded with state: {running_state}")
+
+            if State.equals_value(running_state, State.ERROR):
+                raise Exception(f"Error when component was got") 
+        
+           
+    
     def _load_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
                 
         component_saver_loader : StatefulComponentLoader = self.trial_loaders[trial.number]
         component_to_opt : Component_to_opt_type = component_saver_loader.get_component()
-        
-        return component_to_opt    
+
+        self._check_running_state_of_component(component_to_opt)
+
+        return component_to_opt
 
 
     def get_component_to_test_path(self, trial : optuna.Trial) -> str:
@@ -112,7 +136,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         '''Tries running the component, raising and dealing with an exception if it appears'''
         try:
-            component_saver_loader : StatefulComponentLoader = self.trial_loaders[trial.number]  
+            component_saver_loader : StatefulComponentLoader = self.trial_loaders[trial.number]
+  
             component_saver_loader.save_component()
             component_saver_loader.unload_component()
 
@@ -120,6 +145,11 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                                                         to_wait=True, 
                                                         global_logger_level='INFO'
                                                         )
+            
+            component_to_opt = component_saver_loader.get_component()
+
+            self._check_running_state_of_component(component_to_opt)
+
 
         except Exception as e:
             self.on_exception_running_trial(e, component_to_test_path, trial)

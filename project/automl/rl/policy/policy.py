@@ -50,6 +50,8 @@ class Policy(PolicyInterface, ComponentWithLogging):
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Processing policy input...\n")
         
         self.input_state_shape = self.get_input_value("state_shape")
         self.output_action_shape = self.get_input_value("action_shape")
@@ -63,6 +65,8 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self._initialize_model()
 
         self._setup_model()
+
+        self.lg.writeLine(f"Finished processing policy input\n")
         
         
         
