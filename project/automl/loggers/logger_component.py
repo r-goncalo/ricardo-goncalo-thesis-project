@@ -308,9 +308,38 @@ def flush_text_of_all_loggers_and_children(component : Component):
 
 # COMPONENT WITH LOGGING -------------------------------------------------------------------------------------------------    
     
+from contextlib import contextmanager
+
+from contextvars import ContextVar
+
+_current_logger: ContextVar["LoggerSchema | None"] = ContextVar(
+    "current_logger",
+    default=None
+)
+
+_first_logger_override: ContextVar["LoggerSchema | None"] = ContextVar(
+    "first_logger_override",
+    default=None
+)
+
+@contextmanager
+def use_logger(logger: "LoggerSchema"):
+    token = _current_logger.set(logger)
+    try:
+        yield logger
+    finally:
+        _current_logger.reset(token)
+
+@contextmanager
+def override_first_logger(logger: "LoggerSchema"):
+    token = _first_logger_override.set(logger)
+    try:
+        yield logger
+    finally:
+        _first_logger_override.reset(token)
+
 def on_log_pass(self : Component):
-            
-    self.lg  = self.get_input_value("logger_object")
+    self.define_new_logger_object(self.get_input_value("logger_object"))
     
 def generate_logger_for_component(self : ArtifactComponent):
     return self.initialize_child_component(LoggerSchema, input={
@@ -342,9 +371,28 @@ class ComponentWithLogging(ArtifactComponent):
             
         super()._proccess_input_internal()
         
-        self.lg : LoggerSchema = self.get_input_value("logger_object") if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
+        self._lg : LoggerSchema = self.get_input_value("logger_object") if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
         
-        self.lg.pass_input(self.get_input_value("logger_input"))
+        self._lg.pass_input(self.get_input_value("logger_input"))
+
+    def define_new_logger_object(self, new_logger : LoggerSchema):
+        self._lg = new_logger
+
+    @property
+    def lg(self) -> LoggerSchema: # this allows for external components to change the logger being used with their calls
+        
+        first_override = _first_logger_override.get()
+        if first_override is not None:
+            # consume it
+            _first_logger_override.set(None)
+            return first_override
+        
+        ctx_logger = _current_logger.get()
+        if ctx_logger is not None:
+            return ctx_logger
+        
+        
+        return self._lg
 
 
     @requires_input_proccess

@@ -7,10 +7,7 @@ class ParallelEnvironmentComponent(EnvironmentComponent):
     
     parameters_signature =  {} 
         
-    @requires_input_proccess    
-    def reset(self):
-        raise NotImplementedError()
-    
+
 
     def step(self, actions):
         """

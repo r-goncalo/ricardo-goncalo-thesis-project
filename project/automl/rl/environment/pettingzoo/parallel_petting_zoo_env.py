@@ -90,6 +90,17 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
             obs_dict[agent] = observation
             info_dict[agent] = info
         """
+        obs, info = self.env.reset()
+        self._last_obs = obs  # store so .observe(agent) can work
+        self.reset_info = info
+        return obs
+    
+    def total_reset(self):
+        """
+        Returns:
+            obs_dict[agent] = observation
+            info_dict[agent] = info
+        """
         obs, info = self.env.reset(seed=self.seed)
         self._last_obs = obs  # store so .observe(agent) can work
         self.reset_info = info

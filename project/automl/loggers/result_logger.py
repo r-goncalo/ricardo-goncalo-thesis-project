@@ -148,7 +148,7 @@ class ResultLogger(LoggerSchema):
         return ordered_dataframe.tail(n).to_records()
     
     @requires_input_proccess
-    def get_dataframe(self):
+    def get_dataframe(self) -> pandas.DataFrame:
         return self.dataframe
 
     def get_grouped_dataframes(self, key_to_group_by) -> Dict[str, pandas.DataFrame]:

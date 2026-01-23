@@ -85,10 +85,17 @@ class ArtifactComponent(Component):
         self.remove_input("create_new_directory")
         self.remove_input("artifact_relative_directory") 
 
-        del self.base_directory
-        del self.artifact_relative_directory
-        del self.create_new_directory
-        del self.artifact_directory
+        if hasattr(self, "base_directory"):
+            del self.base_directory
+        
+        if hasattr(self, "artifact_relative_directory"):
+            del self.artifact_relative_directory
+        
+        if hasattr(self, "create_new_directory"):
+            del self.create_new_directory
+        
+        if hasattr(self, "artifact_directory"):
+            del self.artifact_directory
         
             
     

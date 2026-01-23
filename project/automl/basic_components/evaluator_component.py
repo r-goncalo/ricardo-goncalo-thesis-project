@@ -3,13 +3,14 @@
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
+from automl.basic_components.exec_component import ExecComponent
 
 
 from abc import abstractmethod
 
 from automl.loggers.logger_component import ComponentWithLogging
 
-class EvaluatorComponent(Component):
+class EvaluatorComponent(ExecComponent):
     
     '''
     A component that evaluates a Component, being able to give it a single numeric score
@@ -18,13 +19,20 @@ class EvaluatorComponent(Component):
     '''
     
     parameters_signature = {
+        "component_to_evaluate" : ComponentInputSignature(mandatory=False)
                     }    
     
     exposed_values = {
         
-        "last_evaluation" : {}
+        "last_evaluation" : 0
     
     }
+
+    def __init__(self, input = None):
+        super().__init__(input)
+
+        if self.values["last_evaluation"] == 0:
+            self.values["last_evaluation"] = {}
 
     def _proccess_input_internal(self):
         
@@ -57,6 +65,18 @@ class EvaluatorComponent(Component):
     #needs to be extended
     def _evaluate(self, component_to_evaluate : Component) -> dict:
         return {}
+    
+    def _algorithm(self):
+        component_to_evaluate = self.get_input_value("component_to_evaluate")
+
+        if component_to_evaluate is None:
+            raise Exception(f"Tried to run evaluator without passing a component to evaluate")
+        
+        results = self.evaluate(component_to_evaluate)
+
+        self.output = {**results}
+
+        
 
 
 class ComponentWithEvaluator(Component):

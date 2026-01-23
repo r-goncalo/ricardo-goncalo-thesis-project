@@ -152,10 +152,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
         
+        self._setup_results_logger(parameter_names)
+                
+        self._suggested_values_by_trials = {}  
+
+    def _setup_results_logger(self, parameter_names):
         self.add_to_columns_of_results_logger(["experiment", "step", *parameter_names, "result"])
-                
-        self.__suggested_values_by_trials = {}  
-                
                 
     
     # initialize the base configuration to create components to test
@@ -361,7 +363,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Creates the actual component to optimize, using the configuration dictionary and making the hyperparameter suggestions'''
         
-        self.lg.writeLine(f"Creating component to test for trial {trial.number}...")
+        self.lg.writeLine(f"Creating component to test for trial {trial.number}...\n")
         
         config_of_opt = self._create_component_to_optimize_configuration(trial)
                 
@@ -378,7 +380,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self._setup_component_to_optimize_after_creation(trial, component_to_opt)
         
-        self.lg.writeLine(f"Created component with name {name}")
+        self.lg.writeLine(f"Created component with name {name}\n")
         
         return component_to_opt
         
@@ -431,10 +433,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.lg.writeLine("Generating configuration for trial " + str(trial.number))
 
-        if trial.number in self.__suggested_values_by_trials.keys():
-            raise Exception(f"Trial {trial.number} already had value(s) in suggested values: {self.__suggested_values_by_trials[trial.number]}")
+        if trial.number in self._suggested_values_by_trials.keys():
+            raise Exception(f"Trial {trial.number} already had value(s) in suggested values: {self._suggested_values_by_trials[trial.number]}")
 
-        self.__suggested_values_by_trials[trial.number] = {}
+        self._suggested_values_by_trials[trial.number] = {}
         
         for hyperparameter_suggestion in self.hyperparameters_range_list:
 
@@ -448,7 +450,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"For hyperparameter {hyperparameter_suggestion.name}, value {suggested_value} was sampled, using the sampler {self.sampler}")
             
             #save suggestion value in our internal dict
-            self.__suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
+            self._suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
 
             hyperparameter_suggestion.set_suggested_value(suggested_value, base_component) # set suggested value in component
             
@@ -479,12 +481,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
 
     
-    def _try_evaluate_component(self, component_to_test_path, trial : optuna.Trial) -> float:
+    def _try_evaluate_component(self, component_to_test_path, trial : optuna.Trial, component_to_test = None) -> float:
 
         '''Tries evaluate the component that has already run and return its result, and deals with an exception that could appear'''
         
         try:
-            component_to_test = self.get_component_to_test(trial)      
+            if component_to_test is None:
+                component_to_test = self.get_component_to_test(trial)      
+            
             return self._evaluate_component(component_to_test)
         
         except Exception as e:
@@ -551,7 +555,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 trial.report(result, step) # we report the results to optuna
 
-                results_to_log = {'experiment' : trial.number, "step" : step, **self.__suggested_values_by_trials[trial.number], "result" : result}
+                results_to_log = {'experiment' : trial.number, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
 
                 for key, value in results_to_log.items():
                     results_to_log[key] = [value]
@@ -597,16 +601,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _pre_proccess_component_before_objective(self, trial : optuna.Trial):
         pass
 
-
-    def objective(self, trial : optuna.Trial):
-        
-        '''Responsible for running the optimization trial and evaluating the component to test'''
-        
-        self.lg.writeLine()
-        self.lg.writeLine(f"Starting new training with hyperparameter cofiguration for trial {trial.number}")
-
-        self._pre_proccess_component_before_objective(trial)
-
+    
+    def _run_optimization(self, trial: optuna.Trial):
         for step in range(self.n_steps):
 
             evaluation_results = self._try_run_single_step_of_objective(trial, step)
@@ -614,6 +610,20 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         return evaluation_results["result"]   # this is the value the objective will optimize
             
+
+    def objective(self, trial : optuna.Trial):
+        
+        '''Responsible for running the optimization trial and evaluating the component to test'''
+
+        self._pre_proccess_component_before_objective(trial)
+
+        return self._run_optimization(trial)
+    
+    def _call_objective(self):
+
+        self.study.optimize( lambda trial : self.objective(trial), 
+                       n_trials=self.n_trials,
+                       callbacks=[self.after_trial])
         
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
         
@@ -622,9 +632,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         It is passed to optuna in the callbacks when the objective is defined
         '''        
                         
-        self.lg.writeLine(f"Reached after trial function, after trial {trial.number}")
-
-        self.__suggested_values_by_trials.pop(trial.number, None)
+        self._suggested_values_by_trials.pop(trial.number, None)
 
         pass
 
@@ -636,11 +644,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         super()._deal_with_exception(exception)
         
-        common_exception_handling(self, exception, 'error_report.txt')
+        common_exception_handling(self.lg, exception, 'error_report.txt')
     
     
                     
     # STUDY SETUP ------------------------------------------------------------------------------
+
 
     def _initialize_study(self):
 
@@ -670,6 +679,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     study_name=self.study_name,
                     direction=self.direction ,
                 )
+
                 self.lg.writeLine(f"Created new study '{self.study_name}'")
 
                 if self.start_with_given_values:
@@ -690,9 +700,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
 
-        self.study.optimize( lambda trial : self.objective(trial), 
-                       n_trials=self.n_trials,
-                       callbacks=[self.after_trial])
+        self._call_objective()
         
         self.lg.writeLine(f"OPTIMIZATION WITH {self.n_trials} TRIALS OVER --------------------------------------------------------------------")
 
@@ -724,7 +732,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        common_exception_handling(self, exception, error_report_path)
+        common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
 
@@ -741,7 +749,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        common_exception_handling(self, exception, error_report_path)
+        common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
     
@@ -759,7 +767,24 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        common_exception_handling(self, exception, error_report_path)
+        common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
         
+
+        
+    def on_general_exception_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial):
+
+        self.lg.writeLine(f"ERROR IN TRIAL {trial.number}")
+
+        error_report_specific_path = "general_exception.txt"
+        
+        component_to_test_path = os.path.abspath(component_to_test_path)
+
+        error_report_path = os.path.join(component_to_test_path, error_report_specific_path)
+
+        self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
+
+        common_exception_handling(self.lg, exception, error_report_path)
+
+        raise exception

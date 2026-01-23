@@ -299,7 +299,10 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                 raise Exception(f"Fraction of training to do must be between 0 and 1, was {self._fraction_training_to_do}")
 
             self.lg._writeLine(f"Only doing a fraction of {self._fraction_training_to_do} of the training")
-        
+
+        self.lg._writeLine(f"Resetting the environment...")
+
+        self.env.total_reset()
 
         for agent_in_training in self.agents_trainers.values():
             agent_in_training.setup_training_session() 

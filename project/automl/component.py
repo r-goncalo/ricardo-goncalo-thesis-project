@@ -201,8 +201,6 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         elif parameter_signature.generator != None:
 
-            print(f"CALLING GENERATOR FOR KEY: {key}")
-
             self.input[key] = parameter_signature.generator(self)
             self.__input_meta[key].generator_value_was_set()
             

@@ -6,7 +6,7 @@ import pandas
 from automl.component import Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
-from automl.loggers.logger_component import ComponentWithLogging
+from automl.loggers.logger_component import ComponentWithLogging, LoggerSchema, use_logger
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.result_logger import ResultLogger, aggregate_results_logger
@@ -204,9 +204,12 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         env = self.__generalize_get_environment(env, rl_player)
         
         if env is not None:
-            rl_player.pass_input({"environment" : env})            
+            rl_player.pass_input({"environment" : env})
+
+        evaluation_logger = LoggerSchema(input={"create_new_directory" : False, "base_directory" : rl_player, "artifact_relative_directory" : '', })            
         
-        rl_player.run()
+        with use_logger(evaluation_logger):
+            rl_player.run()
 
         if rl_player_will_be_generated: # if the player will be generated, might as well save the configuration for later consultation of it
             save_configuration(rl_player, rl_player.get_artifact_directory(), save_exposed_values=True, ignore_defaults=False)

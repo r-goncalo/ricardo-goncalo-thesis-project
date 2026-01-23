@@ -357,7 +357,7 @@ class HyperparameterOptimizationPipelineParallel(HyperparameterOptimizationPipel
         
         super()._deal_with_exception(exception)
         
-        common_exception_handling(self, exception, 'error_report.txt')
+        common_exception_handling(self.lg, exception, 'error_report.txt')
 
         raise exception
     
@@ -447,7 +447,7 @@ class HyperparameterOptimizationPipelineParallel(HyperparameterOptimizationPipel
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        common_exception_handling(self, exception, error_report_path)
+        common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
 
@@ -464,7 +464,7 @@ class HyperparameterOptimizationPipelineParallel(HyperparameterOptimizationPipel
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        common_exception_handling(self, exception, error_report_path)
+        common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
     
@@ -482,7 +482,7 @@ class HyperparameterOptimizationPipelineParallel(HyperparameterOptimizationPipel
 
         self.lg.writeLine(f"Storing error report in configuration, path {error_report_path}\nError: {exception}")
 
-        common_exception_handling(self, exception, error_report_path)
+        common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
         

@@ -216,7 +216,7 @@ def unload_component(component : Component) -> None:
             
 
 # TODO: REVIEW THIS, it is weird and unecessarly complex
-class StatefulComponentLoader(ArtifactComponent):
+class StatefulComponentLoader(StatefulComponent):
     
     '''A component with the capability of storing its state in its respective directory and later load it'''
     
@@ -234,7 +234,7 @@ class StatefulComponentLoader(ArtifactComponent):
         self.component_to_save_type = type(component)
         
         self.input["artifact_relative_directory"] = ''
-        self.input["base_directory"] = component.get_artifact_directory()
+        self.input["base_directory"] = str(component.get_artifact_directory())
         self.input["create_new_directory"] = False        
 
         
@@ -242,13 +242,17 @@ class StatefulComponentLoader(ArtifactComponent):
         
         super()._proccess_input_internal()    
         
-        if not hasattr(self, 'component_to_save_load'):
-            raise Exception("Component to save / load was not defined, use define_component_to_save_load method")
+        if hasattr(self, 'component_to_save_load'):
         
-        self.pass_input({"artifact_relative_directory" : str(self.component_to_save_load.input["artifact_relative_directory"])}) #str is used to clone the string
-        self.pass_input({"base_directory" : str(self.component_to_save_load.input["base_directory"])})
+            self.input["artifact_relative_directory"] = str(self.component_to_save_load.input["artifact_relative_directory"])
+            self.input["base_directory"] = str(self.component_to_save_load.input["base_directory"])
+            self.input["create_new_directory"] = False   
         
-        
+
+    def _save_state_internal(self):
+        super()._save_state_internal()
+        self.save_component()
+
     @requires_input_proccess
     def save_component(self):
         '''Saves component to its folder'''
@@ -282,7 +286,7 @@ class StatefulComponentLoader(ArtifactComponent):
             # Get memory before
             before = torch.cuda.memory_allocated(device)
             
-            print(f"Memory allocated before freeing: {before} bytes, {before / (1024 * 1024)} MB")
+            #print(f"Memory allocated before freeing: {before} bytes, {before / (1024 * 1024)} MB")
     
             # Clean memory
             torch.cuda.empty_cache()
@@ -290,7 +294,7 @@ class StatefulComponentLoader(ArtifactComponent):
             
             after = torch.cuda.memory_allocated(device)
             
-            print(f"Memory allocated freed: {before - after} bytes, {(before - after) / (1024 * 1024)} MB")
+            #print(f"Memory allocated freed: {before - after} bytes, {(before - after) / (1024 * 1024)} MB")
             
         
     @requires_input_proccess
@@ -301,11 +305,10 @@ class StatefulComponentLoader(ArtifactComponent):
 
         
     @requires_input_proccess
-    def get_component(self):
+    def get_component(self) -> ArtifactComponent:
         '''Gets the component, if not loaded yet, it is loaded'''
         
         if not hasattr(self, 'component_to_save_load'):
-            print(f"Loading component because no component in memory")
             self.load_component() 
         
         return self.component_to_save_load
@@ -334,8 +337,6 @@ class StatefulComponentLoader(ArtifactComponent):
         if global_logger_level is not None:
             cmd = [*cmd, "--global_logger_level", global_logger_level]
 
-        print(f"Running command {cmd}")
-
         popen_proccess = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
@@ -345,9 +346,7 @@ class StatefulComponentLoader(ArtifactComponent):
 
         if to_wait:
 
-            print(f"Will wait for proccess to end")
             return_code = popen_proccess.wait()
-            print(f"Return code: {return_code}")
 
         return popen_proccess
     

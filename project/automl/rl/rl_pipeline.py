@@ -262,7 +262,7 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         except:
             pass
         
-        common_exception_handling(self, exception, 'error_report.txt')
+        common_exception_handling(self.lg, exception, 'error_report.txt')
     
         
     @requires_input_proccess
@@ -287,6 +287,8 @@ class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResu
         
         It then evaluates and returns the results
         '''
+
+        self.lg.writeLine(f"Running RL Pipeline...\n")
         
         self.train() #trains the agents in the reinforcement learning pipeline
         

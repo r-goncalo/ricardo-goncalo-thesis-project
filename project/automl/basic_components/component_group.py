@@ -1,52 +1,38 @@
 
 
 
-from automl.component import InputSignature
+import os
+import shutil
+import subprocess
+import time
+from automl.basic_components.artifact_management import ArtifactComponent
+from automl.component import InputSignature, requires_input_proccess
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
+from automl.core.advanced_input_management import ComponentListInputSignature
 from automl.loggers.component_with_results import ComponentWithResults, DEFAULT_RESULTS_LOGGER_KEY
+from automl.loggers.global_logger import globalWriteLine
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.loggers.result_logger import ResultLogger
-from automl.utils.json_utils.json_component_utils import gen_component_from_dict
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict, gen_component_from
 
 from typing import Union
 
 from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
 
-
 AGGREGATE_RESULTS_KEY = "aggregate_results"
-
 
 Component_in_group_type = Union[ExecComponent, StatefulComponent, SeededComponent, ComponentWithResults]
 
-class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, ComponentWithLogging, ComponentWithResults, EvaluatorComponent):
+class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLogging, ComponentWithResults, EvaluatorComponent):
 
     '''A component which represents a group of runnable seeded components which can be run and evaluated'''
     
     parameters_signature = {
         
-        "number_of_components" : InputSignature(
-            description="The number of components to be used in the group",
-            default_value=3,
-        ),
-        
-        "component_class" : InputSignature(
-            description="The class of the component to be used in the group",
-            mandatory=False
-        ),
-        
-        "component_dic" : InputSignature(mandatory=False),
-        
-        "component_parameters" : InputSignature(
-            description="The parameters of the component to be used in the group",
-        ),
-        
-        "component_in_group_evaluator" : InputSignature(
-            description="The evaluator of the component to be used in the group",
-            mandatory=False
-        ),
-        
+        "components_loaders_in_group" : ComponentListInputSignature(mandatory=False)
+    
     }
     
     results_columns = {
@@ -57,236 +43,181 @@ class RunnableComponentGroup(ExecComponent, SeededComponent, StatefulComponent, 
     }
     
     results_loggers_names = [DEFAULT_RESULTS_LOGGER_KEY, AGGREGATE_RESULTS_KEY]
-    
-    
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.component_loaders = []
+
     
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
-        
-        self.runnable_components = []
-        self.last_ran_component = -1
 
-        self.number_of_components = self.get_input_value("number_of_components")
+        self.components_loaders_in_group : list[StatefulComponentLoader] = self.get_input_value("components_loaders_in_group")
 
-        self.component_class = self.get_input_value("component_class") # may be None
-        self.component_dic = self.get_input_value("component_dic") # may be None
 
-        self.component_parameters = self.get_input_value("component_parameters")
-        
-        self.component_in_group_evaluator = self.get_input_value("component_in_group_evaluator")
-                
-        self.instantiate_components_in_group()
-        
-        self.__was_aggregate_results_initialized = False
-
-        
-    # AGGREGATE RESULTS LOGGING ----------------------------------------------
-        
-    def initialize_aggregate_results_lg(self, component : Component_in_group_type):
-        
-        '''
-        Initializes aggregate results logger with columns appropriate for the components in group
-        This has to happen before aggregate_results is first used
-        '''
-        
-        component_results = component.get_results_columns()
-        
-        
-        if self.component_in_group_evaluator != None:
-            evaluation_results = self.component_in_group_evaluator.get_metrics_strings()
-            
-        else:
-            evaluation_results = []
-            
-        self.add_to_columns_of_results_logger([*component_results, *evaluation_results], key=AGGREGATE_RESULTS_KEY)
-        
-        self.__was_aggregate_results_initialized = True
-        
-        
-        
-        
-    def get_aggregate_results_lg(self) -> ResultLogger:
-        
-        '''
-        Returns the aggregate results logger
-        This does not need the component to be initialized, as it is capable of getting them from file if needed
-        '''
-        
-        return self.get_decoupled_results_logger(f"{AGGREGATE_RESULTS_KEY}.csv")
-    
-    
-    def get_results_by_component(self) -> dict:
-        
-        '''
-        Returns the results of the components in the group, grouped by component index
-        If the input is not processed, this will simply return the results save in file
-        '''
-        
-        aggregate_results_lg = self.get_aggregate_results_lg()
-        
-        results_per_component = aggregate_results_lg.get_grouped_dataframes("component_index")
-        
-        return results_per_component
-    
-    
-        
-        
-    def log_aggregate_results(self, component : Component_in_group_type, component_index : int, component_results, evaluation_results):
-        
-        self.log_results({
-            "component_index" : component_index,
-            "times_ran" : component.values["times_ran"],
-            **component_results,
-            **evaluation_results
-        },
-        key=AGGREGATE_RESULTS_KEY)
-        
-            
-    # COMPONENT GROUP INITIALIZATION ----------------------------------------------
-            
-    def check_component_class(self, component_class):
-
-        
-        if not issubclass(component_class, SeededComponent):
-            raise Exception("The component class must be a subclass of SeededComponent")
-        
-        if not issubclass(component_class, ExecComponent):
-            raise Exception("The component class must be a subclass of ExecComponent")
-        
-        self.using_stateful_components = issubclass(component_class, StatefulComponent)
-        
-        
-        
-    def generate_stateful_component(self) -> Component_in_group_type:
-        
-        '''Generates a component in the group from the class or the dic'''
-
-        if self.component_class == None:
-            
-            if self.component_dic != None: #generate the component from the dic
-                stateful_component = gen_component_from_dict(self.component_dic)
-
-            else:
-                raise Exception("Either the component class is defined or the component dic")
-            
-        else: #generate the component from the class
-            stateful_component = self.component_class(
-                self.component_parameters
-            )
-            
-        if isinstance(stateful_component, ComponentWithEvaluator):
-            stateful_component.pass_input({"component_evaluator" : self.component_in_group_evaluator})
-
-        self.check_component_class(type(stateful_component))
-            
-        return stateful_component
-    
-        
-    def add_component(self):
-
-        '''Adds a component to the group'''
-        
-        component_parameters = {**self.component_parameters}
-        component_parameters["create_new_directory"] = True #this is to make sure that each component has its own directory
-
-        stateful_component = self.generate_stateful_component()
-
-        if self.using_stateful_components:
-                                    
-            component = StatefulComponentLoader()
-            
-            component.define_component_to_save_load(stateful_component)
-            
-            
-        else:
-            self.define_component_as_child(stateful_component)
-            component = stateful_component
-        
-        self.runnable_components.append(component)
-        
-        
-    def instantiate_components_in_group(self):
-        '''Initializes the components in the group'''
-        
-        for _ in range(self.number_of_components):
-            
-            self.add_component()
-            
-    
+    @requires_input_proccess
     def get_component(self, index) -> Component_in_group_type:
         
         '''Returns the component at the given index'''
 
-        if self.using_stateful_components:
+        component_loader : StatefulComponentLoader = self.components_loaders_in_group[index]
             
-            component_loader : StatefulComponentLoader = self.runnable_components[index]
-            
-            return component_loader.load_component()
-            
-        else:
-            
-            return self.runnable_components[index]
+        return component_loader.get_component()
+    
+    @requires_input_proccess
+    def get_loader(self, index) -> StatefulComponentLoader:
+         
+        return self.components_loaders_in_group[index]
+    
+    @requires_input_proccess
+    def unload_all_components(self):
+         for loader in self.components_loaders_in_group:
+              loader.unload_if_loaded()
             
     
     # RUNNING COMPONENTS -------------------------------------------------
     
-    def evaluate_component_in_group(self, component : Component_in_group_type):
-        
-        if isinstance(component, ComponentWithEvaluator):
-            return component.evaluate_this_component()
-        
-        elif self.component_in_group_evaluator == None:
-            return {}
-        
-        else:
-            self.component_in_group_evaluator.evaluate(component)
-            
-            
-            
-    def run_component(self, index):
-        
-        '''Runs the component at the given index'''
-        
-        component = self.get_component(index)
-            
-        component.run()
-        
-        evaluation = self.evaluate_component_in_group(component)
-        
-        if not self.__was_aggregate_results_initialized: #if this was not initialized yet, we initialize it
-            self.initialize_aggregate_results_lg(component)
-        
-        self.log_aggregate_results(component, index, component.get_last_results(), evaluation)
-        
-        if self.using_stateful_components:
-            loader : StatefulComponentLoader = self.runnable_components[index]
-            loader.save_and_onload_component()
-            
-        
-        self.last_ran_component = index
+    @requires_input_proccess
+    def detach_run_all_components(self, number_of_threads = None, global_logger_level = None):
 
+        if number_of_threads is None:
+             number_of_threads = len(self.component_loaders)
+
+        if number_of_threads > len(self.component_loaders):
+             raise Exception(f"Number of threads higher than components, {number_of_threads} > {len(self.component_loaders)}")
+        
+        loaders : list[StatefulComponentLoader] = list(self.components_loaders_in_group)
+
+        running_processes: list[subprocess.Popen] = []
+        active_slots = number_of_threads
+        next_index = 0
+
+        #while we still have components to run or there are running processes
+        while next_index < len(loaders) or running_processes:
+
+            # Spawn new processes while slots are available
+            while active_slots > 0 and next_index < len(loaders):
+                loader = loaders[next_index]
+
+                popen_process = loader.detach_run_component(
+                    to_wait=False,
+                    global_logger_level=global_logger_level
+                )
+
+                running_processes.append(popen_process)
+                active_slots -= 1
+                next_index += 1
+
+            # Poll running processes
+            still_running = []
+            for p in running_processes:
+                if p.poll() is None:
+                    still_running.append(p)
+                else:
+                    active_slots += 1  # free a slot
+
+            running_processes = still_running
+
+            # Avoid busy waiting
+            if running_processes:
+                time.sleep(10)
+
+
+
+
+# CUSTOM INITIALIZATION -------------------------------------------------------------
+
+def _create_loader_for_component(component_to_opt, loader_name):
+
+        '''Creates a loader for a component'''
+
+        component_saver_loader = StatefulComponentLoader({"name" : loader_name})
+        component_saver_loader.define_component_to_save_load(component_to_opt)
+
+        return component_saver_loader
+
+
+def _create_loader_for_run_using_path(base_name, original_path, run_id : int, base_directory, setup_seed_of_testing):
+
+        '''Create a loader using an existent path, copying the original component to a new path (which will be where the new loading will happen)'''
+
+        run_name = f"{run_id}"
+        component_name = f"{base_name}_{run_name}"
+
+        component_saver_loader = StatefulComponentLoader({
+            "name" : f"loader_{component_name}",
+            "base_directory" : base_directory,
+            "artifact_relative_directory" : run_name,
+            "create_new_directory" : False})
+        
+        destination_path = component_saver_loader.get_artifact_directory()
+        
+        shutil.copytree(
+            original_path,
+            destination_path,
+            dirs_exist_ok=True
+        )                
+        component_to_opt : ArtifactComponent = component_saver_loader.get_component()
+
+        component_to_opt.clean_artifact_directory()
+        
+        component_to_opt.pass_input({
+            "name" : component_name,
+            "base_directory" : base_directory,
+            "artifact_relative_directory" : run_name,
+            "create_new_directory" : False
+            })
+        
+        if setup_seed_of_testing and isinstance(component_to_opt, SeededComponent):
+            component_to_opt.generate_and_setup_input_seed()
     
-    def run_next_component(self):
-        
-        '''Runs the next component in the group'''
-        
-        index = self.last_ran_component + 1
-        
-        if self.last_ran_component >= len(self.runnable_components) - 1:
-            index = 0
-        
-        self.run_component(index)
-        
-        
-    def run_all_components(self):
-        
-        '''Runs all the components in the group once'''
-        
-        for i in range(len(self.runnable_components)):
-            self.run_component(i)
-            
+        elif setup_seed_of_testing:
+            globalWriteLine(f"WARNING: component to test {component_to_opt.name} is not a seeded component, will not setup any stochastic environment for it")
+
+        del component_to_opt
+
+        component_saver_loader.save_state()
+
+        try:
+            component_saver_loader.unload_component()
+        except:
+             pass
+
+        return component_saver_loader
+
+
+def setup_component_group(number_of_components, group_directory, base_name, base_component_definition, setup_seed_of_testing):
+
+        first_component : StatefulComponent = gen_component_from(base_component_definition)
+
+        loaders : list[StatefulComponentLoader] = []
+        to_return = RunnableComponentGroup({"components_loaders_in_group" : loaders, "artifact_relative_directory" : '', "base_directory" : group_directory, "create_new_directory" : False})
+
+        run_name = f"0"
+        component_name = f"{base_name}_{run_name}"
+        first_component.clean_artifact_directory()
+        first_component.pass_input({"base_directory" : str(group_directory), "artifact_relative_directory" : str(run_name), "name" : component_name, "create_new_directory" : False})
+
+        if setup_seed_of_testing and isinstance(first_component, SeededComponent):
+            first_component.generate_and_setup_input_seed()
     
-    # Execution ----------------------------------------
-    
-    def _algorithm(self):
-        self.run_all_components()
+        elif setup_seed_of_testing:
+            globalWriteLine(f"WARNING: component to test is not a seeded component, will not setup any stochastic environment for it")
+
+        loader = _create_loader_for_component(first_component, f"loader_{component_name}")
+        to_return.define_component_as_child(loader)
+        loader.save_component()
+        loaders.append(loader)
+
+        completed_component_directory = loader.get_artifact_directory()
+
+        for i in range(1, number_of_components):
+
+            loader : StatefulComponentLoader = _create_loader_for_run_using_path(base_name, completed_component_directory, i, group_directory, setup_seed_of_testing)
+            to_return.define_component_as_child(loader)
+            loaders.append(loader)
+
+
+        return to_return

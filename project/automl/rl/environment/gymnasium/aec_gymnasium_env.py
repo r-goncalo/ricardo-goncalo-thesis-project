@@ -48,7 +48,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
 
         self._setup_environment()
 
-        self.reset(seed=self.seed)   
+        self.total_reset()   
 
 
         
@@ -99,6 +99,19 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
 
     
     def reset(self):
+
+        '''Resets the environment, with an optinal seed'''        
+
+
+        observation, info = self.env.reset()
+        
+        self.reset_info = info
+        
+        self.last_observation = observation
+            
+        return self.state_translator(observation, self.device)
+
+    def total_reset(self):
 
         '''Resets the environment, with an optinal seed'''        
 
