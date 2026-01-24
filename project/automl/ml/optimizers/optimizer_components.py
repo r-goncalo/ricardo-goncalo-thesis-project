@@ -78,7 +78,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         
         super()._proccess_input_internal()
 
-        self.lg.writeLine(f"This exists with input:\n{self.input}")
+        self.lg.writeLine(f"Starting to process optimizer input")
         
         self.params = self.model.get_model_params() #gets the model parameters to optimize
 
@@ -87,10 +87,10 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
                 
         self.torch_adam_opt = optim.Adam(params=self.params,lr=self.lr, amsgrad=self.amsgrad)
 
-
-
         self._initialize_decays()
         self._initialize_grad_clip()
+
+        self.lg.writeLine(f"Finished processing optimizer input")
 
     # INITIALIZATION --------------------------------------------------------------------------
 

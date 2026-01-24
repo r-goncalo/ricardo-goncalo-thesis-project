@@ -65,6 +65,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         # the priority should be to give resources to trials with the lowest index
         self.beneficted_trainings = math.ceil(self.trainings_at_a_time / self.trainings_per_configuration)
 
+        self.lg.writeLine(f"For {self.trainings_per_configuration} trainings per configuration, with {self.trainings_at_a_time} trainings being done at a time, the minimum number of hyperparameter configurations being tested at a time should be {self.beneficted_trainings}")
+
         # semaphore to use the evaluator
         self.evaluator_sem = threading.Semaphore(1)
 

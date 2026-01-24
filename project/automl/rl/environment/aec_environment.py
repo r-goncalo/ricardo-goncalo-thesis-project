@@ -9,15 +9,7 @@ class AECEnvironmentComponent(EnvironmentComponent):
     parameters_signature =  {} 
     
         
-    @requires_input_proccess    
-    def reset(self):
-        '''A soft reset of the environment, only to guarantee it is in its initial state'''
-        raise NotImplementedError()
-    
-    @requires_input_proccess    
-    def total_reset(self):
-        '''Resets all, including RNG state'''
-        raise NotImplementedError()
+
         
     @requires_input_proccess   
     def observe(self, *args):

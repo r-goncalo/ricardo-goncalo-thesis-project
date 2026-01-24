@@ -52,6 +52,10 @@ class SimpleHyperparameterOptimizationPipeline(HyperparameterOptimizationPipelin
     # OPTIMIZATION -------------------------------------------------------------------------
     
     def get_component_to_test_path(self, trial : optuna.Trial) -> str:
+
+        if self.component_being_optimized is None:
+            self.component_being_optimized = self._create_component_to_optimize(trial) 
+
         return self.component_being_optimized.get_artifact_directory()
 
     def get_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:

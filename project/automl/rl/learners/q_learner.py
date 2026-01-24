@@ -100,7 +100,8 @@ class DeepQLearnerSchema(QLearnerSchema):
                             custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.5, "high": 1.0 }]}
                             ),
 
-                        "target_update_learn_interval" : InputSignature(default_value=1, description="How many optimization times before we update the target model"),
+                        "target_update_learn_interval" : InputSignature(default_value=1, description="How many optimization times before we update the target model",
+                                                                        custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 1, "high": 10 }]}),
                         
                         "device" : InputSignature(ignore_at_serialization=True),
                         

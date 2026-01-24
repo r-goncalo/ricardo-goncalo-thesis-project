@@ -32,7 +32,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                                                                 custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 100, "high": 500 }]}
                                                                 ),
                        
-                       "times_to_learn" : InputSignature(default_value=1, description="How many times to optimize at learning time"), 
+                       "times_to_learn" : InputSignature(default_value=1, description="How many times to optimize at learning time",
+                                                         custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 1, "high": 256 }]}), 
                        
                        "learning_start_ep_delay" : InputSignature(default_value=-1),
                         "learning_start_step_delay" : InputSignature(default_value=-1),
@@ -43,7 +44,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                             
                         "agent" : ComponentInputSignature(),
 
-                       "batch_size" : InputSignature(mandatory=False),
+                       "batch_size" : InputSignature(mandatory=False, custom_dict={"hyperparameter_suggestion" : [ "cat", {"choices": [8, 16, 32, 64, 128, 256]}]}),
                     
                        "discount_factor" : InputSignature(
                            default_value=0.95,

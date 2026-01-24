@@ -35,6 +35,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         "number_of_episodes" : InputSignature(default_value=5),
         "number_of_evaluations" : InputSignature(default_value=1),
         "environment" : ComponentInputSignature(mandatory=False),
+        "save_after_evaluation" : InputSignature(ignore_at_serialization=True, default_value=False)
     }
     
     exposed_values = {
@@ -54,6 +55,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         self.number_of_episodes = self.get_input_value("number_of_episodes")
         self.number_of_evaluations = self.get_input_value("number_of_evaluations")
         self.rl_player_definition = self.get_input_value("rl_player_definition")
+
+        self.save_after_evaluation = self.get_input_value("save_after_evaluation")
         
         self._setup_environment()
 
@@ -102,6 +105,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         (agents, device, evaluations_directory, env) = tuple
 
         return self._evaluate_agents(agents, device, evaluations_directory, env)
+    
 
     def __generalize_get_environment(self, env, rl_player : RLPlayer = None):
         

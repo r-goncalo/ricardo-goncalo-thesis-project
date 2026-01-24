@@ -79,10 +79,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         self.lg.writeLine("Starting episode " + str(self.values["episodes_done"] + 1) + " with agents: " + str(self.agents.keys()))
         
         self.lg.writeLine(f"The environment is named {self.env.name} of type {type(self.env)}")
-
-        self.lg.writeLine(f"Agents inputs:")
-        for agent in self.agents.values():
-            self.lg.writeLine(f"{agent.input}")
                 
         for agent in self.agents.values():
             agent.reset_agent_in_environment(self.env.observe(agent.name))

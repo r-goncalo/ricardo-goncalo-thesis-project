@@ -6,12 +6,12 @@ from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema
 from automl.rl.policy.qpolicy import QPolicy
 
-from automl.rl.environment.pettingzoo.pettingzoo_env import PettingZooEnvironmentWrapper
+from automl.rl.environment.pettingzoo.parallel_petting_zoo_env import PettingZooEnvironmentWrapperParallel
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 
-DEFAULT_ENV_DEFINITION = (PettingZooEnvironmentWrapper, {
+DEFAULT_ENV_DEFINITION = (PettingZooEnvironmentWrapperParallel, {
     "environment": "cooperative_pong"})
 
 
@@ -35,8 +35,7 @@ def config_dict(num_episodes=200, env=None):
                         "model" : (
                             FullyConnectedModelSchema, 
                             {
-                            "hidden_layers" : 3,
-                            "hidden_size" : 64
+                            "layers" : [64, 64]
                             }
                             ),
                         }

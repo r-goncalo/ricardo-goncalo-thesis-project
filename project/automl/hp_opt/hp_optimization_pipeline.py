@@ -546,23 +546,30 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             self.lg.writeLine()
             self.lg.writeLine(f"Starting step {step + 1} of {self.n_steps} total steps for trial {trial.number}")
-                        
+
+            component_to_test_path = self.get_component_to_test_path(trial)
+             
             try:
 
                 evaluation_results = self._run_single_step_of_objective(trial, step)
 
-                result = evaluation_results["result"]
+                try:
 
-                trial.report(result, step) # we report the results to optuna
+                    result = evaluation_results["result"]
 
-                results_to_log = {'experiment' : trial.number, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
+                    trial.report(result, step) # we report the results to optuna
 
-                for key, value in results_to_log.items():
-                    results_to_log[key] = [value]
-                
-                self.log_results(results_to_log)  
+                    results_to_log = {'experiment' : trial.number, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
 
-                self.lg.writeLine(f"Ended step {step + 1}") 
+                    for key, value in results_to_log.items():
+                        results_to_log[key] = [value]
+
+                    self.log_results(results_to_log)  
+
+                except Exception as e:
+                    self.on_general_exception_trial(e, component_to_test_path, trial)
+
+                    self.lg.writeLine(f"Ended step {step + 1}") 
 
                 if trial.should_prune(): # we verify this after reporting the result
                     self.lg.writeLine("Prunning current experiment due to pruner...")

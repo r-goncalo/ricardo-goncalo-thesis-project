@@ -174,7 +174,7 @@ def gen_hp_suggestions_for_component_and_input(component_class : type[Component]
 
 def gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion, current_localization):
 
-    print(f"Hyperparameter suggestion found: {hyperparameter_suggestion}")
+    print(f"Hyperparameter suggestion found: {hyperparameter_suggestion}, in {current_localization}")
 
     if isinstance(hyperparameter_suggestion, HyperparameterSuggestion):
 

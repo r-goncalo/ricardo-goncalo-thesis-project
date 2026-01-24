@@ -8,7 +8,9 @@ class LearnerSchema(Component):
         
     parameters_signature = {
         "agent" : InputSignature(),
-        "optimizations_per_learn" : InputSignature(default_value=1)
+        "optimizations_per_learn" : InputSignature(default_value=1,custom_dict={
+                                    "hyperparameter_suggestion" : ("int", {"low" : 1, "high" : 32})
+                                })
 
     }
         

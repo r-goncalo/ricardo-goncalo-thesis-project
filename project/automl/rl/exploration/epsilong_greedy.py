@@ -37,7 +37,7 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
     
     # EXPOSED METHOD --------------------------------------------------------------------------
 
-    def select_random_action(self):
+    def should_select_random_action(self):
 
         eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.training_context["episodes_done"] / self.EPS_DECAY)
 
@@ -51,7 +51,7 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         super().select_action(agent, state)
         
         #in the case we use our policy net to predict our next action    
-        if self.select_random_action():
+        if self.should_select_random_action():
             
             self.values["n_greedy"] = self.values["n_greedy"] + 1
             return  agent.policy_predict(state)
@@ -67,7 +67,7 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         super().select_action_with_memory(agent)
         
         #in the case we use our policy net to predict our next action    
-        if self.select_random_action():
+        if self.should_select_random_action():
             
             self.values["n_greedy"] = self.values["n_greedy"] + 1
             return  agent.policy_predict_with_memory()
@@ -79,55 +79,25 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         
 
 
-
-from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
-from automl.component import InputSignature
-
-import random
-import math
-import torch
-
-class EpsilonGreedyLinearStrategy(ExplorationStrategySchema):
+class EpsilonGreedyLinearStrategy(EpsilonGreedyStrategy):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = { "epsilon_end" : InputSignature(default_value=0.025),
-                            "exploration_fraction" : InputSignature(default_value=0.2),
-                       "epsilon_start" : InputSignature(default_value=1.0),
-                       "training_context" : InputSignature(
-                           validity_verificator= lambda ctx : all(key in ctx.values.keys() for key in ["total_steps", "episodes_done"]))} #training context is a dictionary where we'll be able to get outside data   
-    
-    exposed_values = {"n_random" : 0, "n_greedy" : 0}
+    parameters_signature = { }
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
         
-        self.EPS_END = self.get_input_value("epsilon_end")                
-        self.EPS_START = self.get_input_value("epsilon_start")
-        self.DECAY = self.get_input_value("exploration_fraction")
-        self.training_context = self.get_input_value("training_context").values
-    
-
     
     # EXPOSED METHOD --------------------------------------------------------------------------
-    
-    def select_action(self, agent,  state):
-                
-        super().select_action(agent, state)
-                
+
+    def should_select_random_action(self):
+
+        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * max(0, 1 - self.EPS_DECAY * self.training_context["episodes_done"])
+
         sample = random.random()
-        
-        eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * max(0, 1 - self.DECAY * self.training_context["episodes_done"])
-                
-        #in the case we use our policy net to predict our next action    
-        if sample > eps_threshold:
-            
-            self.values["n_greedy"] = self.values["n_greedy"] + 1
-            return  agent.policy_predict(state)
-        
-        #in the case we choose a random action
-        else:
-            self.values["n_random"] = self.values["n_random"] + 1
-            return agent.policy_random_predict() 
+
+        return sample > eps_threshold
+    
         

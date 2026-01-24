@@ -149,15 +149,17 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
             self._initialize_mininum_model_architecture()  # Ensure the model as its architecture initialized before loading weights
 
+            self.lg.writeLine(f"Loading model weights in file into architecture of model...")
+
             self.model.load_state_dict(state_dict) #loads the saved weights into the model
 
-            self.lg.writeLine("Success in loading model from path")
+            self.lg.writeLine("Success in loading model from path\n")
 
             return True
         
         else:
 
-            self.lg.writeLine("Could not find model weights to load (/model_weights.pth)")
+            self.lg.writeLine("Could not find model weights to load (/model_weights.pth)\n")
         
             return False
 
@@ -247,17 +249,49 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     # STATE MANAGEMENT -----------------------------------------------------
 
     def _save_model(self):
-        torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
+        
     
+        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
+        
+        if os.path.exists(model_path):
+            saved_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+
+            self.lg.writeLine(f"Model already existed, comparing new with old:")
+
+            params_a = torch.cat([
+                p.detach().flatten().cpu()
+                for p in self.model.state_dict().values()
+            ])
+
+            params_b = torch.cat([
+                p.detach().flatten().cpu()
+                for p in saved_state_dict.values()
+            ])
+
+
+            l2_distance = torch.norm(params_a - params_b, p=2).item()
+            avg_distance = l2_distance / params_a.numel()
+            cosine_sim = torch.nn.functional.cosine_similarity(
+                params_a.unsqueeze(0), params_b.unsqueeze(0)
+            ).item()
+
+            self.lg.writeLine(f"L2 dis: {l2_distance}, Avg dist: {avg_distance}, Cos dist: {cosine_sim}")
+
+        torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
+
+
 
     def _save_state_internal(self):
         
         super()._save_state_internal()
 
         if hasattr(self, "model"):
+            self.lg.writeLine(f"Saving the model...")
             self._save_model()
+            self.lg.writeLine(f"Finished saving the model")
             
         else:
+            self.lg.writeLine(f"No model to save, skipping this...")
             globalWriteLine(f"{self.name}: WARNING: Saving state of Torch model state without ever reaching the point of initializing its model")
     
     
