@@ -1,11 +1,27 @@
-from ...automl.basic_components import loop_components
+from automl.basic_components import loop_components
 import unittest
+
+from automl.basic_components.exec_component import ExecComponent
+
+
+class TestExecComponent(unittest.TestCase):
+    
+    def test_output_reference(self):
+        
+        exec_component = ExecComponent()
+        
+        exec_component.proccess_input()
+        
+        output = exec_component.run()
+                
+        assert output is exec_component.output
+
+
 
 def condition(self):
     return self.i < 10
 
 def execution(self):
-    print(f"Executing {self.i}")
     self.i = self.i + 1
 
 def pre_execution(self):
@@ -27,7 +43,22 @@ class TestWhileComponent(unittest.TestCase):
         
         while_component.proccess_input()
         
-        output = while_component.execute()
+        while_component.run()
+                
+        assert while_component.i == 10
+
+    def test_correct_by_output(self):
+        
+        while_component = loop_components.WhileFunDoFunComponent({
+                "condition": condition,
+                "execution": execution,
+                "pre_execution": pre_execution,
+                "post_execution" : post_execution
+            })
+        
+        while_component.proccess_input()
+        
+        output = while_component.run()
                 
         assert output["result"] == 10
         
@@ -36,9 +67,7 @@ class TestWhileComponent(unittest.TestCase):
 
         
         try:
-            
-            print("Trying to run while component with wrong condition type")
-            
+                        
             while_component = loop_components.WhileFunDoFunComponent(                {
                     "condition": 5,
                     "execution": execution,
@@ -48,12 +77,11 @@ class TestWhileComponent(unittest.TestCase):
             
             while_component.proccess_input()
         
-            output = while_component.execute()
+            output = while_component.run()
             
             assert False
         
         except:
-            print("Success in caugthing an exception")
             assert True
                 
         
@@ -73,7 +101,7 @@ class TestDoNTimesComponent(unittest.TestCase):
         
         do_n_times_component.proccess_input()
         
-        output = do_n_times_component.execute()
+        output = do_n_times_component.run()
         
         assert output["result"] == loop_components.DoNTimesComponent.DEFAULT_TIMES_TO_DO
         
@@ -93,7 +121,7 @@ class TestDoNTimesComponent(unittest.TestCase):
         
         do_n_times_component.proccess_input()
         
-        output = do_n_times_component.execute()
+        output = do_n_times_component.run()
         
         assert output["result"] == custom_times_to_do
         
@@ -110,7 +138,7 @@ class TestDoNTimesComponent(unittest.TestCase):
             })
         
         
-        output = do_n_times_component.execute()
+        output = do_n_times_component.run()
         
         assert output["result"] == custom_times_to_do
         
@@ -128,7 +156,7 @@ class TestDoNTimesComponent(unittest.TestCase):
         )
         
         
-        output = do_n_times_component.execute()
+        output = do_n_times_component.run()
         
         assert output["result"] == custom_times_to_do
 

@@ -1,7 +1,9 @@
 
-from ..core.exec_component import ExecComponent
-from ..component import InputSignature
+
 import types
+
+from automl.core.input_management import InputSignature
+from automl.basic_components.exec_component import ExecComponent
 
 class WhileFunDoFunComponent(ExecComponent):
 
@@ -12,7 +14,7 @@ class WhileFunDoFunComponent(ExecComponent):
                        "pre_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
                        "post_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType))}
     
-    def algorithm(self):
+    def _algorithm(self):
                 
         condition = self.get_input_value("condition")
         execution = self.get_input_value("execution")
@@ -38,7 +40,7 @@ class DoNTimesComponent(ExecComponent):
         "times_to_do" : InputSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))
         }
     
-    def algorithm(self):
+    def _algorithm(self):
                 
         execution = self.get_input_value("execution")
         pre_execution = self.get_input_value("pre_execution")
