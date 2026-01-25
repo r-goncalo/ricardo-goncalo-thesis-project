@@ -85,6 +85,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
 
         else:
+            self.lg.writeLine(f"Agent has no state translator")
             self.proccess_env_state = no_proccess_state_for_agent
         
 

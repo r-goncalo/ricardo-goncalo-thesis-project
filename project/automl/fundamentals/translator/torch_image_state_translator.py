@@ -42,7 +42,7 @@ class ImageReverter(Translator):
             else:
 
                 # tmp is (H, W, C). We need (C, H, W) in buffer.
-                self._out_buffer.copy_(self._in_buffer.permute(2, 0, 1))
+                self._out_buffer.copy_(state.permute(2, 0, 1))
 
                 return self._out_buffer
 

@@ -17,16 +17,9 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
 
     parameters_signature = { 
                        "environment" : InputSignature(default_value="cooperative_pong"),
-                       "device" : InputSignature(ignore_at_serialization=True)
                        }    
     
     
-    @staticmethod
-    def state_translator(state, device):
-        
-        with torch.no_grad():
-            #return torch.from_numpy(state).to(torch.float32).to(device)
-            return torch.tensor(state, dtype=torch.float32, device=device).permute(2, 0, 1) / 255.0
 
     
     
@@ -62,7 +55,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     
         
     def observe(self, *args):
-        return AECPettingZooEnvironmentWrapper.state_translator(self.env.observe(*args), self.device)
+        return self.env.observe(*args)
     
     
     @requires_input_proccess
@@ -85,7 +78,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         observation, reward, termination, truncation, info = self.env.last()
         
         #returns state, reward, done, info
-        return AECPettingZooEnvironmentWrapper.state_translator(observation, self.device), reward, termination, truncation, info
+        return observation, reward, termination, truncation, info
     
     def agent_iter(self):
         return self.env.agent_iter()

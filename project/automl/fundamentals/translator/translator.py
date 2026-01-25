@@ -16,7 +16,7 @@ class Translator(Component):
         "buffered_operations" : InputSignature(default_value=False),
         
         
-        "device" : InputSignature(default_value="", ignore_at_serialization=True, get_from_parent=True)
+        "device" : InputSignature(default_value="cpu", ignore_at_serialization=True, get_from_parent=True)
 
     }
 
@@ -50,6 +50,8 @@ class Translator(Component):
     
 
     def get_shape(self, original_shape=None):
+
+        '''Gets the shape this translator will return'''
         
         if original_shape is None and self.new_shape is not None:
         
@@ -113,12 +115,12 @@ class TranslatorSequence(Translator):
 
                 translator.pass_input({"original_shape" : current_shape})
                 translator.proccess_input_if_not_proccesd()
-                current_state = translator.get_shape()
+                current_shape = translator.get_shape()
 
-            self.new_state = current_shape
+            self.new_shape = current_shape
 
         else:
-            self.new_state = None
+            self.new_shape = None
 
 
 

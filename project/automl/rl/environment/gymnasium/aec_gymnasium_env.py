@@ -18,24 +18,14 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
 
     parameters_signature = {
         "environment": InputSignature(default_value="CartPole-v1"),
-        "render_mode": InputSignature(default_value="rgb_array", validity_verificator=lambda x: x in ["rgb_array", "human"]),
-        "device": InputSignature(ignore_at_serialization=True)
+        "render_mode": InputSignature(default_value="rgb_array", validity_verificator=lambda x: x in ["rgb_array", "human"])
     }
-
-    @staticmethod
-    def state_translator(state, device):
-                
-        with torch.no_grad():
-            
-            return torch.tensor(state, dtype=torch.float32, device=device)
         
         
 
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
-        self.device = self.get_input_value("device")
-
         self.last_observation = None
         self.last_reward = 0
         self.last_done = False
@@ -109,7 +99,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
         
         self.last_observation = observation
             
-        return self.state_translator(observation, self.device)
+        return observation
 
     def total_reset(self):
 
@@ -122,11 +112,11 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
         
         self.last_observation = observation
             
-        return self.state_translator(observation, self.device)
+        return observation
     
 
     def last(self):
-        return self.state_translator(self.last_observation, self.device), self.last_reward, self.last_done, self.last_truncation, self.last_info
+        return self.last_observation, self.last_reward, self.last_done, self.last_truncation, self.last_info
 
 
     def agents(self):
@@ -150,7 +140,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
         self.last_truncation = truncated
         self.last_info = info
                 
-        return self.state_translator(obs, self.device), reward, terminated, truncated, info
+        return obs, reward, terminated, truncated, info
 
 
     def render(self):
@@ -166,7 +156,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
 
     
     def observe(self, *args):
-        return self.state_translator(self.last_observation, self.device)
+        return self.last_observation
     
     def get_env_info(self):
         return self.reset_info

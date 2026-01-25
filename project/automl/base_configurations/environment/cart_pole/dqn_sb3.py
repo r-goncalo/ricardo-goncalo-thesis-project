@@ -39,6 +39,7 @@ from automl.rl.policy.qpolicy import QPolicy
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
+from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 
 
 def config_dict():
@@ -62,7 +63,8 @@ def config_dict():
                             }
                             ),
                         }
-                )
+                ),
+            "state_translator" : (ToTorchTranslator, {})
         },
         
         "rl_trainer" : (RLTrainerComponent,
