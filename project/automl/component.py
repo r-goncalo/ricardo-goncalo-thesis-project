@@ -557,22 +557,22 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             if not input_key in passed_keys: 
                 
                 if parameter_signature.get_from_parent:
-                    
                     self.input[input_key] = self.get_attr_from_parent(input_key)
-                    
-                    if self.input[input_key] == None:
-                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Getting attribute '{input_key}' from parent resulted in a None value")
-                    
-                                                                   
-                elif not parameter_signature.default_value == None:
-                    self.input[input_key] = parameter_signature.default_value  #the value used will be the default value
+                
+                else:
+                    self.input[input_key] = None
 
-                elif not parameter_signature.generator == None:
-                    try:
-                        self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
-                    
-                    except Exception as e:
-                        raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}") from e
+                if self.input[input_key] is None:
+                                                                   
+                    if not parameter_signature.default_value == None:
+                        self.input[input_key] = parameter_signature.default_value  #the value used will be the default value
+    
+                    elif not parameter_signature.generator == None:
+                        try:
+                            self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
+                        
+                        except Exception as e:
+                            raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}") from e
                     
     
     # INPUT META DATA ----------------------------------------------------------------
