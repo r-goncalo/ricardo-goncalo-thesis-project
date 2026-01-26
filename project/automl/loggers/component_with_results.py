@@ -59,7 +59,8 @@ class ComponentWithResults(ArtifactComponent):
                        "results_logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
                                                         generator = generate_logger_for_component , 
                                                         on_pass=on_log_pass,
-                                                        description="A dictionary of result loggers object or single one")
+                                                        description="A dictionary of result loggers object or single one",
+                                                        mandatory=False)
                        }
     
     

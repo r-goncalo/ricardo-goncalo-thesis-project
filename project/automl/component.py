@@ -552,28 +552,30 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     def __add_default_values_of_class_input(self, passed_keys, list_of_signatures : dict[str, InputSignature]):
                         
         for input_key, parameter_signature in list_of_signatures.items():
+
+            value_to_put = None
                              
             #if this values was not already defined
             if not input_key in passed_keys: 
                 
                 if parameter_signature.get_from_parent:
-                    self.input[input_key] = self.get_attr_from_parent(input_key)
+                    value_to_put = self.get_attr_from_parent(input_key)
                 
-                else:
-                    self.input[input_key] = None
-
-                if self.input[input_key] is None:
+                if value_to_put is None:
                                                                    
-                    if not parameter_signature.default_value == None:
-                        self.input[input_key] = parameter_signature.default_value  #the value used will be the default value
-    
-                    elif not parameter_signature.generator == None:
+                    if parameter_signature.default_value is not None:
+                        value_to_put = parameter_signature.default_value  #the value used will be the default value
+
+
+                    elif parameter_signature.generator is not None:
                         try:
-                            self.input[input_key] = parameter_signature.generator(self) #generators have access to the instance        
+                            value_to_put = parameter_signature.generator(self) #generators have access to the instance        
                         
                         except Exception as e:
                             raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}") from e
-                    
+            
+            if value_to_put is not None:
+                self.input[input_key] = value_to_put
     
     # INPUT META DATA ----------------------------------------------------------------
     
@@ -599,8 +601,12 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             if input_key in passed_keys: #if this value was in input
                 
                 input_value = self.input[input_key] #get the value passed
-                    
-                self.verify_validity(input_key, input_value, parameter_signature.possible_types, parameter_signature.validity_verificator) #raises exceptions if input is not valid
+
+                if input_value is None and parameter_signature.mandatory == True:
+                    raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")    
+                
+                elif input_value is not None:
+                    self.verify_validity(input_key, input_value, parameter_signature.possible_types, parameter_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             elif parameter_signature.mandatory: #if there was no specified value for this attribute in the input
                 raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")     
@@ -629,7 +635,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     def verify_one_of_types(self, input_key, input_value, possible_types):
             
             if possible_types == None or possible_types == []:
-                return #if there were no possible_types defined, there is no need to check the type
+                return #if there were no possible_types defined, there is no need to check the type                
 
             for possible_type in possible_types:
 
@@ -637,7 +643,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                     return #break the loop and the functon, value is of one of the possible types
                 
             #if we reach the end of the function, then the value is of none of the types
-            raise Exception(f"In component of type {type(self)}: No validity verificator specified for key '{input_key}' and its type ({type(input_key)}) is of none of the possible types: {possible_types}")
+            raise Exception(f"In component of type {type(self)}: No validity verificator specified for key '{input_key}' and its value {input_value}, of type ({type(input_value)}) is of none of the possible types: {possible_types}")
           
 
     # NOTES --------------------------------
