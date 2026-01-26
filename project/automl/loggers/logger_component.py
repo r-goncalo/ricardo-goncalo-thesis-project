@@ -371,12 +371,15 @@ class ComponentWithLogging(ArtifactComponent):
             
         super()._proccess_input_internal()
         
-        self._lg : LoggerSchema = self.get_input_value("logger_object") if not hasattr(self, "lg") else self.lg #changes self.lg if it does not already exist
+        self._lg : LoggerSchema = self.get_input_value("logger_object") if not self.has_logger_object_defined() else self._lg 
         
         self._lg.pass_input(self.get_input_value("logger_input"))
 
     def define_new_logger_object(self, new_logger : LoggerSchema):
         self._lg = new_logger
+
+    def has_logger_object_defined(self):
+        return hasattr(self, "_lg")
 
     @property
     def lg(self) -> LoggerSchema: # this allows for external components to change the logger being used with their calls
@@ -390,7 +393,6 @@ class ComponentWithLogging(ArtifactComponent):
         ctx_logger = _current_logger.get()
         if ctx_logger is not None:
             return ctx_logger
-        
         
         return self._lg
 
