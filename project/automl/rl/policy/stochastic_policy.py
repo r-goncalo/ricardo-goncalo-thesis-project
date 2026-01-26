@@ -80,11 +80,3 @@ class StochasticPolicy(Policy):
         
         return self.predict_from_probability_with_log(probs)
         
-    
-    @requires_input_proccess
-    def random_prediction(self):
-        return torch.randint(
-                0, #low
-                self.model_output_shape.n, #high
-                (1,) #size
-            )

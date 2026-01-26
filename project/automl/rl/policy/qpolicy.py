@@ -39,11 +39,3 @@ class QPolicy(Policy):
         return max_indexes
     
     
-    @requires_input_proccess
-    def random_prediction(self):    
-        return torch.randint(
-            0, #low
-            int(self.policy_output_shape), #high
-            (1,), #size
-            device=self.device
-        )

@@ -56,9 +56,8 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self.input_state_shape = self.get_input_value("state_shape")
         self.output_action_shape = self.get_input_value("action_shape")
 
-        self.policy_output_shape = single_action_shape(self.output_action_shape)
-
-        self.lg.writeLine(f"Action shape {self.output_action_shape} means policy chooses action value with shape {self.policy_output_shape}")
+        self.lg.writeLine(f"Policy input shape is: {self.input_state_shape}")
+        self.lg.writeLine(f"Policy (action) output shape is {self.output_action_shape}")
 
         self.device = self.get_input_value("device")
 
@@ -68,12 +67,6 @@ class Policy(PolicyInterface, ComponentWithLogging):
 
         self.lg.writeLine(f"Finished processing policy input\n")
         
-        
-        
-        
-        
-                
-
         
     def _setup_model(self):
         self.model.pass_input({
@@ -85,7 +78,7 @@ class Policy(PolicyInterface, ComponentWithLogging):
     
     @requires_input_proccess
     def get_policy_output_shape(self):
-        return self.policy_output_shape
+        return self.output_action_shape
         
         
     def predict(self, state):
@@ -125,5 +118,7 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self.values["model"] = self.model
         
     
-    def random_prediction(self, state):
-        pass
+    @requires_input_proccess
+    def random_prediction(self):    
+
+        return self.output_action_shape.sample()
