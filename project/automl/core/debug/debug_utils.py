@@ -1,9 +1,10 @@
 
 from automl.component import Schema, get_class_from
-from automl.core.global_class_registry import register_class
+from automl.core.global_class_registry import register_class_generator
 from automl.fundamentals.translator.translator import Component
 from automl.utils.class_util import is_valid_str_class_definition, organize_collection_from_subclass_to_super_class
 
+from automl.core.debug.debug_class_generator import make_new_debug_class
 
 def get_non_debug_schema_of_schema(schema : type[Component]):
     
@@ -24,6 +25,8 @@ def get_non_debug_schema_of_schema(schema : type[Component]):
                 return schema_superclass
                 
         return None
+    
+
 
 def generate_pairs_class_debug_class(debugclasses_list : list[type[Component]]) -> list[tuple[type[Component], type[Component]]]:
 
@@ -40,8 +43,9 @@ def generate_pairs_class_debug_class(debugclasses_list : list[type[Component]]) 
         else:
             print(f"Could not find a base class for debug class : {debug_class}")
 
-
     return debug_classes_and_classes
+
+
 
 def substitute_classes_by_debug_classes(collection, debugclasses_list : list[Component]):
 
@@ -52,6 +56,8 @@ def substitute_classes_by_debug_classes(collection, debugclasses_list : list[Com
     debug_classes_and_classes = generate_pairs_class_debug_class(debugclasses_list)
 
     return __substitute_classes_by_debugclasses(collection, debug_classes_and_classes)
+
+
 
 
 def __substitute_classes_by_debugclasses(collection, class_debugclasses_pairs : list[tuple[type[Component], type[Component]]]):
@@ -71,21 +77,15 @@ def __substitute_classes_by_debugclasses(collection, class_debugclasses_pairs : 
                 return debug_class
 
             elif issubclass(collection, subclass):
-
-                new_debug_class : type[Component] = Schema(
-                        f"{debug_class.__name__}_{collection.__name__}",
-                        (debug_class, collection),
-                        {
-                            "default_name": f"{collection.default_name}_debug",
-                        }
-                    )
+                
+                new_debug_class : type[Component] = register_class_generator(generator=make_new_debug_class, args=(debug_class, collection))
                 
                 print(f"\nFound class {collection}, substituting it by debugclass {new_debug_class}, using debug class {debug_class}")
                 print(f"    parameters: {[key for key in new_debug_class.get_schema_parameters_signatures().keys()]}")
                 print(f"    exp values: {[key for key in new_debug_class.get_schema_exposed_values().keys()]}")
                 print(f"    mro:        {new_debug_class.__mro__}")
                 
-                return register_class(new_debug_class) # we return a custom debug class, registred
+                return new_debug_class
                     
         return collection
     

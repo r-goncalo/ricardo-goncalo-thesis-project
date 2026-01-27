@@ -22,7 +22,7 @@ import torch
                 
 import sys
 
-from automl.core.global_class_registry import has_registered_classes, get_registered_classes, serialize_registered_classes, load_custom_classes
+from automl.core.global_class_registry import get_registered_classes_generators, has_registered_classes_generators, serialize_registered_classes, load_custom_classes
                 
                 
 
@@ -198,7 +198,7 @@ def save_state(component : Component, save_definition=True) -> None:
         if save_definition:
             component.save_configuration(save_exposed_values=True, ignore_defaults=False)
 
-    if save_definition and has_registered_classes():
+    if save_definition and has_registered_classes_generators():
 
         artifact_dir = component.get_artifact_directory()
         custom_dir = os.path.join(artifact_dir, "__custom_classes")
@@ -208,7 +208,7 @@ def save_state(component : Component, save_definition=True) -> None:
         if not os.path.exists(init_file):
             write_text_to_file(custom_dir, "__init__.py", "")
 
-        if get_registered_classes():
+        if get_registered_classes_generators():
             code = serialize_registered_classes()
             write_text_to_file(custom_dir, "custom_classes.py", code)        
 

@@ -3,38 +3,63 @@ import types
 from typing import Type
 import inspect
 
+from automl.component import Schema
 from automl.loggers.global_logger import globalWriteLine
+
+from dataclasses import dataclass
+from typing import Callable
 
 CUSTOM_MODULE_NAME = "__custom_classes.custom_classes"
 
 
-_CUSTOM_CLASSES: dict[str, Type] = {}
+@dataclass
+class ClassSpec:
+    name : str
+    generator: Callable
+    args: tuple
+    kwargs: dict
 
-def register_class(cls: Type):
+_CUSTOM_CLASS_SPECS: dict[str, ClassSpec] = {}
 
-    '''Clones a class into the custom module and returns the clone'''
+def register_class_generator(
+    *,
+    generator: Callable,
+    args: tuple = (),
+    kwargs: dict | None = None,
+):
+    if kwargs is None:
+        kwargs = {}
 
     module = get_or_create_custom_module()
 
-    cloned_cls = clone_class_into_module(cls, CUSTOM_MODULE_NAME)
+    cls = generator(*args, **kwargs)
+    cls.__module__ = CUSTOM_MODULE_NAME
 
-    setattr(module, cloned_cls.__name__, cloned_cls)
+    setattr(module, cls.__name__, cls)
 
-    key = f"{CUSTOM_MODULE_NAME}.{cloned_cls.__name__}"
-    _CUSTOM_CLASSES[key] = cloned_cls
+    spec = ClassSpec(
+        name=cls.__name__,
+        generator=generator,
+        args=args,
+        kwargs=kwargs,
+    )
+
+    key = f"{CUSTOM_MODULE_NAME}.{cls.__name__}"
+    _CUSTOM_CLASS_SPECS[key] = spec
 
     globalWriteLine(f"Registered custom class: {key}", file="global_classes.txt")
 
-    return cloned_cls
+    return cls
 
-def get_registered_classes():
-    return dict(_CUSTOM_CLASSES)
 
-def has_registered_classes():
-    return len(_CUSTOM_CLASSES) > 0
+def get_registered_classes_generators():
+    return dict(_CUSTOM_CLASS_SPECS)
+
+def has_registered_classes_generators():
+    return len(_CUSTOM_CLASS_SPECS) > 0
 
 def clear_registry():
-    _CUSTOM_CLASSES.clear()
+    _CUSTOM_CLASS_SPECS.clear()
 
 
 def get_or_create_custom_module():
@@ -53,35 +78,63 @@ def get_or_create_custom_module():
     sys.modules[CUSTOM_MODULE_NAME] = module
     return module
 
+
 def clone_class_into_module(cls, target_module_name: str):
+    
     namespace = dict(cls.__dict__)
 
     # Remove runtime-only attributes
     namespace.pop("__dict__", None)
     namespace.pop("__weakref__", None)
 
-    new_cls = type(
+    new_cls = Schema(
         cls.__name__,
         cls.__bases__,
-        namespace
+        dict(cls.__dict__)
     )
 
     new_cls.__module__ = target_module_name
+
+    if hasattr(cls, "__source__"):
+        new_cls.__source__ = cls.__source__
+
     return new_cls
 
+
 def serialize_registered_classes() -> str:
-    lines = []
-    lines.append("# Auto-generated custom classes")
-    lines.append("# DO NOT EDIT MANUALLY\n")
 
-    for name, cls in get_registered_classes().items():
+    lines = [
+        "# Auto-generated custom classes",
+        "from automl.component import Component",
+        "from automl.schema import Schema",
+        "from automl.utils.class_util import get_class_from",
+        "from automl.core.global_class_registry import register_class_generator",
+        "",
+    ]
+
+    for spec in _CUSTOM_CLASS_SPECS.values():
+        gen = spec.generator
+
         try:
-            source = inspect.getsource(cls)
-        except OSError:
-            raise RuntimeError(f"Cannot serialize class {cls}")
+            gen_src = inspect.getsource(gen)
+        except (OSError, TypeError):
+            raise RuntimeError(
+                f"Generator {gen.__name__} has no source; cannot serialize"
+            )
+        
+        args_str = [f"\"{str(arg)}\""for arg in spec.args]
+        args_str = ", ".join(args_str)
 
-        lines.append(source)
-        lines.append("\n")
+        lines.append(gen_src)
+        lines.append("")
+        lines.append(
+            f"{spec.name} = register_class_generator("
+            f"generator={gen.__name__}, "
+            f"args=({args_str}), "
+            f"kwargs={spec.kwargs}"
+            f")"
+        )
+        lines.append("")
 
     return "\n".join(lines)
 
