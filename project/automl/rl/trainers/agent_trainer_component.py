@@ -222,6 +222,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
             
             with torch.no_grad():                
                 action = self.select_action(observation) # decides the next action to take (can be random)
+
+            self.lg.writeLine(f"Chosen action: {action}", file="actions.txt")
                                                                                          
             env.step(action.item()) #makes the game proccess the action that was taken
                 

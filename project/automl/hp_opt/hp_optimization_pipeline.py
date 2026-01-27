@@ -17,10 +17,9 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 import optuna
 
-from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
+from automl.basic_components.state_management import StatefulComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.utils.configuration_component_utils import save_configuration
-import torch
 
 from automl.basic_components.state_management import save_state
  
@@ -28,6 +27,8 @@ import copy
 
 from automl.consts import CONFIGURATION_FILE_NAME
 from automl.core.exceptions import common_exception_handling
+
+from automl.core.debug.debug_utils import substitute_classes_by_debug_classes
 
 TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
 
@@ -49,8 +50,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
                         "sampler" : InputSignature(default_value="TreeParzen"),
         
-                        "configuration_dict" : InputSignature(mandatory=False, possible_types=[dict]),
-                        "configuration_string" : InputSignature(mandatory=False),
+                        "configuration_dict" : InputSignature(mandatory=False, possible_types=[dict, str]),
                         "base_component_configuration_path" : InputSignature(mandatory=False),
 
                         "database_study_name" : InputSignature(default_value='experiment'),
@@ -72,6 +72,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "start_with_given_values" : InputSignature(default_value=True),
 
                         "continue_after_error" : InputSignature(default_value=True, ignore_at_serialization=True, description="If trials should continue after an error or not"),
+
+                        "do_initial_evaluation" : InputSignature(default_value=False),
+
+                        "debug_classes" : InputSignature(mandatory=None)
                                                     
                        }
             
@@ -109,7 +113,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
         # remove input not supposed to be used
         self.remove_input("configuration_dict")
-        self.remove_input("configuration_string")
         self.pass_input({"base_component_configuration_path" : configuration_path})
             
     
@@ -136,8 +139,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.evaluator_component : EvaluatorComponent = self.get_input_value("evaluator_component", look_in_attribute_with_name="evaluator_component")
         
         self.continue_after_error = self.get_input_value("continue_after_error")
+
+        self.do_initial_evaluation = self.get_input_value("do_initial_evaluation")
         
         self.direction = self.get_input_value("direction")
+
+        self.debug_classes = self.get_input_value("debug_classes")
 
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_config_dict()
@@ -156,9 +163,16 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 
         self._suggested_values_by_trials = {}  
 
+        
+
     def _setup_results_logger(self, parameter_names):
         self.add_to_columns_of_results_logger(["experiment", "step", *parameter_names, "result"])
                 
+
+    def _setup_configuration_dict_with_debug_classes(self):
+        '''Substitutes the configuration dict by passed debug classes'''
+
+        self.config_dict = substitute_classes_by_debug_classes(self.config_dict, self.debug_classes)
     
     # initialize the base configuration to create components to test
     def _initialize_config_dict(self):
@@ -171,11 +185,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         elif "configuration_dict" in self.input.keys():
 
             self.config_dict = self.get_input_value("configuration_dict")
-            
-                        
-        elif "configuration_string" in self.input.keys():
-            self.config_dict = dict_from_json_string(self.get_input_value("configuration_string"))
-            
+
+            if isinstance(self.config_dict, str):
+                self.config_dict = dict_from_json_string(self.config_dict)
+        
         else:
 
             hp_component_path = self.get_artifact_directory()
@@ -188,6 +201,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             else:
                 raise Exception("No configuration defined")
+            
+        if self.debug_classes is not None:
+            self.lg.writeLine(f"There are debug classes to use: {self.debug_classes}")
+            self._setup_configuration_dict_with_debug_classes()
+            
+        
         
     
     #it constructs the path for the database        
@@ -205,35 +224,35 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.sampler = self.get_input_value("sampler")
 
         if isinstance(self.sampler, str):
-            self._initialize_sampler_from_str()
+            self._initialize_sampler_from_str(self.sampler)
 
         elif isinstance(self.sampler, type):
-            self._initialize_sampler_from_class()
+            self._initialize_sampler_from_class(self.sampler)
 
         else:
             raise Exception("Non valid type for sampler")
         
         
     
-    def _initialize_sampler_from_str(self):
+    def _initialize_sampler_from_str(self, sampler_str):
 
-        self.lg.writeLine(f"Initializing sampler with string {self.sampler}")
+        self.lg.writeLine(f"Initializing sampler with string {sampler_str}")
         
-        if self.sampler == "TreeParzen":
+        if sampler_str == "TreeParzen":
             
             self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.seed)
 
-        elif self.sampler == "Random":
+        elif sampler_str == "Random":
             self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.seed)
         
         else:
-            raise NotImplementedError(f"Non valid string for sampler '{self.sampler}'") 
+            raise NotImplementedError(f"Non valid string for sampler '{sampler_str}'") 
     
     
         
     def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
 
-        self.lg.writeLine(f"Initializing sampler with class {self.sampler}")
+        self.lg.writeLine(f"Initializing sampler with class {sampler_class}")
 
         try:
             self.sampler = sampler_class(seed=self.seed)
@@ -332,6 +351,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
         
     def load_configuration_dict_from_path(self, path):
+
+        '''Loads the configuration dict that will be optimized from a path'''
         
         fd = open(path, 'r') 
         self.config_str = fd.read()
@@ -427,7 +448,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             self._queue_trial_with_suggestion(initial_suggestion)
 
 
-    def _setup_trial_component_with_suggestion(self, trial : optuna.trial, base_component : Union[Component, dict]):
+    def _setup_trial_component_with_suggestion(self, trial : optuna.Trial, base_component : Union[Component, dict]):
         
         '''Generated the configuration for the trial, making suggestions for the hyperparameters'''
         
@@ -526,6 +547,18 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     # RUNNING A TRIAL -----------------------------------------------------------------------
 
+    def log_results_of_trial(self, trial : optuna.Trial, step : int, evaluation_results):
+
+        result = evaluation_results["result"]
+
+        results_to_log = {'experiment' : trial.number, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
+
+        for key, value in results_to_log.items():
+            results_to_log[key] = [value]
+
+        self.log_results(results_to_log)  
+
+
     def _run_single_step_of_objective(self, trial : optuna.Trial, step):
 
 
@@ -539,13 +572,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: {evaluation_results}")
 
-            return evaluation_results
-                
+            return evaluation_results                
 
     def _try_run_single_step_of_objective(self, trial : optuna.Trial, step):
 
             self.lg.writeLine()
-            self.lg.writeLine(f"Starting step {step + 1} of {self.n_steps} total steps for trial {trial.number}")
+            self.lg.writeLine(f"Starting step {step} of {self.n_steps} total steps for trial {trial.number}")
 
             component_to_test_path = self.get_component_to_test_path(trial)
              
@@ -556,20 +588,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 try:
 
                     result = evaluation_results["result"]
-
                     trial.report(result, step) # we report the results to optuna
 
-                    results_to_log = {'experiment' : trial.number, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
-
-                    for key, value in results_to_log.items():
-                        results_to_log[key] = [value]
-
-                    self.log_results(results_to_log)  
+                    self.log_results_of_trial(trial, step, evaluation_results)
 
                 except Exception as e:
                     self.on_general_exception_trial(e, component_to_test_path, trial)
 
-                    self.lg.writeLine(f"Ended step {step + 1}") 
+                    self.lg.writeLine(f"Ended step {step}") 
 
                 if trial.should_prune(): # we verify this after reporting the result
                     self.lg.writeLine("Prunning current experiment due to pruner...")
@@ -610,7 +636,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     
     def _run_optimization(self, trial: optuna.Trial):
-        for step in range(self.n_steps):
+
+        if self.do_initial_evaluation:
+
+            self.lg.writeLine(f"Doing initial evaluation of trial {trial.number} before initiating training...")
+            
+            component_to_test_path = self.get_component_to_test_path(trial)
+            evaluation_results = self._try_evaluate_component(component_to_test_path, trial) 
+            
+            self.lg.writeLine(f"Results were: {evaluation_results}\n")
+            
+            self.log_results_of_trial(trial, 0, evaluation_results)
+
+        for step in range(1, self.n_steps + 1):
 
             evaluation_results = self._try_run_single_step_of_objective(trial, step)
 

@@ -111,6 +111,17 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.add_to_columns_of_results_logger(["experiment", "component_index", "step", *parameter_names, "result"])
 
 
+    def log_results_of_trial(self, trial : optuna.Trial, step : int, component_index : int, evaluation_results):
+
+        result = evaluation_results["result"]
+
+        results_to_log = {'experiment' : trial.number, "component_index" : component_index, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
+
+        for key, value in results_to_log.items():
+            results_to_log[key] = [value]
+
+        self.log_results(results_to_log)  
+
     # OPTIMIZATION -------------------------------------------------------------------------
 
 
@@ -451,13 +462,13 @@ class HyperparameterOptimizationWorker():
             raise e
         
     
-    def _load_and_report_resuts(self, trial : optuna.Trial, results_to_log, step):
+    def _load_and_report_resuts(self, trial : optuna.Trial, component_index : int, step : int, evaluation_results):
 
 
         with self.parent_hp_pipeline.results_logger_sem:
         
             # Log raw result
-            self.parent_hp_pipeline.log_results(results_to_log)
+            self.parent_hp_pipeline.log_results_of_trial(trial, step, component_index, evaluation_results)
 
             # Count how many results we already have for this (trial, step)
             results_logger: ResultLogger = self.parent_hp_pipeline.get_results_logger()
@@ -524,7 +535,31 @@ class HyperparameterOptimizationWorker():
 
     def try_run_component_in_group_all_steps(self, trial : optuna.Trial, component_index, n_steps, component_loader : StatefulComponentLoader, should_end):
 
-        for step in range(n_steps):
+        if self.parent_hp_pipeline.do_initial_evaluation:
+
+            self.thread_logger.writeLine(f"Doing initial evaluation of trial {trial.number} before initiating training...")
+            
+            component_to_test_path = str(component_loader.get_artifact_directory())
+
+            try:
+                    component_to_test = self._load_component_to_test(component_loader)
+
+            except Exception as e:
+                    self.on_general_exception_trial(e, component_to_test_path, trial, component_index)
+
+
+            with override_first_logger(self.thread_logger):
+                    evaluation_results = self.parent_hp_pipeline._try_evaluate_component(component_to_test_path, trial, component_to_test)
+
+            self._load_and_report_resuts(trial, component_index, 0, evaluation_results)
+
+            self.thread_logger.writeLine(f"Results were: {evaluation_results}\n")
+
+            del component_to_test
+            component_loader.save_and_onload_component()
+            
+
+        for step in range(1, n_steps + 1):
 
             if should_end[0]:
                 self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}")
@@ -537,7 +572,7 @@ class HyperparameterOptimizationWorker():
         tid = threading.get_ident()
         self.thread_logger.writeLine(f"Starting worker on OS thread {tid}....\n")
 
-        self.thread_logger.writeLine(f"----------------------- TRIAL: {trial.number}, COMPONENT_INDEX: {component_index}, STEP {step + 1} -----------------------\n")
+        self.thread_logger.writeLine(f"----------------------- TRIAL: {trial.number}, COMPONENT_INDEX: {component_index}, STEP {step} -----------------------\n")
 
         component_to_test_path = str(component_loader.get_artifact_directory())
 
@@ -563,18 +598,9 @@ class HyperparameterOptimizationWorker():
 
                     self.thread_logger.writeLine(f"Finished evaluating component, reported results were {evaluation_results}\n")
 
-                    result = evaluation_results["result"]
+                    enough_runs = self._load_and_report_resuts(trial, component_index, step, evaluation_results)
 
-                    suggested_values_for_trial = self.parent_hp_pipeline._suggested_values_by_trials[trial.number]
-
-                    results_to_log = {'experiment' : trial.number, "component_index" : component_index, "step" : step, **suggested_values_for_trial, "result" : result}
-
-                    for key, value in results_to_log.items():
-                        results_to_log[key] = [value]
-
-                    enough_runs = self._load_and_report_resuts(trial, results_to_log, step)
-
-                    self.thread_logger.writeLine(f"Ended step {step + 1} for component {component_index} in trial {trial.number}\n") 
+                    self.thread_logger.writeLine(f"Ended step {step} for component {component_index} in trial {trial.number}\n") 
 
                     if enough_runs and trial.should_prune(): # we verify this after reporting the result
                         self.thread_logger.writeLine("Prunning current experiment due to pruner...\n")

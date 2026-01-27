@@ -98,7 +98,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         for agent_name in self.env.agent_iter():
             
-            reward, done, truncated = self.__do_agent_step(agent_name)
+            reward, done, truncated = self._do_agent_step(agent_name)
             
             for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
@@ -108,7 +108,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                 break
 
             
-    def __do_agent_step(self, agent_name):
+    def _do_agent_step(self, agent_name):
         
         agent : AgentSchema = self.agents[agent_name]
         
@@ -116,6 +116,8 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         with torch.no_grad():                
             action = agent.policy_predict(observation) # decides the next action to take (can be random)
+
+        self.lg.writeLine(f"Action chosen: {action}")
                 
         self.env.step(action) #makes the game proccess the action that was taken
                 

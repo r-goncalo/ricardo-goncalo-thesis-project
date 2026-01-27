@@ -26,8 +26,7 @@ from automl.core.advanced_input_management import ComponentDictInputSignature, C
 from automl.utils.random_utils import generate_seed, do_full_setup_of_single_seed
 from automl.core.exceptions import common_exception_handling
 
-# TODO this is missing the evaluation component on a RLPipeline
-class RLPipelineComponent(ExecComponent, ComponentWithLogging, ComponentWithResults, StatefulComponent, ComponentWithEvaluator, SeededComponent):
+class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluator, SeededComponent, ComponentWithLogging, ComponentWithResults):
     
     '''
     This component represents a whole RL training proccess, from the setup of the agents and the environment, to training, to the evaluation of results

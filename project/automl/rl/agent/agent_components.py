@@ -133,7 +133,11 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         '''makes a prediction based on the new state for a new action, using the current memory'''
         
-        return self.policy.predict(self.proccess_env_state(state))
+        to_return = self.policy.predict(self.proccess_env_state(state))
+
+        self.lg.writeLine(f"Policy chose action: {to_return}", file="actions.txt")
+
+        return to_return
     
     @requires_input_proccess
     def policy_predict_with_memory(self):
@@ -152,7 +156,11 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     @requires_input_proccess
     def policy_random_predict(self):
-        return self.policy.random_prediction()
+        to_return =  self.policy.random_prediction()
+
+        self.lg.writeLine(f"Policy chose random action: {to_return}", file="actions.txt")
+
+        return to_return
           
     
     # STATE MEMORY --------------------------------------------------------------------

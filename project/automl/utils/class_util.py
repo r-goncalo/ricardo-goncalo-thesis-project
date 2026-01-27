@@ -10,15 +10,12 @@ def get_class_from(class_definition):
         return get_class_from_string(class_definition)
     
     else:
-        raise Exception(f"Clas definition {class_definition} is neither of type str nor type")
+        raise Exception(f"Class definition {class_definition} is neither of type str nor type")
     
 
 def is_valid_str_class_definition(class_string : str):
 
     return class_string.startswith("<class '") and class_string.endswith("'>")
-
-
-    
     
 
 def get_class_from_string(class_string: str):

@@ -1,28 +1,9 @@
-
-
-
-
-
-from typing import Dict
-from automl.component import InputSignature, Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
-from automl.loggers.component_with_results import ComponentWithResults
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
-from automl.ml.memory.memory_components import MemoryComponent
-from automl.ml.memory.torch_memory_component import TorchMemoryComponent
-from automl.rl.agent.agent_components import AgentSchema
-from automl.loggers.result_logger import ResultLogger
-from automl.rl.environment.environment_components import AECEnvironmentComponent
-
-from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
-from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
-from automl.rl.learners.learner_component import LearnerSchema
-from automl.rl.learners.q_learner import DeepQLearnerSchema
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
-from automl.utils.shapes_util import discrete_output_layer_size_of_space
 import torch
-import time
+
+from automl.utils.shapes_util import single_action_shape
+
 
 class AgentTrainerPPO(AgentTrainer):
     
@@ -52,7 +33,7 @@ class AgentTrainerPPO(AgentTrainer):
                 
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", self.agent_policy.get_policy_output_shape(), torch.int64),
+                                        ("action", single_action_shape(self.agent_policy.get_policy_output_shape()), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
                                         ("done", 1),

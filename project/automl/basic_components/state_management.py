@@ -21,6 +21,8 @@ from automl.loggers.logger_component import flush_text_of_all_loggers_and_childr
 import torch
                 
 import sys
+
+from automl.core.global_class_registry import has_registered_classes, get_registered_classes, serialize_registered_classes, load_custom_classes
                 
                 
 
@@ -126,6 +128,13 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
     '''Loads the state of a component from a folder path'''
     
     json_str = read_text_from_file(folder_path, configuration_file)
+    
+    registered_classes_folder = os.path.join(folder_path, "__custom_classes", "custom_classes.py")
+
+    has_registered_classes_in_folder = os.path.exists(registered_classes_folder)
+
+    if has_registered_classes_in_folder:
+        load_custom_classes(registered_classes_folder)
 
     old_folder_last_directory = os.path.basename(folder_path)
     
@@ -188,7 +197,20 @@ def save_state(component : Component, save_definition=True) -> None:
     elif isinstance(component, ArtifactComponent):
         if save_definition:
             component.save_configuration(save_exposed_values=True, ignore_defaults=False)
-        
+
+    if save_definition and has_registered_classes():
+
+        artifact_dir = component.get_artifact_directory()
+        custom_dir = os.path.join(artifact_dir, "__custom_classes")
+        os.makedirs(custom_dir, exist_ok=True)
+
+        init_file = os.path.join(custom_dir, "__init__.py")
+        if not os.path.exists(init_file):
+            write_text_to_file(custom_dir, "__init__.py", "")
+
+        if get_registered_classes():
+            code = serialize_registered_classes()
+            write_text_to_file(custom_dir, "custom_classes.py", code)        
 
 # TODO: This is wrong
 def save_component_with_state_to_folder(component : ArtifactComponent, folder_path, save_definition=True) -> None:
@@ -198,7 +220,7 @@ def save_component_with_state_to_folder(component : ArtifactComponent, folder_pa
 def unload_component(component : Component) -> None:
 
     '''
-    Saves the state of this component and child components        
+    Unloads this component and child components        
     '''
     
     for child_component in component.child_components:
