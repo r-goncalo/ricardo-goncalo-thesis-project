@@ -70,7 +70,7 @@ class ComponentValuesElementsEncoder(json.JSONEncoder):
         
         # if it fails, we give it a null value
         except Exception as e:
-            globalWriteLine(f"WARNING: Exception when decoding obj: {obj}, {e}", file="encoding_decoding.txt" )
+            globalWriteLine(f"WARNING: Exception when encoding obj: {obj}, {e}", file="encoding_decoding.txt" )
             return None
         
 
@@ -248,23 +248,36 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
         if "object" in element_dict.keys():
             
             # from dict can also use the decoding function we're using to decode nested elements
-            instanced_object = element_type.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
-                        
+            try:
+                instanced_object = element_type.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
+
+            except Exception as e:
+                raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}") from e
+
             return instanced_object
         
         # this is a more dangerous branch as there is no separation from "__type__"
         else:
-            instanced_object = element_type.from_dict(element_dict, element_type, decode_components_input_element, source_component)
-                        
+            try:
+                instanced_object = element_type.from_dict(element_dict, element_type, decode_components_input_element, source_component)
+            
+            except Exception as e:
+                raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}") from e
+
+
             return instanced_object
 
-    
+    # we reach here if the element type does not have a "from_dict" method
     custom_strategy = get_custom_strategy(element_type)
 
-    if custom_strategy != None: # if there is a custom strategy to deal with this types
+    if custom_strategy is not None: # if there is a custom strategy to deal with this types
 
-        instanced_object = custom_strategy.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
-        
+        try:
+            instanced_object = custom_strategy.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
+
+        except Exception as e:
+            raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}") from e
+
         return instanced_object
 
     else:
@@ -279,10 +292,13 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
 def decode_components_input_element(source_component : Component, element):
     
     '''
-    Decodes an element in a dictionary of a component
+    Decodes an element in a dictionary of a component (which should already be converted from json)
     One of the things it does is get a component with a localization and set it
     '''
 
+    # these ifs are for custom strategies, when the value saved in the dictionary may not represet directly the value we want to put in the component
+    
+    # in the case it is a dict, it may represent a "pointer" to a component or a value with a custom decoding strategy, if it has "__type__" defined
     if isinstance(element, dict):
         keys = element.keys()
 
@@ -324,7 +340,7 @@ def decode_components_input_element(source_component : Component, element):
         return tuple(decode_components_input_element(source_component, value) for value in element)
             
     else:
-        return element
+        return element # if there is no custom strategy, we let the value stay as is
     
 
 def decode_components_exposed_values(component : Component, source_component : Component, component_dict : dict):
@@ -337,8 +353,8 @@ def decode_components_exposed_values(component : Component, source_component : C
             try:
                 component.values[exposed_values_key] = decode_components_input_element(source_component, exposed_value)
             
-            except:
-                pass
+            except Exception as e:
+                globalWriteLine(f"WARNING: Exception while decoding exposed values for key '{exposed_values_key}': {e}", file="encoding_decoding.txt")
 
     for i in range(0, len(component.child_components)):
         
@@ -366,9 +382,10 @@ def decode_components_input(component : Component, source_component : Component,
         for key in component_dict_input.keys():
             try:
                 input_to_pass[key] = decode_components_input_element(source_component, component_dict_input[key])
+
             except Exception as e:
-                #pass
-                print(f"Exception while decoding for key '{key}': {e}")
+                globalWriteLine(f"WARNING: Exception while decoding input for key '{key}': {e}", file="encoding_decoding.txt")
+
             
         component.pass_input(input_to_pass)
     
@@ -504,6 +521,8 @@ def component_from_json_string(json_string) -> Component:
 
 def generate_component_from_class_input_definition(class_of_component, input : dict):
 
+    '''Generate a component from its class and the input to pass'''
+
     class_definition = class_of_component
     class_of_component : type = get_class_from(class_definition)
 
@@ -514,6 +533,8 @@ def generate_component_from_class_input_definition(class_of_component, input : d
 
 
 def is_valid_component_tuple_definition(tuple_definition):
+
+    '''If a tuple or list could represent a component, that is, it is of form: (component_class, component_input)'''
 
     if isinstance(tuple_definition, (tuple, list)):
 
@@ -589,7 +610,7 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple, list], p
 
         elif isinstance(definition, str):
 
-            if os.path.exists(definition):
+            if os.path.exists(definition): #if is path
                 generated_component = gen_component_from_path(definition, parent_component_for_generated)
 
             else: # is json
@@ -600,21 +621,19 @@ def gen_component_from(definition :  Union[Component, dict, str, tuple, list], p
                     raise Exception(f"Could not decode string as json and is not a path: \n{definition}\nException:\n{e}") from e
 
 
-
-
-
-        elif isinstance(definition, tuple) or isinstance(definition, list):
+        elif isinstance(definition, tuple) or isinstance(definition, list): # if it could be a tuple definition
 
             generated_component =  component_from_tuple_definition(definition, parent_component_for_generated)
 
         else:
             raise Exception(f"Definition for key is not a Component, dict, str or tuple | list, but {type(definition)} with name {definition.__name__}")
-        
+    
+
         if not isinstance(generated_component, Component):
             msg_error = "Something went wrong generating component as it was generated as None"
 
             if parent_component_for_generated != None:
-                msg_error += f", with parent_omponent {parent_component_for_generated}"
+                msg_error += f", with parent_component {parent_component_for_generated}"
 
             raise Exception(f"{msg_error}, with definition:\n{definition}")
 

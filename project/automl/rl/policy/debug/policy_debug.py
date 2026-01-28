@@ -1,5 +1,7 @@
 from automl.rl.policy.policy import Policy
+from automl.rl.policy.qpolicy import QPolicy
 from automl.component import requires_input_proccess
+import torch
 
 class PolicyDebug(Policy):
         
@@ -55,3 +57,21 @@ class PolicyDebug(Policy):
         self.lg.writeLine(f"Randomly predicted value: {random_predicted_value}", file='random_predicted_values.txt')
 
         return random_predicted_value
+    
+
+
+class QPolicyDebug(PolicyDebug, QPolicy):
+
+    is_debug_schema = True
+
+    @requires_input_proccess
+    def predict(self, state):
+            
+        valuesForActions : torch.Tensor = self.model.predict(state) #a tensor ether in the form of [q values for each action] or [[q value for each action]]?
+        
+        #tensor of max values and tensor of indexes
+        _, max_indexes = valuesForActions.max(dim=1)
+
+        self.lg.writeLine(f"Predicted value: {valuesForActions} -> {max_indexes}", file='predicted_values.txt')
+                        
+        return max_indexes

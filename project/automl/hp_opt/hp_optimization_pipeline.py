@@ -94,11 +94,15 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
     
     def _setup_hp_to_optimize_config_file(self):
+
+        '''To be called outside of the processing input loop, to setup the necessaru files for instantiating the config to be optimized'''
         
         # make sure values for artifact directory generation are set
         self.setup_default_value_if_no_value("artifact_relative_directory")
         self.setup_default_value_if_no_value("base_directory")
         self.setup_default_value_if_no_value("create_new_directory")
+
+        self.setup_default_value_if_no_value("debug_classes")
         
         
         self._initialize_config_dict() # initializes self.config_dict from the input
@@ -143,8 +147,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.do_initial_evaluation = self.get_input_value("do_initial_evaluation")
         
         self.direction = self.get_input_value("direction")
-
-        self.debug_classes = self.get_input_value("debug_classes")
 
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_config_dict()
@@ -202,7 +204,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             else:
                 raise Exception("No configuration defined")
             
-        if self.debug_classes is not None:
+        self.debug_classes = self.get_input_value("debug_classes")
+            
+        if self.debug_classes is not None and len(self.debug_classes) > 0:
             self.lg.writeLine(f"There are debug classes to use: {self.debug_classes}")
             self._setup_configuration_dict_with_debug_classes()
             

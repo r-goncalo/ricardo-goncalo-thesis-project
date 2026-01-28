@@ -38,7 +38,7 @@ class LearnerDebug(LearnerSchema, ComponentWithLogging):
 
         super()._learn(trajectory, discount_factor)
 
-        self.lg.writeLine("\naction, reward, done, old_model_predictions, new_model_predictions, new_model_precitions\n", file="batch_comparison.txt", use_time_stamp=False)
+        self.lg.writeLine("\naction, reward, done, old_model_predictions, new_model_predictions\n", file="batch_comparison.txt", use_time_stamp=False)
 
         if self.compare_old_and_new_model_predictions:
 
@@ -64,12 +64,18 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
     is_debug_schema = True
 
     parameters_signature = {
+        "interval_beetwenn_computation_writes" : InputSignature(default_value=10)
     }
 
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
 
         self.lg.open_or_create_relative_folder("learning")
+
+        self.interval_beetwenn_computation_writes = self.get_input_value("interval_beetwenn_computation_writes")
+        self.__current_interval_computation_count = 1
+
+        self.lg.writeLine(f"Interval between computation writes will be {self.interval_beetwenn_computation_writes}")
 
 
     def _apply_model_prediction_given_state_action_pairs(self, state_batch, action_batch):
@@ -78,10 +84,12 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
         predicted_actions_values, predicted_values_for_actions = super()._apply_model_prediction_given_state_action_pairs(state_batch, action_batch)
 
-        self.lg.writeLine(f"\nComputed predicted_actions_values and value for action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
+        if self.__path_to_write is not None:
 
-        for i in range(self.batch_size):
-            self.lg.writeLine(f"{i}: {predicted_actions_values[i]} [ {action_batch[i]} ] -> {predicted_values_for_actions[i]}", file=self.__path_to_write, use_time_stamp=False)
+            self.lg.writeLine(f"\nComputed predicted_actions_values and value for action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
+
+            for i in range(self.batch_size):
+                self.lg.writeLine(f"{i}: {predicted_actions_values[i]} [ {action_batch[i]} ] -> {predicted_values_for_actions[i]}", file=self.__path_to_write, use_time_stamp=False)
     
         return predicted_actions_values, predicted_values_for_actions
 
@@ -97,10 +105,11 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
         next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(next_state_batch, done_batch, reward_batch, discount_factor)
 
-        self.lg.writeLine(f"\nComputed done, next_state_values computed by target and q value of action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
+        if self.__path_to_write is not None:
+            self.lg.writeLine(f"\nComputed done, next_state_values computed by target and q value of action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
 
-        for i in range(self.batch_size):
-            self.lg.writeLine(f"{i}: {done_batch[i]}, {next_state_q_values[i]} -> {next_state_v_values[i]}", file=self.__path_to_write, use_time_stamp=False)
+            for i in range(self.batch_size):
+                self.lg.writeLine(f"{i}: {done_batch[i]}, {next_state_q_values[i]} -> {next_state_v_values[i]}", file=self.__path_to_write, use_time_stamp=False)
 
 
         return next_state_q_values, next_state_v_values
@@ -112,29 +121,38 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
         correct_q_values_for_chosen_action = super()._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
 
-        self.lg.writeLine(f"\nNext action values after multiplying by discount factor {discount_factor} and adding reward:\n", file=self.__path_to_write, use_time_stamp=False)
+        if self.__path_to_write is not None:
 
-        for i in range(self.batch_size):
-            self.lg.writeLine(f"{i}: {correct_q_values_for_chosen_action[i]} = {old_action_values[i]} * {discount_factor} + {reward_batch[i]}", file=self.__path_to_write, use_time_stamp=False)
+            self.lg.writeLine(f"\nNext action values after multiplying by discount factor {discount_factor} and adding reward:\n", file=self.__path_to_write, use_time_stamp=False)
+
+            for i in range(self.batch_size):
+                self.lg.writeLine(f"{i}: {correct_q_values_for_chosen_action[i]} = {old_action_values[i]} * {discount_factor} + {reward_batch[i]}", file=self.__path_to_write, use_time_stamp=False)
 
         return correct_q_values_for_chosen_action
     
     def _optimize_with_predicted_model_values_and_correct_values(self, predicted_values, correct_values):
 
-        self.lg.writeLine(f"\nOptimizing using error of original predicted action values and target done on future state:\n", file=self.__path_to_write, use_time_stamp=False)
+        if self.__path_to_write is not None:
 
-        for i in range(self.batch_size):
-            self.lg.writeLine(f"{i}: {predicted_values[i]} vs {correct_values[i]}", file=self.__path_to_write, use_time_stamp=False)
+            self.lg.writeLine(f"\nOptimizing using error of original predicted action values and target done on future state:\n", file=self.__path_to_write, use_time_stamp=False)
+
+            for i in range(self.batch_size):
+                self.lg.writeLine(f"{i}: {predicted_values[i]} vs {correct_values[i]}", file=self.__path_to_write, use_time_stamp=False)
 
         super()._optimize_with_predicted_model_values_and_correct_values(predicted_values, correct_values)
 
 
     def _learn(self, trajectory, discount_factor) -> None:
 
-        self.__path_to_write = self.lg.new_relative_path_if_exists("computation.txt", dir="learning")
+        if self.interval_beetwenn_computation_writes % self.__current_interval_computation_count == 0:
+            self.__path_to_write = self.lg.new_relative_path_if_exists("computation.txt", dir="learning")
+        
+        else:
+            self.__path_to_write = None
         
         super()._learn(trajectory, discount_factor)
 
+        self.__current_interval_computation_count += 1
 
 
 
@@ -158,11 +176,12 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
         
         if self.compare_old_and_new_target_predictions: 
             self.lg.writeLine(f"Will compare old and new target predictions")
-            self.__temporary_target_model = self.target_net.clone()
+            self.__temporary_target_model = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_predictions"})
+
 
         if self.compare_old_and_new_target_model_params:
             self.lg.writeLine(f"Will compare old and new target params")
-            self.__temporary_target_model_v2 = self.target_net.clone()
+            self.__temporary_target_model_v2 = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_params"})
     
     def _learn(self, trajectory, discount_factor) -> None:
 

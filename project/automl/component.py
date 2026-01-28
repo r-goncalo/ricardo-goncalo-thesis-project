@@ -205,7 +205,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             self.__input_meta[key].generator_value_was_set()
             
         else:
-            raise Exception(f"In component of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
+            self.input[key] = None
+            #raise Exception(f"In component of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
 
 
 
