@@ -49,6 +49,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     parameters_signature = {
         
                         "sampler" : InputSignature(default_value="TreeParzen"),
+                        "sampler_input" : InputSignature(mandatory=False),
         
                         "configuration_dict" : InputSignature(mandatory=False, possible_types=[dict, str]),
                         "base_component_configuration_path" : InputSignature(mandatory=False),
@@ -241,13 +242,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _initialize_sampler_from_str(self, sampler_str):
 
         self.lg.writeLine(f"Initializing sampler with string {sampler_str}")
+
+        sampler_input = self.get_input_value("sampler_input")
+        sampler_input = {} if sampler_input is None else sampler_input
+
+        if sampler_input is not None:
+            self.lg.writeLine(f"Sampler input: {sampler_input}")
         
         if sampler_str == "TreeParzen":
             
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.seed)
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.seed, **sampler_input)
 
         elif sampler_str == "Random":
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.seed)
+            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.seed, **sampler_input)
         
         else:
             raise NotImplementedError(f"Non valid string for sampler '{sampler_str}'") 
@@ -258,8 +265,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Initializing sampler with class {sampler_class}")
 
+        sampler_input = self.get_input_value("sampler_input")
+        sampler_input = {} if sampler_input is None else sampler_input
+
+        if sampler_input is not None:
+            self.lg.writeLine(f"Sampler input: {sampler_input}")
+
         try:
-            self.sampler = sampler_class(seed=self.seed)
+            self.sampler = sampler_class(seed=self.seed, **sampler_input)
 
         except Exception as e:
 
