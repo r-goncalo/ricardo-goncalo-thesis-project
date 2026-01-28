@@ -76,7 +76,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                         "do_initial_evaluation" : InputSignature(default_value=False),
 
-                        "debug_classes" : InputSignature(mandatory=None)
+                        "debug_classes" : InputSignature(mandatory=False)
                                                     
                        }
             
