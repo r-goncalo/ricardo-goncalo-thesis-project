@@ -181,7 +181,7 @@ def gen_hp_suggestion_for_parameter_schema(hyperparameter_suggestion, current_lo
         to_return = hyperparameter_suggestion.clone()
 
         if to_return.get_localizations() == None: 
-            to_return.change_localizations([current_localization])
+            to_return.base_hyperparameter_localizations = [current_localization]
 
         return to_return
     

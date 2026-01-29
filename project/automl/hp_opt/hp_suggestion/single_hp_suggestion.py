@@ -46,7 +46,7 @@ class SingleHyperparameterSuggestion(HyperparameterSuggestion):
     def clone(self):
         return SingleHyperparameterSuggestion(
             name=self.base_name,
-            hyperparameter_localizations=self.hyperparameter_localizations,
+            hyperparameter_localizations=self.base_hyperparameter_localizations,
             value_suggestion=self.value_suggestion
         )        
 

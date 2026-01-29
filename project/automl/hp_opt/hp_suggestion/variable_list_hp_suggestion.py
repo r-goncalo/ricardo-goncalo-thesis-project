@@ -84,7 +84,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
             min_len=self.min_len,
             max_len=self.max_len,
             hyperparameter_suggestion_for_list=self.hyperparameter_suggestion_for_list,
-            hyperparameter_localizations=self.hyperparameter_localizations
+            hyperparameter_localizations=self.base_hyperparameter_localizations
         )
 
             

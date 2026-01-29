@@ -16,6 +16,7 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
             raise Exception(f"Disjoint hyperparameter suggestions must not be none")
         
         self.disjoint_hyperparameter_suggestions : dict[str, HyperparameterSuggestion] = {}
+        
         for hyperparameter_suggestion in disjoint_hyperparameter_suggestions:
             self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion.name] = hyperparameter_suggestion.clone()
 
@@ -25,7 +26,7 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
             for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
                 
                 if hyperparameter_suggestion.hyperparameter_localizations != None:
-                    raise Exception(f"Both disjoint hyperparameter suggestion and child have localizations defined")
+                    raise Exception(f"Both disjoint hyperparameter suggestion and child have localizations defined\nDisjoint has {self.hyperparameter_localizations}\nChild has: {hyperparameter_suggestion.hyperparameter_localizations}")
                 
                 hyperparameter_suggestion.change_localizations(self.hyperparameter_localizations)
 

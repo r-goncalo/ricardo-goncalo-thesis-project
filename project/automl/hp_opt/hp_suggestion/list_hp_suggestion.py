@@ -51,7 +51,7 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
         return DictHyperparameterSuggestion(
             name=self.base_name,
             hyperparameter_suggestions=self.hyperparameter_suggestions,
-            hyperparameter_localizations=self.hyperparameter_localizations
+            hyperparameter_localizations=self.base_hyperparameter_localizations
         )
 
             

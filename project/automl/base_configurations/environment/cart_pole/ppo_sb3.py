@@ -27,7 +27,7 @@ CartPole-v1:
 '''
 
 from automl.ml.models.neural_model import FullyConnectedModelSchema
-from automl.rl.environment.gymnasium.gymnasium_env import GymnasiumEnvironmentWrapper
+from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy
@@ -46,8 +46,7 @@ def config_dict():
     "name": "RLPipelineComponent",
     "input": {
         "device" : "cuda",
-        "environment": (GymnasiumEnvironmentWrapper, {"environment" : "CartPole-v1"}),
-
+        "environment": (AECGymnasiumEnvironmentWrapper, {"environment" : "CartPole-v1"}),
         "agents_input": {
 
             "policy" : ( StochasticPolicy,
@@ -55,8 +54,7 @@ def config_dict():
                         "model" : (
                             FullyConnectedModelSchema, 
                             {
-                            "hidden_layers" : 3,
-                            "hidden_size" : 64
+                            "layers" : [64, 64, 64]
                             }
                             ),
                         }
@@ -123,6 +121,62 @@ def config_dict():
         
     }
 }
+
+def hyperparameter_suggestions():
+
+    from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
+    from automl.hp_opt.hp_suggestion.disjoint_hp_suggestion import DisjointHyperparameterSuggestion
+    from automl.hp_opt.hp_suggestion.complex_hp_suggestion import ComplexHpSuggestion
+
+    return [
+
+        SingleHyperparameterSuggestion(
+            name="optimization_interval",
+            value_suggestion= ("int",  {"low" : 64, "high" : 1024 }),
+            hyperparameter_localizations= [
+                ["input", "rl_trainer", 1, "agents_trainers_input", "optimization_interval"],
+                ["input", "rl_trainer", 1, "agents_trainers_input", "memory", 1, "capacity"],
+            ]
+
+        ),
+
+        DisjointHyperparameterSuggestion(
+            name = "clip_grad_value_strat",
+            hyperparameter_localizations= [
+                ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "optimizer", 1, "clip_grad_value"]
+            ],
+            disjoint_hyperparameter_suggestions= [
+                SingleHyperparameterSuggestion(
+                    name="clip_grad_value",
+                    value_suggestion=("float", {"low" : 0.05, "high" : 1.0})
+                ),
+                ComplexHpSuggestion(
+                    "clip_grad_dynamic_struc",
+                    structure_to_add=[
+                        str(DynamicLinearValueInRangeBasedOnComponent),
+                        {
+                            "input_for_fun_key" : "optimizations_done",
+                            "initial_value" : 0.2,
+                            "final_value" : 0,
+                            "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})),
+                            "input_for_fun_max_value" : 
+                             ('relative', 
+                              [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                             )
+                        }
+                    ],
+                    actual_hyperparameter_suggestion= SingleHyperparameterSuggestion(
+                        name="clip_grad_dynamic_value",
+                        value_suggestion=("float", {"low" : 0.05, "high" : 0.5}),
+                        hyperparameter_localizations=[[1, "initial_value"]]
+                    )
+
+                )
+
+            ]
+        )
+
+    ]
 
 
 

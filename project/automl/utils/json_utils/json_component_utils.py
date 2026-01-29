@@ -252,7 +252,7 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
                 instanced_object = element_type.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
 
             except Exception as e:
-                raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}") from e
+                raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}, due to error {e}") from e
 
             return instanced_object
         
@@ -262,7 +262,7 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
                 instanced_object = element_type.from_dict(element_dict, element_type, decode_components_input_element, source_component)
             
             except Exception as e:
-                raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}") from e
+                raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}, due to error {e}") from e
 
 
             return instanced_object
@@ -276,7 +276,7 @@ def decode_element_custom_strategy(source_component : Component, element_dict : 
             instanced_object = custom_strategy.from_dict(element_dict["object"], element_type, decode_components_input_element, source_component)
 
         except Exception as e:
-            raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}") from e
+            raise Exception(f"Could not decode element of type {element_type_str} with custom strategy, using its dict: {element_dict}, due to error {e}") from e
 
         return instanced_object
 

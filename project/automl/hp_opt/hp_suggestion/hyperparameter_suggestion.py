@@ -21,6 +21,8 @@ class HyperparameterSuggestion(CustomJsonLogic):
         
         self.name = name
         self.base_name = name
+
+        self.base_hyperparameter_localizations = hyperparameter_localizations
         self.hyperparameter_localizations = hyperparameter_localizations
 
         self.setup_names()
@@ -64,6 +66,9 @@ class HyperparameterSuggestion(CustomJsonLogic):
     def get_localizations(self):
         return self.hyperparameter_localizations
     
+    def get_base_localizations(self):
+        return self.base_hyperparameter_localizations
+    
     def change_localizations(self, new_localizations):
         self.hyperparameter_localizations = new_localizations
 
@@ -99,8 +104,9 @@ class HyperparameterSuggestion(CustomJsonLogic):
             component_to_change : Component = get_component_by_localization_list(component, hyperparameter_localizer[:-1]) 
             
             if component_to_change == None:
-                raise Exception(f"Could not find component with localization <{component_localizer}> in {component.name}")   
+                raise Exception(f"Could not find component with localization <{hyperparameter_localizer}> in {component.name}")   
             
+            # we can do this because the hyperparameter is always the last element of the localization, and also we always change the whole value in the input
             component_to_change.pass_input({hyperparameter_localizer[-1] : suggested_value})
 
 
@@ -124,7 +130,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
         localizations = self.hyperparameter_localizations if localizations is None else localizations
 
         if localizations is None:
-            raise Exception(f"No localization specified in function call nor in object to get suggested value in component")
+            raise Exception(f"No localization specified in function call nor in object ({self.name}) to get suggested value in component")
 
         return self._try_get_suggested_optuna_values(component_definition, localizations)
     
@@ -147,7 +153,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
         localization = self.hyperparameter_localizations if localization is None else localization
 
         if localization is None:
-            raise Exception(f"No localization specified in function call nor in object to get suggested value in component")
+            raise Exception(f"No localization specified in function call nor in object ({self.name}) to get suggested value in component")
 
         return self._try_get_suggested_value(component_definition, localization)
 
@@ -245,15 +251,16 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
             
     def clone(self):
-        return HyperparameterSuggestion(name=self.name, hyperparameter_localizations=self.hyperparameter_localizations)
+        return HyperparameterSuggestion(name=self.base_name, 
+                                        hyperparameter_localizations=self.base_hyperparameter_localizations)
 
     def to_dict(self) -> dict:
 
         to_return = {"name" : self.base_name,
                      "__type__" : type(self)}
 
-        if self.hyperparameter_localizations != None:
-            to_return["localizations"] = self.hyperparameter_localizations
+        if self.base_hyperparameter_localizations is not None:
+            to_return["localizations"] = self.base_hyperparameter_localizations
         
         return to_return
                     
