@@ -26,6 +26,7 @@ CartPole-v1:
 
 '''
 
+from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
 from automl.rl.rl_pipeline import RLPipelineComponent
@@ -58,7 +59,9 @@ def config_dict():
                             }
                             ),
                         }
-                )
+                ),
+
+            "state_translator" : (ToTorchTranslator, {})
         },
         
         "rl_trainer" : (RLTrainerComponent,
@@ -158,7 +161,7 @@ def hyperparameter_suggestions():
                             "input_for_fun_key" : "optimizations_done",
                             "initial_value" : 0.2,
                             "final_value" : 0,
-                            "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})),
+                            "input_component" : ('relative', [("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})]),
                             "input_for_fun_max_value" : 
                              ('relative', 
                               [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]

@@ -101,6 +101,7 @@ class PPOLearner(LearnerSchema):
         
         # Policy optimizer
         self.actor_optimizer : OptimizerSchema = self.get_input_value("optimizer")
+        self.actor_optimizer.pass_input({"model" : self.model})
         
         if not self.actor_optimizer.has_custom_name_passed():
             self.actor_optimizer.pass_input({"ActorOptimizer"})
@@ -114,9 +115,7 @@ class PPOLearner(LearnerSchema):
 
         elif not self.critic_optimizer.has_custom_name_passed():
             self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
-
-
-        self.actor_optimizer.pass_input({"model" : self.model})
+        
         self.critic_optimizer.pass_input({"model" : self.critic})
     
     # EXPOSED METHODS --------------------------------------------------------------------------
