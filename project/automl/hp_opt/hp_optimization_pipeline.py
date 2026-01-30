@@ -449,6 +449,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     def _queue_trial_with_initial_suggestion(self):
 
+        self.lg.writeLine(f"Queueing trial with initial suggestion...")
+
         initial_suggestion = {}
 
         for hp_suggestion in self.hyperparameters_range_list:
@@ -460,6 +462,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             else:
                 self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
+
+        self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {initial_suggestion.keys()}")
 
         if initial_suggestion != {}:
             self._queue_trial_with_suggestion(initial_suggestion)
@@ -479,11 +483,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         for hyperparameter_suggestion in self.hyperparameters_range_list:
 
             # if the trial was created with a specification of the value
-            if hyperparameter_suggestion.name in trial.params.keys():
+            if hyperparameter_suggestion.already_has_suggestion_in_trial(trial):
+
                 suggested_value = trial.params[hyperparameter_suggestion.name]
 
             # if we should use the hp_suggestion object to suggest a value to the trial
             else:
+
                 suggested_value = hyperparameter_suggestion.make_suggestion(trial=trial)
                 self.lg.writeLine(f"For hyperparameter {hyperparameter_suggestion.name}, value {suggested_value} was sampled, using the sampler {self.sampler}")
             

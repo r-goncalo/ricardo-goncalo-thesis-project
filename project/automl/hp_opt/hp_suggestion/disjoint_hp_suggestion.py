@@ -20,18 +20,47 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
         for hyperparameter_suggestion in disjoint_hyperparameter_suggestions:
             self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion.name] = hyperparameter_suggestion.clone()
 
+
         super().__init__(name=name, hyperparameter_localizations=hyperparameter_localizations)
 
         if self.hyperparameter_localizations != None:
-            for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
+            self.setup_localizations()
+
+        self.setup_names()
+
+
+
+    def change_localizations(self, new_localizations):
+
+        super().change_localizations(new_localizations)
+        
+        if self.hyperparameter_localizations != None:
+            self.setup_localizations()
+
+
+
+    def setup_localizations(self):
+
+        for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
                 
-                if hyperparameter_suggestion.hyperparameter_localizations != None:
-                    raise Exception(f"Both disjoint hyperparameter suggestion and child have localizations defined\nDisjoint has {self.hyperparameter_localizations}\nChild has: {hyperparameter_suggestion.hyperparameter_localizations}")
-                
+            disjoint_hp_sugg_choice_locs = hyperparameter_suggestion.get_localizations()
+
+            if hyperparameter_suggestion.hyperparameter_localizations is not None:
+                    
+                new_locs = []
+
+                for disjoint_loc in self.get_localizations():
+                    for choice_loc in disjoint_hp_sugg_choice_locs:
+                        new_locs.append([*disjoint_loc, *choice_loc])
+
+                hyperparameter_suggestion.change_localizations(new_locs)
+
+            else:
                 hyperparameter_suggestion.change_localizations(self.hyperparameter_localizations)
 
 
-    
+
+
     def setup_names(self):
         super().setup_names()
         
@@ -42,7 +71,6 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
             hyperparameter_suggestion.change_name(
                 f"{self.name}_{suggestion_base_name}"
             )
-
         
     
     def _set_suggested_value_in_component(self, suggested_value, component : Component, hyperparameter_localizer):
@@ -70,7 +98,7 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
         
-        hyperparameter_suggestion_to_use_name = trial.suggest_categorical(self.name, self.disjoint_hyperparameter_suggestions.keys())
+        hyperparameter_suggestion_to_use_name = trial.suggest_categorical(self.get_name(), choices=self.disjoint_hyperparameter_suggestions.keys())
 
         hyperparameter_suggestion_to_use = self.disjoint_hyperparameter_suggestions[hyperparameter_suggestion_to_use_name]
 
@@ -94,12 +122,13 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
                 suggested_value = None
 
             if suggested_value != None:
+                suggested_value = (hyperparameter_suggestion.get_base_name(), suggested_value)
                 break
+
         
         return suggested_value
 
 
-    
     def _try_get_suggested_value_in_dict(self, component_dict : dict, hyperparameter_localizer):
     
         '''Sets the suggested value in the dictionary representing a component, using the localization'''
@@ -114,9 +143,27 @@ class DisjointHyperparameterSuggestion(HyperparameterSuggestion):
                 suggested_value = None
 
             if suggested_value != None:
+                suggested_value = (hyperparameter_suggestion.get_base_name(), suggested_value)
                 break
         
+
         return suggested_value
+    
+    
+    def _try_get_suggested_optuna_values(self, component_definition, localizations):
+
+        value_to_return = self.try_get_suggested_value(component_definition, localizations)
+
+        if value_to_return is None:
+            return {} 
+        
+        (cat_choice, _) = value_to_return
+        
+        return {self.get_name() : cat_choice, **self.disjoint_hyperparameter_suggestions[cat_choice].try_get_suggested_optuna_values(component_definition, localizations)}
+    
+
+    def already_has_suggestion_in_trial(self, trial : optuna.Trial):
+        return self.get_name() in trial.params.keys()
     
     # JSON ENCODING DECODING ------------------------------------------------------------------------
             

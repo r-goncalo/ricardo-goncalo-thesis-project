@@ -61,6 +61,9 @@ class HyperparameterSuggestion(CustomJsonLogic):
     def _make_suggestion(self, trial : optuna.Trial):
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
 
+    def already_has_suggestion_in_trial(self, trial : optuna.Trial):
+        pass
+
     # LOCALIZATIONS ---------------------------------------
 
     def get_localizations(self):
@@ -87,7 +90,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
         if isinstance(component_definition, Component):
             self._set_suggested_value_in_component(suggested_value, component_definition, localization)
             
-        elif isinstance(component_definition, dict):
+        elif isinstance(component_definition, (dict, list)):
             self._set_suggested_value_in_dict(suggested_value, component_definition, localization)
             
         else:   
@@ -117,9 +120,9 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
         for hyperparameter_localizer in hyperparameter_localizations:
             
-            component_dict : dict = get_last_collection_where_value_is(component_dict, hyperparameter_localizer)
+            loc_where_value_is : dict = get_last_collection_where_value_is(component_dict, hyperparameter_localizer)
 
-            component_dict[hyperparameter_localizer[-1]] = suggested_value
+            loc_where_value_is[hyperparameter_localizer[-1]] = suggested_value
                 
 
 
@@ -143,7 +146,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
         if value_to_return is None:
             return {} 
         
-        return {self.name : value_to_return}
+        return {self.get_name() : value_to_return}
 
 
     def try_get_suggested_value(self, component_definition : Union[Component, dict], localization=None):
@@ -151,6 +154,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
         '''Gets the suggested value in the component (or component input), using the localization'''
         
         localization = self.hyperparameter_localizations if localization is None else localization
+
 
         if localization is None:
             raise Exception(f"No localization specified in function call nor in object ({self.name}) to get suggested value in component")

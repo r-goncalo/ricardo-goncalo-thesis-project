@@ -26,6 +26,50 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
                 self.hyperparameter_suggestions[key] = hyperparameter_suggestion.clone()
         
 
+    def change_localizations(self, new_localizations):
+
+        super().change_localizations(new_localizations)
+        
+        if self.hyperparameter_localizations != None:
+            self.setup_localizations()
+
+
+
+    def setup_localizations(self):
+
+        for hyperparameter_suggestion in self.hyperparameter_suggestions.values():
+                
+            disjoint_hp_sugg_choice_locs = hyperparameter_suggestion.get_localizations()
+
+            if hyperparameter_suggestion.hyperparameter_localizations is not None:
+                    
+                new_locs = []
+
+                for this_loc in self.get_localizations():
+                    for choice_loc in disjoint_hp_sugg_choice_locs:
+                        new_locs.append([*this_loc, *choice_loc])
+
+                hyperparameter_suggestion.change_localizations(new_locs)
+
+            else:
+                hyperparameter_suggestion.change_localizations(self.hyperparameter_localizations)
+
+
+
+
+    def setup_names(self):
+        super().setup_names()
+        
+        for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
+            
+            suggestion_base_name = hyperparameter_suggestion.get_base_name()
+
+            hyperparameter_suggestion.change_name(
+                f"{self.name}_{suggestion_base_name}"
+            )
+
+
+
     def _make_suggestion(self, trial : optuna.Trial) -> dict:
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
@@ -41,9 +85,26 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
                 
             
         return dict_to_return
-
-
     
+
+    def already_has_suggestion_in_trial(self, trial : optuna.Trial):
+
+        for hyperparameter_suggestion in self.hyperparameter_suggestions.values(): 
+
+            if hyperparameter_suggestion.already_has_suggestion_in_trial(trial):
+                return True
+        
+        return False
+    
+    def _try_get_suggested_optuna_values(self, component_definition, localizations):
+
+        value_to_return = {}
+
+        for hyperparameter_suggestion in self.hyperparameter_suggestions.values():
+            value_to_return = {**value_to_return, **hyperparameter_suggestion._try_get_suggested_optuna_values(component_definition, localizations)}
+    
+        return value_to_return
+
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 
     def clone(self):

@@ -28,6 +28,7 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
             self.hyperparameter_suggestion_for_list = decode_components_input_element(self.hyperparameter_suggestion_for_list)
 
 
+
     def _make_suggestion(self, trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
@@ -72,6 +73,10 @@ class VariableListHyperparameterSuggestion(HyperparameterSuggestion):
 
         
         return to_return
+    
+
+    def already_has_suggestion_in_trial(self, trial : optuna.Trial):
+        return self.name_len_list in trial.params.keys()
 
 
     

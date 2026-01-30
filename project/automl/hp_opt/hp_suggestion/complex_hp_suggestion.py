@@ -40,15 +40,11 @@ class ComplexHpSuggestion(HyperparameterSuggestion):
         
         to_return = self.actual_hyperparameter_suggestion._make_suggestion(trial)
 
-        print(f"Suggestion done: {to_return}")
-
         return to_return
     
 
     
     def set_suggested_value(self, suggested_value, component_definition, localization):
-
-        print(f"Setting suggested value: {suggested_value}")
 
         super().set_suggested_value(suggested_value, component_definition, localization)
     
@@ -81,13 +77,9 @@ class ComplexHpSuggestion(HyperparameterSuggestion):
         
         '''Gets the suggested value in the component, using the localization'''
 
-        print(f"Trying to get suggested value in component")
-
         suggested_value = super()._try_get_already_suggested_value_in_component(component, hyperparameter_localizer)
 
         suggested_value_in_structure = self.actual_hyperparameter_suggestion.try_get_suggested_value(suggested_value)
-
-        print(f"Suggested value gotten in component: {suggested_value_in_structure}")
 
         return suggested_value_in_structure
     
@@ -97,15 +89,14 @@ class ComplexHpSuggestion(HyperparameterSuggestion):
     
         '''Sets the suggested value in the dictionary representing a component, using the localization'''
 
-        print(f"Trying to get suggested value in dict")
-
         suggested_value = super()._try_get_suggested_value_in_dict(component_dict, hyperparameter_localizer)
 
         suggested_value_in_structure = self.actual_hyperparameter_suggestion.try_get_suggested_value(suggested_value)
 
-        print(f"Suggested value gotten in dict: {suggested_value_in_structure}")
-
         return suggested_value_in_structure
+    
+    def already_has_suggestion_in_trial(self, trial : optuna.Trial):
+        return self.actual_hyperparameter_suggestion.already_has_suggestion_in_trial(trial)
 
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 

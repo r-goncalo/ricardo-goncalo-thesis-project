@@ -40,6 +40,48 @@ class SingleHyperparameterSuggestion(HyperparameterSuggestion):
             raise Exception(f"Invalid value suggestion with name {self.name}")            
                             
         return suggested_value
+
+    
+    def _try_get_already_suggested_value_in_component(self, component, hyperparameter_localizations):
+
+        gotten_suggestion_value = super()._try_get_already_suggested_value_in_component(component, hyperparameter_localizations)
+
+        if self._is_valid_suggestion_type(gotten_suggestion_value):
+            return gotten_suggestion_value
+        
+        return None
+
+    def _try_get_suggested_value_in_dict(self, component_dict, localizations):
+
+        gotten_suggestion_value = super()._try_get_suggested_value_in_dict(component_dict, localizations)
+
+        if self._is_valid_suggestion_type(gotten_suggestion_value):
+            return gotten_suggestion_value
+        
+        return None
+
+
+    
+    def _is_valid_suggestion_type(self, value):
+
+        (type_of_suggestion, kwargs) = self.value_suggestion
+
+        if type_of_suggestion == 'float' and isinstance(value, float):
+            return True
+        
+        elif type_of_suggestion == 'int' and isinstance(value, int):
+            return True
+        
+        elif type_of_suggestion == 'cat':
+            choices = kwargs["choices"]
+
+            return value in choices
+                
+        return False
+    
+
+    def already_has_suggestion_in_trial(self, trial : optuna.Trial):
+        return self.get_name() in trial.params.keys()
         
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 
