@@ -129,9 +129,9 @@ class PPOLearner(LearnerSchema):
         action_logits = self.policy.predict_logits(states) #note we can call directly from the policy because we're using states as they were saved in the trajectory
         action_distribution = torch.distributions.Categorical(logits=action_logits)
                 
-        log_probs = action_distribution.log_prob(actions).sum(dim=-1)
+        log_probs = action_distribution.log_prob(actions.squeeze(-1))
         entropy = action_distribution.entropy().mean()
-        return log_probs, entropy
+        return action_logits, log_probs, entropy
 
 
 
@@ -143,39 +143,37 @@ class PPOLearner(LearnerSchema):
             log_prob_batch = torch.stack(trajectory.log_prob, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
         
         else:
-            log_prob_batch = trajectory.log_prob.to(self.device)
+            log_prob_batch = trajectory.log_prob.view(-1).to(self.device)
         
             
         return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch
     
-    
-    
-    def _learn(self, trajectory, discount_factor):
-        super()._learn(trajectory, discount_factor)
-        
-        self.number_of_times_optimized += 1
-        
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch = self._interpret_trajectory(trajectory)
-                
-                        
-        # Compute value estimates
+
+
+    def _compute_values_estimates(self, state_batch, action_batch, next_state_batch, done_batch):
+
+        '''Computes values estimates using the critic'''
+
         values = self.critic.predict(state_batch).squeeze(-1)
+
         with torch.no_grad():
             next_values = self.critic.predict(next_state_batch).squeeze(-1)
 
-        # Mask out terminal states (no bootstrapping after done)
         next_values = next_values * (1 - done_batch)
-        
-        
+
+        return values, next_values
+    
+    
+    def _compute_error_and_advantage(self, discount_factor, reward_batch, next_values, values):
+
         # Compute advantages using Generalized Advantage Estimation (GAE)
-        deltas = reward_batch + discount_factor * next_values - values 
-        advantages = torch.zeros_like(deltas, device=self.device)
-        
+        values_error = reward_batch + discount_factor * next_values - values 
+        advantages = torch.zeros_like(values_error, device=self.device)
         
         # GAE computation in reverse
         running_advantage = 0
-        for t in reversed(range(len(deltas))):
-            running_advantage = deltas[t] + discount_factor * self.lamda_gae * running_advantage
+        for t in reversed(range(len(values_error))):
+            running_advantage = values_error[t] + discount_factor * self.lamda_gae * running_advantage
             advantages[t] = running_advantage
         
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
@@ -183,8 +181,11 @@ class PPOLearner(LearnerSchema):
         # this is the correction of the values computed by the critic using the advantage
         returns = advantages + values.detach()
 
-        # Compute new log probabilities from the policy
-        new_log_probs, entropy = self._evaluate_actions(state_batch, action_batch)
+        return values_error, advantages, returns
+    
+
+    
+    def _compute_losses(self, new_log_probs, entropy, log_prob_batch, advantages, values, returns):
 
         # Compute ratio (pi_theta / pi_theta_old)
         ratio = torch.exp(new_log_probs - log_prob_batch)
@@ -200,6 +201,12 @@ class PPOLearner(LearnerSchema):
         # Total loss
         loss : torch.Tensor = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy.mean()
 
+        return ratio, surrogate1, surrogate2, policy_loss, value_loss, loss
+    
+
+    
+    def _optimize_using_loss(self, loss):
+
         self.actor_optimizer.clear_optimizer_gradients()
         self.critic_optimizer.clear_optimizer_gradients()
 
@@ -207,3 +214,25 @@ class PPOLearner(LearnerSchema):
 
         self.actor_optimizer.optimize_with_backward_pass_done()
         self.critic_optimizer.optimize_with_backward_pass_done()
+
+    
+    def _learn(self, trajectory, discount_factor):
+
+        super()._learn(trajectory, discount_factor)
+        
+        self.number_of_times_optimized += 1
+        
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch = self._interpret_trajectory(trajectory)
+                
+        values, next_values = self._compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
+        
+        values_error, advantages, returns = self._compute_error_and_advantage(discount_factor, reward_batch, next_values, values)
+
+        # Compute new log probabilities from the policy
+        action_logits, new_log_probs, entropy = self._evaluate_actions(state_batch, action_batch)
+
+        ratio, surrogate1, surrogate2, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, values, returns)
+
+        self._optimize_using_loss(loss)
+
+

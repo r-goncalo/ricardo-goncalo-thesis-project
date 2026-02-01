@@ -11,6 +11,8 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
     def _proccess_input_internal(self):
 
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Field names are: {self.field_names}")
     
     
     def push(self, transition):    
@@ -23,8 +25,14 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
 
             str_value = str(transition[field_name])
 
-            if len(str_value) > 15:
-                str_value = str_value[:7] + '...' + str_value[len(str_value) - 7:]
+            if len(str_value) > 25:
+                str_value = str_value[:14] + '...' + str_value[len(str_value) - 14:]
+
+            elif len(str_value) < 25:
+                str_value = str_value + (' ' * (25 - len(str_value))) 
+
+            if hasattr(transition[field_name], "shape"):
+                str_value += f"(shape {transition[field_name].shape})"
                         
             str_pushing = f"{str_pushing}{field_name}: {str_value} "
 
