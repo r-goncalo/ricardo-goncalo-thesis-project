@@ -244,7 +244,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         input_to_clone = super()._input_to_clone()
 
         input_to_clone.pop("model", None)
-        input_to_clone.pop("parameters_initialization_strategy")
+        input_to_clone.pop("parameters_initialization_strategy", None)
 
         return input_to_clone
     
