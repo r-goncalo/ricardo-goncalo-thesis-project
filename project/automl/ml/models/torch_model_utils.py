@@ -106,6 +106,11 @@ def model_parameter_distance(model_a : TorchModelComponent, model_b : TorchModel
     params_a = torch.cat([p.flatten() for p in model_a.model.parameters()])
     params_b = torch.cat([p.flatten() for p in model_b.model.parameters()])
     
+    return model_parameter_distance_by_params(params_a, params_b)
+
+def model_parameter_distance_by_params(params_a, params_b):
+    """Compute L2 distance and cosine similarity between two models."""
+    
     l2_distance = torch.norm(params_a - params_b, p=2).item()
     avg_distance = l2_distance / params_a.numel()
     cosine_sim = torch.nn.functional.cosine_similarity(

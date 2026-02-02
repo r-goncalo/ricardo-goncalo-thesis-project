@@ -39,6 +39,8 @@ from automl.basic_components.dynamic_value import DynamicLinearValueInRangeBased
 
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 
+from automl.ml.models.model_initialization_strategy import TorchModelInitializationStrategyOrthogonal
+
 def config_dict():
 
     return {
@@ -55,7 +57,9 @@ def config_dict():
                         "model" : (
                             FullyConnectedModelSchema, 
                             {
-                            "layers" : [64, 64, 64]
+                            "layers" : [64, 64, 64],
+                            "parameters_initialization_strategy" : (str(TorchModelInitializationStrategyOrthogonal),
+                                                                    {"gain" : 0.1})
                             }
                             ),
                         }
@@ -144,17 +148,18 @@ def hyperparameter_suggestions():
         ),
 
         DisjointHyperparameterSuggestion(
-            name = "clip_grad_value_strat",
+            name = "clip_grad_strat",
             hyperparameter_localizations= [
                 ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "optimizer", 1, "clip_grad_value"]
             ],
+            allow_none = True,
             disjoint_hyperparameter_suggestions= [
                 SingleHyperparameterSuggestion(
-                    name="clip_grad_value",
+                    name="value",
                     value_suggestion=("float", {"low" : 0.05, "high" : 1.0})
                 ),
                 ComplexHpSuggestion(
-                    "clip_grad_dynamic_struc",
+                    "dynamic_struc",
                     structure_to_add=[
                         str(DynamicLinearValueInRangeBasedOnComponent),
                         {
@@ -169,9 +174,36 @@ def hyperparameter_suggestions():
                         }
                     ],
                     actual_hyperparameter_suggestion= SingleHyperparameterSuggestion(
-                        name="clip_grad_dynamic_value",
+                        name="value",
                         value_suggestion=("float", {"low" : 0.05, "high" : 0.5}),
                         hyperparameter_localizations=[[1, "initial_value"]]
+                    )
+
+                )
+
+            ]
+        ),
+
+        DisjointHyperparameterSuggestion(
+            name = "model_init_strat",
+            hyperparameter_localizations= [
+                ["input", "agents_input", "policy", 1, "model", 1, "parameters_initialization_strategy"]
+            ],
+            allow_none = True,
+            disjoint_hyperparameter_suggestions= [
+
+                ComplexHpSuggestion(
+                    "orthogonal_init",
+                    structure_to_add=[
+                        str(TorchModelInitializationStrategyOrthogonal),
+                        {
+                            "gain" : 0.1
+                        }
+                    ],
+                    actual_hyperparameter_suggestion= SingleHyperparameterSuggestion(
+                        name="gain",
+                        value_suggestion=("float", {"low" : 0.05, "high" : 0.2}),
+                        hyperparameter_localizations=[[1, "gain"]]
                     )
 
                 )

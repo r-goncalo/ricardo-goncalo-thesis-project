@@ -469,6 +469,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             self._queue_trial_with_suggestion(initial_suggestion)
 
 
+
     def _setup_trial_component_with_suggestion(self, trial : optuna.Trial, base_component : Union[Component, dict]):
         
         '''Generated the configuration for the trial, making suggestions for the hyperparameters'''

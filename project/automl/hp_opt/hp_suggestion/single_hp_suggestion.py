@@ -41,19 +41,10 @@ class SingleHyperparameterSuggestion(HyperparameterSuggestion):
                             
         return suggested_value
 
-    
-    def _try_get_already_suggested_value_in_component(self, component, hyperparameter_localizations):
 
-        gotten_suggestion_value = super()._try_get_already_suggested_value_in_component(component, hyperparameter_localizations)
+    def _try_get_suggested_value(self, component_definition, localization):
 
-        if self._is_valid_suggestion_type(gotten_suggestion_value):
-            return gotten_suggestion_value
-        
-        return None
-
-    def _try_get_suggested_value_in_dict(self, component_dict, localizations):
-
-        gotten_suggestion_value = super()._try_get_suggested_value_in_dict(component_dict, localizations)
+        gotten_suggestion_value = super()._try_get_suggested_value(component_definition, localization)
 
         if self._is_valid_suggestion_type(gotten_suggestion_value):
             return gotten_suggestion_value

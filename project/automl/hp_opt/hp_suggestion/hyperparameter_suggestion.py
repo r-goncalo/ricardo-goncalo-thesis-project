@@ -6,7 +6,7 @@ from automl.utils.json_utils.json_component_utils import decode_components_input
 from automl.utils.json_utils.custom_json_logic import CustomJsonLogic, register_custom_strategy
 import optuna
 
-from automl.core.localizations import get_component_by_localization_list, get_last_collection_where_value_is, safe_get
+from automl.core.localizations import get_component_by_localization_list, get_last_collection_where_value_is, safe_get, safe_general_remove
 from automl.loggers.global_logger import globalWriteLine
 
 class HyperparameterSuggestion(CustomJsonLogic):
@@ -86,7 +86,11 @@ class HyperparameterSuggestion(CustomJsonLogic):
         if localization is None:
             raise Exception(f"No localization specified in function call nor in object to set suggested value in component")
 
-        
+        return self._set_suggested_value(suggested_value, component_definition, localization)
+
+
+    def _set_suggested_value(self, suggested_value, component_definition : Union[Component, dict], localization=None): 
+
         if isinstance(component_definition, Component):
             self._set_suggested_value_in_component(suggested_value, component_definition, localization)
             
@@ -94,7 +98,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
             self._set_suggested_value_in_dict(suggested_value, component_definition, localization)
             
         else:   
-            raise Exception(f"Component definition is not a Component or a dict, but {type(component_definition)}") 
+            raise Exception(f"Component definition is not a Component or a dict, but {type(component_definition)}")
     
     
     def _set_suggested_value_in_component(self, suggested_value, component : Component, hyperparameter_localizations):
@@ -154,7 +158,6 @@ class HyperparameterSuggestion(CustomJsonLogic):
         '''Gets the suggested value in the component (or component input), using the localization'''
         
         localization = self.hyperparameter_localizations if localization is None else localization
-
 
         if localization is None:
             raise Exception(f"No localization specified in function call nor in object ({self.name}) to get suggested value in component")
@@ -237,7 +240,6 @@ class HyperparameterSuggestion(CustomJsonLogic):
         return suggested_value
 
 
-    
     def _try_get_already_passed_input_to_component_input(self, component_input, hyperparameter_localizer):
         
         '''Passes the suggested value to the component input, using the localization'''
@@ -250,6 +252,49 @@ class HyperparameterSuggestion(CustomJsonLogic):
         except Exception as e:
             raise Exception(f"Exception when trying to get last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
         
+
+    # REMOVING VALUE --------------------------------
+
+    def _try_remove_suggested_value(self, component_definition : Union[Component, dict], localization):
+        
+        '''Gets the suggested value in the component (or component input), using the localization'''
+        
+        if isinstance(component_definition, Component):
+            return self._try_remove_already_suggested_value_in_component(component_definition, localization)
+            
+        elif isinstance(component_definition, (dict, list)):
+            return self._try_remove_suggested_value_in_dict(component_definition, localization)
+            
+        else:   
+            raise Exception(f"Component definition is not a Component or a (dict | list), but {type(component_definition)}") 
+
+
+    def _try_remove_already_suggested_value_in_component(self, component : Component, hyperparameter_localizations):
+        
+        '''Deletes if exists'''
+
+        for hyperparameter_localizer in hyperparameter_localizations:
+            
+            component_to_change : Component = get_component_by_localization_list(component, hyperparameter_localizer[:-1]) 
+            
+            if component_to_change is not None:            
+                component_to_change.remove_input(hyperparameter_localizer[-1])
+
+
+    
+    def _try_remove_suggested_value_in_dict(self, component_dict : dict, hyperparameter_localizations):
+    
+        '''Sets the suggested value in the dictionary representing a component, using the localization'''
+
+        suggested_value = None
+
+        for hyperparameter_localizer in hyperparameter_localizations:
+            
+            colleciton_where_hyperparameter_is : dict = get_last_collection_where_value_is(component_dict, hyperparameter_localizer)
+
+            if colleciton_where_hyperparameter_is is not None:
+                safe_general_remove(colleciton_where_hyperparameter_is, hyperparameter_localizer[-1])
+
         
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 

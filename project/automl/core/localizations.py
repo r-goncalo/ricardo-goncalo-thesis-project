@@ -36,6 +36,15 @@ def safe_get(collection_where_value_is : dict, index, default_value=None):
     
     except (IndexError, KeyError) as e:
             return default_value
+    
+
+def safe_general_remove(collection_where_value_is, index):
+    
+    try:
+        return collection_where_value_is.pop(index)
+    
+    except (IndexError, KeyError) as e:
+        return None
 
 
 

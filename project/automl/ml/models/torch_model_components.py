@@ -5,9 +5,14 @@ from automl.loggers.logger_component import ComponentWithLogging
 import torch
 import torch.nn as nn
 
+from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
+
 from automl.component import Component, InputSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
+from automl.core.advanced_input_management import ComponentInputSignature
+
+from automl.ml.models.model_initialization_strategy import TorchModelInitializationStrategy
 
 class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLogging):
 
@@ -15,8 +20,11 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
+
         "device": InputSignature(get_from_parent=True, ignore_at_serialization=True),
         "model" : InputSignature(mandatory=False, possible_types=[nn.Module]),
+
+        "parameters_initialization_strategy" : ComponentInputSignature(mandatory=False)
     }    
 
     exposed_values = {
@@ -30,6 +38,8 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         self.lg.writeLine(f"Processing model input...\n")
 
         self.device = self.get_input_value("device")
+
+        self.model_initialization_strategy : TorchModelInitializationStrategy = self.get_input_value("parameters_initialization_strategy")
 
         self.__synchro_model_value_attr()
                         
@@ -57,6 +67,15 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         super()._setup_values()
         
 
+    def _execute_model_initialization_strategy(self):
+
+        if self.model_initialization_strategy is None:
+            self.lg.writeLine(f"No model initialization passed")
+
+        else:
+            self.lg.writeLine(f"Initializing model with strategy of type: {type(self.model_initialization_strategy)}...")
+            self.model_initialization_strategy.initialize_model(self.model)
+
 
     def _setup_model(self):
 
@@ -78,6 +97,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
             else:
                 self.lg.writeLine(f"Could not load model, initiating initialization strategy...")
                 self._initialize_model() # initializes the model using passed values
+                self._execute_model_initialization_strategy()
 
         else:
             self.lg.writeLine(f"Model was already loaded")
@@ -224,6 +244,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         input_to_clone = super()._input_to_clone()
 
         input_to_clone.pop("model", None)
+        input_to_clone.pop("parameters_initialization_strategy")
 
         return input_to_clone
     
@@ -237,7 +258,12 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
 
     
     def _after_clone(self, original, is_deep_clone):
+
+        '''The cloned model clones the parameters of the original into it'''
+
+        super()._after_clone(self, original, is_deep_clone)
         self.clone_other_model_into_this(original)
+
     
     @requires_input_proccess
     def clone_other_model_into_this(self, other_model):

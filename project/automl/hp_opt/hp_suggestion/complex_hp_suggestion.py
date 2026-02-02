@@ -32,8 +32,9 @@ class ComplexHpSuggestion(HyperparameterSuggestion):
 
         suggestion_base_name = self.actual_hyperparameter_suggestion.get_base_name()
 
-        self.actual_hyperparameter_suggestion.change_name(f"{self.name}_{suggestion_base_name}")
-        
+        self.actual_hyperparameter_suggestion.change_name(f"{self.get_name()}_{suggestion_base_name}")
+                
+
     def _make_suggestion(self, trial : optuna.Trial):
         
         '''Creates a suggested value for an hyperparameter group and changes the corresponding objects, children of the source_component'''
@@ -41,62 +42,43 @@ class ComplexHpSuggestion(HyperparameterSuggestion):
         to_return = self.actual_hyperparameter_suggestion._make_suggestion(trial)
 
         return to_return
-    
 
-    
-    def set_suggested_value(self, suggested_value, component_definition, localization):
 
-        super().set_suggested_value(suggested_value, component_definition, localization)
-    
-
-    def _set_suggested_value_in_component(self, suggested_value, component : Component, hyperparameter_localizer):
-        
-        '''Sets the suggested value in the component, using the localization'''
+    def _set_suggested_value(self, suggested_value, component_definition, localization=None): 
 
         structure_to_add = copy.deepcopy(self.structure_to_add)
 
         self.actual_hyperparameter_suggestion.set_suggested_value(suggested_value, structure_to_add)
 
-        super()._set_suggested_value_in_component(structure_to_add, component, hyperparameter_localizer)
-        
-
-    def _set_suggested_value_in_dict(self, suggested_value, component_dict : dict, hyperparameter_localizer):
-        
-        '''Sets the suggested value in the component, using the localization'''
-
-        structure_to_add = copy.deepcopy(self.structure_to_add)
-
-        self.actual_hyperparameter_suggestion.set_suggested_value(suggested_value, structure_to_add)
-
-        super()._set_suggested_value_in_dict(structure_to_add, component_dict, hyperparameter_localizer)
-        
+        super()._set_suggested_value(structure_to_add, component_definition, localization)
 
 
 
-    def _try_get_already_suggested_value_in_component(self, component : Component, hyperparameter_localizer):
+    def _try_get_suggested_value(self, component_definition, localization):
         
         '''Gets the suggested value in the component, using the localization'''
 
-        suggested_value = super()._try_get_already_suggested_value_in_component(component, hyperparameter_localizer)
+        suggested_value = super()._try_get_suggested_value(component_definition, localization) # it is the current structure
 
+        #note we don't pass the localization
         suggested_value_in_structure = self.actual_hyperparameter_suggestion.try_get_suggested_value(suggested_value)
 
         return suggested_value_in_structure
-    
 
-    
-    def _try_get_suggested_value_in_dict(self, component_dict : dict, hyperparameter_localizer):
-    
-        '''Sets the suggested value in the dictionary representing a component, using the localization'''
 
-        suggested_value = super()._try_get_suggested_value_in_dict(component_dict, hyperparameter_localizer)
-
-        suggested_value_in_structure = self.actual_hyperparameter_suggestion.try_get_suggested_value(suggested_value)
-
-        return suggested_value_in_structure
     
     def already_has_suggestion_in_trial(self, trial : optuna.Trial):
         return self.actual_hyperparameter_suggestion.already_has_suggestion_in_trial(trial)
+
+
+    def _try_get_suggested_optuna_values(self, component_definition, localizations):
+
+        suggested_value = super()._try_get_suggested_value(component_definition, localizations) # it is the current structure
+
+        if suggested_value is None:
+            return suggested_value
+
+        return self.actual_hyperparameter_suggestion.try_get_suggested_optuna_values(suggested_value)
 
     # JSON ENCODING DECODING ------------------------------------------------------------------------
 

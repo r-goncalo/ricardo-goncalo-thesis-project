@@ -152,7 +152,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 
     
     def remove_input(self, key):
-        
+
+        '''Removes input value from component'''
            
         self.__some_updated_input() #when we pass new input, it means that we need to proccess it again
         
@@ -179,7 +180,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             self.__input_meta[key].custom_value_passed()
         
         except Exception as e:
-            raise Exception(f"In component of type {type(self)}, when passing input: Tried to pass input for key {key}, with internal inconsistency, as it does not exist in the meta of inputs: {self.__input_meta.keys()} even if exists in parameter signature: {self.get_parameters_signatures()})") from e
+            raise Exception(f"In component {self.name}, of type {type(self)}, when passing input: Tried to pass input for key {key}, with internal inconsistency, as it does not exist in the meta of inputs: {self.__input_meta.keys()} even if exists in parameter signature: {self.get_parameters_signatures()})") from e
 
         
         for on_pass in self.get_parameter_signature(key).on_pass:
@@ -188,7 +189,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 on_pass(self)
 
             except:
-                raise Exception(f"In component of type {type(self)}, when passing input: Exception while using the on_pass for {key}, named {on_pass.__name__}")
+                raise Exception(f"In component {self.name}, of type {type(self)}, when passing input: Exception while using the on_pass for {key}, named {on_pass.__name__}")
                
                
     def __verified_setup_default_value(self, key): 
@@ -206,7 +207,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             
         else:
             self.input[key] = None
-            #raise Exception(f"In component of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
+            #raise Exception(f"In component {self.name}, of type {type(self)}, when setting default value for {key}: No default value or generator defined for this key")
 
 
 
@@ -343,7 +344,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         if not self.__input_was_proccessed:
             
             if self.__input_is_being_processed:
-                raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Input is already being processed, there is probably a recursive call to proccess_input")
+                raise Exception(f"In component {self.name}, of type {type(self)}, when cheking for the inputs: Input is already being processed, there is probably a recursive call to proccess_input")
             
             self.proccess_input()
 
@@ -469,7 +470,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         Note that the clone will not have the same parent component
         '''
 
-        self.proccess_input_if_not_proccesd()
+        #self.proccess_input_if_not_proccesd()
 
         input_for_clone = {} if input_for_clone is None else input_for_clone    
 
@@ -573,7 +574,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                             value_to_put = parameter_signature.generator(self) #generators have access to the instance        
                         
                         except Exception as e:
-                            raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}") from e
+                            raise Exception(f"In component {self.name}, of type {type(self)}, when cheking for the inputs: Exception while using the generator for {input_key}, named {parameter_signature.generator.__name__}:\n{e}") from e
             
             if value_to_put is not None:
                 self.input[input_key] = value_to_put
@@ -604,13 +605,13 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 input_value = self.input[input_key] #get the value passed
 
                 if input_value is None and parameter_signature.mandatory == True:
-                    raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")    
+                    raise Exception(f"In component {self.name}, of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")    
                 
                 elif input_value is not None:
                     self.verify_validity(input_key, input_value, parameter_signature.possible_types, parameter_signature.validity_verificator) #raises exceptions if input is not valid
                                     
             elif parameter_signature.mandatory: #if there was no specified value for this attribute in the input
-                raise Exception(f"In component of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")     
+                raise Exception(f"In component {self.name}, of type {type(self)}, when cheking for the inputs: Did not set input for mandatory key '{input_key}' and has no default value nor generator\n but put for {passed_keys}")     
 
 
     def verify_validity(self, input_key, input_value, possible_types, validity_verificator_list):
@@ -625,10 +626,10 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                 is_a_correct_type = validity_verificator(input_value) #use the verificator the Component has specified in its input signature
 
                 if not isinstance(is_a_correct_type, bool): #validity_verification must return bool
-                    raise Exception(f"In component of type {type(self)}: Validity verification on key '{input_key}' returned a type other than bool")
+                    raise Exception(f"In component {self.name}, of type {type(self)}: Validity verification on key '{input_key}' returned a type other than bool")
 
                 elif is_a_correct_type == False:
-                    raise Exception(f"In component of type {type(self)}: Value with key '{input_key}', of type {type(input_value)} did not pass Component specified validity verificator") 
+                    raise Exception(f"In component {self.name}, of type {type(self)}: Value with key '{input_key}', of type {type(input_value)} did not pass Component specified validity verificator") 
 
 
 
@@ -644,7 +645,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                     return #break the loop and the functon, value is of one of the possible types
                 
             #if we reach the end of the function, then the value is of none of the types
-            raise Exception(f"In component of type {type(self)}: No validity verificator specified for key '{input_key}' and its value {input_value}, of type ({type(input_value)}) is of none of the possible types: {possible_types}")
+            raise Exception(f"In component {self.name}, of type {type(self)}: No validity verificator specified for key '{input_key}' and its value {input_value}, of type ({type(input_value)}) is of none of the possible types: {possible_types}\n{self.input.keys()}")
           
 
     # NOTES --------------------------------
