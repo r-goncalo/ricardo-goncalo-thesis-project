@@ -261,7 +261,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
 
         '''The cloned model clones the parameters of the original into it'''
 
-        super()._after_clone(self, original, is_deep_clone)
+        super()._after_clone(original, is_deep_clone)
         self.clone_other_model_into_this(original)
 
     
