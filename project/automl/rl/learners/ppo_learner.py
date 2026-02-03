@@ -1,6 +1,7 @@
 from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature
+from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.learners.learner_component import LearnerSchema
 
@@ -9,17 +10,13 @@ from automl.ml.optimizers.optimizer_components import AdamOptimizer, OptimizerSc
 from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 
-from automl.rl.policy.policy import Policy
-from automl.ml.models.model_components import ModelComponent
-
 from automl.utils.class_util import get_class_from
 
 import torch.nn.functional as F
 
-import torch.optim as optim
+SHOULD_INITIALIZE_NEW_CRITIC = False
 
-
-class PPOLearner(LearnerSchema):
+class PPOLearner(LearnerSchema, ComponentWithLogging):
     
     '''
     Proximal Policy Optimization Learner
@@ -95,6 +92,22 @@ class PPOLearner(LearnerSchema):
         self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
 
         self.critic.proccess_input_if_not_proccesd()
+
+
+    def _split_actor_critic_params(self):
+        actor_params = list(self.model.get_model_params())
+        critic_params = list(self.critic.get_model_params())
+
+        actor_ids = set(id(p) for p in actor_params)
+        critic_ids = set(id(p) for p in critic_params)
+
+        shared_ids = actor_ids & critic_ids
+
+        shared_params = [p for p in actor_params if id(p) in shared_ids]
+        actor_only = [p for p in actor_params if id(p) not in shared_ids]
+        critic_only = [p for p in critic_params if id(p) not in shared_ids]
+
+        return shared_params, actor_only, critic_only
         
         
     def initialize_optimizer(self):
@@ -109,14 +122,27 @@ class PPOLearner(LearnerSchema):
         # Critic optimizer
         self.critic_optimizer : OptimizerSchema  = self.get_input_value("critic_optimizer")
 
-        if self.critic_optimizer == None:
-            self.critic_optimizer = self.actor_optimizer.clone()
-            self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
+        if self.critic_optimizer is None:
 
-        elif not self.critic_optimizer.has_custom_name_passed():
-            self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
+            if SHOULD_INITIALIZE_NEW_CRITIC:
+                self.critic_optimizer = self.actor_optimizer.clone()
+                self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
+                self.critic_optimizer.pass_input({"model" : self.critic})
+            
+            else:
+                self.lg.writeLine(f"No critic optimizer passed, will use the same optimizer for both policy and critic")
+                shared_params, actor_only, critic_only = self._split_actor_critic_params()
+                all_params = actor_only + critic_only + shared_params
+                self.actor_optimizer.set_params(all_params)
+
+        else: 
+
+            self.lg.writeLine(f"Critic optimizer was passed for learner")
+
+            if not self.critic_optimizer.has_custom_name_passed():
+                self.critic_optimizer.pass_input({"name" : "CriticOptimizer"})
         
-        self.critic_optimizer.pass_input({"model" : self.critic})
+            self.critic_optimizer.pass_input({"model" : self.critic})
     
     # EXPOSED METHODS --------------------------------------------------------------------------
     
@@ -193,27 +219,45 @@ class PPOLearner(LearnerSchema):
         # Compute surrogate loss
         surrogate1 = ratio * advantages
         surrogate2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
+        
         policy_loss = -torch.min(surrogate1, surrogate2).mean()
+        policy_loss = policy_loss - self.entropy_coef * entropy.mean() # entropy regulates the exploration
 
         # Compute value loss for critic
-        value_loss = F.mse_loss(values, returns)
+        value_loss = F.mse_loss(values, returns) * self.value_loss_coef 
+        value_loss = value_loss * self.value_loss_coef 
 
         # Total loss
-        loss : torch.Tensor = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy.mean()
+        if self.critic_optimizer is None:
+            loss : torch.Tensor = policy_loss + value_loss
+
+        else:
+            loss = None
+        
 
         return ratio, surrogate1, surrogate2, policy_loss, value_loss, loss
     
 
     
-    def _optimize_using_loss(self, loss):
+    def _optimize_using_loss(self, policy_loss, value_loss, loss):
 
-        self.actor_optimizer.clear_optimizer_gradients()
-        self.critic_optimizer.clear_optimizer_gradients()
+        if self.critic_optimizer is not None: # if we are to optimize the critic and policy optimizer separatly
 
-        loss.backward() # we do the optimization here so it goes to both optimizers
+            self.actor_optimizer.clear_optimizer_gradients()
+            self.critic_optimizer.clear_optimizer_gradients()
 
-        self.actor_optimizer.optimize_with_backward_pass_done()
-        self.critic_optimizer.optimize_with_backward_pass_done()
+            policy_loss.backward(retain_graph=True)
+            value_loss.backward() # will use and then free the graph
+
+            self.actor_optimizer.optimize_with_backward_pass_done()
+            self.critic_optimizer.optimize_with_backward_pass_done()
+
+        else:
+
+            self.actor_optimizer.clear_optimizer_gradients()
+            loss.backward()
+            self.actor_optimizer.optimize_with_backward_pass_done()
+
 
     
     def _learn(self, trajectory, discount_factor):
@@ -233,6 +277,6 @@ class PPOLearner(LearnerSchema):
 
         ratio, surrogate1, surrogate2, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, values, returns)
 
-        self._optimize_using_loss(loss)
+        self._optimize_using_loss(policy_loss, value_loss, loss)
 
 

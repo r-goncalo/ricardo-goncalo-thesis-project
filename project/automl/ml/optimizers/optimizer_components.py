@@ -13,13 +13,29 @@ from abc import abstractmethod
 
 class OptimizerSchema(Component):
     
-    parameters_signature = {"model" : ComponentInputSignature(ignore_at_serialization=True)}
+    parameters_signature = {"model" : ComponentInputSignature(mandatory=False, ignore_at_serialization=True),
+                            "params" : InputSignature(mandatory=False, ignore_at_serialization=True)}
     
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
         self.model : ModelComponent = self.get_input_value("model")
+        self.params = self.get_input_value("params")
 
+        if self.model is not None and self.params is not None:
+            raise Exception(f"Can only use either params or model in optimizer")
+        
+        elif self.model is None and self.params is None:
+            raise Exception(f"Either model or params should be used in optimizer")
+        
+        elif self.model is not None:
+            self.params = self.model.get_model_params() #gets the model parameters to optimize
+
+
+    def set_params(self, new_params):
+        self.params = new_params
+        self.input["params"] = new_params
+        self.input["model"] = None
 
         
         
@@ -79,8 +95,6 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         super()._proccess_input_internal()
 
         self.lg.writeLine(f"Starting to process optimizer input")
-        
-        self.params = self.model.get_model_params() #gets the model parameters to optimize
 
         self.lr = self.get_input_value("learning_rate")
         self.amsgrad = self.get_input_value("amsgrad")
@@ -181,9 +195,6 @@ class SimpleSGDOptimizer(OptimizerSchema):
 
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
-
-        # Get model parameters
-        self.params = self.model.get_model_params()
         
         self.lr = self.get_input_value("learning_rate")
 

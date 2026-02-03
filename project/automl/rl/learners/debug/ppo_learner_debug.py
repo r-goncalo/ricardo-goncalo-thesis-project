@@ -32,6 +32,15 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         if self.compare_old_and_new_critic_predictions:
             self.__old_critic_model: TorchModelComponent = self.critic.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_critic"})
 
+
+    def _split_actor_critic_params(self):
+        shared_params, actor_only, critic_only = self._split_actor_critic_params()
+
+        self.lg.writeLine(f"Split actor and critic params: Shared: {len(shared_params)}, Actor only: {len(actor_only)}, Critic only: {len(critic_only)}")
+
+        return shared_params, actor_only, critic_only
+
+
     def _should_log(self):
         return self.__current_interval % self.interval_between_debug_writes == 0
     
@@ -119,7 +128,6 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
         return ratio, surrogate1, surrogate2, policy_loss, value_loss, loss, policy_batch_loss_debug
     
-
 
     def _compute_losses(self, new_log_probs, entropy, log_prob_batch, advantages, values, returns):
         
