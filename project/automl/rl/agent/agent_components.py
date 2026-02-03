@@ -135,8 +135,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         to_return = self.policy.predict(self.proccess_env_state(state))
 
-        self.lg.writeLine(f"Policy chose action: {to_return}", file="actions.txt")
-
         return to_return
     
     @requires_input_proccess
@@ -157,8 +155,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     @requires_input_proccess
     def policy_random_predict(self):
         to_return =  self.policy.random_prediction()
-
-        self.lg.writeLine(f"Policy chose random action: {to_return}", file="actions.txt")
 
         return to_return
           
