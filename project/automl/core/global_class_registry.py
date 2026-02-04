@@ -15,36 +15,30 @@ CUSTOM_MODULE_NAME = "__custom_classes.custom_classes"
 @dataclass
 class ClassSpec:
     name : str
-    generator: Callable
-    args: tuple
-    kwargs: dict
+    bases: tuple
+    namespace: dict
 
 _CUSTOM_CLASS_SPECS: dict[str, ClassSpec] = {}
 
-def register_class_generator(
-    *,
-    generator: Callable,
-    args: tuple = (),
-    kwargs: dict | None = None,
-):
-    if kwargs is None:
-        kwargs = {}
+def register_custom_class(*, name: str, bases: tuple[type, ...], namespace: dict | None = None):    
+
+    if namespace is None:
+        namespace = {}
 
     module = get_or_create_custom_module()
 
-    cls = generator(*args, **kwargs)
+    # Ensure fresh namespace like real class statement (__prepare__ semantics)
+    prepared = Schema.__prepare__(name, bases)
+    prepared.update(namespace)
+
+    cls = Schema(name, bases, prepared)
     cls.__module__ = CUSTOM_MODULE_NAME
 
-    setattr(module, cls.__name__, cls)
+    setattr(module, name, cls)
 
-    spec = ClassSpec(
-        name=cls.__name__,
-        generator=generator,
-        args=args,
-        kwargs=kwargs,
-    )
+    spec = ClassSpec(name=name, bases=bases, namespace=namespace)
 
-    key = f"{CUSTOM_MODULE_NAME}.{cls.__name__}"
+    key = f"{CUSTOM_MODULE_NAME}.{name}"
     _CUSTOM_CLASS_SPECS[key] = spec
 
     globalWriteLine(f"Registered custom class: {key}", file="global_classes.txt")
@@ -101,39 +95,59 @@ def clone_class_into_module(cls, target_module_name: str):
     return new_cls
 
 
+def _serialize_bases(bases: tuple[type, ...]) -> str:
+    return ", ".join(f"get_class_from(\"{str(base)}\")" for base in bases) or "object"
+
+
+
+
+def _serialize_namespace(namespace: dict) -> list[str]:
+    lines: list[str] = []
+
+
+    for key, value in namespace.items():
+
+        if callable(value):
+            try:
+                src = inspect.getsource(value)
+                lines.append(src)
+                continue
+            except (OSError, TypeError):
+                pass
+
+
+        lines.append(f" {key} = {repr(value)}")
+
+
+    if not lines:
+        lines.append(" pass")
+
+
+    return lines
+
 def serialize_registered_classes() -> str:
+    """
+    Serialize registered classes into real Python class statements
+    """
+
 
     lines = [
-        "# Auto-generated custom classes",
-        "from automl.component import Component",
-        "from automl.schema import Schema",
-        "from automl.utils.class_util import get_class_from",
-        "from automl.core.global_class_registry import register_class_generator",
-        "",
+    "# Auto-generated custom classes",
+    "from automl.component import Component",
+    "from automl.schema import Schema",
+    "from automl.utils.class_util import get_class_from",
+    "",
     ]
 
+
     for spec in _CUSTOM_CLASS_SPECS.values():
-        gen = spec.generator
+        bases_str = _serialize_bases(spec.bases)
 
-        try:
-            gen_src = inspect.getsource(gen)
-        except (OSError, TypeError):
-            raise RuntimeError(
-                f"Generator {gen.__name__} has no source; cannot serialize"
-            )
-        
-        args_str = [f"\"{str(arg)}\""for arg in spec.args]
-        args_str = ", ".join(args_str)
+        lines.append(f"class {spec.name}({bases_str}):")
 
-        lines.append(gen_src)
-        lines.append("")
-        lines.append(
-            f"{spec.name} = register_class_generator("
-            f"generator={gen.__name__}, "
-            f"args=({args_str}), "
-            f"kwargs={spec.kwargs}"
-            f")"
-        )
+
+        namespace_lines = _serialize_namespace(spec.namespace)
+        lines.extend(namespace_lines)
         lines.append("")
 
     return "\n".join(lines)
