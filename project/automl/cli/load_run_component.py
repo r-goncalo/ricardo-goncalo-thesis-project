@@ -9,6 +9,7 @@
 from automl.utils.files_utils import write_text_to_file
 
 
+
 def generate_path(component_path, target_path_dir='', target_path_name=None):
 
     import shutil
@@ -42,11 +43,9 @@ def main(component_path, target_dir=None, target_dir_name=None, global_logger_le
     if target_dir is not None or target_dir_name is not None:
         component_path = generate_path(component_path, target_dir, target_dir_name)
     
-    component = load_component(component_path)
-
     if global_logger_level != None:
         try:
-            from automl.loggers.global_logger import activate_global_logger
+            from automl.loggers.global_logger import activate_global_logger, globalWriteLine
             activate_global_logger(component_path, global_logger_input={"necessary_logger_level" : global_logger_level})
         
         except Exception as e:
@@ -54,7 +53,35 @@ def main(component_path, target_dir=None, target_dir_name=None, global_logger_le
             write_text_to_file(component_path, filename="error_global.txt", text=str(e))
 
 
-    run_component(component)
+    try:
+        component = load_component(component_path)
+
+    except Exception as e:
+        from automl.loggers.global_logger import get_global_logger
+
+        global_logger = get_global_logger()
+
+        if global_logger is not None:
+
+            from automl.core.exceptions import common_exception_handling
+            common_exception_handling(global_logger, e, "on_load_error.txt")
+
+        raise e
+
+    try:
+        run_component(component)
+
+    except Exception as e:
+        from automl.loggers.global_logger import get_global_logger
+
+        global_logger = get_global_logger()
+
+        if global_logger is not None:
+
+            from automl.core.exceptions import common_exception_handling
+            common_exception_handling(global_logger, e, "on_run_error.txt")
+
+        raise e        
 
 
 if __name__ == '__main__':

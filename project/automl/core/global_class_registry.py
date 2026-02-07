@@ -104,7 +104,6 @@ def _serialize_bases(bases: tuple[type, ...]) -> str:
 def _serialize_namespace(namespace: dict) -> list[str]:
     lines: list[str] = []
 
-
     for key, value in namespace.items():
 
         if callable(value):
@@ -115,15 +114,13 @@ def _serialize_namespace(namespace: dict) -> list[str]:
             except (OSError, TypeError):
                 pass
 
-
         lines.append(f" {key} = {repr(value)}")
-
 
     if not lines:
         lines.append(" pass")
 
-
     return lines
+
 
 def serialize_registered_classes() -> str:
     """
@@ -136,6 +133,7 @@ def serialize_registered_classes() -> str:
     "from automl.component import Component",
     "from automl.schema import Schema",
     "from automl.utils.class_util import get_class_from",
+    "from automl.core.global_class_registry import register_custom_class",
     "",
     ]
 
@@ -143,16 +141,16 @@ def serialize_registered_classes() -> str:
     for spec in _CUSTOM_CLASS_SPECS.values():
         bases_str = _serialize_bases(spec.bases)
 
-        lines.append(f"class {spec.name}({bases_str}):")
+        lines.append(f"{spec.name} = register_custom_class(name=\"{spec.name}\", bases=({bases_str}))")
 
-
-        namespace_lines = _serialize_namespace(spec.namespace)
-        lines.extend(namespace_lines)
         lines.append("")
 
     return "\n".join(lines)
 
+
 def load_custom_classes(file):
+
+    globalWriteLine(f"Loading custom classes...", file="global_classes.txt")
 
     module_name = f"_automl_custom_classes"
 
@@ -162,3 +160,5 @@ def load_custom_classes(file):
 
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
+
+    globalWriteLine(f"Finished loading custom classes", file="global_classes.txt")

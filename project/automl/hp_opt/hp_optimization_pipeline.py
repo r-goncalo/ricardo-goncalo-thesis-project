@@ -222,7 +222,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
         
         self.storage = f"sqlite:///{self.database_path}"  # This will save the study results to the file
-    
+
+
+
+    def get_database(self):
+
+        return self.storage
+
+
     
     def _initialize_sampler(self):
 
@@ -719,6 +726,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
     # STUDY SETUP ------------------------------------------------------------------------------
 
+    @requires_input_proccess
+    def get_study(self):
+        return self.study
 
     def _initialize_study(self):
 

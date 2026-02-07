@@ -9,6 +9,7 @@ from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.logger_component import DEBUG_LEVEL, LoggerSchema, ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
+from automl.ml.memory.memory_samplers.memory_sampler import MemorySampler
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
 from automl.loggers.result_logger import ResultLogger
@@ -54,6 +55,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                        "memory" : ComponentInputSignature(
                             default_component_definition=(TorchMemoryComponent, {}),
                        ),
+
+                       "memory_transformer" : ComponentInputSignature(mandatory=False),
                        
                        "learner" : ComponentInputSignature(
                             default_component_definition=(DeepQLearnerSchema, {})
@@ -131,6 +134,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                                     "device" : self.device,
                                 })
         
+        self.memory_transformer : MemorySampler = self.get_input_value("memory_transformer")
+
+        if self.memory_transformer is not None:
+            self.lg.writeLine(f"Will use memory transformer: {self.memory_transformer.name}")
         
     def initialize_temp(self):
         
@@ -277,14 +284,21 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
 
         '''Optimizes the trained agent for the number of specified times''' 
 
+        if self.memory_transformer is not None:
+            self.memory_transformer.prepare(self.memory)
+
         for _ in range(self.times_to_learn):
             self._optimize_policy_model() 
             self.values["optimizations_done"] += 1
         
         
-        
+    def _optimize_policy_model_with_batch(self, batch):
+        self.learner.learn(batch, self.discount_factor)
+
         
     def _optimize_policy_model(self):
+
+        sampler = self.memory if self.memory_transformer is None else self.memory_transformer
 
         if self.BATCH_SIZE != None:
         
@@ -292,9 +306,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                 return
 
             #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
-            batch = self.memory.sample(self.BATCH_SIZE)
+            batch = sampler.sample(self.BATCH_SIZE)
 
         else:
-            batch = self.memory.get_all()        
+            batch = sampler.get_all()        
                 
-        self.learner.learn(batch, self.discount_factor)
+        self._optimize_policy_model_with_batch(batch)

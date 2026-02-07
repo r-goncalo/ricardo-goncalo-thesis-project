@@ -1,3 +1,4 @@
+from automl.basic_components.artifact_management import generate_target_directory
 from automl.component import requires_input_proccess
 from automl.core.advanced_input_management import ComponentListInputSignature
 from automl.ml.models.torch_model_components import TorchModelComponent
@@ -112,25 +113,37 @@ class ModelSequenceComponent(TorchModelComponent):
 
     def _clone(self, input_for_clone=None, is_deep_clone=False) -> TorchModelComponent:
 
-        cloned_component = super()._clone(input_for_clone, is_deep_clone)
-
         if input_for_clone is None:
             input_for_clone = {}
 
+        models_were_cloned = False        
+
         if not "models" in input_for_clone.keys():
-            cloned_models = []
+            assumed_cloned_directory = generate_target_directory(input_for_clone)
+            
+            cloned_models : list[TorchModelComponent] = []
+            
             if is_deep_clone:
-                cloned_models = [model.clone(save_in_parent=False, is_deep_clone=True, input_for_clone={"base_directory" : cloned_component, "create_new_directory" : True}) for model in self.models]
-                for cloned_model in cloned_models:
-                    cloned_component.define_component_as_child(cloned_model)
+                cloned_models = [
+                    model.clone(
+                        save_in_parent=False, is_deep_clone=True, input_for_clone={"create_new_directory" : True, "base_directory" : assumed_cloned_directory}
+                        ) for model in self.models
+                        ]
+                models_were_cloned = True
             
             else:
                 cloned_models = [model for model in self.models]
         
             input_for_clone["models"] = cloned_models
 
-        return cloned_component
+        cloned_component = super()._clone(input_for_clone, is_deep_clone)
 
+        if models_were_cloned:
+            for cloned_model in cloned_models:
+                cloned_component.define_component_as_child(cloned_model)
+
+        return cloned_component
+    
     def _save_model(self):
         self.lg.writeLine(f"Model is being saved... Naturally ther referenced models will have their parameters saved")
     

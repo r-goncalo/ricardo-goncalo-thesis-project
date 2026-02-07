@@ -91,6 +91,11 @@ class ComponentWithResults(ArtifactComponent):
         '''Sets a results logger object as one of the results loggers for this component, with the specified key'''
         self.__results_loggers[key] = logger_object
 
+    
+    def pass_input_to_results_logger(self, input_to_pass, key=DEFAULT_RESULTS_LOGGER_KEY):
+        '''Passes input for one of the results logger'''
+        self.__results_loggers[key].pass_input(input_to_pass)
+
 
     def remove_result_logger_object(self, key):
         '''Removes one of the results loggers for this component, with the specified key'''

@@ -6,6 +6,7 @@ from automl.loggers.global_logger import globalWriteLine
 
 LOOK_FOR_SUPERCLASSES = True # when this is true, the register will take into account inheritence automatically, without need for explicit configuration
 
+CUSTOM_JSON_LOGIC_LOG = "custom_json.txt"
 
 # CUSTOM JSON LOGIC ------------------------------------------------------------------------------------------------------
 
@@ -53,7 +54,7 @@ __custom_json_strategies_register : dict[type, CustomJsonLogic] = {}
 
 def register_custom_strategy(t : type, custom_logic : CustomJsonLogic):
 
-    globalWriteLine(f"GLOBAL LOGGER: Registed custom logic of type {custom_logic} for type {t}")
+    globalWriteLine(f"GLOBAL LOGGER: Registed custom logic of type {custom_logic} for type {t}", file=CUSTOM_JSON_LOGIC_LOG)
     
     __custom_json_strategies_register[t] = custom_logic
 

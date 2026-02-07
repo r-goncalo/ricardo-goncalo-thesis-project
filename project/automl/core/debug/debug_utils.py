@@ -65,8 +65,6 @@ def __substitute_classes_by_debugclasses(collection, class_debugclasses_pairs : 
             collection = get_class_from(collection)
 
     if isinstance(collection, type):
-
-        print(f"Looking into type: {collection}")
         
         for (subclass, debug_class) in class_debugclasses_pairs:
 

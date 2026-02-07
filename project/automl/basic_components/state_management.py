@@ -133,6 +133,8 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
 
     has_registered_classes_in_folder = os.path.exists(registered_classes_folder)
 
+    globalWriteLine(f"Has registered custom classes in {registered_classes_folder}: {has_registered_classes_in_folder}", file="global_classes.txt")
+
     if has_registered_classes_in_folder:
         load_custom_classes(registered_classes_folder)
 
@@ -181,7 +183,8 @@ def load_component_from_folder(folder_path, configuration_file=CONFIGURATION_FIL
 def save_state(component : Component, save_definition=True) -> None:
 
     '''
-    Saves the state of this component and child components        
+    Saves the state of this component and child components
+    The state is first saved on child components, and later in the component that initiated the method        
     '''
     
     for child_component in component.child_components:
@@ -197,6 +200,8 @@ def save_state(component : Component, save_definition=True) -> None:
     elif isinstance(component, ArtifactComponent):
         if save_definition:
             component.save_configuration(save_exposed_values=True, ignore_defaults=False)
+
+    globalWriteLine(f"Has registered classes: {has_registered_classes_generators()}", file="global_classes.txt")
 
     if save_definition and has_registered_classes_generators():
 
@@ -367,7 +372,6 @@ class StatefulComponentLoader(StatefulComponent):
         )
 
         if to_wait:
-
             return_code = popen_proccess.wait()
 
         return popen_proccess

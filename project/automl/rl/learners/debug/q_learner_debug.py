@@ -128,12 +128,12 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
         
         if self.compare_old_and_new_target_predictions: 
             self.lg.writeLine(f"Will compare old and new target predictions")
-            self.__temporary_target_model = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_predictions"})
+            self.__temporary_target_model = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_predictions"}, is_deep_clone=True)
 
 
         if self.compare_old_and_new_target_model_params:
             self.lg.writeLine(f"Will compare old and new target params")
-            self.__temporary_target_model_v2 = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_params"})
+            self.__temporary_target_model_v2 = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_params"}, is_deep_clone=True)
     
     def _learn(self, trajectory, discount_factor) -> None:
 
@@ -141,7 +141,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
 
             self.__temporary_target_model.clone_other_model_into_this(self.target_net)
 
-            state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self._interpret_trajectory(trajectory)
+            state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
 
         super()._learn(trajectory, discount_factor)
 

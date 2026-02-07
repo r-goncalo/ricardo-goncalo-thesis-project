@@ -161,3 +161,19 @@ def print_weight_norms(model : TorchModelComponent):
         print(name, 
               "L2:", data.norm().item(),
               "max:", data.abs().max().item())
+        
+
+def split_shared_params(a : TorchModelComponent, b : TorchModelComponent):
+    a_params = list(a.get_model_params())
+    b_params = list(b.get_model_params())
+
+    a_ids = set(id(p) for p in a_params)
+    b_ids = set(id(p) for p in b_params)
+
+    shared_ids = a_ids & b_ids
+
+    shared_params = [p for p in a_params if id(p) in shared_ids]
+    a_only = [p for p in a_params if id(p) not in shared_ids]
+    b_only = [p for p in b_params if id(p) not in shared_ids]
+
+    return shared_params, a_only, b_only

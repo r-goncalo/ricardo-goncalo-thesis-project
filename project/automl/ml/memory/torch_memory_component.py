@@ -51,6 +51,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         '''Allocates necessary space given the specification of name, shape and data type in field_shapes'''
             
         transitions : dict[str, torch.Tensor] = {}
+
         
         for field_name, field_shape, data_type in self.fields_shapes:
 
@@ -61,7 +62,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
             if data_type == None:
                    
                 transitions[field_name] = torch.zeros((self.capacity, *field_shape),
-                                                       device=self.device)
+                                                       device=self.device)                
             else:
                 transitions[field_name] = torch.zeros((self.capacity, *field_shape),
                                                        device=self.device, dtype=data_type)
@@ -105,11 +106,10 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
             field_name: self.transitions[field_name][indices]
             for field_name in self.field_names
         }        
-
-        batch = self.Transition(**batch_data)
         
-        return batch
+        return batch_data
     
+
     @requires_input_proccess
     def get_all(self):
         '''Returns the total memory'''
@@ -119,32 +119,15 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
             for field_name in self.field_names
         }
         
-        batch = self.Transition(**batch_data)
+        return batch_data
 
-        return batch
-
-    @requires_input_proccess
-    def get_all_transposed(self):
-        '''Returns total memory transposed'''
-        pass
 
     @requires_input_proccess
     def get_all_segmented(self, batch_size):
         '''Returns ordered list of segmented memory with batch_size'''
         pass
 
-    @requires_input_proccess
-    def get_all_segmented_transposed(self, batch_size):
-        '''Returns ordered list of transposed segmented memory with batch_size'''
-        pass
 
-
-
-    @requires_input_proccess
-    def sample_transposed(self, batch_size):
-        batch = self.sample(batch_size)
-        return self.Transition(*batch)
-        
         
     def _transitions_to_str(self, transitions_dict : dict[str, torch.Tensor], size, transitions_to_save):
         

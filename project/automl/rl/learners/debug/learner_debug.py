@@ -23,18 +23,27 @@ class LearnerDebug(LearnerSchema, ComponentWithLogging):
 
         self.__agent_model = self.agent.policy.model
 
+
         self.compare_old_and_new_model_predictions = self.get_input_value("compare_old_and_new_model_predictions")
         
         if self.compare_old_and_new_model_predictions:
             self.lg.writeLine(f"Will compare old and new model predictions")
-            self.__temporary_model : TorchModelComponent = self.__agent_model.clone()        
-    
+            self.__temporary_model : TorchModelComponent = self.__agent_model.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_policy", "create_new_directory" : False}, is_deep_clone=True)        
+
+    def learn(self, trajectory, discount_factor) -> None:
+        
+        self.lg.writeLine(f"Learning {self.optimizations_per_learn} timess...")
+
+        super().learn(trajectory, discount_factor)
+        
+        self.lg.writeLine(f"Ended learning")
+
     def _learn(self, trajectory, discount_factor) -> None:
 
         if self.compare_old_and_new_model_predictions:
             self.__temporary_model.clone_other_model_into_this(self.__agent_model)
 
-            state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self._interpret_trajectory(trajectory)
+            state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
 
         super()._learn(trajectory, discount_factor)
 

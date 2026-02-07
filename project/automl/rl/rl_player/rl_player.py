@@ -116,8 +116,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         with torch.no_grad():                
             action = agent.policy_predict(observation) # decides the next action to take (can be random)
-
-        self.lg.writeLine(f"Action chosen: {action}")
                 
         self.env.step(action) #makes the game proccess the action that was taken
                 

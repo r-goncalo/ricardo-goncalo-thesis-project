@@ -1,8 +1,12 @@
+from automl.basic_components.dynamic_value import get_value_or_dynamic_value
 from automl.component import Component, InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_utils import get_value_of_type_or_component
 from automl.loggers.logger_component import ComponentWithLogging
+from automl.ml.memory.memory_utils import interpret_unit_values
 from automl.ml.models.neural_model import FullyConnectedModelSchema
+from automl.ml.models.torch_model_utils import split_shared_params
 from automl.rl.learners.learner_component import LearnerSchema
 
 from automl.rl.policy.stochastic_policy import StochasticPolicy
@@ -42,13 +46,17 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
                             ),
                         "critic_optimizer" : ComponentInputSignature(mandatory=False),
                         
-                        "clip_epsilon" : InputSignature(default_value=0.2, description="The clip range"),
-                        "entropy_coef" : InputSignature(default_value=0.01, description="How much weight entropy has"),
-                        "value_loss_coef" : InputSignature(default_value=0.5, description="The weight given to the critic value loss"),
-                        "lamda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias"),
+                        "clip_epsilon" : InputSignature(default_value=0.2, description="The clip range",
+                                                        custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.1, "high": 0.3 }]}),
                         
-                        "critic_learning_rate" : InputSignature(default_value=3e-4),
-                        "model_learning_rate" : InputSignature(default_value=3e-4)
+                        "entropy_coef" : InputSignature(default_value=0.01, description="How much weight entropy has", 
+                                                        custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.0, "high": 0.3 }]}),
+                        
+                        "value_loss_coef" : InputSignature(default_value=0.5, description="The weight given to the critic value loss",
+                                                           custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.3, "high": 0.7 }]}),
+                        
+                        "lamda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
+                                                     custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
 
                         }    
     
@@ -69,13 +77,15 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.initialize_optimizer()
         
         self.clip_epsilon = self.get_input_value("clip_epsilon")
-        self.entropy_coef = self.get_input_value("entropy_coef")
+        self.entropy_coef = get_value_of_type_or_component(self, "entropy_coef", float)
         self.value_loss_coef = self.get_input_value("value_loss_coef")
         self.lamda_gae = self.get_input_value("lamda_gae")
         
         self.number_of_times_optimized = 0
 
-        
+    @requires_input_proccess
+    def critic_pred(self, state):
+        return self.critic.predict(state)
 
     
     def initialize_critic_model(self):
@@ -95,17 +105,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
 
     def _split_actor_critic_params(self):
-        actor_params = list(self.model.get_model_params())
-        critic_params = list(self.critic.get_model_params())
-
-        actor_ids = set(id(p) for p in actor_params)
-        critic_ids = set(id(p) for p in critic_params)
-
-        shared_ids = actor_ids & critic_ids
-
-        shared_params = [p for p in actor_params if id(p) in shared_ids]
-        actor_only = [p for p in actor_params if id(p) not in shared_ids]
-        critic_only = [p for p in critic_params if id(p) not in shared_ids]
+        shared_params, actor_only, critic_only = split_shared_params(self.model, self.critic)
 
         return shared_params, actor_only, critic_only
         
@@ -161,22 +161,19 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
 
 
-    def _interpret_trajectory(self, trajectory):
+    def interpret_trajectory(self, trajectory):
         
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch = super()._interpret_trajectory(trajectory)
-        
-        if not isinstance(trajectory.log_prob, torch.Tensor):
-            log_prob_batch = torch.stack(trajectory.log_prob, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
-        
-        else:
-            log_prob_batch = trajectory.log_prob.view(-1).to(self.device)
-        
-            
-        return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch = super().interpret_trajectory(trajectory)
+
+        log_prob_batch = interpret_unit_values(trajectory["log_prob"], self.device)
+
+        critic_pred_batch = interpret_unit_values(trajectory["critic_pred"], self.device)
+
+        return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch
     
 
 
-    def _compute_values_estimates(self, state_batch, action_batch, next_state_batch, done_batch):
+    def compute_values_estimates(self, state_batch, action_batch, next_state_batch, done_batch):
 
         '''Computes values estimates using the critic'''
 
@@ -190,29 +187,26 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         return values, next_values
     
     
-    def _compute_error_and_advantage(self, discount_factor, reward_batch, next_values, values):
+    def compute_error_and_advantage(self, discount_factor, reward_batch, next_values, values, done_batch):
 
         # Compute advantages using Generalized Advantage Estimation (GAE)
         values_error = reward_batch + discount_factor * next_values - values 
-        advantages = torch.zeros_like(values_error, device=self.device)
+        non_normalized_advantages = torch.zeros_like(values_error, device=self.device)
         
-        # GAE computation in reverse
+        # GAE computation in reverse, note this assumes seq data
         running_advantage = 0
         for t in reversed(range(len(values_error))):
-            running_advantage = values_error[t] + discount_factor * self.lamda_gae * running_advantage
-            advantages[t] = running_advantage
-        
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+            running_advantage = values_error[t] + discount_factor * self.lamda_gae * running_advantage  * (1 - done_batch[t])
+            non_normalized_advantages[t] = running_advantage
 
-        # this is the correction of the values computed by the critic using the advantage
-        returns = advantages + values.detach()
+        returns = non_normalized_advantages + values.detach()
 
-        return values_error, advantages, returns
+        advantages = (non_normalized_advantages - non_normalized_advantages.mean()) / (non_normalized_advantages.std() + 1e-8)
+
+        return values_error, non_normalized_advantages, advantages, returns
     
-
+    def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):
     
-    def _compute_losses(self, new_log_probs, entropy, log_prob_batch, advantages, values, returns):
-
         # Compute ratio (pi_theta / pi_theta_old)
         ratio = torch.exp(new_log_probs - log_prob_batch)
 
@@ -220,12 +214,42 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         surrogate1 = ratio * advantages
         surrogate2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
         
-        policy_loss = -torch.min(surrogate1, surrogate2).mean()
-        policy_loss = policy_loss - self.entropy_coef * entropy.mean() # entropy regulates the exploration
+        policy_loss_batch = -torch.min(surrogate1, surrogate2)
+        mean_policy_loss = policy_loss_batch.mean()
+        policy_loss = mean_policy_loss - get_value_or_dynamic_value(self.entropy_coef) * entropy # entropy regulates the exploration
 
-        # Compute value loss for critic
-        value_loss = F.mse_loss(values, returns) * self.value_loss_coef 
-        value_loss = value_loss * self.value_loss_coef 
+        return ratio, surrogate1, surrogate2, policy_loss_batch, mean_policy_loss, policy_loss
+
+
+    def _compute_critic_loss(self, values, returns, old_values):
+
+        value_loss_unclipped = (values - returns).pow(2)
+
+        values_clipped = old_values + torch.clamp(
+            values - old_values,
+            -self.clip_epsilon,
+            self.clip_epsilon
+        )
+
+        value_loss_clipped = (values_clipped - returns).pow(2)
+
+        value_loss_batch = torch.max(
+            value_loss_unclipped,
+            value_loss_clipped
+        )
+
+        value_loss_mean = value_loss_batch.mean()
+
+        value_loss = value_loss_mean * self.value_loss_coef 
+
+        return value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss
+
+
+    def _compute_losses(self, new_log_probs, entropy, log_prob_batch, advantages, old_values, values, returns):
+
+        ratio, surrogate1, surrogate2, policy_loss_batch, mean_policy_loss, policy_loss = self._compute_policy_loss(new_log_probs, log_prob_batch, advantages, entropy)
+
+        value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss = self._compute_critic_loss(values, returns, old_values)
 
         # Total loss
         if self.critic_optimizer is None:
@@ -234,8 +258,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         else:
             loss = None
         
-
-        return ratio, surrogate1, surrogate2, policy_loss, value_loss, loss
+        return ratio, policy_loss, value_loss, loss
     
 
     
@@ -260,22 +283,30 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
 
     
-    def _learn(self, trajectory, discount_factor):
+    def _learn(self, trajectory : dict, discount_factor):
 
         super()._learn(trajectory, discount_factor)
         
         self.number_of_times_optimized += 1
         
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch = self._interpret_trajectory(trajectory)
-                
-        values, next_values = self._compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch = self.interpret_trajectory(trajectory)
+
+        values = trajectory.get("values", None) 
+        next_values = trajectory.get("next_values", None)  
+
+        if values is None or next_values is None:      
+            values, next_values = self.compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
         
-        values_error, advantages, returns = self._compute_error_and_advantage(discount_factor, reward_batch, next_values, values)
+        advantages = trajectory.get("advantages", None) 
+        returns = trajectory.get("returns", None)
+
+        if advantages is None or returns is None: 
+            values_error, non_normalized_advantages, advantages, returns = self.compute_error_and_advantage(discount_factor, reward_batch, next_values, values, done_batch)
 
         # Compute new log probabilities from the policy
         action_logits, new_log_probs, entropy = self._evaluate_actions(state_batch, action_batch)
 
-        ratio, surrogate1, surrogate2, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, values, returns)
+        ratio, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, critic_pred_batch, values, returns)
 
         self._optimize_using_loss(policy_loss, value_loss, loss)
 

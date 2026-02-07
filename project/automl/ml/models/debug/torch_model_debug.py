@@ -10,7 +10,7 @@ from automl.ml.models.model_components import ModelComponent
 
 from automl.ml.models.torch_model_components import TorchModelComponent
 
-from automl.ml.models.torch_model_utils import model_parameter_distance_by_params
+from automl.ml.models.torch_model_utils import model_parameter_distance_by_params, split_shared_params
 
 class TorchModelComponentDebug(TorchModelComponent):
 
@@ -26,10 +26,11 @@ class TorchModelComponentDebug(TorchModelComponent):
     }
     
     def _proccess_input_internal(self):
+
         
         super()._proccess_input_internal()
 
-        self.__note_model_difference_on_init = False if self.model_initialization_strategy is None else self.get_input_value("note_model_difference_on_init")
+        
 
     @requires_input_proccess
     def predict(self, state):
@@ -39,6 +40,8 @@ class TorchModelComponentDebug(TorchModelComponent):
         return to_return
     
     def _execute_model_initialization_strategy(self):
+
+        self.__note_model_difference_on_init = False if self.model_initialization_strategy is None else self.get_input_value("note_model_difference_on_init")
 
         if self.__note_model_difference_on_init:
             olds_params = torch.cat([p.flatten() for p in self.model.parameters()])
@@ -52,3 +55,15 @@ class TorchModelComponentDebug(TorchModelComponent):
             l2_distance, avg_distance, cosine_sim = model_parameter_distance_by_params(olds_params, new_params)
 
             self.lg.writeLine(f"Difference between old and new model params, ater executing init strategy: l2: {l2_distance}, avg: {avg_distance}, cos: {cosine_sim}")
+
+        
+    
+    def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=True):
+
+        cloned_component = super().clone(save_in_parent=save_in_parent, input_for_clone=input_for_clone, is_deep_clone=is_deep_clone)
+
+        shared_params, self_only, cloned_only = split_shared_params(self, cloned_component)
+
+        self.lg.writeLine(f"Cloned component: Shared params: {len(shared_params)}, Self only: {len(self_only)}, Cloned only: {len(cloned_only)}")
+
+        return cloned_component

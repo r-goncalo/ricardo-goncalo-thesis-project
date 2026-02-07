@@ -15,28 +15,30 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
         self.lg.writeLine(f"Field names are: {self.field_names}")
     
     
-    def push(self, transition):    
-
-        super().push(transition)
+    def push(self, transition):   
 
         str_pushing = ' '
 
         for field_name in self.field_names:
 
-            str_value = str(transition[field_name])
+            str_value = f"\n    {field_name}: {transition[field_name]}"
 
-            if len(str_value) > 25:
-                str_value = str_value[:14] + '...' + str_value[len(str_value) - 14:]
+            if len(str_value) > 103:
+                str_value = str_value[:50] + '...' + str_value[len(str_value) - 50:]
 
-            elif len(str_value) < 25:
-                str_value = str_value + (' ' * (25 - len(str_value))) 
+            elif len(str_value) < 50:
+                str_value = str_value + (' ' * (103 - len(str_value))) 
 
             if hasattr(transition[field_name], "shape"):
                 str_value += f"(shape {transition[field_name].shape})"
                         
-            str_pushing = f"{str_pushing}{field_name}: {str_value} "
+            str_pushing = f"{str_pushing}{str_value}"
 
-        self.lg.writeLine(f"Pushing: {str_pushing}", file="pushed_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
+        self.lg.writeLine(f"Pushing: {str_pushing}", file="pushed_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG) 
+
+        super().push(transition)
+
+
 
 
     @requires_input_proccess
@@ -52,7 +54,7 @@ class MemoryDebug(MemoryComponent, ComponentWithLogging):
 
             for field_name in self.field_names:
             
-                str_value = str(getattr(batch, field_name)[i])
+                str_value = batch[field_name][i]
 
                 if len(str_value) > 15:
                     str_value = str_value[:7] + '...' + str_value[len(str_value) - 7:]

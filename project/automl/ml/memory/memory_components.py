@@ -38,8 +38,6 @@ class MemoryComponent(StatefulComponent):
                 
         self.field_names = [data_name for (data_name, _, _) in self.fields_shapes]
         
-        self.Transition = namedtuple('Transition',
-                                     self.field_names)
                           
 
     #save a transition
@@ -51,13 +49,6 @@ class MemoryComponent(StatefulComponent):
     def sample(self, batch_size):
         raise NotImplementedError()
     
-    @requires_input_proccess
-    def sample_transposed(self, batch_size):
-        raise NotImplementedError()
-    
-    
-    def transpose(self, transitions):
-        raise NotImplementedError()
     
     @requires_input_proccess
     def clear(self):
@@ -68,21 +59,12 @@ class MemoryComponent(StatefulComponent):
         '''Returns the total memory'''
         pass
 
-    @requires_input_proccess
-    def get_all_transposed(self):
-        '''Returns total memory transposed'''
-        pass
 
     @requires_input_proccess
     def get_all_segmented(self, batch_size):
         '''Returns ordered list of segmented memory with batch_size'''
         pass
 
-    @requires_input_proccess
-    def get_all_segmented_transposed(self, batch_size):
-        '''Returns ordered list of transposed segmented memory with batch_size'''
-        pass
-    
 
     @requires_input_proccess
     def __len__(self):

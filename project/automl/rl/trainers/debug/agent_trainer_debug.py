@@ -27,7 +27,7 @@ class AgentTrainerDebug(AgentTrainer):
 
                 self.lg.writeLine(f"Creating temporary model to note difference in optimizations...")
 
-                self.__temporary_model : TorchModelComponent = self.model.clone(is_deep_clone=True)
+                self.__temporary_model : TorchModelComponent = self.model.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_opti", "create_new_directory" : False}, is_deep_clone=True)
         
             self.lg.writeLine(f"total_step, episode, episode_step: state + action -> new_state, reward, done\n", file="observed_transitions.txt", use_time_stamp=False)
             self.lg.writeLine(f"total_step, episode, episode_step: reward, done\n", file="training_steps.txt", use_time_stamp=False)

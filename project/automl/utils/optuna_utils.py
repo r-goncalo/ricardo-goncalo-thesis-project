@@ -12,16 +12,14 @@ def load_study_from_database(database_path: str, study_name='experiment') -> opt
     Returns:
         optuna.Study: The loaded Optuna study.
     """
-    # Define the storage URI for SQLite database
-    storage_uri = f"sqlite:///{database_path}"
     
     try:
         # Load the study from the storage URI
-        study = optuna.load_study(study_name=study_name, storage=storage_uri)
+        study = optuna.load_study(study_name=study_name, storage=database_path)
     
     except Exception as e:
         print(f"Error while trying to load study with name '{study_name}' from database '{database_path}'")
-        list_studies_in_database(storage_uri)
+        list_studies_in_database(database_path)
         raise e
 
     return study

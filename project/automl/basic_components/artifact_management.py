@@ -24,12 +24,10 @@ def on_artifact_directory_change(self : Component):
         #else:
         #    print(f"Generating artifact directory due to change in input, instead of inpput procesing")
         #    self.get_artifact_directory()
-        
-        
-def define_base_directory_with_parent(self : Component):
 
-        current_parent_component = self.parent_component
         
+def _get_artifact_parent_component(current_parent_component : Component):
+                
         while current_parent_component != None: #looks for a parent component which is an Artifact Component and sets its directory based on it
             
             if isinstance(current_parent_component, ArtifactComponent):
@@ -37,8 +35,37 @@ def define_base_directory_with_parent(self : Component):
             
             current_parent_component = current_parent_component.parent_component
 
-        return 0
+        return 0 
 
+def define_base_directory_with_parent(self : Component):
+
+        return _get_artifact_parent_component(self.parent_component)
+
+
+
+def generate_target_directory(input_of_component : dict, parent_of_component=None):
+    '''Generates a directory for the data of a component, without it being initialized'''
+
+    base_directory = input_of_component.get("base_directory", '')
+
+    if base_directory == '' and parent_of_component is not None:
+        
+            base_directory = _get_artifact_parent_component(self)
+
+            if base_directory == 0:
+                base_directory = ''
+
+            
+    artifact_relative_directory = input_of_component.get("artifact_relative_directory", '')
+
+    if isinstance(base_directory, ArtifactComponent):
+                base_directory = base_directory.get_artifact_directory()
+
+    if base_directory == '' and artifact_relative_directory == '':
+        return None
+    
+    else:
+        return os.path.join(base_directory, artifact_relative_directory)
 
 class ArtifactComponent(Component):
 

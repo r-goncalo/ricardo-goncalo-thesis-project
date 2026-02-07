@@ -1,6 +1,7 @@
 from automl.component import Component, InputSignature, requires_input_proccess
 
 
+from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
 from automl.rl.agent.agent_components import AgentSchema
 import torch
 
@@ -42,39 +43,21 @@ class LearnerSchema(Component):
         for _ in range(self.optimizations_per_learn):
             self._learn(trajectory, discount_factor)
 
-    
-    def _interpret_trajectory(self, trajectory):
         
-        if not isinstance(trajectory.state, torch.Tensor):
-            state_batch = torch.stack(trajectory.state, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
-        
-        else:
-            state_batch = trajectory.state.to(self.device)
-            
-        
-        action_batch = trajectory.action
-            
-        if not isinstance(trajectory.next_state, torch.Tensor):
-            next_state_batch = torch.stack(trajectory.next_state, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
-        
-        else:
-            next_state_batch = trajectory.next_state.to(self.device)
-            
-        if not isinstance(trajectory.reward, torch.Tensor):
-            
-            reward_batch = torch.stack(trajectory.reward, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
-    
-        
-        else:
-            reward_batch = trajectory.reward.view(-1).to(self.device) # TODO: This assumes the reward only has one dimension
 
-        if not isinstance(trajectory.done, torch.Tensor):
-            
-            done_batch = torch.stack(trajectory.done, dim=0).to(self.device)  # Stack tensors along a new dimension (dimension 0)
+
     
+    def interpret_trajectory(self, trajectory):
         
-        else:
-            done_batch = trajectory.done.view(-1).to(self.device) # TODO: This assumes the reward only has one dimension
+        state_batch = interpret_values(trajectory["state"], self.device)
+
+        action_batch = interpret_values(trajectory["action"], self.device)
+
+        next_state_batch = interpret_values(trajectory["next_state"], self.device)
+            
+        reward_batch = interpret_unit_values(trajectory["reward"], self.device)
+
+        done_batch = interpret_unit_values(trajectory["done"], self.device)
             
         return state_batch, action_batch, next_state_batch, reward_batch, done_batch
     

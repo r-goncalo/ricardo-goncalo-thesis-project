@@ -1,3 +1,5 @@
+from automl.ml.memory.memory_samplers.advantages_calc_sampler import PPOAdvantagesCalcSampler
+from automl.rl.learners.q_learner import ComponentInputSignature
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 import torch
@@ -12,16 +14,14 @@ class AgentTrainerPPO(AgentTrainer):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
-                       
+                       "memory_transformer" : ComponentInputSignature(default_component_definition=(PPOAdvantagesCalcSampler, {})),
+
                        }
     
 
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()
-                            
-        if self.BATCH_SIZE != None:
-            raise NotImplementedError("PPO Agent traienr stil does not have a sampling strategy implemented with batch size")
         
 
     # INITIALIZATION ---------------------------------------------
@@ -37,7 +37,8 @@ class AgentTrainerPPO(AgentTrainer):
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
                                         ("done", 1),
-                                        ("log_prob", 1) #log probability of chosing the stored action
+                                        ("log_prob", 1), #log probability of chosing the stored action
+                                        ("critic_pred", 1),
                                     ]
             
         self.memory.pass_input({
@@ -47,6 +48,11 @@ class AgentTrainerPPO(AgentTrainer):
         
         self.memory.clear() # IN PPO the memory must be filled only with transitions the current policy did
 
+        if self.memory_transformer is not None:
+            self.memory_transformer.pass_input({
+                "learner" : self.learner,
+                "discount_factor" : self.discount_factor
+                })
 
     def initialize_agent(self):
         
@@ -61,6 +67,7 @@ class AgentTrainerPPO(AgentTrainer):
     # TRAINING_PROCESS ---------------------
          
 
+
     def _observe_transiction_to(self, new_state, action, reward, done):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
@@ -70,9 +77,17 @@ class AgentTrainerPPO(AgentTrainer):
         self.agent.update_state_memory(new_state)
         
         next_state_memory = self.agent.get_current_state_in_memory()
-                
+
+        critic_pred = self.learner.critic_pred(self.state_memory_temp)
+
         #we can push in this way because the pushed tensors are actually cloned into memory
-        self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "log_prob" : self.last_log_prob, "done" : done})
+        self.memory.push({"state" : self.state_memory_temp, 
+                          "action" : action, 
+                          "next_state" : next_state_memory, 
+                          "reward" : reward, 
+                          "log_prob" : self.last_log_prob, 
+                          "done" : done,
+                          "critic_pred" : critic_pred.item()})
                
         
     def select_action(self, state):
@@ -85,8 +100,6 @@ class AgentTrainerPPO(AgentTrainer):
         
         return action
         
-
-
 
     def optimizeAgent(self):
 
