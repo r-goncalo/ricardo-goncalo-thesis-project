@@ -312,12 +312,9 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         super()._save_state_internal()
 
         if hasattr(self, "model"):
-            self.lg.writeLine(f"Saving the model...")
             self._save_model()
-            self.lg.writeLine(f"Finished saving the model")
             
         else:
-            self.lg.writeLine(f"No model to save, skipping this...")
             globalWriteLine(f"{self.name}: WARNING: Saving state of Torch model state without ever reaching the point of initializing its model")
     
     
