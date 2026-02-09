@@ -12,8 +12,8 @@ from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 
 from automl.loggers.logger_component import ComponentWithLogging
 
-from automl.utils.files_utils import write_text_to_file
-from automl.utils.json_utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, gen_component_from
+from automl.utils.files_utils import write_text_to_file, read_text_from_file
+from automl.utils.json_utils.json_component_utils import gen_component_from_dict,  dict_from_json_string, json_string_of_component_dict, value_from_json_string
 
 import optuna
 
@@ -32,6 +32,7 @@ from automl.core.debug.debug_utils import substitute_classes_by_debug_classes
 
 TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
 
+HYPERPARAMETER_PATH = "hyperparameters.json"
 
 Component_to_opt_type = Union[ExecComponent, StatefulComponent, ComponentWithLogging]
 
@@ -58,7 +59,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         
                         "direction" : InputSignature(default_value='maximize'),
                                                 
-                        "hyperparameters_range_list" : InputSignature(),
+                        "hyperparameters_range_list" : InputSignature(mandatory=False),
                         "n_trials" : InputSignature(),
                         
                         "steps" : InputSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
@@ -139,7 +140,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.start_with_given_values = self.get_input_value("start_with_given_values")
         self.study_name=self.get_input_value("database_study_name")
         self.n_steps = self.get_input_value("steps")
-        self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.get_input_value("hyperparameters_range_list")
+        
         self.n_trials = self.get_input_value("n_trials")
         self.evaluator_component : EvaluatorComponent = self.get_input_value("evaluator_component", look_in_attribute_with_name="evaluator_component")
         
@@ -150,6 +151,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.direction = self.get_input_value("direction")
 
         # MAKE NECESSARY INITIALIZATIONS
+        self._initialize_hyperparameter_range_list()
         self._initialize_config_dict()
         self._initialize_sampler()
         self._initialize_database()
@@ -165,6 +167,29 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self._setup_results_logger(parameter_names)
                 
         self._suggested_values_by_trials = {}  
+
+
+    def _initialize_hyperparameter_range_list(self):
+
+        self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.get_input_value("hyperparameters_range_list")
+
+        hyperparameters_path = os.path.join(self.get_artifact_directory(), HYPERPARAMETER_PATH)
+
+        if self.hyperparameters_range_list is None:
+    
+            if not os.path.exists(hyperparameters_path):
+                raise Exception(f"Did not define hyperparameters and path {hyperparameters_path} does not exist")
+            
+            self.lg.writeLine(f"Getting hyperparameters from path: {hyperparameters_path}, as they were not passed to input")
+
+            json_str_of_hyperparameters = read_text_from_file(hyperparameters_path)
+
+            self.hyperparameters_range_list = value_from_json_string(self, json_str_of_hyperparameters)
+
+        
+        else:
+            if os.path.exists(hyperparameters_path):
+                self.lg.writeLine(f"Hyperparameters in path and input, using the ones in input...")
 
         
 

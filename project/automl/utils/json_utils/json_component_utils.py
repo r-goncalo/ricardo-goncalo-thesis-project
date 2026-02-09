@@ -519,6 +519,13 @@ def component_from_json_string(json_string) -> Component:
     return gen_component_from_dict(dict_representation)
 
 
+def value_from_json_string(source_component, json_string):
+
+    dict_representation = dict_from_json_string(json_string)
+
+    return decode_components_input_element(source_component, dict_representation)
+
+
 def generate_component_from_class_input_definition(class_of_component, input : dict):
 
     '''Generate a component from its class and the input to pass'''

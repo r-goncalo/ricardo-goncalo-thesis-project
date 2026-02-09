@@ -100,7 +100,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.lg.writeLine()
 
     
-
     def _try_evaluate_component(self, component_to_test_path, trial : optuna.Trial, component_to_test = None) -> float:
 
         # this is only to guarantee only one results is evaluated at the same time
@@ -163,7 +162,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         worker = self._aquire_available_worker()
 
-        self._run_worker(worker, trial, component_index, n_steps, should_end, index_in_trainings_remaining)
+        to_return = self._run_worker(worker, trial, component_index, n_steps, should_end, index_in_trainings_remaining)
+
+        return to_return
 
 
     def _run_worker(self, worker, trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
@@ -182,15 +183,16 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 self.trainings_remaining_per_thread[index_in_trainings_remaining][2] = current_number - 1
 
             try:
-                worker.try_run_component_in_group_all_steps(trial, component_index, n_steps, self._get_loader_component_group(trial).get_loader(component_index), should_end)
+                to_return = worker.try_run_component_in_group_all_steps(trial, component_index, n_steps, self._get_loader_component_group(trial).get_loader(component_index), should_end)
 
             except Exception as e:
                 should_end[0] = True # if we receive an exception, we flag that the training for this trial should end
-                
                 worker.free_worker()
                 raise e
             
             worker.free_worker()
+            return to_return
+
 
 
     def _aquire_available_worker(self):
@@ -331,7 +333,12 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         for future in as_completed(futures):
             exc = future.exception()
             if exc is not None:
+
                 executor.shutdown(wait=False, cancel_futures=True)
+
+                with self.trainings_remaining_per_thread_sem:
+                    self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
+                    
                 raise exc
 
         executor.shutdown(wait=True)
@@ -339,6 +346,29 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         with self.trainings_remaining_per_thread_sem:
             self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
 
+        with self.results_logger_sem:
+        
+            # Count how many results we already have for this (trial, step)
+            results_logger: ResultLogger = self.get_results_logger()
+
+            df : pandas.DataFrame = results_logger.get_dataframe()
+
+            mask = (
+                (df["experiment"] == trial.number) &
+
+                (df["step"] == self.n_steps)
+            )
+
+            filtered_df = df.loc[mask]
+
+        n_results_for_step = mask.sum()
+
+        last_results = filtered_df["result"].tolist()
+
+        if n_results_for_step != self.trainings_per_configuration:
+            raise Exception(f"Mismatch between number of trainings that should have completed for trial {trial.number} and actual number: {n_results_for_step}")
+        
+        return sum(last_results) / len(last_results) 
     
 
     # RUNNING A TRIAL -----------------------------------------------------------------------
@@ -464,7 +494,6 @@ class HyperparameterOptimizationWorker():
     
     def _load_and_report_resuts(self, trial : optuna.Trial, component_index : int, step : int, evaluation_results):
 
-
         with self.parent_hp_pipeline.results_logger_sem:
         
             # Log raw result
@@ -497,7 +526,6 @@ class HyperparameterOptimizationWorker():
             else:
                 self.thread_logger.writeLine(f"Not enough configurations to report, current is {n_results_for_step}, needed is {self.parent_hp_pipeline.trainings_per_configuration}. Current results are {last_results}")
 
-
         return enough_runs
 
     
@@ -506,16 +534,16 @@ class HyperparameterOptimizationWorker():
         with self._is_busy_sem:
 
             if self._is_busy:
-                return False
+                return None
     
             self._is_busy = True
 
-        self.try_run_component_in_group_all_steps(trial, component_index, n_steps, component_loader)
+        to_return = self.try_run_component_in_group_all_steps(trial, component_index, n_steps, component_loader)
 
         with self._is_busy_sem:
             self._is_busy = False
 
-        return True
+        return to_return
 
     def try_run_component_in_group_in_not_busy(self,  trial : optuna.Trial, component_index, step, component_loader : StatefulComponentLoader):
 
@@ -565,7 +593,9 @@ class HyperparameterOptimizationWorker():
                 self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}")
                 break
 
-            self.try_run_component_in_group(trial, component_index, step, component_loader)
+            to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
+
+        return to_return
 
     def try_run_component_in_group(self, trial : optuna.Trial, component_index, step, component_loader : StatefulComponentLoader):
 
@@ -611,7 +641,11 @@ class HyperparameterOptimizationWorker():
                 
                 except Exception as e:
 
-                    self.on_general_exception_trial(e, component_to_test_path, trial, component_index)
+                    if isinstance(e, optuna.TrialPruned):
+                        raise e
+                    
+                    else:
+                        self.on_general_exception_trial(e, component_to_test_path, trial, component_index)
 
         except Exception as e:
 

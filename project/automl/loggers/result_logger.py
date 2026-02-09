@@ -161,8 +161,53 @@ class ResultLogger(LoggerSchema):
 
     # GRAPHS ------------------------------------------------------------------------------------------------------------------
 
+    def generate_values_from_dataframe(self, x_axis, y_axis, df : pandas.DataFrame = None):
+
+        if df is None:
+            df = self.get_dataframe()
+
+        if isinstance(x_axis, str):
+            x_cols = [x_axis]
+        else:
+            x_cols = list(x_axis)
+
+        for col in x_cols + [y_axis]:
+            if col not in self.dataframe.columns:
+                raise KeyError(
+                    f"Column '{col}' not found in dataframe. "
+                    f"Available columns: {self.dataframe.columns}"
+                )
+
+        if len(x_cols) == 1:
+            x_values = df[x_cols[0]]
+            x_label_name = x_cols[0]
+        else:
+            x_values = df[x_cols].astype(str).agg(" | ".join, axis=1)
+            x_label_name = " & ".join(x_cols)
+
+        y_values = df[y_axis]
+        y_label_name = y_axis
+
+        return x_values, x_label_name, y_values, y_label_name
+    
+
+    def filter_dataframe(self, fixed_value_tuple = [], df : pandas.DataFrame = None) -> pandas.DataFrame:
+
+        df = self.dataframe if df is None else df
+
+        if fixed_value_tuple is not None:
+
+            if not isinstance(fixed_value_tuple, list):
+                fixed_value_tuple = [fixed_value_tuple]
+            
+            for (column_name, fixed_value) in fixed_value_tuple:
+            
+                df = df[df[column_name] == fixed_value]
+
+        return df
+
     @requires_input_proccess
-    def plot_bar_graph(self, x_axis : str, y_axis : str, title : str = '', save_path: str = None, to_show=True, y_label='', lim_y=True, fixed_value_tuple=None):
+    def plot_bar_graph(self, x_axis : str, y_axis : str, title : str = '', save_path: str = None, to_show=True, y_label='', lim_y=True, fixed_value_tuple=None, color = None, group_by=None):
         
         """
         Plots a graph using the dataframe stored in ResultLogger.
@@ -170,29 +215,21 @@ class ResultLogger(LoggerSchema):
         
         if self.dataframe.empty:
             raise ValueError("Dataframe is empty. Log results before plotting.")
-
-        if x_axis not in self.dataframe.columns:
-            raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
-            
         
-        if fixed_value_tuple is not None:
-            
-            (column_name, fixed_value) = fixed_value_tuple
-            
-            df = self.dataframe[self.dataframe[column_name] == fixed_value]
-            df = df.groupby(x_axis, as_index=False).last()
+        df = self.filter_dataframe(fixed_value_tuple)
 
-        else:
+        if group_by is not None:
+            df = df.sort_values(by=group_by)
 
-            df = self.dataframe.groupby(x_axis, as_index=False).last()
+        x_values, x_label_name, y_values, y_label_name = self.generate_values_from_dataframe(x_axis, y_axis, df)
 
-        x_values = df[x_axis]
-        y_values = df[y_axis]
+        if len(x_values) == 0:
+            return
 
-        plt.bar(x_values, y_values)
+        plt.bar(x_values, y_values, color=color)
 
-        plt.xlabel(x_axis)
-        plt.ylabel(y_label)
+        plt.xlabel(x_label_name)
+        plt.ylabel(y_label_name)
 
         if lim_y:
             all_values = self.dataframe[y_axis].values.flatten()
@@ -218,6 +255,65 @@ class ResultLogger(LoggerSchema):
         if to_show:
             plt.show()
 
+
+    def plot_overlaid_bar(
+        self,
+        x_axis: str,
+        y_axis: str,
+        fixed_value_tuple=None,
+        ax=None,
+        alpha=1.0,
+        width=0.6,
+        title="",
+        y_label="",
+        to_show=True,
+        colors_for_value=(None, None)
+    ):
+        if ax is None:
+            ax = plt.gca()
+
+        (color_defining_column, color_dict) = colors_for_value
+        
+
+        df = self.filter_dataframe(fixed_value_tuple)
+
+        if df.empty:
+            raise ValueError("No data to plot.")
+
+        groups_by_x_axis = sorted(df[x_axis].unique())
+
+        # Sort dataframe by y_axis values so bars go from lowest to highest
+        df = df.sort_values(by=y_axis, ascending=False)
+
+        for group_by_x_axis in groups_by_x_axis:
+
+            sub_by_x_axis = df[df[x_axis] == group_by_x_axis]
+
+            sub_by_x_axis = sub_by_x_axis.sort_values(by=y_axis, ascending=False)
+
+            for index, row in sub_by_x_axis.iterrows():
+
+                color = None if color_defining_column is None else color_dict[row[color_defining_column]]
+
+                ax.bar(
+                    row[x_axis],
+                    row[y_axis],
+                    width=width,
+                    alpha=alpha,
+                    color=color
+                )
+
+
+        ax.set_xlabel(x_axis)
+        ax.set_ylabel(y_label or y_axis)
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True)
+
+        if to_show:
+            plt.show()
+
+        return ax
 
     @requires_input_proccess
     def plot_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label=''):
@@ -267,7 +363,9 @@ class ResultLogger(LoggerSchema):
             plt.show()
             
     @requires_input_proccess
-    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, aggregate_number = None, title : str = '', save_path: str = None, to_show=True, y_label='', x_slice_range=None, ax=None):
+    def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, alpha=0.3, 
+                                 aggregate_number = None, title : str = '', save_path: str = None, to_show=True, 
+                                 y_label='', x_slice_range=None, ax=None, color=None):
 
         if ax is None:
             ax = plt.gca()
@@ -303,10 +401,10 @@ class ResultLogger(LoggerSchema):
             std_values = None
 
 
-        ax.plot(x_values, mean_values, label=y_values_label)
+        ax.plot(x_values, mean_values, label=y_values_label, color=color)
 
         if show_std and std_values is not None:
-            ax.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=0.3)
+            ax.fill_between(x_values, mean_values - std_values, mean_values + std_values, alpha=alpha, color=color)
 
 
         ax.set_xlabel(x_axis)
@@ -325,53 +423,88 @@ class ResultLogger(LoggerSchema):
             plt.show()
 
         return ax
+    
+
+    def convert_x_to_unique_int_numeric(self, x : list):
+
+        if len(x) == 0:
+            return []
+
+        if isinstance(x[0], str):
+
+            to_return = []
+
+            already_seen_x_values = {}
+            last_generated_value = -1
+
+            for x_value in x:
+
+                value = already_seen_x_values.get(x_value, None)
+
+                if value is None:
+                    last_generated_value += 1
+                    already_seen_x_values[x_value] = last_generated_value
+                    value = last_generated_value
+
+                to_return.append(value)
+
+
+            return to_return
+
+        else:
+            return x
+    
 
 
     @requires_input_proccess
-    def plot_linear_regression(self, x_axis: str, y_axis: str, title: str = '', save_path: str = None, to_show=True, y_label='', ax=None, fixed_value_tuple=None):
+    def plot_linear_regression(self, x_axis: str, y_axis: str, title: str = '', save_path: str = None, to_show=True, y_label='', ax=None, fixed_value_tuple=None, color=None, group_by=None):
 
-       """
-       Plots a graph with linear regression lines for the given columns in the dataframe.
-
-       :param x_axis: The column key for the X-axis.
-       :param y_axis: A list of column keys for the Y-axis.
-       :param title: Optional title for the plot.
-       :param save_path: Optional path to save the plot as an image.
-       :param to_show: Whether to display the plot.
-       :param y_label: Label for the Y-axis.
-       """
        if self.dataframe.empty:
            raise ValueError("Dataframe is empty. Log results before plotting.")
-
-       if x_axis not in self.dataframe.columns:
-           raise KeyError(f"Column '{x_axis}' not found in dataframe. Available columns: " + str(self.dataframe.columns))
 
        if ax is None:
             ax = plt.gca()
 
+       df = self.filter_dataframe(fixed_value_tuple)
 
-       if fixed_value_tuple != None:
-           
-           (column_name, fixed_value) = fixed_value_tuple
-           
-           df = self.dataframe[self.dataframe[column_name] == fixed_value]
+       if group_by is not None:
+            df = df.sort_values(by=group_by)
         
-       else:
-           df = self.dataframe
+       x_plot, x_label_name, y_values, y_label_name = self.generate_values_from_dataframe(
+           x_axis, y_axis, df
+       )
+   
+       X_numeric = self.convert_x_to_unique_int_numeric(x_plot.values)
 
-        # Extract X and Y data
-       X = df[[x_axis]].values  # X values (reshaped for regression)
-       Y = df[y_axis].values  # Y values
+       print(f"X_numeric : {X_numeric}")
 
-       # Fit the linear regression model
+
+       if isinstance(X_numeric, list):
+           X_numeric = np.array(X_numeric)
+
+       if X_numeric.ndim == 1:
+            X_numeric = X_numeric.reshape(-1, 1)
+   
+       Y_numeric = df[y_axis].values
+   
+       # ---- fit regression ----
        model = LinearRegression()
-       model.fit(X, Y)
-
-        # Predict Y values from the linear model
-       Y_pred = model.predict(X)
-
-        # Plot the regression line
-       ax.plot(df[x_axis], Y_pred, label=f'{y_axis} Regression Line')
+       model.fit(X_numeric, Y_numeric)
+   
+       Y_pred = model.predict(X_numeric)
+   
+       # ---- sort for clean line ----
+       sort_idx = np.argsort(x_plot.astype(str))
+       x_plot_sorted = np.array(x_plot)[sort_idx]
+       y_pred_sorted = Y_pred[sort_idx]
+   
+       # ---- plot ----
+       ax.plot(
+           x_plot_sorted,
+           y_pred_sorted,
+           label=f"{y_axis} Regression",
+           color=color
+       )
 
        ax.set_xlabel(x_axis)
        ax.set_ylabel(y_label)
@@ -397,7 +530,8 @@ class ResultLogger(LoggerSchema):
         title: str = '',
         save_path: str = None,
         to_show=True,
-        y_label=''
+        y_label='',
+        color=None
     ):
         """
         Plots polynomial regression curves for the given columns in the dataframe.
@@ -444,7 +578,7 @@ class ResultLogger(LoggerSchema):
                 Y_pred = model.predict(X_sorted)
 
                 # Plot regression curve
-                plt.plot(X_sorted, Y_pred, label=f'{name_to_plot} (degree {deg})')
+                plt.plot(X_sorted, Y_pred, label=f'{name_to_plot} (degree {deg})', color=color)
 
 
         plt.xlabel(x_axis)

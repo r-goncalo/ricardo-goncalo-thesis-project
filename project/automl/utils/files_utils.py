@@ -115,8 +115,16 @@ def write_text_to_file(dir = '', filename = '', text : str = '', create_new=True
 
 
     
-def read_text_from_file(dir, filename):
-    full_path = os.path.join(dir, filename)
+def read_text_from_file(dir='', filename=''):
+    
+    if dir == '' and '':
+        raise Exception()
+    
+    if filename != '':
+        full_path = os.path.join(dir, filename)
+
+    else:
+        full_path = dir
 
     # Append the text to the file
     with open(full_path, 'r') as f:

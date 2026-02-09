@@ -194,7 +194,34 @@ def study_of_configuration(configuration_name : str, results_logger : ResultLogg
 
         else:
             print(f"Study has no evaluations to study")
-        
+
+
+def study_of_components_for_configuration(configuration_name : str, results_loggers : dict[str, ResultLogger],
+                           #x_axis_to_use='episode',
+                           x_axis_to_use='total_steps',
+                           y_axis_to_use='episode_reward',
+                           aggregate_number=10,
+                            colors_for_component_indexes : dict = None
+                            ):
+
+    
+    for component_name, results_logger in results_loggers.items():
+
+            color = colors_for_component_indexes[int(component_name)] if colors_for_component_indexes is not None else None
+
+            results_logger.plot_confidence_interval(x_axis=x_axis_to_use, 
+                                            y_column=y_axis_to_use,
+                                            show_std=True, 
+                                            to_show=False, 
+                                            y_values_label=f"mov_avg_std_{component_name} ({aggregate_number})", 
+                                            aggregate_number=aggregate_number,
+                                            color=color,
+                                            alpha=0.1)   
+
+
+
+    results_logger.plot_current_graph(title=configuration_name, y_label=y_axis_to_use)     
+
 
 
 def get_evaluations_path(base_path):
@@ -234,6 +261,24 @@ def study_of_evaluations(configuration_name : str, results_logger : ResultLogger
     results_logger.plot_current_graph(title=f"{configuration_name}_evaluations", y_label=y_axis_to_use, y_min=0)
 
 
+def get_results_of_configuration_in_path(configuration_path, 
+                                         configurations_results_relative_path,
+                                         results_path=RESULTS_FILENAME) -> ResultLogger:
+
+        results_logger_of_config = ResultLogger(input={
+                                    "results_filename" : results_path,
+                                    "base_directory" : os.path.join(configuration_path, configurations_results_relative_path),
+                                    "artifact_relative_directory" : '',
+                                    "create_new_directory" : False
+
+                                  })
+
+        results_logger_of_config.proccess_input()
+
+        return results_logger_of_config
+
+
+
 def get_results_of_configurations(experiment_path,
                                    base_configuration_name=BASE_CONFIGURATION_NAME,
                                   results_path=RESULTS_FILENAME) -> dict[str, ResultLogger]:
@@ -251,20 +296,54 @@ def get_results_of_configurations(experiment_path,
             if os.path.isdir(configuration_path):  # Ensure it's a file, not a subdirectory
 
                 try:
-                    results_logger_of_config = ResultLogger(input={
-                                                "results_filename" : results_path,
-                                                "base_directory" : f"{configuration_path}\\{configurations_results_relative_path}",
-                                                "artifact_relative_directory" : '',
-                                                "create_new_directory" : False
-
-                                              })
-
-                    results_logger_of_config.proccess_input()
-
-                    results_of_configurations[configuration_name] = results_logger_of_config
+                    results_of_configurations[base_configuration_name] = get_results_of_configuration_in_path(
+                        configuration_path,
+                        configurations_results_relative_path,
+                        results_path
+                    )
 
                 except Exception as e:
                     print(f"Did not manage to store configuration {configuration_name} due to error {e}")
+
+            else:
+                globalWriteLine(f"WARNING: Configuration path with name {configuration_name} is not a directory")
+
+            
+    return results_of_configurations
+
+
+def get_results_of_configurations_components(experiment_path,
+                                   base_configuration_name=BASE_CONFIGURATION_NAME,
+                                   configurations_results_relative_path = "RLTrainerComponent",
+                                  results_path=RESULTS_FILENAME) -> dict[str, dict[str, ResultLogger]]:
+
+    results_of_configurations : dict[str, dict[str, ResultLogger]] = {}
+
+    for configuration_name in os.listdir(experiment_path):
+
+        if configuration_name.startswith(base_configuration_name):
+
+            configuration_path = os.path.join(experiment_path, configuration_name)
+
+            if os.path.isdir(configuration_path):  # Ensure it's a file, not a subdirectory
+
+                configuration_dict = {}
+
+                for configuration_component_name in os.listdir(configuration_path):
+
+                    configuration_component_path = os.path.join(configuration_path, configuration_component_name)
+
+                    try:
+                        configuration_dict[configuration_component_name] = get_results_of_configuration_in_path(
+                            configuration_component_path,
+                            configurations_results_relative_path,
+                            results_path
+                        )
+
+                    except Exception as e:
+                        print(f"Did not manage to store configuration {configuration_name} due to error {e}")
+
+                results_of_configurations[configuration_name] = configuration_dict
 
             else:
                 globalWriteLine(f"WARNING: Configuration path with name {configuration_name} is not a directory")
