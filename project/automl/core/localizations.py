@@ -27,11 +27,24 @@ from collections import deque
 
 # VALUE LOCALIZATION OPERATIONS --------------------------------------------------------------
 
+def get_any(collection, default_value=None):
+
+    if isinstance(collection, dict):
+        return next(iter(collection.values()), default_value)
+    elif isinstance(collection, (list, tuple)):
+        return collection[0] if collection else default_value
+    else:
+        return default_value
+
 def safe_get(collection_where_value_is : dict, index, default_value=None):
 
     '''gets the value in a collection'''
 
     try:
+
+        if index == '__any__':
+            return get_any(collection_where_value_is, default_value)
+
         return collection_where_value_is[index]
     
     except (IndexError, KeyError) as e:
@@ -68,7 +81,17 @@ def get_value_from_value_loc(collection_where_value_is : dict, localization, def
     for loc_index in localization:
 
         try:
-            current_value = current_value[loc_index]
+
+            if loc_index == "__any__":
+                current_value = get_any(current_value)
+
+                if current_value is None and non_exist_safe:
+                    return default_value
+                else:
+                    raise Exception(f"Error when getting collection before value, at index '{loc_index}', in localization: <{localization}> and collection {collection_where_value_is}") from e
+
+            else:
+                current_value = current_value[loc_index]
 
         except (IndexError, KeyError) as e:
             if non_exist_safe:
@@ -172,6 +195,15 @@ def get_next_component_by_str_operation(component, str_operation : str):
 
     if str_operation == '__up__':
         return get_parent_component(component)
+    
+    if str_operation == '__any__':
+        component_children = component.child_components
+
+        if len(component_children) == 0:
+            raise Exception(f"Tried to get any children when component has none")
+        
+        else:
+            return component_children[0]
 
     else:
         return get_child_by_name(component, str_operation)
