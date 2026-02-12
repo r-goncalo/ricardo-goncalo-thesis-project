@@ -31,8 +31,10 @@ def get_any(collection, default_value=None):
 
     if isinstance(collection, dict):
         return next(iter(collection.values()), default_value)
+    
     elif isinstance(collection, (list, tuple)):
         return collection[0] if collection else default_value
+    
     else:
         return default_value
 
@@ -88,7 +90,7 @@ def get_value_from_value_loc(collection_where_value_is : dict, localization, def
                 if current_value is None and non_exist_safe:
                     return default_value
                 else:
-                    raise Exception(f"Error when getting collection before value, at index '{loc_index}', in localization: <{localization}> and collection {collection_where_value_is}") from e
+                    raise Exception(f"Error when getting collection before value, at index '{loc_index}', in localization: <{localization}> and collection {collection_where_value_is}")
 
             else:
                 current_value = current_value[loc_index]

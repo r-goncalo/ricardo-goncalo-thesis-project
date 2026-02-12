@@ -72,7 +72,7 @@ def config_dict():
 
             "name": "RLTrainerComponent",
             "limit_total_steps" : 500000,
-            
+            "predict_optimizations_to_do" : True, 
             "default_trainer_class" : AgentTrainerPPO,
             "agents_trainers_input" : { #for each agent trainer
                 
@@ -110,7 +110,7 @@ def config_dict():
                                    {
                                        "name" : "AdamOptimizerComponent",
                                        "learning_rate" : 2.3e-3,
-                                       "linear_decay_learning_rate_with_final_input_value_of" : ("relative", [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]),
+                                       "linear_decay_learning_rate_with_final_input_value_of" : ("relative", [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "__any__"]})]),
                                        "clip_grad_value" : (
                                            DynamicLinearValueInRangeBasedOnComponent, {
                                                "input_for_fun_key" : "optimizations_done",
@@ -119,7 +119,7 @@ def config_dict():
                                                "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOptimizerComponent"})),
                                                "input_for_fun_max_value" : 
                                                 ('relative', 
-                                                 [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                                                 [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "__any__"]})]
                                                 )
 
 
@@ -204,7 +204,7 @@ def hyperparameter_suggestions():
             value_suggestion=("cat", {"choices" : [
                                                     None,
                                                 ('relative', 
-                                                [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                                                [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "__any__"]})]
                                                 )           
                                                    ]})
             
@@ -301,7 +301,7 @@ def hyperparameter_suggestions():
                             "input_component" : ('relative', [("__get_by_name__", {"name_of_component" : "AdamOptimizerComponent"})]),
                             "input_for_fun_max_value" : 
                              ('relative', 
-                              [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                              [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "__any__"]})]
                              )
                         }
                     ],
