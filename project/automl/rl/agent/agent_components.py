@@ -30,8 +30,8 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                         "name" : InputSignature(),
                        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
                                    
-                       "state_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized'),
-                       "action_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already'),
+                       "state_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized', ignore_at_serialization=True),
+                       "action_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already', ignore_at_serialization=True),
                                               
                        "policy" : ComponentInputSignature(
                             priority=100, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
@@ -150,6 +150,14 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         '''calls the method of the policy with this Agent's state management strategy'''
         
         return policy_method(self.proccess_env_state(state))
+    
+
+    @requires_input_proccess
+    def call_policy_method_with_memory(self, policy_method):
+        
+        '''calls the method of the policy with this Agent's state management strategy'''
+        
+        return policy_method(self.state_memory)
                     
     
     @requires_input_proccess

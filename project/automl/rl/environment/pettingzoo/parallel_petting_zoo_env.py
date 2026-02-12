@@ -73,13 +73,21 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
 
     @requires_input_proccess
     def agents(self):
+
+        to_return = None
+        
         if hasattr(self.env, "agents"):
-            return list(self.env.agents)
+            to_return = list(self.env.agents)
 
-        if hasattr(self.env, "possible_agents"):
-            return list(self.env.possible_agents)
 
-        raise AttributeError("Environment has neither .agents nor .possible_agents")
+        if (to_return is None or len(to_return) == 0) and hasattr(self.env, "possible_agents"):
+            to_return = list(self.env.possible_agents)
+
+        if to_return is None:
+            raise AttributeError("Environment has neither .agents nor .possible_agents")
+        else:
+            return to_return
+        
     
     def parallel_agents(self):
         return self.env.agents

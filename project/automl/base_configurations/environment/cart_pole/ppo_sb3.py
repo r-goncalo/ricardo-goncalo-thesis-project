@@ -81,7 +81,7 @@ def config_dict():
                 
                 "learner" : (PPOLearner, {
 
-                    "lamda_gae" : 0.8,
+                    "lambda_gae" : 0.8,
 
                     "critic_model" : (FullyConnectedModelSchema, {"hidden_layers" : 2, "hidden_size" : 64, "output_shape" : 1}),
 
@@ -239,7 +239,7 @@ def agent_and_agent_trainer():
                 
                 "learner" : (PPOLearner, {
 
-                    "lamda_gae" : 0.8,
+                    "lambda_gae" : 0.8,
 
                     "critic_model" : (FullyConnectedModelSchema, {"hidden_layers" : 2, "hidden_size" : 64, "output_shape" : 1}),
 

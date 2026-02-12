@@ -8,6 +8,23 @@ Has custom class for encoding and decoding states
 Importing this has the inherit effect of adding the encoder / decoder strategy to the registry
 '''
 
+
+def compress_bound(bound):
+
+    '''Compresses an array of the same value into itself'''
+
+    if isinstance(bound, np.ndarray):
+        if np.all(bound == bound.flat[0]):  # constant array, return only its value
+            return float(bound.flat[0])
+        return bound.tolist()               # true per-dimension bounds
+    return float(bound)
+
+def expand(bound, shape):
+    if np.isscalar(bound):
+        return np.full(shape, bound, dtype=np.float32)
+    return np.array(bound, dtype=np.float32)
+
+
 class CustomSpaceJsonEncoderDecoder(CustomJsonLogic):
 
 
@@ -27,13 +44,15 @@ class CustomSpaceJsonEncoderDecoder(CustomJsonLogic):
                 }
 
             elif isinstance(space, gym.spaces.Box):
-                space_dictionary =  {
+
+                space_dictionary = {
                     "space_type": "Box",
                     "shape": space.shape,
-                    "low": space.low.tolist() if isinstance(space.low, np.ndarray) else float(space.low),
-                    "high": space.high.tolist() if isinstance(space.high, np.ndarray) else float(space.high),
+                    "low": compress_bound(space.low),
+                    "high": compress_bound(space.high),
                     "dtype": str(space.dtype)
                 }
+
 
             elif isinstance(space, gym.spaces.MultiBinary):
                 space_dictionary =  {
@@ -75,13 +94,16 @@ class CustomSpaceJsonEncoderDecoder(CustomJsonLogic):
             space_to_return =  gym.spaces.Discrete(dict["n"])
         
         elif type == "Box":
-            space_to_return =  gym.spaces.Box(
-                low=np.array(dict["low"], dtype=np.float32),
-                high=np.array(dict["high"], dtype=np.float32),
-                shape=tuple(dict["shape"]),
+
+            low  = expand(dict["low"],  tuple(dict["shape"]))
+            high = expand(dict["high"], tuple(dict["shape"]))
+
+            space_to_return = gym.spaces.Box(
+                low=low,
+                high=high,
                 dtype=np.dtype(dict["dtype"])
             )
-        
+            
         elif type == "MultiBinary":
             space_to_return =  gym.spaces.MultiBinary(dict["n"])
         

@@ -99,6 +99,14 @@ class AgentTrainerPPO(AgentTrainer):
         self.last_log_prob = log_prob
         
         return action
+    
+    def select_action_with_memory(self):
+
+        action, log_prob = self.agent.call_policy_method_with_memory(self.agent_policy.predict_with_log)
+        
+        self.last_log_prob = log_prob
+
+        return action
         
 
     def optimizeAgent(self):

@@ -117,7 +117,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             for i in reversed(range(len(non_normalized_advantages))):
                 
                 self.lg.writeLine(
-                    f"{i}: {non_normalized_advantages[i]} = {values_error[i]} + {discount_factor} * {self.lamda_gae} * {prev_advantage} * (1 - {done_batch[i]}) -> {advantages[i]}",
+                    f"{i}: {non_normalized_advantages[i]} = {values_error[i]} + {discount_factor} * {self.lambda_gae} * {prev_advantage} * (1 - {done_batch[i]}) -> {advantages[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )

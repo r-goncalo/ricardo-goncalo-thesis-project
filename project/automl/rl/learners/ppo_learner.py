@@ -55,7 +55,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
                         "value_loss_coef" : InputSignature(default_value=0.5, description="The weight given to the critic value loss",
                                                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.3, "high": 0.7 }]}),
                         
-                        "lamda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
+                        "lambda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
                                                      custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
 
                         }    
@@ -79,7 +79,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.clip_epsilon = self.get_input_value("clip_epsilon")
         self.entropy_coef = get_value_of_type_or_component(self, "entropy_coef", float)
         self.value_loss_coef = self.get_input_value("value_loss_coef")
-        self.lamda_gae = self.get_input_value("lamda_gae")
+        self.lambda_gae = self.get_input_value("lambda_gae")
         
         self.number_of_times_optimized = 0
 
@@ -196,7 +196,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         # GAE computation in reverse, note this assumes seq data
         running_advantage = 0
         for t in reversed(range(len(values_error))):
-            running_advantage = values_error[t] + discount_factor * self.lamda_gae * running_advantage  * (1 - done_batch[t])
+            running_advantage = values_error[t] + discount_factor * self.lambda_gae * running_advantage  * (1 - done_batch[t])
             non_normalized_advantages[t] = running_advantage
 
         returns = non_normalized_advantages + values.detach()

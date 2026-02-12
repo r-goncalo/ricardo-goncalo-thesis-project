@@ -40,8 +40,8 @@ class Policy(PolicyInterface, ComponentWithLogging):
         
         "model" : ComponentInputSignature(mandatory=False),
         
-        "state_shape": InputSignature(),
-        "action_shape": InputSignature(),
+        "state_shape": InputSignature(ignore_at_serialization=True),
+        "action_shape": InputSignature(ignore_at_serialization=True),
         "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True)
     }   
 

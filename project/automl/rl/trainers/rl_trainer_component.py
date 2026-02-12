@@ -66,6 +66,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self._initialize_limit_numbers()
         
         self.env : AECEnvironmentComponent = self.get_input_value("environment")
+
         
         self.setup_agents()
 
@@ -97,6 +98,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self.values["agents_trainers"] = self.agents_trainers
                 
         self.agents_names_in_environment = self.env.agents()
+
+        self.lg.writeLine(f"Environment {self.env.get_env_name()} has agents: {self.agents_names_in_environment}")
+
         agents_names_in_environment = [*self.agents_names_in_environment]
         passed_agents_in_input = agents_in_input.keys()
 
@@ -106,7 +110,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                 agents_names_in_environment.pop(agents_names_in_environment.index(key))
 
             else:
-                raise Exception(f"Passed name for agent not in environment: {key}")
+                raise Exception(f"Passed name for agent ({key}) not in environment which currently available names: {agents_names_in_environment}")
             
             agent_in_input = agents_in_input[key]
 

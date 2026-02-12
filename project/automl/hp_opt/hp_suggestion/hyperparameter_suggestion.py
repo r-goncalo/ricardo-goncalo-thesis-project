@@ -23,7 +23,11 @@ class HyperparameterSuggestion(CustomJsonLogic):
         self.base_name = name
 
         self.base_hyperparameter_localizations = hyperparameter_localizations
-        self.hyperparameter_localizations = hyperparameter_localizations
+
+        if self.base_hyperparameter_localizations is not None and len(self.base_hyperparameter_localizations) > 0 and not isinstance(self.base_hyperparameter_localizations[0], list):
+            self.base_hyperparameter_localizations = [self.base_hyperparameter_localizations] 
+
+        self.hyperparameter_localizations = self.base_hyperparameter_localizations
 
         self.setup_names()
 

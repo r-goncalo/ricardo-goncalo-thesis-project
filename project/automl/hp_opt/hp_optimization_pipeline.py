@@ -17,6 +17,8 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 import optuna
 
+import shutil
+
 from automl.basic_components.state_management import StatefulComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.utils.configuration_component_utils import save_configuration
@@ -209,6 +211,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             self.rl_pipeline_config_path : str = self.get_input_value("base_component_configuration_path")
             self.load_configuration_dict_from_path(self.rl_pipeline_config_path)
+
+            self.input.pop("base_component_configuration_path")
+
+            shutil.copy(self.rl_pipeline_config_path, os.path.join(self.get_artifact_directory(), TO_OPTIMIZE_CONFIG_FILE))
+        
   
         elif "configuration_dict" in self.input.keys():
 
@@ -220,7 +227,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         else:
 
             hp_component_path = self.get_artifact_directory()
-            possible_configuration_file = os.path.join(hp_component_path, "to_optimize_configuration.json")
+            possible_configuration_file = os.path.join(hp_component_path, TO_OPTIMIZE_CONFIG_FILE)
 
             if os.path.exists(possible_configuration_file):
 
@@ -403,12 +410,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         '''Loads the configuration dict that will be optimized from a path'''
         
-        fd = open(path, 'r') 
-        self.config_str = fd.read()
-        fd.close()
-        
-        self.config_dict = dict_from_json_string(self.config_str)        
-        
+        with open(path, 'r') as fd:
+            fd = open(path, 'r') 
+            self.config_str = fd.read()
+            fd.close()
+
+        self.config_dict = dict_from_json_string(self.config_str)
+
+
 
     # OPTIMIZATION -------------------------------------------------------------------------
     

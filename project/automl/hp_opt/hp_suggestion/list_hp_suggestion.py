@@ -13,8 +13,6 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
         if hyperparameter_suggestions is None:
             raise Exception("Hyperparameter suggesiton for list must be defined")
 
-        super().__init__(name=name, hyperparameter_localizations=hyperparameter_localizations)
-
         self.hyperparameter_suggestions : dict [str, HyperparameterSuggestion] = {}
 
         for key, hyperparameter_suggestion in hyperparameter_suggestions.items():
@@ -24,6 +22,10 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
 
             else:
                 self.hyperparameter_suggestions[key] = hyperparameter_suggestion.clone()
+                
+
+        super().__init__(name=name, hyperparameter_localizations=hyperparameter_localizations)
+
         
 
     def change_localizations(self, new_localizations):
@@ -60,7 +62,7 @@ class DictHyperparameterSuggestion(HyperparameterSuggestion):
     def setup_names(self):
         super().setup_names()
         
-        for hyperparameter_suggestion in self.disjoint_hyperparameter_suggestions.values():
+        for hyperparameter_suggestion in self.hyperparameter_suggestions.values():
             
             suggestion_base_name = hyperparameter_suggestion.get_base_name()
 

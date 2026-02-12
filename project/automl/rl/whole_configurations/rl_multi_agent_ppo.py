@@ -1,61 +1,51 @@
-
-
-
-
-'''
-This is based on the stable baselines 3 hyperparameter configuration, in:
-
-https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/ppo.yml
-
-With hyperparameters:
-
-# Tuned
-CartPole-v1:
-  n_envs: 8 # it gets transitions from 8 different environments 
-  n_timesteps: !!float 1e5
-  policy: 'MlpPolicy'
-  n_steps: 32 # in each environment, it computes 32 steps before an update
-  batch_size: 256 # it updates after 256 total steps
-  gae_lambda: 0.8
-  gamma: 0.98
-  n_epochs: 20
-  ent_coef: 0.0
-  learning_rate: lin_0.001
-  clip_range: lin_0.2
-
-
-'''
-
-from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
-from automl.ml.models.joint_model import ModelSequenceComponent
-from automl.ml.models.neural_model import FullyConnectedModelSchema
-from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
-from automl.rl.rl_pipeline import RLPipelineComponent
-from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
-from automl.rl.policy.stochastic_policy import StochasticPolicy
-from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
-from automl.rl.learners.ppo_learner import PPOLearner
-from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.basic_components.dynamic_value import DynamicLinearValueInRangeBasedOnComponent
-
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
-
+from automl.ml.models.dynamic_conv_model import DynamicConvModelSchema
+from automl.ml.models.joint_model import ModelSequenceComponent
 from automl.ml.models.model_initialization_strategy import TorchModelInitializationStrategyOrthogonal
+from automl.ml.optimizers.optimizer_components import AdamOptimizer
+from automl.ml.models.neural_model import FullyConnectedModelSchema
+from automl.rl.learners.ppo_learner import PPOLearner
+
+from automl.rl.policy.stochastic_policy import StochasticPolicy
+from automl.rl.rl_pipeline import RLPipelineComponent
+from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
+from automl.rl.environment.pettingzoo.parallel_petting_zoo_env import PettingZooEnvironmentWrapperParallel
+from automl.rl.trainers.rl_trainer.parallel_rl_trainer import RLTrainerComponentParallel
+from automl.fundamentals.translator.torch_image_state_translator import ImageReverterToSingleChannel, ImageNormalizer
+from automl.fundamentals.translator.translator import TranslatorSequence
+from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 
 
 def config_dict():
+
 
     return {
     
     "__type__": RLPipelineComponent,
     "name": "RLPipelineComponent",
     "input": {
+        "do_full_setup_of_seed" : True,
         "device" : "cuda",
-        "environment": (AECGymnasiumEnvironmentWrapper, {"environment" : "CartPole-v1"}),
+        "environment": (PettingZooEnvironmentWrapperParallel, {
+                            "environment": "cooperative_pong"}),
         "agents_input": {
+            "state_memory_size" : 2,
+
+            "state_translator" : (TranslatorSequence, {
+                "translators_sequence" : [
+                        (ToTorchTranslator, {}),
+                        (ImageReverterToSingleChannel, {}),
+                        (ImageNormalizer, {})
+                    ],
+                    "in_place_translation" : True
+                }
+            
+            ),
 
             "policy" : ( StochasticPolicy,
                         {
+
                         "model" : (
                             ModelSequenceComponent,
                              {  "name" : "policy_model",
@@ -66,33 +56,39 @@ def config_dict():
                                 (FullyConnectedModelSchema, 
                                 {
                                 "name" : "policy_head",
-                                "layers" : [64]
+                                "layers" : [64, 32]
                                 }
                                 ),
-                                 ]}
-                            )
-                        }
-                ),
+                             ]}
 
-            "state_translator" : (ToTorchTranslator, {})
+                        )
+                        }
+            )
         },
         
-        "rl_trainer" : (RLTrainerComponent,
+        "rl_trainer" : (RLTrainerComponentParallel,
             
             {
-            "name" : "RLTrainerComponent",
+
+            "name": "RLTrainerComponent",
+            "limit_total_steps" : 500000,
+            
             "default_trainer_class" : AgentTrainerPPO,
-            "limit_total_steps" : 1e5,
-            "predict_optimizations_to_do" : True,
             "agents_trainers_input" : { #for each agent trainer
                 
                 "optimization_interval": 256,
-                
+                "times_to_learn" : 8,
+                "batch_size" : 32,
+
                 "learner" : (PPOLearner, {
 
-                    "lambda_gae" : 0.8,
+                     "lambda_gae": 0.8,
+                     "clip_epsilon" : 0.2,
+                     "entropy_coef" : 0.01,
+                     "value_loss_coef" : 0.5,
 
                     "critic_model" : (
+
                             ModelSequenceComponent,
                              {  "name" : "critic_model",
                                 "output_shape" : 1,
@@ -112,7 +108,7 @@ def config_dict():
                     "optimizer" :(
                                    AdamOptimizer,
                                    {
-                                       "name" : "AdamOpimizerComponent",
+                                       "name" : "AdamOptimizerComponent",
                                        "learning_rate" : 2.3e-3,
                                        "linear_decay_learning_rate_with_final_input_value_of" : ("relative", [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]),
                                        "clip_grad_value" : (
@@ -120,7 +116,7 @@ def config_dict():
                                                "input_for_fun_key" : "optimizations_done",
                                                "initial_value" : 0.2,
                                                "final_value" : 0,
-                                               "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})),
+                                               "input_component" : ('relative', ("__get_by_name__", {"name_of_component" : "AdamOptimizerComponent"})),
                                                "input_for_fun_max_value" : 
                                                 ('relative', 
                                                  [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
@@ -130,38 +126,36 @@ def config_dict():
                                            }
                                        )                 
                                    }
-                    ),
-
-
-
+                )
                 }),
-
-                "discount_factor" : 0.98,
-            
-                "times_to_learn" : 20,
             
                 "memory" : (TorchMemoryComponent, {
+                    "device" : "cpu",
                     "capacity" : 256
                 })
-                
-            
-            }
+    
+                }
 
             }
         )
         
     },
-
     "child_components" : [
         {
-            "__type__" : FullyConnectedModelSchema,
+            "__type__" : DynamicConvModelSchema,
             "name" : "shared_model",
             "input" : {
-                "layers" : [64, 64]
+                "cnn_layers" : [
+                    {"kernel_size" : 8, "out_channels" : 32, "stride" : 2},
+                    {"kernel_size" : 4, "out_channels" : 64, "stride" : 2},
+                    {"kernel_size" : 3, "out_channels" : 64, "stride" : 1},
+                    
+                ]
             }
         }
     ]
 }
+
 
 def hyperparameter_suggestions():
 
@@ -169,18 +163,121 @@ def hyperparameter_suggestions():
     from automl.hp_opt.hp_suggestion.disjoint_hp_suggestion import DisjointHyperparameterSuggestion
     from automl.hp_opt.hp_suggestion.complex_hp_suggestion import ComplexHpSuggestion
     from automl.hp_opt.hp_suggestion.variable_list_hp_suggestion import VariableListHyperparameterSuggestion
+    from automl.hp_opt.hp_suggestion.list_hp_suggestion import DictHyperparameterSuggestion
+
 
     return [
 
         SingleHyperparameterSuggestion(
+            name="times_to_learn",
+            value_suggestion= ("int",  {"low" : 4, "high" : 16 }),
+            hyperparameter_localizations= [
+                ["input", "rl_trainer", 1, "agents_trainers_input", "times_to_learn"]            
+            ]
+
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="batch_size",
+            value_suggestion= ("cat",  {"choices" : [16, 32, 64]}),
+            hyperparameter_localizations= [
+                ["input", "rl_trainer", 1, "agents_trainers_input", "batch_size"]            
+            ]
+
+        ),
+
+        SingleHyperparameterSuggestion(
             name="optimization_interval",
-            value_suggestion= ("int",  {"low" : 64, "high" : 1024 }),
+            value_suggestion= ("int",  {"low" : 128, "high" : 1024 }),
             hyperparameter_localizations= [
                 ["input", "rl_trainer", 1, "agents_trainers_input", "optimization_interval"],
                 ["input", "rl_trainer", 1, "agents_trainers_input", "memory", 1, "capacity"],
             ]
 
         ),
+
+        SingleHyperparameterSuggestion(
+            name="lr_strat",
+            hyperparameter_localizations=[
+                ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "optimizer", 1, "linear_decay_learning_rate_with_final_input_value_of"]
+                ],
+            value_suggestion=("cat", {"choices" : [
+                                                    None,
+                                                ('relative', 
+                                                [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                                                )           
+                                                   ]})
+            
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="lr_value",
+            hyperparameter_localizations=[
+                ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "optimizer", 1, "learning_rate"]
+                                          ],
+            value_suggestion=("float", {"low" : 1.5e-08, "high" :0.09})
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="clip_epsilon",
+            hyperparameter_localizations=[
+                ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "clip_epsilon"]
+                ],
+            value_suggestion=("float", {"low" : 0.1, "high" : 0.3})
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="value_loss_coef",
+            hyperparameter_localizations=[
+                ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "value_loss_coef"]
+                        ],
+            value_suggestion=("float", {"low" : 0.3, "high" : 0.7})
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="lambda_gae",
+            hyperparameter_localizations=["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "lambda_gae"],
+            value_suggestion=("float", {"low" : 0.7, "high" : 0.999})
+        ),
+
+
+        DisjointHyperparameterSuggestion(
+            name = "entropy_coef_strat",
+            hyperparameter_localizations= [
+                ["input", "rl_trainer", 1, "agents_trainers_input", "learner", 1, "entropy_coef"]
+            ],
+            allow_none = False,
+            disjoint_hyperparameter_suggestions= [
+                SingleHyperparameterSuggestion(
+                    name="value",
+                    value_suggestion=("float", {"low" : 0.0, "high" : 0.3})
+                ),
+                ComplexHpSuggestion(
+                    "dynamic_struc",
+                    structure_to_add=[
+                        str(DynamicLinearValueInRangeBasedOnComponent),
+                        {
+                            "input_for_fun_key" : "optimizations_done",
+                            "initial_value" : 0.2,
+                            "final_value" : 0,
+                            "input_component" : ('relative', [("__get_by_name__", {"name_of_component" : "AdamOptimizerComponent"})]),
+                            "input_for_fun_max_value" : 
+                             ('relative', 
+                              [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
+                             )
+                        }
+                    ],
+                    actual_hyperparameter_suggestion= SingleHyperparameterSuggestion(
+                        name="value",
+                        value_suggestion=("float", {"low" : 0.01, "high" : 0.4}),
+                        hyperparameter_localizations=[[1, "initial_value"]]
+                    )
+
+                )
+
+            ]
+        ),
+
 
         DisjointHyperparameterSuggestion(
             name = "clip_grad_strat",
@@ -201,7 +298,7 @@ def hyperparameter_suggestions():
                             "input_for_fun_key" : "optimizations_done",
                             "initial_value" : 0.2,
                             "final_value" : 0,
-                            "input_component" : ('relative', [("__get_by_name__", {"name_of_component" : "AdamOpimizerComponent"})]),
+                            "input_component" : ('relative', [("__get_by_name__", {"name_of_component" : "AdamOptimizerComponent"})]),
                             "input_for_fun_max_value" : 
                              ('relative', 
                               [("__get_by_name__", {"name_of_component" : "RLTrainerComponent"}), ("__get_exposed_value__", {"value_localization" : ["optimizations_to_do_per_agent", "agent"]})]
@@ -235,13 +332,26 @@ def hyperparameter_suggestions():
                                             hyperparameter_suggestion_for_list=SingleHyperparameterSuggestion( value_suggestion=("cat", {"choices" : [8, 16, 32, 64]}))
                                             ),
 
+
         VariableListHyperparameterSuggestion(
-                                            name="shared_layers",
-                                            min_len=1,
-                                            max_len=4,
-                                            hyperparameter_localizations=[["child_components", 0, "input", "layers"]], # the localization of the actor head
-                                            hyperparameter_suggestion_for_list=SingleHyperparameterSuggestion( value_suggestion=("cat", {"choices" : [16, 32, 64, 128]}))
-                                            ),
+                    name='shared_layers',
+                    hyperparameter_localizations=[["child_components", 0, "input", "cnn_layers"]],
+                    min_len=2,
+                    max_len=4,
+                    hyperparameter_suggestion_for_list=DictHyperparameterSuggestion(
+                        hyperparameter_suggestions={
+                            "out_channels" : SingleHyperparameterSuggestion(name="out_channels",
+                                                           value_suggestion=("cat", {"choices": [16, 32, 64, 128]})
+                            ),
+                            "kernel_size" : SingleHyperparameterSuggestion(name="kernel_size",
+                                                           value_suggestion=("cat", {"choices": [3, 4, 8]})
+                            ),
+                            "stride" : SingleHyperparameterSuggestion(name="stride",
+                                                           value_suggestion=("cat", {"choices": [1, 2]})
+                            )
+                        }
+                    )
+                ),
                                             
         DisjointHyperparameterSuggestion(
             name = "model_init_strat",
