@@ -201,7 +201,7 @@ def setup_component_group(number_of_components, group_directory, base_name, base
         first_component.pass_input({"base_directory" : str(group_directory), "artifact_relative_directory" : str(run_name), "name" : component_name, "create_new_directory" : False})
 
         if setup_seed_of_testing and isinstance(first_component, SeededComponent):
-            first_component.generate_and_setup_input_seed()
+            first_component.generate_and_setup_input_seed(to_do_full_setup_of_seed=True)
     
         elif setup_seed_of_testing:
             globalWriteLine(f"WARNING: component to test is not a seeded component, will not setup any stochastic environment for it")
