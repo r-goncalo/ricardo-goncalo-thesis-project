@@ -27,15 +27,27 @@ from collections import deque
 
 # VALUE LOCALIZATION OPERATIONS --------------------------------------------------------------
 
-def get_any(collection, default_value=None):
+def get_any(collection, default_value=None, non_exist_safe=False):
 
     if isinstance(collection, dict):
+
+        if not non_exist_safe and len(collection) == 0:
+            raise Exception(f"No value in collection: {collection}")
+
         return next(iter(collection.values()), default_value)
     
     elif isinstance(collection, (list, tuple)):
+
+        if not non_exist_safe and len(collection) == 0:
+            raise Exception(f"No value in collection: {collection}") 
+
         return collection[0] if collection else default_value
     
     else:
+
+        if not non_exist_safe:
+            raise Exception(f"Collection is of a non supported type: {type(collection)}")
+
         return default_value
 
 def safe_get(collection_where_value_is : dict, index, default_value=None):
@@ -85,12 +97,7 @@ def get_value_from_value_loc(collection_where_value_is : dict, localization, def
         try:
 
             if loc_index == "__any__":
-                current_value = get_any(current_value)
-
-                if current_value is None and non_exist_safe:
-                    return default_value
-                else:
-                    raise Exception(f"Error when getting collection before value, at index '{loc_index}', in localization: <{localization}> and collection {collection_where_value_is}")
+                current_value = get_any(current_value, default_value, non_exist_safe)
 
             else:
                 current_value = current_value[loc_index]
