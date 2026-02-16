@@ -143,7 +143,7 @@ class DynamicConvModelSchema(TorchModelComponent):
         self.lg.writeLine(f"Corrected CNN layers:")
 
         for layer in self.cnn_layers:
-            self.lg.writeLine(layer)
+            self.lg.writeLine(f"    {layer}")
 
     
     def _correct_cnn_layers(self):

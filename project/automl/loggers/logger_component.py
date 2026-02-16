@@ -57,7 +57,9 @@ class LoggerSchema(ArtifactComponent):
 
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
 
-                       "write_to_file_when_text_lines_over" : InputSignature(mandatory=False),
+                       "write_to_file_when_text_lines_over" : InputSignature(
+                           default_value=1000,
+                           mandatory=False),
 
                        "artifact_relative_directory" : InputSignature(
                                 priority=1,

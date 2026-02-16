@@ -1,12 +1,5 @@
-
-
-
-
-
-
-
-
 from automl.utils.files_utils import write_text_to_file
+from automl.utils.type_utils import str_to_bool, str_to_number
 
 
 
@@ -38,11 +31,17 @@ def run_component(component):
     component.run()
 
 
-def main(component_path, target_dir=None, target_dir_name=None, global_logger_level=None):
+def main(component_path, target_dir=None, target_dir_name=None, 
+         global_logger_level=None, logger_input_level=None, 
+         lines_until_logger_write=None, save_results_on_log=None):
+    
+    # LOADING THE COMPONENT
 
     if target_dir is not None or target_dir_name is not None:
         component_path = generate_path(component_path, target_dir, target_dir_name)
     
+    # ACTIVATING GLOBAL LOGGER BEFORE LOADING
+
     if global_logger_level != None:
         try:
             from automl.loggers.global_logger import activate_global_logger, globalWriteLine
@@ -52,6 +51,7 @@ def main(component_path, target_dir=None, target_dir_name=None, global_logger_le
             print(f"Error trying to activate global logger: {e}")
             write_text_to_file(component_path, filename="error_global.txt", text=str(e))
 
+    # FINISHING COMPONENT LOADING
 
     try:
         component = load_component(component_path)
@@ -67,6 +67,43 @@ def main(component_path, target_dir=None, target_dir_name=None, global_logger_le
             common_exception_handling(global_logger, e, "on_load_error.txt")
 
         raise e
+    
+    # COMPONENT INPUT PRE PROCESSING
+
+    try:
+
+        logger_input = {}
+
+        if logger_input_level is not None:
+            logger_input["necessary_logger_level"] = logger_input_level
+
+        if lines_until_logger_write is not None:
+            logger_input["write_to_file_when_text_lines_over"] = str_to_number(lines_until_logger_write)
+
+        if logger_input != {}:
+            prev_logger_input = component.input.get("logger_input", {})
+            logger_input = {**prev_logger_input, **logger_input}
+
+            component.pass_input({"logger_input" : logger_input})
+
+        if save_results_on_log is not None:
+            prev_results_logger_input = component.input.get("results_logger_input", {})
+
+            component.pass_input({"results_logger_input": {**prev_results_logger_input, "save_results_on_log" : str_to_bool(save_results_on_log)}})
+
+    except Exception as e:
+        from automl.loggers.global_logger import get_global_logger
+
+        global_logger = get_global_logger()
+
+        if global_logger is not None:
+
+            from automl.core.exceptions import common_exception_handling
+            common_exception_handling(global_logger, e, "on_input_handling_error.txt")
+
+        raise e
+
+    # RUNNING THE COMPONENT
 
     try:
         run_component(component)

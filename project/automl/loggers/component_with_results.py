@@ -60,7 +60,12 @@ class ComponentWithResults(ArtifactComponent):
                                                         generator = generate_logger_for_component , 
                                                         on_pass=on_log_pass,
                                                         description="A dictionary of result loggers object or single one",
-                                                        mandatory=False)
+                                                        mandatory=False),
+
+
+                        "results_logger_input" : InputSignature(ignore_at_serialization=True, default_value={}),
+                                                    
+                                                
                        }
     
     
@@ -76,15 +81,21 @@ class ComponentWithResults(ArtifactComponent):
         super().__init__(*args, **kwargs)
         
         self.__results_loggers : dict[str, ResultLogger] = {} # all results loggers (each with a different dataframe)
-        
+
+
         if isinstance(self.results_columns, list): # if the results_columns passed had no specified key
             self.results_columns = {DEFAULT_RESULTS_LOGGER_KEY : self.results_columns} 
         
+    
 
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
             
         super()._proccess_input_internal()
+    
+        self.results_logger_input = self.get_input_value("results_logger_input")
+        self.pass_input_to_results_logger(self.results_logger_input)
+
 
                 
     def set_as_result_logger_object(self, logger_object, key=DEFAULT_RESULTS_LOGGER_KEY):
