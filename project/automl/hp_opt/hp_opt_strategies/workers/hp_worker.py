@@ -1,6 +1,6 @@
 import os
 import threading
-from automl.basic_components.exec_component import State
+from automl.basic_components.exec_component import State, StopExperiment
 from automl.basic_components.state_management import StatefulComponentLoader
 from automl.component import Component
 from automl.core.exceptions import common_exception_handling
@@ -43,6 +43,15 @@ class HyperparameterOptimizationWorkerIndexed():
 
         with self._is_busy_sem:
             self._is_busy = False
+
+    def check_if_should_stop_execution_earlier(self):
+        try:
+            self.parent_hp_pipeline.check_if_should_stop_execution_earlier()
+
+        except StopExperiment as e:
+            self.thread_logger.writeLine(f"Worker noticed a signal to prematurely stop the proccess, ending it...")
+            raise e
+
 
 
     # LOADER RELATED ------------------------------------------------------------
@@ -164,10 +173,12 @@ class HyperparameterOptimizationWorkerIndexed():
     
             self._is_busy = True
 
-        to_return = self.try_run_component_in_group_all_steps(trial, component_index, n_steps, component_loader)
+        try:
+            to_return = self.try_run_component_in_group_all_steps(trial, component_index, n_steps, component_loader)
 
-        with self._is_busy_sem:
-            self._is_busy = False
+        finally:
+            with self._is_busy_sem:
+                self._is_busy = False
 
         return to_return
 
@@ -189,8 +200,12 @@ class HyperparameterOptimizationWorkerIndexed():
 
     def try_run_component_in_group_all_steps(self, trial : optuna.Trial, component_index, n_steps, component_loader : StatefulComponentLoader, should_end):
 
+
+        self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+
         last_reported_step = self._get_last_reported_step(trial, component_index)
 
+        # IF we are to do an initial evaluation
         if last_reported_step < 0 and self.parent_hp_pipeline.do_initial_evaluation:
 
             self.thread_logger.writeLine(f"Doing initial evaluation of trial {trial.number} before initiating training...")
@@ -213,6 +228,8 @@ class HyperparameterOptimizationWorkerIndexed():
 
             del component_to_test
             component_loader.save_and_onload_component()
+
+            self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
             
 
         if last_reported_step < 0:
@@ -226,8 +243,10 @@ class HyperparameterOptimizationWorkerIndexed():
         for step in range(next_step, next_step + n_steps + 1):
 
             if should_end[0]:
-                self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}")
+                self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}, due to concurrent logic (probably some evaluation made it so the whole trial was pruned)")
                 break
+
+            self.check_if_should_stop_execution_earlier()
 
             to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
 

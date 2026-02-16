@@ -23,7 +23,7 @@ from optuna.storages.journal import JournalFileBackend
 
 from automl.loggers.logger_component import LoggerSchema, override_first_logger, use_logger
 
-from automl.basic_components.exec_component import State
+from automl.basic_components.exec_component import State, StopExperiment
 import pandas
 
 MINIMUM_SLEEP = 1
@@ -160,6 +160,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     
     def _run_available_worker(self, trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
 
+        '''Waits until it can aquire a worker and then runs a job with it, freeing it in the end'''
 
         worker = self._aquire_available_worker()
 
@@ -168,11 +169,11 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         return to_return
 
 
-    def _run_worker(self, worker, trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
+    def _run_worker(self, worker : HyperparameterOptimizationWorkerIndexed , trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
 
-            worker : HyperparameterOptimizationWorkerIndexed = worker
+            '''Runs a job with a worker and then frees it'''
 
-            # we remove a configura
+            # we remove a configuration
             [_, sem, _] = self.trainings_remaining_per_thread[index_in_trainings_remaining]
             with sem:
                 current_number = self.trainings_remaining_per_thread[index_in_trainings_remaining][2]
@@ -218,6 +219,41 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 next_worker_index = 0
                 time.sleep(sleep_time)
                 sleep_time = min(sleep_time * SLEEP_INCR_RATE, MAX_SLEEP) # we increase the sleep time
+
+
+    def _wait_for_all_workers_free(self):
+
+        '''Sleeps until all workers are free'''
+
+        next_worker_index = 0
+
+        sleep_time = MINIMUM_SLEEP
+
+        while True:
+
+            next_worker = self.workers[next_worker_index]
+
+            if next_worker.is_busy(): # if they are busy, we reset our search and wait
+                next_worker_index = 0
+                time.sleep(sleep_time)
+                sleep_time = min(sleep_time * SLEEP_INCR_RATE, MAX_SLEEP) # we increase the sleep time
+
+            next_worker_index = next_worker_index + 1
+
+            if next_worker_index >= len(self.workers): # we did a full search, and they were all not busy
+                break
+
+
+    def _wait_for_all_workers_free_so_experiment_can_gracefully_stop(self):
+
+        '''Sleeps until all workers are free'''
+
+        if self.__experiment_can_gracefuly_stop:
+            return
+        
+        else:
+            self._wait_for_all_workers_free()
+            self.__experiment_can_gracefuly_stop = True
 
             
     def _get_next_available_index_trainings(self):
@@ -273,25 +309,49 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                                         to_wait = True
                                         break
 
-                
             if to_wait:
-                time.sleep(MAX_SLEEP) # we wait
+                time.sleep(MAX_SLEEP) # we wait            
 
-        # if we reached this, we can stop waiting
+
+
+    def _compute_result_for_trial_run(self, trial : optuna.Trial):
+
+        '''Computes the result for a trial that was already run, to be used inside the objective'''
+
+        with self.results_logger_sem:
+        
+            # Count how many results we already have for this (trial, step)
+            results_logger: ResultLogger = self.get_results_logger()
+
+            df : pandas.DataFrame = results_logger.get_dataframe()
+
+            mask = (
+                (df["experiment"] == trial.number) 
             
+            )
 
+            df_for_this_trial = df.loc[mask]
 
+        max_step = df_for_this_trial["step"].max()
+
+        last_step_for_this_trial = df_for_this_trial[df_for_this_trial["step"] == max_step]
+
+        n_results_for_step = len(last_step_for_this_trial)
+
+        last_results = last_step_for_this_trial["result"].tolist()
+
+        if n_results_for_step != self.trainings_per_configuration:
+            raise Exception(f"Mismatch between number of trainings that should have completed for trial {trial.number} and actual number: {n_results_for_step}")
+        
+        return sum(last_results) / len(last_results) 
     
-    def _run_optimization(self, trial: optuna.Trial):
 
-        if trial.number > self.beneficted_trainings and trial.number < self.trainings_at_a_time:
-            time.sleep(60) # the idea is to do the maximum number of works per trial before going to the next trial
+    def _run_concurrent_experiments_for_single_trial(self, trial: optuna.Trial, index_in_trainings_remaining):
     
-        index_in_trainings_remaining = self._get_next_available_index_trainings() # we get an index to represent this trial (in theory, there should always be one available)
-        self.trainings_remaining_per_thread[index_in_trainings_remaining] = [trial.number, threading.Semaphore(1), self.trainings_per_configuration]
-
         # we only advance when we manage to get a non busy worker
         first_worker = self._aquire_available_worker()
+
+        self.__experiment_can_gracefuly_stop = False
 
         with use_logger(first_worker.thread_logger):
             
@@ -332,10 +392,17 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         # wait for all jobs
         for future in as_completed(futures):
+
             exc = future.exception()
+
             if exc is not None:
 
-                executor.shutdown(wait=False, cancel_futures=True)
+                if isinstance(exc, StopExperiment):
+                    # we should cancel futures, but let the currently working threads stop gracefully their proccesses
+                    executor.shutdown(wait=True, cancel_futures=True)
+
+                else:
+                    executor.shutdown(wait=False, cancel_futures=True)
 
                 with self.trainings_remaining_per_thread_sem:
                     self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
@@ -344,36 +411,71 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         executor.shutdown(wait=True)
 
-        with self.trainings_remaining_per_thread_sem:
-            self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
-
-        with self.results_logger_sem:
-        
-            # Count how many results we already have for this (trial, step)
-            results_logger: ResultLogger = self.get_results_logger()
-
-            df : pandas.DataFrame = results_logger.get_dataframe()
-
-            mask = (
-                (df["experiment"] == trial.number) 
-            
-            )
-
-            df_for_this_trial = df.loc[mask]
-
-        max_step = df_for_this_trial["step"].max()
-
-        last_step_for_this_trial = df_for_this_trial[df_for_this_trial["step"] == max_step]
-
-        n_results_for_step = len(last_step_for_this_trial)
-
-        last_results = last_step_for_this_trial["result"].tolist()
-
-        if n_results_for_step != self.trainings_per_configuration:
-            raise Exception(f"Mismatch between number of trainings that should have completed for trial {trial.number} and actual number: {n_results_for_step}")
-        
-        return sum(last_results) / len(last_results) 
     
+    def _run_optimization(self, trial: optuna.Trial):
+
+        try:
+            self.check_if_should_stop_execution_earlier()
+        
+        except StopExperiment as e:
+            self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
+            raise e
+
+
+        if trial.number > self.beneficted_trainings and trial.number < self.trainings_at_a_time:
+            time.sleep(60) # the idea is to do the maximum number of works per trial before going to the next trial
+    
+        index_in_trainings_remaining = self._get_next_available_index_trainings() # we get an index to represent this trial (in theory, there should always be one available)
+        self.trainings_remaining_per_thread[index_in_trainings_remaining] = [trial.number, threading.Semaphore(1), self.trainings_per_configuration]
+
+        try:
+            self._run_concurrent_experiments_for_single_trial(trial, index_in_trainings_remaining)
+            with self.trainings_remaining_per_thread_sem:
+                self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
+
+        except Exception as e:
+            with self.trainings_remaining_per_thread_sem:
+                self.trainings_remaining_per_thread[index_in_trainings_remaining] = None
+
+            if isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
+                self._wait_for_all_workers_free()
+                raise e
+ 
+
+        return self._compute_result_for_trial_run(trial)
+    
+
+    def _check_if_should_stop_execution_earlier(self):
+        should_stop = super()._check_if_should_stop_execution_earlier()
+
+        if should_stop:
+            return True
+        
+        else:
+            stop_path = os.path.join(self.get_artifact_directory(), "__stop")
+            return os.path.exists(stop_path)
+                
+    
+    def _on_earlier_interruption(self):
+
+        super()._on_earlier_interruption()
+
+        self.lg.writeLine(f"Hyperparamter optimization proccess was interrupted")
+        
+        stop_path = os.path.join(self.get_artifact_directory(), "__stop")
+
+        if os.path.exists(stop_path):
+            try:
+                os.remove(stop_path)
+                self.lg.writeLine(f"Stop sign was succecsfuly removed")
+
+            except FileNotFoundError:
+                self.lg.writeLine(f"Tried deleting stop signal, but was not there")
+                
+            except OSError as e:
+                self.lg.writeLine(f"WARNING: failed to remove stop signal at {stop_path}: {e}")
+
+
 
     # RUNNING A TRIAL -----------------------------------------------------------------------
     

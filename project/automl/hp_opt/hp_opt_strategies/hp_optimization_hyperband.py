@@ -4,6 +4,7 @@ import threading
 import time
 from automl.basic_components.component_group import RunnableComponentGroup, setup_component_group
 
+from automl.basic_components.exec_component import StopExperiment
 from automl.component import InputSignature, Component
 from automl.core.exceptions import common_exception_handling
 from automl.hp_opt.hp_opt_strategies.hp_optimization_loader_detached import HyperparameterOptimizationPipelineLoaderDetached
@@ -44,8 +45,6 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                          "max_steps_per_trial" : InputSignature(mandatory=False)
                        }
             
-
-
     
     # INITIALIZATION -----------------------------------------------------------------------------
 
@@ -83,15 +82,13 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
     
     def _run_single_trial(self, trial):
 
-        was_pruned = False
-
         try:
             value = self.objective(trial)
+            return trial, value, None
 
-        except optuna.TrialPruned:
-            was_pruned = True
+        except Exception as e:
+            return trial, None, e
 
-        return trial, value, was_pruned
 
 
     def _do_successive_halving_bracket(self, trials, step_budget):
@@ -116,10 +113,20 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
             )
 
         for future in as_completed(futures):
-            trial, value, was_pruned = future.result()
-            
-            if was_pruned:
-                self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
+
+            trial, value, exception = future.result()
+
+            if exception is not None:
+                if isinstance(exception, optuna.TrialPruned):
+                    self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
+
+                elif isinstance(exception, StopExperiment):
+                    executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
+                    raise exception
+                
+                else:
+                    raise exception
+
             else:
                 completed_results.append((trial, value))
                 surviving_trials.append(trial)

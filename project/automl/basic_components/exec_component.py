@@ -15,6 +15,10 @@ class State(SmartEnum): #an enumerator to track state of executable component
         RUNNING = 1
         OVER = 2
         ERROR = 4
+        INTERRUPTED = 5
+
+class StopExperiment(Exception):
+    pass
 
 # EXECUTABLE COMPONENT --------------------------
 
@@ -38,7 +42,7 @@ class ExecComponent(Component):
         self.__save_state_on_run_end = self.get_input_value("save_state_on_run_end")
         self.__save_dataframes_on_run_end = self.get_input_value("save_dataframes_on_run_end")
 
-        
+        self._received_signal_to_stop = False        
 
 
     # METHODS TO OVERRIDE --------------------------------
@@ -49,6 +53,7 @@ class ExecComponent(Component):
     
     def _pre_algorithm(self): # a component may extend this for certain behaviours
         self.values["running_state"] = State.RUNNING
+        self._received_signal_to_stop = False
         
     def _pos_algorithm(self): # a component may extend this for certain behaviours
         
@@ -67,7 +72,34 @@ class ExecComponent(Component):
             save_all_dataframes_of_component_and_children(self)
             flush_text_of_all_loggers_and_children(self)
             
+    
+    def _stop_earlier_signal_received(self):
+        return self._received_signal_to_stop
+    
+    def stop_execution_earlier(self):
+        self._received_signal_to_stop = True
+
+    def _check_if_should_stop_execution_earlier(self):
+        return False
+    
+    
+    def check_if_should_stop_execution_earlier(self):
+
+        '''Raises exception if the execution should stop earlier'''
+
+        if self._stop_earlier_signal_received():
+            raise StopExperiment()
         
+        elif self._check_if_should_stop_execution_earlier():
+            self.stop_execution_earlier()
+            raise StopExperiment()
+        
+        else:
+            return False
+        
+    def _on_earlier_interruption(self):
+        pass
+    
 
     def __on_exception(self, exception):
         '''To be called when a non treated exception happens'''
@@ -108,8 +140,21 @@ class ExecComponent(Component):
             return self.get_output()
         
         except Exception as e:
-            self.values["running_state"] = State.ERROR
-            self.__on_exception(e)
+
+            if isinstance(e, StopExperiment):
+                self.values["running_state"] = State.INTERRUPTED
+                self._on_earlier_interruption()
+
+                if self.__save_state_on_run_end:
+                    save_state(self)
+
+                if self.__save_dataframes_on_run_end:
+                    save_all_dataframes_of_component_and_children(self)
+                    flush_text_of_all_loggers_and_children(self)
+
+            else:
+                self.values["running_state"] = State.ERROR
+                self.__on_exception(e)
 
             self.values["times_ran"] += 1
 
