@@ -104,6 +104,9 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         completed_results = []
         surviving_trials = []
 
+        old_n_steps = self.n_steps
+        self.n_steps = step_budget
+
         self.step_budget = step_budget
 
         for trial in trials:
@@ -124,6 +127,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
             results.append((trial, value))
 
         executor.shutdown(wait=True)
+
+        self.n_steps = old_n_steps
 
 
         return results, completed_results, surviving_trials
