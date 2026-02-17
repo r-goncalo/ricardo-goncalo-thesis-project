@@ -1,7 +1,7 @@
 import os
 from typing import Union
 from automl.component import InputSignature, Component, requires_input_proccess
-from automl.basic_components.exec_component import ExecComponent
+from automl.basic_components.exec_component import ExecComponent, State
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
@@ -784,13 +784,28 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                     for trial in trials_in_study:
                         trials_in_study_lines.append(
-                            f"Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values]}, with result {trial.value}, and state {trial.state}"
+                            f"        Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values.items()]}, with result {trial.value}, and state {trial.state}"
                             )
 
                     self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials:")
+                    self.lg.writeLine('\n'.join(trials_in_study_lines), use_time_stamp=False)
 
-                except:
-                    self.lg.writeLine(f"Could not read trials in optuna study")
+                    if State.equals_value(self.values["running_state"], State.ERROR) or State.equals_value(self.values["running_state"], State.INTERRUPTED):
+                        self.lg.writeLine(f"Noticed that current running state is {self.values['running_state']}, trials should be resumed")
+
+                        number_of_completed_trials = sum(1 for trial in trials_in_study if trial.state == optuna.trial.TrialState.COMPLETE)
+
+                        self.lg.writeLine(f"Only completed {number_of_completed_trials} trials")
+
+                        new_number_of_trials = self.n_trials - number_of_completed_trials
+
+                        self.lg.writeLine(f"Number of trials that were not done from the registered {self.n_trials}: {new_number_of_trials}")
+
+                        self.n_trials = new_number_of_trials
+                    
+
+                except Exception as e:
+                    self.lg.writeLine(f"Could not read trials in optuna study due to exception: {e}")
                 
 
             except KeyError:
