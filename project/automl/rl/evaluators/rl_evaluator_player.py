@@ -1,15 +1,14 @@
 
 import os
 
-from automl.basic_components.state_management import json_string_of_component
 import pandas
-from automl.component import Component, requires_input_proccess
+from automl.component import Component
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
-from automl.loggers.logger_component import ComponentWithLogging, LoggerSchema, use_logger
+from automl.loggers.logger_component import LoggerSchema, use_logger
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
-from automl.loggers.result_logger import ResultLogger, aggregate_results_logger
+from automl.loggers.result_logger import aggregate_results_logger
 
 from automl.core.input_management import InputSignature
 

@@ -291,7 +291,7 @@ class StatefulComponentLoader(StatefulComponent):
         if hasattr(self, 'component_to_save_load'):
             self.unload_component() 
 
-    def __deal_with_unwanted_unloaded_component(weak_ref : weakref.ReferenceType):
+    def __deal_with_unwanted_unloaded_component(self, weak_ref : weakref.ReferenceType):
 
         leaked_obj = weak_ref()
 
