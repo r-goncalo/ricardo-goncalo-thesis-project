@@ -784,7 +784,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                     for trial in trials_in_study:
                         trials_in_study_lines.append(
-                            f"Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values]}, with result {trial.value}"
+                            f"Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values]}, with result {trial.value}, and state {trial.state}"
                             )
 
                     self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials:")
