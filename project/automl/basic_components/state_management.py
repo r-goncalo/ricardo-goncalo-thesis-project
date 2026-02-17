@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from typing import final
 from automl.component import Component, requires_input_proccess
-from automl.utils.json_utils.json_component_utils import decode_components_from_dict, dict_from_json_string, gen_component_from, json_string_of_component, component_from_json_string, set_values_of_dict_in_component
+from automl.utils.json_utils.json_component_utils import  gen_component_from
 from automl.utils.files_utils import write_text_to_file, read_text_from_file
 from automl.basic_components.artifact_management import ArtifactComponent, find_artifact_component_first_parent_directory
 import os
@@ -14,6 +14,7 @@ from automl.consts import CONFIGURATION_FILE_NAME
 
 import weakref
 import gc
+import inspect
 
 from automl.loggers.component_with_results import save_all_dataframes_of_component_and_children
 from automl.loggers.global_logger import globalWriteLine
@@ -289,6 +290,40 @@ class StatefulComponentLoader(StatefulComponent):
     def unload_if_loaded(self):
         if hasattr(self, 'component_to_save_load'):
             self.unload_component() 
+
+    def __deal_with_unwanted_unloaded_component(weak_ref : weakref.ReferenceType):
+
+        leaked_obj = weak_ref()
+
+        referrers = gc.get_referrers(leaked_obj)
+
+        debug_lines = [
+            "Component was not fully unloaded, still referenced elsewhere.",
+            f"Leaked object id: {id(leaked_obj)}",
+            f"Number of referrers: {len(referrers)}",
+            "Referrers detail:"
+        ]
+
+        for i, ref in enumerate(referrers):
+            try:
+                ref_type = type(ref)
+                location = ""
+
+                # Try to locate where this referrer lives
+                if hasattr(ref, "__class__"):
+                    location = inspect.getmodule(ref.__class__)
+
+                elif inspect.ismodule(ref):
+                    location = ref
+
+                debug_lines.append(
+                    f"[{i}] type={ref_type}, repr={repr(ref)[:200]}, module={location}"
+                )
+
+            except Exception as e:
+                debug_lines.append(f"[{i}] <error inspecting referrer: {e}>")
+
+        raise Exception("\n".join(debug_lines))
     
     @requires_input_proccess
     def unload_component(self):
@@ -306,12 +341,12 @@ class StatefulComponentLoader(StatefulComponent):
         gc.collect()
 
         if weak_ref() is not None:
-            raise Exception("Component was not fully unloaded, still referenced elsewhere.")
+            self.__deal_with_unwanted_unloaded_component(weak_ref)
         
         if torch.cuda.is_available():
             device = torch.device("cuda")
             # Get memory before
-            before = torch.cuda.memory_allocated(device)
+            #before = torch.cuda.memory_allocated(device)
             
             #print(f"Memory allocated before freeing: {before} bytes, {before / (1024 * 1024)} MB")
     
@@ -319,7 +354,7 @@ class StatefulComponentLoader(StatefulComponent):
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()  # Optional: Collect unused IPC memor
             
-            after = torch.cuda.memory_allocated(device)
+            #after = torch.cuda.memory_allocated(device)
             
             #print(f"Memory allocated freed: {before - after} bytes, {(before - after) / (1024 * 1024)} MB")
             

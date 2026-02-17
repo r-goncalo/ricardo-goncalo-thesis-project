@@ -341,7 +341,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         last_results = last_step_for_this_trial["result"].tolist()
 
         if n_results_for_step != self.trainings_per_configuration:
-            raise Exception(f"Mismatch between number of trainings that should have completed for trial {trial.number} and actual number: {n_results_for_step}")
+            raise Exception(f"Mismatch between number of trainings that should have completed for trial {trial.number} ({self.trainings_per_configuration}) and actual number: {n_results_for_step}")
         
         return sum(last_results) / len(last_results) 
     
@@ -439,7 +439,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             if isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
                 self._wait_for_all_workers_free()
-                raise e
+
+            raise e
  
 
         return self._compute_result_for_trial_run(trial)

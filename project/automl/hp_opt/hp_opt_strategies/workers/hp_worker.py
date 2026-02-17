@@ -10,6 +10,10 @@ from automl.loggers.result_logger import ResultLogger
 import optuna
 import pandas
 
+import time
+
+NUMBER_OF_TIMES_TO_UNLOAD_COMPONENT = 3 
+
 class HyperparameterOptimizationWorkerIndexed():
     
 
@@ -64,7 +68,25 @@ class HyperparameterOptimizationWorkerIndexed():
 
             if State.equals_value(running_state, State.ERROR):
                 raise Exception(f"Error when component was got") 
+            
+    def _unload_component_if_loaded(self, component_loader : StatefulComponentLoader):
 
+        exception = None
+
+        for i in reversed(range(NUMBER_OF_TIMES_TO_UNLOAD_COMPONENT)):
+
+            try:
+                component_loader.unload_if_loaded()
+                exception = None
+                break
+
+            except Exception as e:
+                exception = e
+                self.thread_logger.writeLine(f"Error while unloading component, will try {i} more times...")
+                time.sleep(30)
+
+        if exception is not None:
+            raise exception
 
     # OPTIMIZATION -------------------------------------------------------------------------
         
@@ -279,6 +301,7 @@ class HyperparameterOptimizationWorkerIndexed():
                 with override_first_logger(self.thread_logger):
                     evaluation_results = self.parent_hp_pipeline._try_evaluate_component(component_to_test_path, trial, component_to_test)
 
+                # we report and evaluate results
                 try:
 
                     self.thread_logger.writeLine(f"Finished evaluating component, reported results were {evaluation_results}\n")
@@ -311,7 +334,6 @@ class HyperparameterOptimizationWorkerIndexed():
                 self.thread_logger.writeLine(f"Error in trial {trial.number} at step {step}, prunning it...")
                 trial.set_user_attr("prune_reason", "error")
 
-
                 if self.parent_hp_pipeline.continue_after_error: # if we are to continue after an error, we count the trial simply as pruned, and let optuna deal with it
                     self.thread_logger.writeLine(f"Exception will make the trial be ignored and continue, exception was: {e}\n")
                     raise optuna.TrialPruned("error")
@@ -343,9 +365,11 @@ class HyperparameterOptimizationWorkerIndexed():
 
         raise exception
     
-
+    
 
     def on_exception_running_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial, component_index):
+
+        '''Deals with an exception while running a trial and re-raises it'''
 
         self.thread_logger.writeLine(f"ERROR RUNNING TRIAL {trial.number} in component index {component_index}")
 
@@ -360,8 +384,12 @@ class HyperparameterOptimizationWorkerIndexed():
         common_exception_handling(self.thread_logger, exception, error_report_path)
 
         raise exception
+    
+
         
     def on_general_exception_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial, component_index):
+
+        '''Deals with a general exception with no specified strategy and re-raises it'''
 
         self.thread_logger.writeLine(f"ERROR IN TRIAL {trial.number} in component index {component_index}")
 
