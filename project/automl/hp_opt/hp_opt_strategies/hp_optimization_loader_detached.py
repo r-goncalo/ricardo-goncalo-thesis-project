@@ -410,6 +410,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             if exc is not None:
 
+                should_end[0] = True
+
                 if isinstance(exc, StopExperiment):
                     # we should cancel futures, but let the currently working threads stop gracefully their proccesses
                     executor.shutdown(wait=True, cancel_futures=True)
@@ -430,11 +432,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         try:
             self.check_if_should_stop_execution_earlier()
         
-        except Exception as e:
+        except StopExperiment as e:
 
-            if not isinstance(e, StopExperiment):
-                self.stop_execution_earlier() # this makes sure the exception is propagated to other threads
-             
             self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
             raise e
 
@@ -451,14 +450,17 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
 
         except Exception as e:
-            
+
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None
 
-            if not isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
-                self.stop_execution_earlier()
             
-            self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
+            if not isinstance(e, optuna.TrialPruned):
+
+                if not isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
+                    self.stop_execution_earlier()
+
+                self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
 
             raise e
  
