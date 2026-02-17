@@ -778,7 +778,16 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
 
                 try:
-                    self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials")
+                    trials_in_study = self.study.trials
+
+                    trials_in_study_lines = []
+
+                    for trial in trials_in_study:
+                        trials_in_study_lines.append(
+                            f"Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values]}, with result {trial.value}"
+                            )
+
+                    self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials:")
 
                 except:
                     self.lg.writeLine(f"Could not read trials in optuna study")

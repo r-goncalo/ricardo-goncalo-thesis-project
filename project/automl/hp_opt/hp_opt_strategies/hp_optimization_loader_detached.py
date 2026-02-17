@@ -42,7 +42,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
     parameters_signature = {
                          "trainings_at_a_time" : InputSignature(default_value=6),
-                         "trainings_per_configuration" : InputSignature(default_value=3)
+                         "trainings_per_configuration" : InputSignature(default_value=3),
+                         "stop_gracefully_wait_time" : InputSignature(default_value=3600)
                        }
             
 
@@ -78,6 +79,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.trial_creation_sem = threading.Semaphore(1) # this is to be sure no problem regarding the sampling or any other parts of component creation appear
     
         self._setup_workers()
+
+        self.stop_gracefully_wait_time = self.get_input_value("stop_gracefully_wait_time")
 
 
     # THREADS SETUP ---------------------------------------------------
@@ -221,13 +224,15 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 sleep_time = min(sleep_time * SLEEP_INCR_RATE, MAX_SLEEP) # we increase the sleep time
 
 
-    def _wait_for_all_workers_free(self):
+    def _wait_for_all_workers_free(self, max_time=math.inf):
 
         '''Sleeps until all workers are free'''
 
         next_worker_index = 0
 
         sleep_time = MINIMUM_SLEEP
+
+        time_speeped = 0
 
         while True:
 
@@ -236,12 +241,19 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             if next_worker.is_busy(): # if they are busy, we reset our search and wait
                 next_worker_index = 0
                 time.sleep(sleep_time)
+                time_speeped += sleep_time
+
+                if time_speeped > max_time:
+                    return False # we stop waiting
+
                 sleep_time = min(sleep_time * SLEEP_INCR_RATE, MAX_SLEEP) # we increase the sleep time
 
             next_worker_index = next_worker_index + 1
 
             if next_worker_index >= len(self.workers): # we did a full search, and they were all not busy
                 break
+
+        return True
 
 
     def _wait_for_all_workers_free_so_experiment_can_gracefully_stop(self):
@@ -252,8 +264,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             return
         
         else:
-            self._wait_for_all_workers_free()
-            self.__experiment_can_gracefuly_stop = True
+            if self._wait_for_all_workers_free(self.stop_gracefully_wait_time):
+                self.__experiment_can_gracefuly_stop = True
+                
 
             
     def _get_next_available_index_trainings(self):
@@ -417,7 +430,11 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         try:
             self.check_if_should_stop_execution_earlier()
         
-        except StopExperiment as e:
+        except Exception as e:
+
+            if not isinstance(e, StopExperiment):
+                self.stop_execution_earlier() # this makes sure the exception is propagated to other threads
+             
             self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
             raise e
 
@@ -434,11 +451,14 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
 
         except Exception as e:
+            
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None
 
-            if isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
-                self._wait_for_all_workers_free()
+            if not isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
+                self.stop_execution_earlier()
+            
+            self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
 
             raise e
  
