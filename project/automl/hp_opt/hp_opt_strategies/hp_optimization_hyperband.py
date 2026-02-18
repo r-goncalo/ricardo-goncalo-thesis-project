@@ -80,14 +80,7 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         self.storage = JournalStorage(JournalFileBackend(file_path=self.database_path))
 
     
-    def _run_single_trial(self, trial):
 
-        try:
-            value = self.objective(trial)
-            return trial, value, None
-
-        except Exception as e:
-            return trial, None, e
 
 
 
@@ -122,9 +115,11 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
                 elif isinstance(exception, StopExperiment):
                     executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
+                    self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
                     raise exception
                 
                 else:
+                    self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
                     raise exception
 
             else:

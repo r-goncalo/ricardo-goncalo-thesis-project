@@ -110,7 +110,7 @@ class HyperparameterOptimizationWorkerIndexed():
         try:
   
             component_loader.save_component()
-            component_loader.unload_if_loaded()
+            self._unload_component_if_loaded(component_loader)
 
             component_loader.detach_run_component(
                                                         to_wait=True, 
@@ -118,7 +118,7 @@ class HyperparameterOptimizationWorkerIndexed():
                                                         )
             
             self._load_component_to_test(component_loader)
-            component_loader.unload_if_loaded()
+            self._unload_component_if_loaded(component_loader)
 
 
         except Exception as e:
@@ -219,9 +219,36 @@ class HyperparameterOptimizationWorkerIndexed():
             self._is_busy = False
 
         return True
+    
+    def do_initial_evaluation(self, trial : optuna.Trial, component_index, component_loader : StatefulComponentLoader, should_end):
+
+        self.thread_logger.writeLine(f"Doing initial evaluation of trial {trial.number} before initiating training...")
+            
+        component_to_test_path = str(component_loader.get_artifact_directory())
+
+        try:
+                component_to_test = self._load_component_to_test(component_loader)
+
+        except Exception as e:
+                self.on_general_exception_trial(e, component_to_test_path, trial, component_index)
+
+
+        with override_first_logger(self.thread_logger):
+                evaluation_results = self.parent_hp_pipeline._try_evaluate_component(component_to_test_path, trial, component_to_test)
+
+        self._load_and_report_resuts(trial, component_index, 0, evaluation_results)
+
+        self.thread_logger.writeLine(f"Results were: {evaluation_results}\n")
+
+        del component_to_test
+        component_loader.save_and_onload_component()
+
+        self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+
+
+        
 
     def try_run_component_in_group_all_steps(self, trial : optuna.Trial, component_index, n_steps, component_loader : StatefulComponentLoader, should_end):
-
 
         self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
 
@@ -229,29 +256,7 @@ class HyperparameterOptimizationWorkerIndexed():
 
         # IF we are to do an initial evaluation
         if last_reported_step < 0 and self.parent_hp_pipeline.do_initial_evaluation:
-
-            self.thread_logger.writeLine(f"Doing initial evaluation of trial {trial.number} before initiating training...")
-            
-            component_to_test_path = str(component_loader.get_artifact_directory())
-
-            try:
-                    component_to_test = self._load_component_to_test(component_loader)
-
-            except Exception as e:
-                    self.on_general_exception_trial(e, component_to_test_path, trial, component_index)
-
-
-            with override_first_logger(self.thread_logger):
-                    evaluation_results = self.parent_hp_pipeline._try_evaluate_component(component_to_test_path, trial, component_to_test)
-
-            self._load_and_report_resuts(trial, component_index, 0, evaluation_results)
-
-            self.thread_logger.writeLine(f"Results were: {evaluation_results}\n")
-
-            del component_to_test
-            component_loader.save_and_onload_component()
-
-            self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+            self.do_initial_evaluation(trial, component_index, component_loader)
             
 
         if last_reported_step < 0:
@@ -273,6 +278,46 @@ class HyperparameterOptimizationWorkerIndexed():
             to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
 
         return to_return
+    
+
+
+    def try_run_component_in_group_until_step(self, trial : optuna.Trial, component_index, final_step, component_loader : StatefulComponentLoader, should_end):
+
+        self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+
+        last_reported_step = self._get_last_reported_step(trial, component_index)
+
+        # IF we are to do an initial evaluation
+        if last_reported_step < 0 and self.parent_hp_pipeline.do_initial_evaluation:
+            self.do_initial_evaluation(trial, component_index, component_loader)
+            
+        if last_reported_step >= final_step:
+            self.thread_logger.writeLine(f"In trial {trial.number}, component index {component_index} had already done the number of steps needed, as it did {last_reported_step} (higher or equal than {final_step})")
+            
+        if last_reported_step < 0:
+            next_step = 1
+        else:
+            next_step = last_reported_step + 1
+
+        n_steps = final_step - next_step
+
+    
+        self.thread_logger.writeLine(f"----------------------- TRIAL: {trial.number}, COMPONENT_INDEX: {component_index}, STEPS TO DO {n_steps}, ENDS AT {n_steps} -----------------------\n")
+            
+
+        for step in range(next_step, next_step + n_steps + 1):
+
+            if should_end[0]:
+                self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}, due to concurrent logic (probably some evaluation made it so the whole trial was pruned)")
+                break
+
+            self.check_if_should_stop_execution_earlier()
+
+            to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
+
+        return to_return
+
+
 
     def try_run_component_in_group(self, trial : optuna.Trial, component_index, step, component_loader : StatefulComponentLoader):
 

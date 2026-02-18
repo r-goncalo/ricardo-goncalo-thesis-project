@@ -170,6 +170,17 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         to_return = self._run_worker(worker, trial, component_index, n_steps, should_end, index_in_trainings_remaining)
 
         return to_return
+    
+    
+    def _run_available_worker_till_step(self, trial : optuna.Trial, component_index, last_step, should_end, index_in_trainings_remaining):
+
+        '''Waits until it can aquire a worker and then runs a job with it, freeing it in the end'''
+
+        worker = self._aquire_available_worker()
+
+        to_return = self._run_worker_till_step(worker, trial, component_index, last_step, should_end, index_in_trainings_remaining)
+
+        return to_return
 
 
     def _run_worker(self, worker : HyperparameterOptimizationWorkerIndexed , trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
@@ -197,7 +208,35 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             
             worker.free_worker()
             return to_return
+    
 
+    
+    def _run_worker_till_step(self, worker : HyperparameterOptimizationWorkerIndexed , trial : optuna.Trial, component_index, last_step, should_end, index_in_trainings_remaining):
+
+            '''Runs a job with a worker and then frees it'''
+
+            # we remove a configuration
+            [_, sem, _] = self.trainings_remaining_per_thread[index_in_trainings_remaining]
+            with sem:
+                current_number = self.trainings_remaining_per_thread[index_in_trainings_remaining][2]
+                
+                if current_number <= 0:
+                    worker.free_worker()
+                    raise Exception(f"Worker {worker.thread_index} attributed to trial {trial.number}, when that trial had already all its configurations trained / being trained")
+
+                self.trainings_remaining_per_thread[index_in_trainings_remaining][2] = current_number - 1
+
+            try:
+                to_return = worker.try_run_component_in_group_until_step(trial, component_index, last_step, self._get_loader_component_group(trial).get_loader(component_index), should_end)
+
+            except Exception as e:
+                should_end[0] = True # if we receive an exception, we flag that the training for this trial should end
+                worker.free_worker()
+                raise e
+            
+            worker.free_worker()
+            return to_return
+    
 
 
     def _aquire_available_worker(self):
@@ -426,8 +465,79 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         executor.shutdown(wait=True)
 
+
+    def _run_concurrent_experiments_for_single_resumed_trial(self, trial: optuna.Trial, index_in_trainings_remaining):
     
-    def _run_optimization(self, trial: optuna.Trial):
+        # we only advance when we manage to get a non busy worker
+        first_worker = self._aquire_available_worker()
+
+        self.__experiment_can_gracefuly_stop = False
+
+        with use_logger(first_worker.thread_logger):
+            
+            # this is to force create the component for the trial
+            loader : RunnableComponentGroup = self.get_component_to_test(trial)
+            loader.unload_all_components()
+            del loader
+        
+        futures = []
+        executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
+
+        should_end = [False]
+
+        futures.append(
+            executor.submit(
+                self._run_worker_till_step,
+                first_worker,
+                trial,
+                0,
+                self.n_steps,
+                should_end,
+                index_in_trainings_remaining
+            )
+        )
+
+        # remaining jobs go through dynamic worker acquisition
+        for component_index in range(1, self.trainings_per_configuration):
+            futures.append(
+                executor.submit(
+                    self._run_available_worker_till_step,
+                    trial,
+                    component_index,
+                    self.n_steps,
+                    should_end,
+                    index_in_trainings_remaining
+                )
+            )
+
+        # wait for all jobs
+        for future in as_completed(futures):
+
+            exc = future.exception()
+
+            if exc is not None:
+
+                should_end[0] = True
+
+                if isinstance(exc, StopExperiment):
+                    # we should cancel futures, but let the currently working threads stop gracefully their proccesses
+                    executor.shutdown(wait=True, cancel_futures=True)
+
+                else:
+                    executor.shutdown(wait=False, cancel_futures=True)
+
+                with self.trainings_remaining_per_thread_sem:
+                    self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
+                    
+                raise exc
+
+        executor.shutdown(wait=True)
+
+    
+    def _run_optimization(self, trial: optuna.Trial, trial_run_function=None):
+
+        if trial_run_function is None:
+            trial_run_function = self._run_concurrent_experiments_for_single_trial
 
         try:
             self.check_if_should_stop_execution_earlier()
@@ -445,7 +555,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.trainings_remaining_per_thread[index_in_trainings_remaining] = [trial.number, threading.Semaphore(1), self.trainings_per_configuration]
 
         try:
-            self._run_concurrent_experiments_for_single_trial(trial, index_in_trainings_remaining)
+            trial_run_function(trial, index_in_trainings_remaining)
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
 
@@ -463,9 +573,73 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
 
             raise e
- 
 
         return self._compute_result_for_trial_run(trial)
+    
+    
+    def _run_single_trial(self, trial):
+
+        try:
+            value = self.objective(trial)
+            return trial, value, None
+
+        except Exception as e:
+            return trial, None, e
+        
+    def _try_resume_single_trial(self, trial : optuna.trial.FrozenTrial):
+        
+        return self._run_optimization(trial, self._run_concurrent_experiments_for_single_resumed_trial)
+    
+    
+
+    def _try_resuming_unfinished_trials(self, trials : list[optuna.trial.FrozenTrial]):
+
+        super()._try_resuming_unfinished_trials(trials)
+
+        self.run_trials(trials, running_method=self._try_resume_single_trial)
+
+
+
+    def run_trials(self, trials, running_method=None):
+        
+        if running_method is None:
+            running_method = self._run_single_trial
+
+        results = []
+        executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
+        futures = []
+
+        completed_results = []
+        surviving_trials = []
+
+        for trial in trials:
+
+            futures.append(
+                executor.submit(running_method, trial)
+            )
+
+        for future in as_completed(futures):
+
+            trial, value, exception = future.result()
+
+            if exception is not None:
+                if isinstance(exception, optuna.TrialPruned):
+                    self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
+
+                elif isinstance(exception, StopExperiment):
+                    executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
+                    raise exception
+                
+                else:
+                    raise exception
+
+            else:
+                completed_results.append((trial, value))
+                surviving_trials.append(trial)
+
+            results.append((trial, value))
+
+        executor.shutdown(wait=True)
     
 
     def _check_if_should_stop_execution_earlier(self):

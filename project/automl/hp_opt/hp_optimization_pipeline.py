@@ -152,6 +152,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.direction = self.get_input_value("direction")
 
+        self.queued_studies_to_resume = []
+
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_hyperparameter_range_list()
         self._initialize_config_dict()
@@ -169,6 +171,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self._setup_results_logger(parameter_names)
                 
         self._suggested_values_by_trials = {}  
+
+        
 
 
     def _initialize_hyperparameter_range_list(self):
@@ -746,6 +750,18 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         pass
 
+    def try_resuming_unfinished_trials(self):
+
+        self.lg.writeLine(f"Trying to resume trials: {[trial.number for trial in self.queued_studies_to_resume]}")
+
+        self._try_resuming_unfinished_trials(self.queued_studies_to_resume)
+        
+        self.lg.writeLine(f"Finished running trials")
+
+
+    def _try_resuming_unfinished_trials(self, trials_to_resume : list[optuna.trial.FrozenTrial]):
+        pass
+        
     
     # INTERNAL EXCEPTION HANDLING --------------------------------------------------------
 
@@ -763,49 +779,63 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     @requires_input_proccess
     def get_study(self):
         return self.study
+    
+    def _try_load_study(self):
+            
+        # Try loading existing study
+        self.study = optuna.load_study(
+            sampler=self.sampler,
+            storage=self.storage,
+            study_name=self.study_name,
+        )
+        self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
+
+        try:
+            trials_in_study = self.study.trials
+
+            trials_in_study_lines = []
+
+            for trial in trials_in_study:
+                trials_in_study_lines.append(
+                    f"        Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values.items()]}, with result {trial.value}, and state {trial.state}"
+                    )
+
+            self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials:")
+            self.lg.writeLine('\n'.join(trials_in_study_lines), use_time_stamp=False)
+
+            if State.equals_value(self.values["running_state"], State.ERROR) or State.equals_value(self.values["running_state"], State.INTERRUPTED):
+
+                self.lg.writeLine(f"Noticed that current running state is {self.values['running_state']}, trials should be resumed")
+
+                number_of_completed_trials = sum(1 for trial in trials_in_study if trial.state == optuna.trial.TrialState.COMPLETE)
+
+                self.queued_studies_to_resume = [trial for trial in trials_in_study if trial.state == optuna.trial.TrialState.RUNNING]
+
+                self.lg.writeLine(f"Trials that were noted as failed: {[trial.number for trial in trials_in_study if trial.state == optuna.trial.TrialState.FAIL]}")
+
+                self.lg.writeLine(f"Queued {len(self.queued_studies_to_resume)} trials to be resumed, supposedly able to run")
+
+                self.lg.writeLine(f"Only completed {number_of_completed_trials} trials")
+
+                new_number_of_trials = max(0, self.n_trials - number_of_completed_trials - len(self.queued_studies_to_resume))
+
+                self.lg.writeLine(f"Number of trials that were not done from the registered {self.n_trials} and are not queued to be resumed: {new_number_of_trials}")
+
+                if new_number_of_trials > 0:
+                    self.n_trials = new_number_of_trials
+                
+                    
+
+        except Exception as e:
+            self.lg.writeLine(f"Could not read trials in optuna study due to exception: {e}")
+
 
     def _initialize_study(self):
 
         if not hasattr(self, "study"):
 
             try:
-                # Try loading existing study
-                self.study = optuna.load_study(
-                    sampler=self.sampler,
-                    storage=self.storage,
-                    study_name=self.study_name,
-                )
-                self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
-
-                try:
-                    trials_in_study = self.study.trials
-
-                    trials_in_study_lines = []
-
-                    for trial in trials_in_study:
-                        trials_in_study_lines.append(
-                            f"        Trial {trial.number}: intermediate values: {[f"step {step}: {value}" for step, value in trial.intermediate_values.items()]}, with result {trial.value}, and state {trial.state}"
-                            )
-
-                    self.lg.writeLine(f"Existing study had {len(self.study.trials)} trials:")
-                    self.lg.writeLine('\n'.join(trials_in_study_lines), use_time_stamp=False)
-
-                    if State.equals_value(self.values["running_state"], State.ERROR) or State.equals_value(self.values["running_state"], State.INTERRUPTED):
-                        self.lg.writeLine(f"Noticed that current running state is {self.values['running_state']}, trials should be resumed")
-
-                        number_of_completed_trials = sum(1 for trial in trials_in_study if trial.state == optuna.trial.TrialState.COMPLETE)
-
-                        self.lg.writeLine(f"Only completed {number_of_completed_trials} trials")
-
-                        new_number_of_trials = self.n_trials - number_of_completed_trials
-
-                        self.lg.writeLine(f"Number of trials that were not done from the registered {self.n_trials}: {new_number_of_trials}")
-
-                        self.n_trials = new_number_of_trials
-                    
-
-                except Exception as e:
-                    self.lg.writeLine(f"Could not read trials in optuna study due to exception: {e}")
+                self._try_load_study()
                 
 
             except KeyError:
@@ -834,6 +864,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _algorithm(self): 
 
         self.lg.writeLine() 
+
+        if len(self.queued_studies_to_resume) > 0:
+            self.try_resuming_unfinished_trials()
+
+        else:
+            self.lg.writeLine(f"No trials to be resumed")
+        
 
         self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
 
