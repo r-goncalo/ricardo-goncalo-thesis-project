@@ -1,6 +1,7 @@
 
 import os
 
+from automl.utils.random_utils import generate_seed
 import pandas
 from automl.component import Component
 from automl.core.advanced_input_management import ComponentInputSignature
@@ -34,7 +35,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         "number_of_episodes" : InputSignature(default_value=5),
         "number_of_evaluations" : InputSignature(default_value=1),
         "environment" : ComponentInputSignature(mandatory=False),
-        "save_after_evaluation" : InputSignature(ignore_at_serialization=True, default_value=False)
+        "save_after_evaluation" : InputSignature(ignore_at_serialization=True, default_value=False),
+        "setup_seeds_of_player" : InputSignature(default_value=True)
     }
     
     exposed_values = {
@@ -58,6 +60,15 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         self.save_after_evaluation = self.get_input_value("save_after_evaluation")
         
         self._setup_environment()
+
+        self.setup_seeds_of_player = self.get_input_value("setup_seeds_of_player")
+
+        if self.setup_seeds_of_player:
+            self.seeds_for_player = [generate_seed() for _ in range(self.number_of_evaluations)]
+
+        else:
+            self.seeds_for_player = None
+
 
 
     def _setup_environment(self):
@@ -167,7 +178,9 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         # compute new evaluations
         for i in range(self.number_of_evaluations): # evaluate plays and store their paths 
 
-            rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env) 
+            seed_for_player = None if self.seeds_for_player is None else self.seeds_for_player[i]
+
+            rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env, seed_for_player) 
 
             results_loggers_of_new_plays.append(rl_player_of_run.get_results_logger())
 
@@ -185,7 +198,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         return evaluation_to_return
     
 
-    def _run_play_to_evaluate(self, agents : dict[str, AgentSchema], device, evaluations_directory, env):
+    def _run_play_to_evaluate(self, agents : dict[str, AgentSchema], device, evaluations_directory, env, seed_for_player=None):
 
         '''
             Plays a session with the RL player, returning it after
@@ -196,13 +209,18 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
                 
         rl_player : RLPlayer = gen_component_from(self.rl_player_definition)
 
-        rl_player.pass_input({
+        rl_player_input = {
             "agents" : agents,
             "num_episodes" : self.number_of_episodes,
             "base_directory" : evaluations_directory,
             "artifact_relative_directory" : "evaluation",
             "create_new_directory" : True # if there were other play made, create a new one
-        })
+        }
+
+        if seed_for_player is not None:
+            rl_player_input["seed"] = seed_for_player
+
+        rl_player.pass_input(rl_player_input)
         
         env = self.__generalize_get_environment(env, rl_player)
         

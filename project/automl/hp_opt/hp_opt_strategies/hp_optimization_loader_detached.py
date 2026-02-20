@@ -127,6 +127,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
     # OPTIMIZATION -------------------------------------------------------------------------
 
+    def _generate_name_for_component_group(self, trial : optuna.Trial):
+        
+        return f"conf_{trial.number}"
+
 
     def _create_component_to_optimize(self, trial : optuna.Trial) -> Component_to_opt_type:
         
@@ -137,11 +141,30 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             component_to_opt = super()._create_component_to_optimize(trial)
 
             group_directory = component_to_opt.get_artifact_directory()
-            base_name = f"conf_{trial.number}"
+            base_name = self._generate_name_for_component_group(trial)
 
             self.trial_loader_groups[trial.number] = setup_component_group(self.trainings_per_configuration, group_directory, base_name, component_to_opt, True)
 
             return self.trial_loader_groups[trial.number]
+        
+
+    def _try_load_component_into_trial_loader_groups(self, trial : optuna.Trial):
+
+        name_of_configuration = self.gen_trial_name(trial)
+        path_of_configuration = os.path.join(self.get_artifact_directory(), name_of_configuration)
+        
+        if os.path.exists(path_of_configuration):
+
+            self.trial_loader_groups[trial.number] = RunnableComponentGroup({
+                "artifact_relative_directory" : '',
+                "base_directory" : path_of_configuration,
+                "create_new_directory" : False
+            })
+
+            return self.trial_loader_groups[trial.number]
+        
+        else:
+            return None
     
 
     def _get_loader_component_group(self, trial : optuna.Trial) -> RunnableComponentGroup:
@@ -154,6 +177,15 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     def get_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
          
         if not trial.number in self.trial_loader_groups.keys():
+
+            if len(self.queued_studies_to_resume) > 0:
+                to_return = self._try_load_component_into_trial_loader_groups(trial)
+
+                if to_return is None:
+                    self.lg.writeLine(f"WARNING: Expected to load a trial in disk due to queued studies to resume, but forced to create one instead")
+
+                else:
+                    return to_return
             
             return self._create_component_to_optimize(trial)
         
@@ -398,12 +430,20 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         return sum(last_results) / len(last_results) 
     
 
-    def _run_concurrent_experiments_for_single_trial(self, trial: optuna.Trial, index_in_trainings_remaining):
+    def _run_concurrent_experiments_for_single_trial(self, trial: optuna.Trial, index_in_trainings_remaining, run_till_step=False):
     
         # we only advance when we manage to get a non busy worker
         first_worker = self._aquire_available_worker()
 
         self.__experiment_can_gracefuly_stop = False
+
+        if run_till_step:
+            run_first_worker_fun = self._run_worker_till_step
+            run_other_workers_fun = self._run_available_worker_till_step
+
+        else:
+            run_first_worker_fun = self._run_worker
+            run_other_workers_fun = self._run_available_worker
 
         with use_logger(first_worker.thread_logger):
             
@@ -419,7 +459,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         futures.append(
             executor.submit(
-                self._run_worker,
+                run_first_worker_fun,
                 first_worker,
                 trial,
                 0,
@@ -433,7 +473,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         for component_index in range(1, self.trainings_per_configuration):
             futures.append(
                 executor.submit(
-                    self._run_available_worker,
+                    run_other_workers_fun,
                     trial,
                     component_index,
                     self.n_steps,
@@ -441,6 +481,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     index_in_trainings_remaining
                 )
             )
+
+        exception_to_raise = None
 
         # wait for all jobs
         for future in as_completed(futures):
@@ -461,91 +503,24 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 with self.trainings_remaining_per_thread_sem:
                     self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
                     
-                raise exc
+                exception_to_raise = exc
 
         executor.shutdown(wait=True)
 
+        if exception_to_raise is not None:
+            raise exception_to_raise
 
-    def _run_concurrent_experiments_for_single_resumed_trial(self, trial: optuna.Trial, index_in_trainings_remaining):
     
-        # we only advance when we manage to get a non busy worker
-        first_worker = self._aquire_available_worker()
+    def _run_optimization(self, trial: optuna.Trial, trial_run_function=None, trial_run_funs_params={}):
 
-        self.__experiment_can_gracefuly_stop = False
-
-        with use_logger(first_worker.thread_logger):
-            
-            # this is to force create the component for the trial
-            loader : RunnableComponentGroup = self.get_component_to_test(trial)
-            loader.unload_all_components()
-            del loader
         
-        futures = []
-        executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
-
-        should_end = [False]
-
-        futures.append(
-            executor.submit(
-                self._run_worker_till_step,
-                first_worker,
-                trial,
-                0,
-                self.n_steps,
-                should_end,
-                index_in_trainings_remaining
-            )
-        )
-
-        # remaining jobs go through dynamic worker acquisition
-        for component_index in range(1, self.trainings_per_configuration):
-            futures.append(
-                executor.submit(
-                    self._run_available_worker_till_step,
-                    trial,
-                    component_index,
-                    self.n_steps,
-                    should_end,
-                    index_in_trainings_remaining
-                )
-            )
-
-        # wait for all jobs
-        for future in as_completed(futures):
-
-            exc = future.exception()
-
-            if exc is not None:
-
-                should_end[0] = True
-
-                if isinstance(exc, StopExperiment):
-                    # we should cancel futures, but let the currently working threads stop gracefully their proccesses
-                    executor.shutdown(wait=True, cancel_futures=True)
-
-                else:
-                    executor.shutdown(wait=False, cancel_futures=True)
-
-                with self.trainings_remaining_per_thread_sem:
-                    self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
-                    
-                raise exc
-
-        executor.shutdown(wait=True)
-
-    
-    def _run_optimization(self, trial: optuna.Trial, trial_run_function=None):
 
         if trial_run_function is None:
             trial_run_function = self._run_concurrent_experiments_for_single_trial
 
-        try:
-            self.check_if_should_stop_execution_earlier()
-        
-        except StopExperiment as e:
 
-            self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
-            raise e
+
+        print(f"Here with {self.trainings_remaining_per_thread} and fun {trial_run_function.__name__}")
 
 
         if trial.number > self.beneficted_trainings and trial.number < self.trainings_at_a_time:
@@ -555,7 +530,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.trainings_remaining_per_thread[index_in_trainings_remaining] = [trial.number, threading.Semaphore(1), self.trainings_per_configuration]
 
         try:
-            trial_run_function(trial, index_in_trainings_remaining)
+            trial_run_function(trial, index_in_trainings_remaining, **trial_run_funs_params)
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
 
@@ -586,10 +561,12 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         except Exception as e:
             return trial, None, e
         
-    def _try_resume_single_trial(self, trial : optuna.trial.FrozenTrial):
         
-        return self._run_optimization(trial, self._run_concurrent_experiments_for_single_resumed_trial)
-    
+    def _try_resume_single_trial(self, trial : optuna.trial.FrozenTrial):
+
+        '''Tries resuming a single trial'''
+        
+        return self._run_optimization(trial, self._run_concurrent_experiments_for_single_trial, {"run_till_step" : True})
     
 
     def _try_resuming_unfinished_trials(self, trials : list[optuna.trial.FrozenTrial]):

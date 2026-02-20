@@ -21,7 +21,12 @@ class HyperparameterOptimizationWorkerIndexed():
         
         self.parent_hp_pipeline : HyperparameterOptimizationPipeline = parent_hp_pipeline
 
-        self.thread_logger = self.parent_hp_pipeline.lg.clone(input_for_clone={"name" : f"{thread_index}", "log_text_file" : f"thread_loggers\\thread_logger_{thread_index}.txt"})
+        self.thread_logger = self.parent_hp_pipeline.lg.clone(input_for_clone={"name" : f"{thread_index}", 
+                                                                               "base_directory" : self.parent_hp_pipeline,
+                                                                               "artifact_relative_directory" : "thread_loggers",
+                                                                               "create_new_directory" : False,
+                                                                               "log_text_file" : f"thread_logger_{thread_index}.txt"
+                                                                               })
 
         self.thread_index = thread_index
 

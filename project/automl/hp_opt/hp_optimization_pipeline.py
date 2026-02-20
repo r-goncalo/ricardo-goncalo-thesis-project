@@ -867,6 +867,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         if len(self.queued_studies_to_resume) > 0:
             self.try_resuming_unfinished_trials()
+            self.queued_studies_to_resume = []
 
         else:
             self.lg.writeLine(f"No trials to be resumed")
