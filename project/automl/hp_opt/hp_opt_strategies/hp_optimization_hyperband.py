@@ -77,65 +77,7 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         
         self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
 
-        self.storage = JournalStorage(JournalFileBackend(file_path=self.database_path))
-
-    
-
-
-
-
-    def _do_successive_halving_bracket(self, trials, step_budget):
-        
-
-        results = []
-        executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
-        futures = []
-
-        completed_results = []
-        surviving_trials = []
-
-        old_n_steps = self.n_steps
-        self.n_steps = step_budget
-
-        self.step_budget = step_budget
-
-        for trial in trials:
-
-            futures.append(
-                executor.submit(self._run_single_trial, trial)
-            )
-
-        for future in as_completed(futures):
-
-            trial, value, exception = future.result()
-
-            if exception is not None:
-                if isinstance(exception, optuna.TrialPruned):
-                    self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
-
-                elif isinstance(exception, StopExperiment):
-                    executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
-                    self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
-                    raise exception
-                
-                else:
-                    self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
-                    raise exception
-
-            else:
-                completed_results.append((trial, value))
-                surviving_trials.append(trial)
-
-            results.append((trial, value))
-
-        executor.shutdown(wait=True)
-
-        self.n_steps = old_n_steps
-
-
-        return results, completed_results, surviving_trials
-
-    
+        self.storage = JournalStorage(JournalFileBackend(file_path=self.database_path))    
     
     
     def _reduce_trials_due_to_results(self, trials : list, results : list, n_trials_to_mantain : int):
@@ -183,8 +125,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
                     self.lg.writeLine(f"Because of limit of max steps per trial of {self.max_steps_per_trial} and current steps done {total_step_budget}, this will be last bracket with {step_budget} steps instead")
 
-                results, completed_results, surviving_trials = self._do_successive_halving_bracket(trials, step_budget)
-                
+                results, completed_results, surviving_trials = self.run_trials(trials, steps_to_run=step_budget, mark_trials_as_completed=False)
+
                 if end_successive_halving:
                     break
 

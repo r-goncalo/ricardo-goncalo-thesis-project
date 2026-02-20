@@ -600,7 +600,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
 
 
-    def run_trials(self, trials, running_method=None):
+    def run_trials(self, trials, running_method=None, steps_to_run=None, mark_trials_as_completed=True):
         
         if running_method is None:
             running_method = self._run_single_trial
@@ -612,11 +612,17 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         completed_results = []
         surviving_trials = []
 
+        if steps_to_run is not None:
+            old_n_steps = self.n_steps
+            self.n_steps = steps_to_run
+
         for trial in trials:
 
             futures.append(
                 executor.submit(running_method, trial)
             )
+
+        exception_to_raise = None # we delay the raising of an exception as to allow results to be properly dealt with
 
         for future in as_completed(futures):
 
@@ -628,18 +634,30 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
                 elif isinstance(exception, StopExperiment):
                     executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
-                    raise exception
+                    exception_to_raise = exception
                 
                 else:
-                    raise exception
+                    self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
+                    exception_to_raise = exception
 
             else:
                 completed_results.append((trial, value))
                 surviving_trials.append(trial)
 
+                if mark_trials_as_completed:
+                    self.study.tell(trial, value)
+
             results.append((trial, value))
 
         executor.shutdown(wait=True)
+
+        if steps_to_run is not None:
+            self.n_steps = old_n_steps
+
+        if exception_to_raise is not None:
+            raise exception_to_raise
+
+        return results, completed_results, surviving_trials
     
 
     def _check_if_should_stop_execution_earlier(self):
