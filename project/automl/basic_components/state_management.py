@@ -3,6 +3,7 @@
 
 import shutil
 import subprocess
+import time
 from typing import final
 from automl.component import Component, requires_input_proccess
 from automl.utils.json_utils.json_component_utils import  gen_component_from
@@ -243,7 +244,6 @@ def unload_component(component : Component) -> None:
                         
             
 
-# TODO: REVIEW THIS, it is weird and unecessarly complex
 class StatefulComponentLoader(StatefulComponent):
     
     '''A component with the capability of storing its state in its respective directory and later load it'''
@@ -357,6 +357,27 @@ class StatefulComponentLoader(StatefulComponent):
             #after = torch.cuda.memory_allocated(device)
             
             #print(f"Memory allocated freed: {before - after} bytes, {(before - after) / (1024 * 1024)} MB")
+
+
+    def unload_component_if_loaded_with_retries(self, number_of_times_to_try_unload=3, time_secs_to_wait=30, lg=None):
+
+        exception = None
+
+        for i in reversed(range(number_of_times_to_try_unload)):
+
+            try:
+                self.unload_if_loaded()
+                exception = None
+                break
+
+            except Exception as e:
+                exception = e
+                if lg is not None:
+                    lg.writeLine(f"Exception {e} when trying to unload component, will try {i} more times")
+                time.sleep(time_secs_to_wait)
+
+        if exception is not None:
+            raise exception
             
         
     @requires_input_proccess

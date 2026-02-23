@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import shutil
 import threading
 import time
 from automl.basic_components.component_group import RunnableComponentGroup, setup_component_group
@@ -30,8 +31,8 @@ MINIMUM_SLEEP = 1
 SLEEP_INCR_RATE = 2
 MAX_SLEEP = 60
 
-
 OPTUNA_STUDY_PATH = "journal.log"
+
 
 class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizationPipeline):
     
@@ -77,10 +78,16 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.trainings_remaining_per_thread = [None] * self.trainings_at_a_time
 
         self.trial_creation_sem = threading.Semaphore(1) # this is to be sure no problem regarding the sampling or any other parts of component creation appear
-    
+
+        self.optuna_usage_sem = threading.Semaphore(1)    
+
         self._setup_workers()
 
         self.stop_gracefully_wait_time = self.get_input_value("stop_gracefully_wait_time")
+
+        self.__experiment_can_gracefuly_stop = False
+
+        self.lg.writeLine(f"Finished processing input related to multiple component, detached execution")
 
 
     # THREADS SETUP ---------------------------------------------------
@@ -150,6 +157,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
     def _try_load_component_into_trial_loader_groups(self, trial : optuna.Trial):
 
+        #self.lg.writeLine(f"HERE IN _try_load_component_into_trial_loader_groups trying to load: {trial.number}")
+
         name_of_configuration = self.gen_trial_name(trial)
         path_of_configuration = os.path.join(self.get_artifact_directory(), name_of_configuration)
         
@@ -161,9 +170,30 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 "create_new_directory" : False
             })
 
+            loaders = []
+
+            for i in range(self.trainings_per_configuration):
+                loaders.append(
+                    StatefulComponentLoader(
+                        {"base_directory" : self.trial_loader_groups[trial.number].get_artifact_directory(),
+                         "create_new_directory" : False,
+                         "artifact_relative_directory" : f'{i}'
+                         }
+                    )
+                )
+                
+                self
+                
+
+            self.trial_loader_groups[trial.number].pass_input({"components_loaders_in_group" : loaders}) 
+
+            #self.lg.writeLine(f"HERE IN _try_load_component_into_trial_loader_groups trying to load: {trial.number} and exists")
+
             return self.trial_loader_groups[trial.number]
         
         else:
+
+            #self.lg.writeLine(f"HERE IN _try_load_component_into_trial_loader_groups trying to load: {trial.number} and does not exist")
             return None
     
 
@@ -175,17 +205,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
 
     def get_component_to_test(self, trial : optuna.Trial) -> Component_to_opt_type:
+
+        #self.lg.writeLine(f"HERE IN get_component_to_test: {trial.number}")
          
         if not trial.number in self.trial_loader_groups.keys():
-
-            if len(self.queued_studies_to_resume) > 0:
-                to_return = self._try_load_component_into_trial_loader_groups(trial)
-
-                if to_return is None:
-                    self.lg.writeLine(f"WARNING: Expected to load a trial in disk due to queued studies to resume, but forced to create one instead")
-
-                else:
-                    return to_return
             
             return self._create_component_to_optimize(trial)
         
@@ -207,6 +230,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     def _run_available_worker_till_step(self, trial : optuna.Trial, component_index, last_step, should_end, index_in_trainings_remaining):
 
         '''Waits until it can aquire a worker and then runs a job with it, freeing it in the end'''
+
+        #self.lg.writeLine(f"HERE IN _run_available_worker_till_step: {trial.number}")
 
         worker = self._aquire_available_worker()
 
@@ -246,6 +271,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     def _run_worker_till_step(self, worker : HyperparameterOptimizationWorkerIndexed , trial : optuna.Trial, component_index, last_step, should_end, index_in_trainings_remaining):
 
             '''Runs a job with a worker and then frees it'''
+
+            #self.lg.writeLine(f"HERE IN _run_worker_till_step: {trial.number}")
 
             # we remove a configuration
             [_, sem, _] = self.trainings_remaining_per_thread[index_in_trainings_remaining]
@@ -438,6 +465,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.__experiment_can_gracefuly_stop = False
 
         if run_till_step:
+            #self.lg.writeLine(f"HERE IN _run_concurrent_experiments_for_single_trial: {trial.number}")
             run_first_worker_fun = self._run_worker_till_step
             run_other_workers_fun = self._run_available_worker_till_step
 
@@ -449,13 +477,18 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             
             # this is to force create the component for the trial
             loader : RunnableComponentGroup = self.get_component_to_test(trial)
-            loader.unload_all_components()
+            #self.lg.writeLine(f"HERE IN _run_concurrent_experiments_for_single_trial: {trial.number} unloading")
+            loader.unload_all_components_with_retries(lg=first_worker.thread_logger)
+            #self.lg.writeLine(f"HERE IN _run_concurrent_experiments_for_single_trial: {trial.number} after unloading")
             del loader
         
         futures = []
         executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
 
         should_end = [False]
+
+        #if run_till_step:
+        #    self.lg.writeLine(f"HERE IN _run_concurrent_experiments_for_single_trial: {trial.number} and futures: {futures}")
 
         futures.append(
             executor.submit(
@@ -482,7 +515,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 )
             )
 
-        exception_to_raise = None
+        exceptions_to_raise = []
 
         # wait for all jobs
         for future in as_completed(futures):
@@ -493,34 +526,31 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
                 should_end[0] = True
 
+                executor.shutdown(wait=True, cancel_futures=True)
+
                 if isinstance(exc, StopExperiment):
                     # we should cancel futures, but let the currently working threads stop gracefully their proccesses
                     executor.shutdown(wait=True, cancel_futures=True)
 
-                else:
-                    executor.shutdown(wait=False, cancel_futures=True)
-
-                with self.trainings_remaining_per_thread_sem:
-                    self.trainings_remaining_per_thread[index_in_trainings_remaining] = None # we let go of the index
+                else: # as it is either a pruned experiment or a fail, there is not need to continue other experiments
+                    executor.shutdown(wait=False, cancel_futures=True) 
                     
-                exception_to_raise = exc
+                exceptions_to_raise.append(exc)
 
         executor.shutdown(wait=True)
 
-        if exception_to_raise is not None:
-            raise exception_to_raise
+        self._raise_exception_in_execution(exceptions_to_raise)
 
     
     def _run_optimization(self, trial: optuna.Trial, trial_run_function=None, trial_run_funs_params={}):
 
-        
+        if self.check_if_should_stop_execution_earlier(raise_exception=False):
+            self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
+            self.check_if_should_stop_execution_earlier()
 
+    
         if trial_run_function is None:
             trial_run_function = self._run_concurrent_experiments_for_single_trial
-
-
-
-        print(f"Here with {self.trainings_remaining_per_thread} and fun {trial_run_function.__name__}")
 
 
         if trial.number > self.beneficted_trainings and trial.number < self.trainings_at_a_time:
@@ -538,7 +568,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None
-
             
             if not isinstance(e, optuna.TrialPruned):
 
@@ -552,7 +581,13 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         return self._compute_result_for_trial_run(trial)
     
     
-    def _run_single_trial(self, trial):
+    def _run_single_trial(self, trial=None):
+
+        '''Runs optimization for a single trial, returning itself, the value, and an exception if any'''
+
+        if trial is None:
+            with self.optuna_usage_sem:
+                trial = self.study.ask()
 
         try:
             value = self.objective(trial)
@@ -565,26 +600,110 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     def _try_resume_single_trial(self, trial : optuna.trial.FrozenTrial):
 
         '''Tries resuming a single trial'''
+
+        self.lg.writeLine(f"HERE IN RESUME SINGLE TRIAL: {trial.number} with type {type(trial)}")
+
+        try:
+            value = self._run_optimization(trial, self._run_concurrent_experiments_for_single_trial, {"run_till_step" : True})
+            return trial, value, None
         
-        return self._run_optimization(trial, self._run_concurrent_experiments_for_single_trial, {"run_till_step" : True})
+        except Exception as e:
+            return trial, None, e
     
+    def _translate_frozen_trial_into_new_trial(self, old_trial : optuna.trial.FrozenTrial):
+
+        new_trial = super()._translate_frozen_trial_into_new_trial(old_trial)
+
+        name_of_configuration = self.gen_trial_name(old_trial)
+        path_of_configuration = os.path.join(self.get_artifact_directory(), name_of_configuration)
+
+        if os.path.exists(name_of_configuration):
+            
+            new_name_of_configuration = self.gen_trial_name(new_trial)
+            new_path_of_configuration = os.path.join(self.get_artifact_directory(), new_name_of_configuration)
+
+            self.lg.writeLine(f"Olf trial {old_trial.number} had an existent folder, changing it into folder for new trial {new_trial.number}: {path_of_configuration} -> {new_path_of_configuration}")
+
+            shutil.move(path_of_configuration, new_path_of_configuration)
+
+        return new_trial
+
+    def _try_load_all_resumed_trials(self, trials : list[optuna.trial.FrozenTrial]):
+
+        self.lg.writeLine(f"Trying to load loaders of queued trials...")
+
+        for trial in trials:
+            if self._try_load_component_into_trial_loader_groups(trial) is not None:
+                self.lg.writeLine(f"Loaded trial {trial.number} from disk")
+
 
     def _try_resuming_unfinished_trials(self, trials : list[optuna.trial.FrozenTrial]):
 
         super()._try_resuming_unfinished_trials(trials)
 
+        self._try_load_all_resumed_trials(trials)
+
         self.run_trials(trials, running_method=self._try_resume_single_trial)
 
 
+    def _raise_exception_in_execution(self, exceptions_to_raise, raise_exception=True):
+
+        '''Done to check which exceptions were noted in execution of a single trial and raise experiments with priority'''
+
+        if len(exceptions_to_raise) > 0:
+
+            for exception_to_raise in exceptions_to_raise:
+                if not isinstance(exception_to_raise, (StopExperiment, optuna.TrialPruned)):
+                    if raise_exception:    
+                        raise exception_to_raise
+                    else:
+                        return exception_to_raise
+
+            for exception_to_raise in exceptions_to_raise:
+                if not isinstance(exception_to_raise, StopExperiment):
+                    if raise_exception:
+                        raise exception_to_raise
+                    else:
+                        return exception_to_raise
+            
+            if raise_exception:
+                raise exceptions_to_raise[0]
+            else:
+                return exception_to_raise        
+        
+
+    def _generate_futures_for_trials(self, executor : ThreadPoolExecutor, trials, running_method):
+        futures = []
+
+        if isinstance(trials, list):
+
+            for trial in trials:
+                futures.append(executor.submit(running_method, trial))
+
+        elif isinstance(trials, int):
+            for _ in range(trials):
+                futures.append(executor.submit(running_method))
+
+        else:
+            raise Exception(f"Trials must be a list of trials or an integer specifying the number of trials")
+
+        return futures
+
 
     def run_trials(self, trials, running_method=None, steps_to_run=None, mark_trials_as_completed=True):
+
+        '''
+        
+        @returns results of all trials, results of non pruned trials, non pruned trials
+        '''
         
         if running_method is None:
             running_method = self._run_single_trial
 
+        self.lg.writeLine(f"Running {len(trials) if isinstance(trials, list) else trials} trials with running method: {running_method.__name__}, steps to run: {self.n_steps if steps_to_run is None else steps_to_run}, mark trials as completed: {mark_trials_as_completed}")
+
         results = []
         executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
-        futures = []
 
         completed_results = []
         surviving_trials = []
@@ -593,36 +712,50 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             old_n_steps = self.n_steps
             self.n_steps = steps_to_run
 
-        for trial in trials:
+        futures = self._generate_futures_for_trials(executor, trials, running_method)
 
-            futures.append(
-                executor.submit(running_method, trial)
-            )
-
-        exception_to_raise = None # we delay the raising of an exception as to allow results to be properly dealt with
+        exceptions_to_raise = [] # we delay the raising of an exception as to allow results to be properly dealt with
 
         for future in as_completed(futures):
 
             trial, value, exception = future.result()
 
             if exception is not None:
+
                 if isinstance(exception, optuna.TrialPruned):
-                    self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
+                    self.values["trials_done_in_this_execution"] += 1
+                    with self.optuna_usage_sem:
+                        self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
+                    self.lg.writeLine(f"Trial {trial.number} was pruned")
 
                 elif isinstance(exception, StopExperiment):
                     executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
-                    exception_to_raise = exception
+                    exceptions_to_raise.append(exception)
+                    self.lg.writeLine(f"Trial {trial.number} over due to signal to stop the experiment")
                 
                 else:
-                    self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
-                    exception_to_raise = exception
+                    with self.optuna_usage_sem:
+                        self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
+                    
+                    if not self.continue_after_error:
+                        self.lg.writeLine(f"There was an error in trial {trial.number}, as <continue_after_error> is set to false, will cancel other trials, error was: {exception}")
+                        executor.shutdown(wait=True, cancel_futures=True)
+                        exceptions_to_raise.append(exception)
+
+                    else:
+                        self.lg.writeLine(f"Error in trial {trial.number}, as <continue_after_error> is set to true, will not cancel other trials, error was: {exception}")
+                        self.values["trials_done_in_this_execution"] += 1 # we only count as a completed trial if it did not end the test
+                    
 
             else:
                 completed_results.append((trial, value))
                 surviving_trials.append(trial)
 
                 if mark_trials_as_completed:
-                    self.study.tell(trial, value)
+                    self.lg.writeLine(f"Trial {trial.number} marked as completed with value: {value}")
+                    self.values["trials_done_in_this_execution"] += 1
+                    with self.optuna_usage_sem:
+                        self.study.tell(trial, value)
 
             results.append((trial, value))
 
@@ -631,10 +764,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         if steps_to_run is not None:
             self.n_steps = old_n_steps
 
-        if exception_to_raise is not None:
-            raise exception_to_raise
+        self._raise_exception_in_execution(exceptions_to_raise)
 
         return results, completed_results, surviving_trials
+        
     
 
     def _check_if_should_stop_execution_earlier(self):
@@ -683,7 +816,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         super().after_trial(study, trial)
                         
         component_group = self._get_loader_component_group(trial)
-        component_group.unload_all_components()
+        component_group.unload_all_components_with_retries()
 
     
     def _initialize_database(self):
@@ -697,9 +830,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
   
 
     def _call_objective(self):
+        self.run_trials(self.n_trials)
+        
 
-        self.study.optimize( lambda trial : self.objective(trial), 
-                       n_trials=self.n_trials,
-                       n_jobs=self.trainings_at_a_time,
-                       callbacks=[self.after_trial])
         

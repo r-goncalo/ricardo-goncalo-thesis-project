@@ -75,6 +75,41 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
     def unload_all_components(self):
          for loader in self.components_loaders_in_group:
               loader.unload_if_loaded()
+    
+    @requires_input_proccess
+    def unload_all_components_with_retries(self, number_of_times_to_try_unload=3, time_secs_to_wait=30, lg=None):
+         
+        exceptions = []
+
+        for i in reversed(range(number_of_times_to_try_unload)):
+             
+            exceptions = []
+
+            for l in range(len(self.components_loaders_in_group)):
+                loader = self.components_loaders_in_group[i]
+                try:
+                    loader.unload_if_loaded()
+                except Exception as e:
+                    exceptions.append((l, e))
+
+
+            if len(exceptions) > 0:
+
+                if lg is not None:
+
+                    for (l, e) in exceptions:
+                        lg.writeLine(f"Exception in loader in index {l}: {e}")
+
+                    lg.writeLine(f"Will try to unload components {i} more times")
+
+                time.sleep(time_secs_to_wait)
+
+            else:
+                break
+
+        if len(exceptions) > 0:
+             (l, e) = exceptions[0]
+             raise Exception(f"Error unloading component {l}") from e
             
     
     # RUNNING COMPONENTS -------------------------------------------------

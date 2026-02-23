@@ -83,22 +83,29 @@ class ExecComponent(Component):
         return False
     
     
-    def check_if_should_stop_execution_earlier(self):
+    def check_if_should_stop_execution_earlier(self, raise_exception=True):
 
         '''Raises exception if the execution should stop earlier'''
 
         if self._stop_earlier_signal_received():
-            raise StopExperiment()
+            if raise_exception:
+                raise StopExperiment()
+            else:
+                return True
         
         elif self._check_if_should_stop_execution_earlier():
             self.stop_execution_earlier()
-            raise StopExperiment()
+            if raise_exception:
+                raise StopExperiment()
+            else:
+                return True
         
         else:
             return False
         
     def _on_earlier_interruption(self):
         pass
+    
     
 
     def __on_exception(self, exception):
@@ -143,6 +150,7 @@ class ExecComponent(Component):
 
             if isinstance(e, StopExperiment):
                 self.values["running_state"] = State.INTERRUPTED
+                self.stop_execution_earlier()
                 self._on_earlier_interruption()
 
                 if self.__save_state_on_run_end:

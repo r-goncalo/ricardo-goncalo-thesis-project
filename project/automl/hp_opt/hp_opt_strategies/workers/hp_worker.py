@@ -12,7 +12,6 @@ import pandas
 
 import time
 
-NUMBER_OF_TIMES_TO_UNLOAD_COMPONENT = 3 
 
 class HyperparameterOptimizationWorkerIndexed():
     
@@ -21,12 +20,15 @@ class HyperparameterOptimizationWorkerIndexed():
         
         self.parent_hp_pipeline : HyperparameterOptimizationPipeline = parent_hp_pipeline
 
+        self.parent_hp_pipeline.lg.proccess_input_if_not_proccesd()
         self.thread_logger = self.parent_hp_pipeline.lg.clone(input_for_clone={"name" : f"{thread_index}", 
                                                                                "base_directory" : self.parent_hp_pipeline,
                                                                                "artifact_relative_directory" : "thread_loggers",
                                                                                "create_new_directory" : False,
                                                                                "log_text_file" : f"thread_logger_{thread_index}.txt"
                                                                                })
+        
+        self.thread_logger.writeLine(f"Worker was setup\n")
 
         self.thread_index = thread_index
 
@@ -53,12 +55,12 @@ class HyperparameterOptimizationWorkerIndexed():
         with self._is_busy_sem:
             self._is_busy = False
 
-    def check_if_should_stop_execution_earlier(self):
+    def check_if_should_stop_execution_earlier(self, trial):
         try:
             self.parent_hp_pipeline.check_if_should_stop_execution_earlier()
 
         except StopExperiment as e:
-            self.thread_logger.writeLine(f"Worker noticed a signal to prematurely stop the proccess, ending it...")
+            self.thread_logger.writeLine(f"Worker noticed a signal to prematurely stop the proccess on trial {trial.number}, ending it...")
             raise e
 
 
@@ -73,25 +75,7 @@ class HyperparameterOptimizationWorkerIndexed():
 
             if State.equals_value(running_state, State.ERROR):
                 raise Exception(f"Error when component was got") 
-            
-    def _unload_component_if_loaded(self, component_loader : StatefulComponentLoader):
-
-        exception = None
-
-        for i in reversed(range(NUMBER_OF_TIMES_TO_UNLOAD_COMPONENT)):
-
-            try:
-                component_loader.unload_if_loaded()
-                exception = None
-                break
-
-            except Exception as e:
-                exception = e
-                self.thread_logger.writeLine(f"Error while unloading component, will try {i} more times...")
-                time.sleep(30)
-
-        if exception is not None:
-            raise exception
+        
 
     # OPTIMIZATION -------------------------------------------------------------------------
         
@@ -115,7 +99,7 @@ class HyperparameterOptimizationWorkerIndexed():
         try:
   
             component_loader.save_component()
-            self._unload_component_if_loaded(component_loader)
+            component_loader.unload_component_if_loaded_with_retries(lg=self.thread_logger)
 
             component_loader.detach_run_component(
                                                         to_wait=True, 
@@ -123,7 +107,7 @@ class HyperparameterOptimizationWorkerIndexed():
                                                         )
             
             self._load_component_to_test(component_loader)
-            self._unload_component_if_loaded(component_loader)
+            component_loader.unload_component_if_loaded_with_retries(lg=self.thread_logger)
 
 
         except Exception as e:
@@ -178,15 +162,16 @@ class HyperparameterOptimizationWorkerIndexed():
 
             last_results = filtered_df["result"].tolist()
 
-            enough_runs = n_results_for_step == self.parent_hp_pipeline.trainings_per_configuration
+        enough_runs = n_results_for_step == self.parent_hp_pipeline.trainings_per_configuration
 
-            if enough_runs:
-                avg_result = sum(last_results) / len(last_results)    
-                self.thread_logger.writeLine(f"Reporting result {avg_result}, average of results: {last_results}")
+        if enough_runs:
+            avg_result = sum(last_results) / len(last_results)    
+            self.thread_logger.writeLine(f"Reporting result {avg_result}, average of results: {last_results}")
+            with self.parent_hp_pipeline.optuna_usage_sem:
                 trial.report(avg_result, step)
-
-            else:
-                self.thread_logger.writeLine(f"Not enough configurations to report, current is {n_results_for_step}, needed is {self.parent_hp_pipeline.trainings_per_configuration}. Current results are {last_results}")
+        
+        else:
+            self.thread_logger.writeLine(f"Not enough configurations to report, current is {n_results_for_step}, needed is {self.parent_hp_pipeline.trainings_per_configuration}. Current results are {last_results}")
 
         return enough_runs
 
@@ -248,14 +233,14 @@ class HyperparameterOptimizationWorkerIndexed():
         del component_to_test
         component_loader.save_and_onload_component()
 
-        self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+        self.check_if_should_stop_execution_earlier(trial) # check if experiment should be stopped earlier
 
 
         
 
     def try_run_component_in_group_all_steps(self, trial : optuna.Trial, component_index, n_steps, component_loader : StatefulComponentLoader, should_end):
 
-        self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+        self.check_if_should_stop_execution_earlier(trial) # check if experiment should be stopped earlier
 
         last_reported_step = self._get_last_reported_step(trial, component_index)
 
@@ -271,16 +256,19 @@ class HyperparameterOptimizationWorkerIndexed():
 
         self.thread_logger.writeLine(f"----------------------- TRIAL: {trial.number}, COMPONENT_INDEX: {component_index}, STEPS TO DO {n_steps} -----------------------\n")
             
+        to_return = None
 
-        for step in range(next_step, next_step + n_steps + 1):
+        for step in range(next_step, next_step + n_steps):
 
             if should_end[0]:
                 self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}, due to concurrent logic (probably some evaluation made it so the whole trial was pruned)")
                 break
 
-            self.check_if_should_stop_execution_earlier()
+            self.check_if_should_stop_execution_earlier(trial)
 
             to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
+
+        self.thread_logger.writeLine(f"Ended execution of trial {trial.number}, component index {component_index}")
 
         return to_return
     
@@ -288,7 +276,7 @@ class HyperparameterOptimizationWorkerIndexed():
 
     def try_run_component_in_group_until_step(self, trial : optuna.Trial, component_index, final_step, component_loader : StatefulComponentLoader, should_end):
 
-        self.check_if_should_stop_execution_earlier() # check if experiment should be stopped earlier
+        self.check_if_should_stop_execution_earlier(trial) # check if experiment should be stopped earlier
 
         last_reported_step = self._get_last_reported_step(trial, component_index)
 
@@ -309,6 +297,7 @@ class HyperparameterOptimizationWorkerIndexed():
     
         self.thread_logger.writeLine(f"----------------------- TRIAL: {trial.number}, COMPONENT_INDEX: {component_index}, STEPS TO DO {n_steps}, ENDS AT {n_steps} -----------------------\n")
             
+        to_return = None
 
         for step in range(next_step, next_step + n_steps + 1):
 
@@ -316,9 +305,11 @@ class HyperparameterOptimizationWorkerIndexed():
                 self.thread_logger.writeLine(f"Interruped in trial {trial.number}, in component {component_index}, before step {step}, due to concurrent logic (probably some evaluation made it so the whole trial was pruned)")
                 break
 
-            self.check_if_should_stop_execution_earlier()
+            self.check_if_should_stop_execution_earlier(trial)
 
             to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
+
+        self.thread_logger.writeLine(f"Ended execution of trial {trial.number}, component index {component_index}")
 
         return to_return
 
@@ -360,10 +351,24 @@ class HyperparameterOptimizationWorkerIndexed():
 
                     self.thread_logger.writeLine(f"Ended step {step} for component {component_index} in trial {trial.number}\n") 
 
-                    if enough_runs and trial.should_prune(): # we verify this after reporting the result
-                        self.thread_logger.writeLine("Prunning current experiment due to pruner...\n")
-                        trial.set_user_attr("prune_reason", "pruner")
-                        raise optuna.TrialPruned()
+                    with self.parent_hp_pipeline.optuna_usage_sem:
+
+                        if enough_runs:
+
+                            self.thread_logger.writeLine(f"Using pruner to check if trial {trial.number} at step {step} should be pruned...")
+
+                            for trial_in_study in self.parent_hp_pipeline.study.trials:
+
+                                self.thread_logger.writeLine(f"Trial {trial_in_study.number} has indermediate values: {trial_in_study.intermediate_values}")
+
+                            if trial.should_prune(): # we verify this after reporting the result
+
+                                self.thread_logger.writeLine("Prunning current experiment due to pruner...\n")
+                                trial.set_user_attr("prune_reason", "pruner")
+                                raise optuna.TrialPruned()
+
+                            else:
+                                self.thread_logger.writeLine(f"Trial survived prunning strategy")
 
                     return evaluation_results
                 
@@ -377,27 +382,11 @@ class HyperparameterOptimizationWorkerIndexed():
 
         except Exception as e:
 
-                if isinstance(e, optuna.TrialPruned):
-                    raise e # don't consume exception, let it pass, so optuna can deal with it
-                                
-                # if we reached here, it means an exception other than the trial being pruned was got
-                self.thread_logger.writeLine(f"Error in trial {trial.number} at step {step}, prunning it...")
-                trial.set_user_attr("prune_reason", "error")
-
-                if self.parent_hp_pipeline.continue_after_error: # if we are to continue after an error, we count the trial simply as pruned, and let optuna deal with it
-                    self.thread_logger.writeLine(f"Exception will make the trial be ignored and continue, exception was: {e}\n")
-                    raise optuna.TrialPruned("error")
-                
-                else: # if not, we propagate the exception
-                    self.thread_logger.writeLine("As <continue_after_error> was set to False, we end the Hyperparameter Optimization process and propagate the error to the caller\n")
-                    raise e
-                
-        except KeyboardInterrupt as e:
-            
-                self.thread_logger.writeLine(f"User interrupted experiment in trial {trial.number} at step {step}, prunning it...\n")
-                trial.set_user_attr("prune_reason", "user_interrupt")
+                if not isinstance(e, optuna.TrialPruned):
+                    self.thread_logger.writeLine(f"Error in trial {trial.number} at step {step}: {e}")
 
                 raise e
+                
     
 
     def on_exception_evaluating_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial, component_index):

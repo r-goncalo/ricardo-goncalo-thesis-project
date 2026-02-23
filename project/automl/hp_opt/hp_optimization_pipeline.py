@@ -82,7 +82,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "debug_classes" : InputSignature(mandatory=False)
                                                     
                        }
-            
+    
+    exposed_values = {"trials_done_in_this_execution" : -1}
 
     # PARTIAL INITIALIZATION -----------------------------------------------------------------------------
     
@@ -754,13 +755,154 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Trying to resume trials: {[trial.number for trial in self.queued_studies_to_resume]}")
 
+        self.transate_queued_trials_into_new_trials()
+
         self._try_resuming_unfinished_trials(self.queued_studies_to_resume)
         
         self.lg.writeLine(f"Finished running trials")
 
 
+    def _translate_frozen_trial_into_new_trial(self, old_trial : optuna.trial.FrozenTrial):
+
+        value = None if old_trial.state != optuna.trial.TrialState.COMPLETE else old_trial.value
+
+        new_trial = optuna.create_trial(
+            params=old_trial.params,
+            distributions=old_trial.distributions,
+            user_attrs=old_trial.user_attrs,
+            system_attrs=old_trial.system_attrs,
+            intermediate_values=old_trial.intermediate_values,
+            state=old_trial.state,
+            value=value  # must be None if not COMPLETE
+        )
+
+        self.study.add_trial(new_trial)
+
+        return new_trial
+    
+    def clone_temp_study(self):
+
+        '''Returns a temporary study that defaults to using in memory storage'''
+
+        return optuna.create_study(
+            sampler=self.sampler,
+            study_name=f"{self.study_name}_temp",
+            direction=self.direction,
+            pruner=self.pruning_strategy,
+            load_if_exists=False,
+        )
+    
+    def clone_study_into_another(self, old_study : optuna.Study, new_study : optuna.Study):
+
+        for t in old_study.get_trials(deepcopy=False):
+
+            new_trial = optuna.create_trial(
+                state=t.state,
+                value=t.value,
+                params=t.params,
+                distributions=t.distributions,
+                user_attrs=t.user_attrs,
+                system_attrs=t.system_attrs,
+                intermediate_values=t.intermediate_values,
+            )
+
+            new_study.add_trial(new_trial)
+
+        return new_study
+
+    
+    def clone_study_except_for_trials(self, trial_numbers_to_skip):
+
+        temp_study = self.clone_temp_study()
+
+        self.clone_study_into_another(self.study, temp_study)
+
+        optuna.delete_study(self.study_name, self.storage)
+
+        self.study = optuna.create_study(
+            sampler=self.sampler,
+            storage=self.storage,
+            study_name=self.study_name,
+            direction=self.direction,
+            pruner=self.pruning_strategy,
+            load_if_exists=False
+        )
+
+        for t in temp_study.get_trials(deepcopy=False):
+
+            # Skip RUNNING trials
+            if t.number in trial_numbers_to_skip:
+                continue
+
+            new_trial = optuna.create_trial(
+                state=t.state,
+                value=t.value,
+                params=t.params,
+                distributions=t.distributions,
+                user_attrs=t.user_attrs,
+                system_attrs=t.system_attrs,
+                intermediate_values=t.intermediate_values,
+            )
+
+            self.study.add_trial(new_trial)
+
+    
+
+    def translate_frozen_trial_into_new_trial(self, old_trial  : optuna.trial.FrozenTrial):
+        
+        new_trial = self._translate_frozen_trial_into_new_trial(old_trial)
+
+        old_trial_number = old_trial.number
+
+        self.study.add_trial(new_trial)
+
+        self.lg.writeLine(f"Transformed old trial {old_trial_number} into new trial {new_trial.number}")
+
+        return new_trial
+
+
+
+    def transate_queued_trials_into_new_trials(self):
+
+        self.lg.writeLine(f"Translating old trials into new mutable trials")
+
+        new_queue = []
+
+        for old_trial in self.queued_studies_to_resume:
+            new_queue.append(
+                self.translate_frozen_trial_into_new_trial(old_trial)
+            )
+
+        self.lg.writeLine(f"{self.queued_studies_to_resume}")
+        self.lg.writeLine(f"->")
+        self.lg.writeLine(f"{new_queue}")
+
+        self.clone_study_except_for_trials(self.queued_studies_to_resume)
+
+        self.lg.writeLine(f"Now trials in study are: {[trial.number for trial in self.study.get_trials(deepcopy=False)]}")
+
+        self.queued_studies_to_resume = new_queue
+        
+
+
     def _try_resuming_unfinished_trials(self, trials_to_resume : list[optuna.trial.FrozenTrial]):
         pass
+
+
+    def do_normal_optimization_after_resuming_trials(self):
+
+        self.lg.writeLine(f"Doing normal optimization on missing trials after resuming trials...")
+
+        new_number_of_trials = self.n_trials - self.values['trials_done_in_this_execution']
+
+        self.lg.writeLine(f"{self.values['trials_done_in_this_execution']} trials resumed or completed from original {self.n_trials}, with previous com, {new_number_of_trials} still missing")
+
+        self.n_trials = new_number_of_trials
+
+        self.queued_studies_to_resume = []
+        self._do_optimization_algorithm()
+
+
         
     
     # INTERNAL EXCEPTION HANDLING --------------------------------------------------------
@@ -787,6 +929,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             sampler=self.sampler,
             storage=self.storage,
             study_name=self.study_name,
+            pruner=self.pruning_strategy
         )
         self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
 
@@ -807,7 +950,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 self.lg.writeLine(f"Noticed that current running state is {self.values['running_state']}, trials should be resumed")
 
-                number_of_completed_trials = sum(1 for trial in trials_in_study if trial.state == optuna.trial.TrialState.COMPLETE)
+                number_of_completed_trials = sum(1 for trial in trials_in_study if trial.state == optuna.trial.TrialState.COMPLETE or trial.state == optuna.trial.TrialState.PRUNED)
 
                 self.queued_studies_to_resume = [trial for trial in trials_in_study if trial.state == optuna.trial.TrialState.RUNNING]
 
@@ -815,14 +958,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                 self.lg.writeLine(f"Queued {len(self.queued_studies_to_resume)} trials to be resumed, supposedly able to run")
 
-                self.lg.writeLine(f"Only completed {number_of_completed_trials} trials")
+                self.lg.writeLine(f"Only completed {number_of_completed_trials} trials, with {self.values['trials_done_in_this_execution']} from previous execution")
 
-                new_number_of_trials = max(0, self.n_trials - number_of_completed_trials - len(self.queued_studies_to_resume))
+                self.lg.writeLine(f"Trials that were marked as completed in previous execution were: {self.values['trials_done_in_this_execution']}")
 
-                self.lg.writeLine(f"Number of trials that were not done from the registered {self.n_trials} and are not queued to be resumed: {new_number_of_trials}")
-
-                if new_number_of_trials > 0:
-                    self.n_trials = new_number_of_trials
                 
                     
 
@@ -844,7 +983,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     sampler=self.sampler,
                     storage=self.storage,
                     study_name=self.study_name,
-                    direction=self.direction ,
+                    direction=self.direction,
+                    pruner=self.pruning_strategy
                 )
 
                 self.lg.writeLine(f"Created new study '{self.study_name}'")
@@ -856,8 +996,26 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         else:
             self.lg.writeLine("Running HP optimization with already loaded study")
+
+        self.lg.writeLine(f"Study has internal pruner of type: {type(self.study.pruner)}")
+        self.lg.writeLine(f"Study has internal sampler of type: {type(self.study.sampler)}")
     
     # EXPOSED METHODS -------------------------------------------------------------------------------------------------
+
+    def _do_optimization_algorithm(self):
+                        
+            self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
+
+            self._call_objective()
+
+            self.lg.writeLine(f"OPTIMIZATION WITH {self.n_trials} TRIALS OVER --------------------------------------------------------------------")
+
+            try:
+                self.lg.writeLine(f"Best parameters: {self.study.best_params}, used in trial {self.study.best_trial.number}, with best result {self.study.best_value}" )
+
+
+            except Exception as e:
+                self.lg.writeLine(f"Error getting best parameters: {e}")
                     
                     
     @requires_input_proccess
@@ -871,20 +1029,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         else:
             self.lg.writeLine(f"No trials to be resumed")
-        
+            self.values["trials_done_in_this_execution"] = 0
+            self._do_optimization_algorithm()
 
-        self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
-
-        self._call_objective()
-        
-        self.lg.writeLine(f"OPTIMIZATION WITH {self.n_trials} TRIALS OVER --------------------------------------------------------------------")
-
-        try:
-            self.lg.writeLine(f"Best parameters: {self.study.best_params}, used in trial {self.study.best_trial.number}, with best result {self.study.best_value}" )
-            
-        
-        except Exception as e:
-            self.lg.writeLine(f"Error getting best parameters: {e}")
 
 
         
