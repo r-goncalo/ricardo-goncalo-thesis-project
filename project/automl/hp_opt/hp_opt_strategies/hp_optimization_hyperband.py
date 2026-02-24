@@ -309,9 +309,11 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         self.n_trials -= self._run_true_hyperband()
 
-        while self.n_trials >= 0:
+        while self.n_trials >  0:
             self.lg.writeLine(f"Hyperband did not complete asked number of trials, {self.n_trials} missing")
-            self.n_trials -= self._run_true_hyperband()
+
+            trials_done = self._run_true_hyperband()
+            self.n_trials -= trials_done
 
 
 

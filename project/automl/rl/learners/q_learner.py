@@ -209,10 +209,9 @@ class DeepQLearnerSchema(QLearnerSchema):
 
     def _calculate_chosen_actions_correct_q_values(self, next_state_v_values, discount_factor, reward_batch):
 
-        correct_q_values_for_chosen_action = next_state_v_values
-        correct_q_values_for_chosen_action.mul_(discount_factor).add_(reward_batch)
+        correct_q_values_for_chosen_action = next_state_v_values * discount_factor + reward_batch
 
-        return correct_q_values_for_chosen_action
+        return correct_q_values_for_chosen_action.detach()
     
     def _optimize_with_predicted_model_values_and_correct_values(self, predicted_values, correct_values):
     
