@@ -17,8 +17,6 @@ SLEEP_INCR_RATE = 2
 MAX_SLEEP = 60
 
 
-OPTUNA_STUDY_PATH = "journal.log"
-
 class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipelineLoaderDetached):
     
     '''
@@ -57,25 +55,16 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
     
 
     # RUNNING A TRIAL -----------------------------------------------------------------------
-
-    
-    def _initialize_database(self):
-        
-        self.database_path = os.path.join(self.get_artifact_directory(), OPTUNA_STUDY_PATH)  # Path to the SQLite database file
-        
-        self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
-
-        self.storage = JournalStorage(JournalFileBackend(file_path=self.database_path))    
     
     
     def _reduce_trials_due_to_results(self, trials : list, results : list[tuple[optuna.Trial, int]], n_trials_to_mantain : int):
 
         if n_trials_to_mantain >= len(trials):
-            return trials
+            return results
 
         results.sort(key=lambda x: x[1], reverse=(self.direction == "maximize"))
 
-        trials_to_mantain = [t for t, _ in results[:(n_trials_to_mantain + 1)]]
+        trials_to_mantain : list[tuple[optuna.Trial, int]] = [(t, r) for t, r in results[:(n_trials_to_mantain + 1)]]
 
         if len(trials_to_mantain) > 0: # if there are still trials to mantain, we mark as pruned the trials that were discarded
 
@@ -84,11 +73,11 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                 with self.optuna_usage_sem:
                     self.study.tell(trial=trial_to_discard, state= optuna.trial.TrialState.PRUNED) # this is prunning due to sucessive halving
 
+                self.lg.writeLine(f"Marked trial {trial_to_discard.number} as pruned, with value {result}")
+
         else: # if no trials are mantained, then we mark all surviving trials as completed
             for trial, result in results:
-                self.values["trials_done_in_this_execution"] += 1
-                with self.optuna_usage_sem:
-                    self.study.tell(trial, result)
+                self.mark_trial_as_complete(trial, result)
 
         return trials_to_mantain
 
@@ -118,18 +107,18 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
             results, completed_results, surviving_trials = self.run_trials(trials, running_method=self._try_resume_single_trial, steps_to_run=total_step_budget + step_budget, mark_trials_as_completed=False)
 
             n_trials_to_mantain = max(0, n_trials_to_mantain // configurations_to_study_decrease_rate) # the number of trials we expect to mantain (inclusive)
-            trials : list[optuna.Trial] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
+            trials_and_results_to_mantain : list[tuple[optuna.Trial, int]] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
 
+            trials = [t for t, _ in trials_and_results_to_mantain]
+            
             self.lg.writeLine(f"Step {i + 1} of successive halving: Expected to mantain {n_trials_to_mantain} from the original {len(results)} trials, mantained:")
             self.lg.writeLine(f"{[trial.number for trial in trials]},  from: {[trial.number for (trial, _) in results]}\n")
 
             end_successive_halving = end_successive_halving or len(trials) < 1
 
-            return trials, end_successive_halving
+            return trials_and_results_to_mantain, trials, end_successive_halving
     
     def _resume_successive_halving(self, trials, initial_resource_per_config, number_of_runs, configurations_to_study_decrease_rate):
-
-            n_trials_to_mantain = len(trials)
 
             total_step_budget = 0  
             end_successive_halving = False
@@ -138,46 +127,17 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                 step_budget = int(initial_resource_per_config * configurations_to_study_decrease_rate ** i)
                 total_step_budget += step_budget
 
-            end_successive_halving, trials = self._resume_single_successive_halving(trials, initial_resource_per_config, number_of_runs, configurations_to_study_decrease_rate,
+            trials_and_results_to_mantain, trials, end_successive_halving = self._resume_single_successive_halving(trials, initial_resource_per_config, number_of_runs, configurations_to_study_decrease_rate,
                                                                             self.values["current_sucessive_halving_bracket"], total_step_budget)
 
             total_step_budget += int(initial_resource_per_config * configurations_to_study_decrease_rate ** i)
 
             if not end_successive_halving:
-                for i in range(self.values["current_sucessive_halving_bracket"] + 1, number_of_runs + 1):
+                self._do_successive_halving(trials, initial_resource_per_config, number_of_runs, configurations_to_study_decrease_rate, initial_i=self.values["current_sucessive_halving_bracket"] + 1)
 
-                    self.values["current_sucessive_halving_bracket"] = i
-
-                    step_budget = int(initial_resource_per_config * configurations_to_study_decrease_rate ** i) # step budget is higher in later brackets, as we study less configurations
-
-                    self.lg.writeLine(
-                        f"[HB] Bracket {number_of_runs} | Rung {i} | "
-                        f"{len(trials)} trials | steps={step_budget}\n"
-                    )
-
-
-                    if self.max_steps_per_trial is not None and step_budget + total_step_budget > self.max_steps_per_trial:
-
-                        step_budget = self.max_steps_per_trial - total_step_budget
-                        end_successive_halving = True
-
-                        self.lg.writeLine(f"Because of limit of max steps per trial of {self.max_steps_per_trial} and current steps done {total_step_budget}, this will be last bracket with {step_budget} steps instead")
-
-                    results, completed_results, surviving_trials = self.run_trials(trials, steps_to_run=step_budget, mark_trials_as_completed=False)
-
-                    if end_successive_halving:
-                        break
-
-                    total_step_budget = total_step_budget + step_budget
-
-                    n_trials_to_mantain = max(0, n_trials_to_mantain // configurations_to_study_decrease_rate) # the number of trials we expect to mantain (inclusive)
-                    trials : list[optuna.Trial] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
-
-                    self.lg.writeLine(f"Step {i + 1} of successive halving: Expected to mantain {n_trials_to_mantain} from the original {len(results)} trials, mantained:")
-                    self.lg.writeLine(f"{[trial.number for trial in trials]},  from: {[trial.number for (trial, _) in results]}\n")
-
-                    if len(trials) < 1:
-                        break
+            else:
+                for trial, result in trials_and_results_to_mantain:
+                    self.mark_trial_as_complete(trial, result)
 
             self.values["current_sucessive_halving_bracket"] = -1
 
@@ -221,20 +181,7 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         self.lg.writeLine(f"Resuming normal hyperband execution...\n")
 
-        for s in reversed(range(s + 1)):
-
-            self.values["current_hyperband_bracket"] = s
-
-            if n_trials is None:
-                n_trials = int(math.ceil((s_max + 1) / (s + 1) * self.eta ** s))
-
-            self._run_true_hyperband_bracket(s, n_trials)
-
-            n_trials_done += n_trials
-
-            n_trials = None
-
-        self.values["current_hyperband_bracket"] = -1
+        n_trials_done += self._run_true_hyperband(s - 1)
 
         return n_trials_done
     
@@ -255,14 +202,14 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
             super()._try_resuming_unfinished_trials(trials)
     
 
-    def _do_successive_halving(self, trials, initial_resource_per_config, number_of_runs, configurations_to_study_decrease_rate):
+    def _do_successive_halving(self, trials, initial_resource_per_config, number_of_runs, configurations_to_study_decrease_rate, initial_i=0):
             
             n_trials_to_mantain = len(trials)
 
             total_step_budget = 0  
             end_successive_halving = False
 
-            for i in range(number_of_runs + 1):
+            for i in range(initial_i, number_of_runs + 1):
 
                 self.values["current_sucessive_halving_bracket"] = i
 
@@ -272,7 +219,6 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                     f"[HB] Bracket {number_of_runs} | Rung {i} | "
                     f"{len(trials)} trials | steps={step_budget}"
                 )
-
 
                 if self.max_steps_per_trial is not None and step_budget + total_step_budget > self.max_steps_per_trial:
 
@@ -284,18 +230,24 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                 results, completed_results, surviving_trials = self.run_trials(trials, steps_to_run=step_budget, mark_trials_as_completed=False)
 
                 if end_successive_halving:
+                    trials_and_results_to_mantain = completed_results # this is so this trials are later marked as completed
                     break
 
                 total_step_budget = total_step_budget + step_budget
 
                 n_trials_to_mantain = max(0, n_trials_to_mantain // configurations_to_study_decrease_rate) # the number of trials we expect to mantain (inclusive)
-                trials : list[optuna.Trial] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
+                trials_and_results_to_mantain : list[tuple[optuna.Trial, int]] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
+
+                trials = [t for t, _ in trials_and_results_to_mantain]
 
                 self.lg.writeLine(f"Step {i + 1} of successive halving: Expected to mantain {n_trials_to_mantain} from the original {len(results)} trials, mantained:")
-                self.lg.writeLine(f"{[trial.number for trial in trials]},  from: {[trial.number for (trial, _) in results]}")
+                self.lg.writeLine(f"{[trial.number for trial in trials]},  from: {[trial.number for (trial, _) in results]}\n")
 
                 if len(trials) < 1:
                     break
+
+            for trial, result in trials_and_results_to_mantain: # if there are still trials at the end of the successive halving, we mark them as done
+                self.mark_trial_as_complete(trial, result)
 
             self.values["current_sucessive_halving_bracket"] = -1
 
@@ -311,9 +263,10 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         self._do_successive_halving(trials, r, s, self.eta)
 
 
-    def _run_true_hyperband(self):
+    def _run_true_hyperband(self, s_max=None):
 
-        s_max = int(math.log(self.max_steps / self.min_steps, self.eta))
+        if s_max is None:
+            s_max = int(math.log(self.max_steps / self.min_steps, self.eta))
 
         n_trials = self.n_initial_hyperband_trials
 
@@ -326,8 +279,15 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
             self.values["current_hyperband_bracket"] = s
 
+            end_early = False
+
             if n_trials is None:
                 n_trials = int(math.ceil((s_max + 1) / (s + 1) * self.eta ** s))
+
+            if n_trials > self.n_trials:
+                self.lg.writeLine(f"Trials to do in bracket ({n_trials}) is higher than trials that are yet to be done: {self.n_trials}, adapting it")
+                n_trials = self.n_trials
+                end_early = True
 
             self._run_true_hyperband_bracket(s, n_trials)
 
@@ -335,25 +295,24 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
             n_trials = None
 
+            if end_early:
+                break
+
         self.values["current_hyperband_bracket"] = -1
 
         return n_trials_done
+
     
 
   
     def _call_objective(self):
 
-        n_trials_done = self._run_true_hyperband()
+        self.n_trials -= self._run_true_hyperband()
 
-        if n_trials_done < self.n_trials:
+        while self.n_trials >= 0:
+            self.lg.writeLine(f"Hyperband did not complete asked number of trials, {self.n_trials} missing")
+            self.n_trials -= self._run_true_hyperband()
 
-            self.lg.writeLine(f"Hyperband did not complete asked number of trials ({self.n_trials})")
-
-            self.n_trials = self.n_trials - n_trials_done
-
-            self.lg.writeLine(f"Will run missing {self.n_trials} trials\n")
-
-            super()._call_objective()
 
 
         

@@ -31,7 +31,7 @@ MINIMUM_SLEEP = 1
 SLEEP_INCR_RATE = 2
 MAX_SLEEP = 60
 
-OPTUNA_STUDY_PATH = "journal.log"
+#OPTUNA_STUDY_PATH = "journal.log"
 
 
 class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizationPipeline):
@@ -76,8 +76,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         # a list of [trial_number, sem, configurations_not_attributed_to_worker], to use in prioritizing runn
         self.trainings_remaining_per_thread_sem = threading.Semaphore(1)
         self.trainings_remaining_per_thread = [None] * self.trainings_at_a_time
-
-        self.trial_creation_sem = threading.Semaphore(1) # this is to be sure no problem regarding the sampling or any other parts of component creation appear
 
         self.optuna_usage_sem = threading.Semaphore(1)    
 
@@ -143,7 +141,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         
         '''Creates the component to optimize and and saver / loader for it, returning the component to optimize itself'''
         
-        with self.trial_creation_sem:
+        with self.optuna_usage_sem:
 
             component_to_opt = super()._create_component_to_optimize(trial)
 
@@ -152,15 +150,14 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             self.trial_loader_groups[trial.number] = setup_component_group(self.trainings_per_configuration, group_directory, base_name, component_to_opt, True)
 
+            trial.set_user_attr("configuration_path", self.trial_loader_groups[trial.number].get_artifact_directory())
+
             return self.trial_loader_groups[trial.number]
         
 
     def _try_load_component_into_trial_loader_groups(self, trial : optuna.Trial):
 
-        #self.lg.writeLine(f"HERE IN _try_load_component_into_trial_loader_groups trying to load: {trial.number}")
-
-        name_of_configuration = self.gen_trial_name(trial)
-        path_of_configuration = os.path.join(self.get_artifact_directory(), name_of_configuration)
+        path_of_configuration = trial.user_attrs["configuration_path"]
         
         if os.path.exists(path_of_configuration):
 
@@ -182,18 +179,14 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     )
                 )
                 
-                self
+                self.trial_loader_groups[trial.number].define_component_as_child(loaders[i])
                 
 
             self.trial_loader_groups[trial.number].pass_input({"components_loaders_in_group" : loaders}) 
 
-            #self.lg.writeLine(f"HERE IN _try_load_component_into_trial_loader_groups trying to load: {trial.number} and exists")
-
             return self.trial_loader_groups[trial.number]
         
         else:
-
-            #self.lg.writeLine(f"HERE IN _try_load_component_into_trial_loader_groups trying to load: {trial.number} and does not exist")
             return None
     
 
@@ -609,32 +602,18 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         
         except Exception as e:
             return trial, None, e
-    
-    def _translate_frozen_trial_into_new_trial(self, old_trial : optuna.trial.FrozenTrial):
-
-        new_trial = super()._translate_frozen_trial_into_new_trial(old_trial)
-
-        name_of_configuration = self.gen_trial_name(old_trial)
-        path_of_configuration = os.path.join(self.get_artifact_directory(), name_of_configuration)
-
-        if os.path.exists(name_of_configuration):
-            
-            new_name_of_configuration = self.gen_trial_name(new_trial)
-            new_path_of_configuration = os.path.join(self.get_artifact_directory(), new_name_of_configuration)
-
-            self.lg.writeLine(f"Olf trial {old_trial.number} had an existent folder, changing it into folder for new trial {new_trial.number}: {path_of_configuration} -> {new_path_of_configuration}")
-
-            shutil.move(path_of_configuration, new_path_of_configuration)
-
-        return new_trial
+        
 
     def _try_load_all_resumed_trials(self, trials : list[optuna.trial.FrozenTrial]):
 
-        self.lg.writeLine(f"Trying to load loaders of queued trials...")
+        self.lg.writeLine(f"Trying to load loaders of {len(trials)} queued trials...")
 
         for trial in trials:
             if self._try_load_component_into_trial_loader_groups(trial) is not None:
                 self.lg.writeLine(f"Loaded trial {trial.number} from disk")
+            
+            else:
+                self.lg.writeLine(f"Could not find trial {trial.number} in disk")
 
 
     def _try_resuming_unfinished_trials(self, trials : list[optuna.trial.FrozenTrial]):
@@ -688,7 +667,12 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             raise Exception(f"Trials must be a list of trials or an integer specifying the number of trials")
 
         return futures
-
+    
+    def mark_trial_as_complete(self, trial, value):
+                    self.lg.writeLine(f"Trial {trial.number} marked as completed with value: {value}")
+                    self.values["trials_done_in_this_execution"] += 1
+                    with self.optuna_usage_sem:
+                        self.study.tell(trial, value)
 
     def run_trials(self, trials, running_method=None, steps_to_run=None, mark_trials_as_completed=True):
 
@@ -752,10 +736,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 surviving_trials.append(trial)
 
                 if mark_trials_as_completed:
-                    self.lg.writeLine(f"Trial {trial.number} marked as completed with value: {value}")
-                    self.values["trials_done_in_this_execution"] += 1
-                    with self.optuna_usage_sem:
-                        self.study.tell(trial, value)
+                    self.mark_trial_as_complete(trial, value)
+
 
             results.append((trial, value))
 
@@ -819,13 +801,13 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         component_group.unload_all_components_with_retries()
 
     
-    def _initialize_database(self):
-        
-        self.database_path = os.path.join(self.get_artifact_directory(), OPTUNA_STUDY_PATH)  # Path to the SQLite database file
-        
-        self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
-
-        self.storage = JournalStorage(JournalFileBackend(file_path=self.database_path))
+    #def _initialize_database(self):
+    #    
+    #    self.database_path = os.path.join(self.get_artifact_directory(), OPTUNA_STUDY_PATH)  # Path to the SQLite database file
+    #    
+    #    self.lg.writeLine(f"Trying to initialize database in path: {self.database_path}")
+#
+    #    self.storage = JournalStorage(JournalFileBackend(file_path=self.database_path))
 
   
 

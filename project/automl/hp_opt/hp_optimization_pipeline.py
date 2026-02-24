@@ -6,6 +6,7 @@ from automl.core.advanced_input_management import ComponentInputSignature
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.hp_opt.optuna.custom_pruners import MixturePruner
+from automl.hp_opt.samplers.sampler import OptunaSamplerComponent, OptunaSamplerWrapper
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
@@ -21,7 +22,6 @@ import shutil
 
 from automl.basic_components.state_management import StatefulComponent
 from automl.basic_components.seeded_component import SeededComponent
-from automl.utils.configuration_component_utils import save_configuration
 
 from automl.basic_components.state_management import save_state
  
@@ -51,8 +51,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     parameters_signature = {
         
-                        "sampler" : InputSignature(default_value="TreeParzen"),
-                        "sampler_input" : InputSignature(mandatory=False),
+                        "sampler" : ComponentInputSignature(default_component_definition=(OptunaSamplerWrapper, {})),
         
                         "configuration_dict" : InputSignature(mandatory=False, possible_types=[dict, str]),
                         "base_component_configuration_path" : InputSignature(mandatory=False),
@@ -153,12 +152,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.direction = self.get_input_value("direction")
 
+        self.sampler : OptunaSamplerComponent = self.get_input_value("sampler")
+
         self.queued_studies_to_resume = []
 
         # MAKE NECESSARY INITIALIZATIONS
         self._initialize_hyperparameter_range_list()
         self._initialize_config_dict()
-        self._initialize_sampler()
         self._initialize_database()
         self._initialize_pruning_strategy()
         self._initialize_study()
@@ -265,62 +265,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def get_database(self):
 
         return self.storage
-
-
-    
-    def _initialize_sampler(self):
-
-        self.sampler = self.get_input_value("sampler")
-
-        if isinstance(self.sampler, str):
-            self._initialize_sampler_from_str(self.sampler)
-
-        elif isinstance(self.sampler, type):
-            self._initialize_sampler_from_class(self.sampler)
-
-        else:
-            raise Exception("Non valid type for sampler")
-        
-        
-    
-    def _initialize_sampler_from_str(self, sampler_str):
-
-        self.lg.writeLine(f"Initializing sampler with string {sampler_str}")
-
-        sampler_input = self.get_input_value("sampler_input")
-        sampler_input = {} if sampler_input is None else sampler_input
-
-        if sampler_input is not None:
-            self.lg.writeLine(f"Sampler input: {sampler_input}")
-        
-        if sampler_str == "TreeParzen":
-            
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.TPESampler(seed=self.seed, **sampler_input)
-
-        elif sampler_str == "Random":
-            self.sampler : optuna.samplers.BaseSampler = optuna.samplers.RandomSampler(seed=self.seed, **sampler_input)
-        
-        else:
-            raise NotImplementedError(f"Non valid string for sampler '{sampler_str}'") 
-    
-    
-        
-    def _initialize_sampler_from_class(self, sampler_class : type[optuna.samplers.BaseSampler]):
-
-        self.lg.writeLine(f"Initializing sampler with class {sampler_class}")
-
-        sampler_input = self.get_input_value("sampler_input")
-        sampler_input = {} if sampler_input is None else sampler_input
-
-        if sampler_input is not None:
-            self.lg.writeLine(f"Sampler input: {sampler_input}")
-
-        try:
-            self.sampler = sampler_class(seed=self.seed, **sampler_input)
-
-        except Exception as e:
-
-            raise Exception(f"Could not instatiate sampler from class {sampler_class}") from e
     
     
     def _initialize_pruning_strategy(self):
@@ -387,7 +331,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             pruners_for_mixture = pruner_input["pruners"]
             instanced_pruners_for_mixture = []
 
-
             for pruner_definition in pruners_for_mixture:
                 
                 pruner_for_mixture = pruner_definition[0]
@@ -400,7 +343,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             pruning_strategy = MixturePruner([
                     instanced_pruners_for_mixture        
                 ])
-
 
         
         else:
@@ -776,76 +718,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             value=value  # must be None if not COMPLETE
         )
 
+        new_trial.set_user_attr("generated_from", old_trial.number)
+
         self.study.add_trial(new_trial)
 
-        return new_trial
-    
-    def clone_temp_study(self):
-
-        '''Returns a temporary study that defaults to using in memory storage'''
-
-        return optuna.create_study(
-            sampler=self.sampler,
-            study_name=f"{self.study_name}_temp",
-            direction=self.direction,
-            pruner=self.pruning_strategy,
-            load_if_exists=False,
-        )
-    
-    def clone_study_into_another(self, old_study : optuna.Study, new_study : optuna.Study):
-
-        for t in old_study.get_trials(deepcopy=False):
-
-            new_trial = optuna.create_trial(
-                state=t.state,
-                value=t.value,
-                params=t.params,
-                distributions=t.distributions,
-                user_attrs=t.user_attrs,
-                system_attrs=t.system_attrs,
-                intermediate_values=t.intermediate_values,
-            )
-
-            new_study.add_trial(new_trial)
-
-        return new_study
-
-    
-    def clone_study_except_for_trials(self, trial_numbers_to_skip):
-
-        temp_study = self.clone_temp_study()
-
-        self.clone_study_into_another(self.study, temp_study)
-
-        optuna.delete_study(self.study_name, self.storage)
-
-        self.study = optuna.create_study(
-            sampler=self.sampler,
-            storage=self.storage,
-            study_name=self.study_name,
-            direction=self.direction,
-            pruner=self.pruning_strategy,
-            load_if_exists=False
-        )
-
-        for t in temp_study.get_trials(deepcopy=False):
-
-            # Skip RUNNING trials
-            if t.number in trial_numbers_to_skip:
-                continue
-
-            new_trial = optuna.create_trial(
-                state=t.state,
-                value=t.value,
-                params=t.params,
-                distributions=t.distributions,
-                user_attrs=t.user_attrs,
-                system_attrs=t.system_attrs,
-                intermediate_values=t.intermediate_values,
-            )
-
-            self.study.add_trial(new_trial)
-
+        return self.study.trials[-1]
     
 
     def translate_frozen_trial_into_new_trial(self, old_trial  : optuna.trial.FrozenTrial):
@@ -860,6 +737,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         return new_trial
 
+    def mark_trials_as_failed(self, trials):
+
+        for trial in trials:
+            self.study._storage.set_trial_state(trial._trial_id, optuna.trial.TrialState.FAIL)
+
 
 
     def transate_queued_trials_into_new_trials(self):
@@ -873,11 +755,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.translate_frozen_trial_into_new_trial(old_trial)
             )
 
-        self.lg.writeLine(f"{self.queued_studies_to_resume}")
-        self.lg.writeLine(f"->")
-        self.lg.writeLine(f"{new_queue}")
+        self.mark_trials_as_failed(self.queued_studies_to_resume) # old trials are marked as failed
 
-        self.clone_study_except_for_trials(self.queued_studies_to_resume)
+        self.lg.writeLine(f"{[trial.number for trial in self.queued_studies_to_resume]}")
+        self.lg.writeLine(f"->")
+        self.lg.writeLine(f"{[trial.number for trial in new_queue]}")
 
         self.lg.writeLine(f"Now trials in study are: {[trial.number for trial in self.study.get_trials(deepcopy=False)]}")
 
@@ -926,7 +808,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             
         # Try loading existing study
         self.study = optuna.load_study(
-            sampler=self.sampler,
+            sampler=self.sampler.get_optuna_sampler(),
             storage=self.storage,
             study_name=self.study_name,
             pruner=self.pruning_strategy
@@ -980,7 +862,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             except KeyError:
                 # If not found, create a new study
                 self.study = optuna.create_study(
-                    sampler=self.sampler,
+                    sampler=self.sampler.get_optuna_sampler(),
                     storage=self.storage,
                     study_name=self.study_name,
                     direction=self.direction,

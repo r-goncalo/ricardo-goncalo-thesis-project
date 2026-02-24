@@ -357,10 +357,6 @@ class HyperparameterOptimizationWorkerIndexed():
 
                             self.thread_logger.writeLine(f"Using pruner to check if trial {trial.number} at step {step} should be pruned...")
 
-                            for trial_in_study in self.parent_hp_pipeline.study.trials:
-
-                                self.thread_logger.writeLine(f"Trial {trial_in_study.number} has indermediate values: {trial_in_study.intermediate_values}")
-
                             if trial.should_prune(): # we verify this after reporting the result
 
                                 self.thread_logger.writeLine("Prunning current experiment due to pruner...\n")
