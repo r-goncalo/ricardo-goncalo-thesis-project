@@ -96,6 +96,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                     f"Resuming: [HB] Bracket {number_of_runs} | Rung {i} | "
                     f"{len(trials)} trials | steps={step_budget} | total_steps={stepd_that_should_be_done}\n"
                 )
+            
+            self.lg.writeLine(f"Trials: {[trial.number for trial in trials]}")
 
             if self.max_steps_per_trial is not None and step_budget + total_step_budget > self.max_steps_per_trial:
 
@@ -284,9 +286,11 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
             if n_trials is None:
                 n_trials = int(math.ceil((s_max + 1) / (s + 1) * self.eta ** s))
 
-            if n_trials > self.n_trials:
-                self.lg.writeLine(f"Trials to do in bracket ({n_trials}) is higher than trials that are yet to be done: {self.n_trials}, adapting it")
-                n_trials = self.n_trials
+            trials_missing = self.n_trials - self.values["trials_done_in_this_execution"]
+
+            if n_trials > trials_missing:
+                self.lg.writeLine(f"Trials to do in bracket ({n_trials}) is higher than trials that are yet to be done: {trials_missing}, adapting it")
+                n_trials = trials_missing
                 end_early = True
 
             self._run_true_hyperband_bracket(s, n_trials)
@@ -307,13 +311,13 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
   
     def _call_objective(self):
 
-        self.n_trials -= self._run_true_hyperband()
+        self._run_true_hyperband()
 
-        while self.n_trials >  0:
-            self.lg.writeLine(f"Hyperband did not complete asked number of trials, {self.n_trials} missing")
+        while self.n_trials >  self.values["trials_done_in_this_execution"]:
 
-            trials_done = self._run_true_hyperband()
-            self.n_trials -= trials_done
+            self.lg.writeLine(f"Hyperband did not complete asked number of trials, only did {self.values['trials_done_in_this_execution']} of {self.n_trials}")
+
+            self._run_true_hyperband()
 
 
 

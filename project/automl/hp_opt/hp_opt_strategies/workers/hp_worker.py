@@ -16,7 +16,8 @@ import time
 class HyperparameterOptimizationWorkerIndexed():
     
 
-    def __init__(self, parent_hp_pipeline : HyperparameterOptimizationPipeline, thread_index):
+    def __init__(self, parent_hp_pipeline : HyperparameterOptimizationPipeline, thread_index, 
+    only_report_with_enough_runs=False, report_max=True):
         
         self.parent_hp_pipeline : HyperparameterOptimizationPipeline = parent_hp_pipeline
 
@@ -34,6 +35,10 @@ class HyperparameterOptimizationWorkerIndexed():
 
         self._is_busy = False
         self._is_busy_sem = threading.Semaphore(1) 
+
+        self.only_report_with_enough_runs = only_report_with_enough_runs
+
+        self.report_max = report_max
 
     def is_busy(self):
 
@@ -74,7 +79,7 @@ class HyperparameterOptimizationWorkerIndexed():
         if running_state is not None:
 
             if State.equals_value(running_state, State.ERROR):
-                raise Exception(f"Error when component was got") 
+                raise Exception(f"Error when component in {component_to_opt.get_artifact_directory()} was got") 
         
 
     # OPTIMIZATION -------------------------------------------------------------------------
@@ -164,15 +169,27 @@ class HyperparameterOptimizationWorkerIndexed():
 
         enough_runs = n_results_for_step == self.parent_hp_pipeline.trainings_per_configuration
 
-        if enough_runs:
-            avg_result = sum(last_results) / len(last_results)    
-            self.thread_logger.writeLine(f"Reporting result {avg_result}, average of results: {last_results}")
-            with self.parent_hp_pipeline.optuna_usage_sem:
-                trial.report(avg_result, step)
-        
-        else:
+        if self.only_report_with_enough_runs and not enough_runs:
             self.thread_logger.writeLine(f"Not enough configurations to report, current is {n_results_for_step}, needed is {self.parent_hp_pipeline.trainings_per_configuration}. Current results are {last_results}")
 
+        else:
+
+            if self.report_max:
+                max_result = max(last_results)
+                self.thread_logger.writeLine(
+                    f"Reporting result {max_result}, maximum of results: {last_results}"
+                )
+
+                with self.parent_hp_pipeline.optuna_usage_sem:
+                    trial.report(max_result, step)
+
+            else:
+
+                avg_result = sum(last_results) / len(last_results) if len(last_results) > 1 else last_results[0]
+                self.thread_logger.writeLine(f"Reporting result {avg_result}, average of results: {last_results}")
+                with self.parent_hp_pipeline.optuna_usage_sem:
+                    trial.report(avg_result, step)
+        
         return enough_runs
 
     
