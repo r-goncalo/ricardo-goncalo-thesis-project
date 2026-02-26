@@ -5,8 +5,7 @@ import threading
 import time
 from automl.basic_components.component_group import RunnableComponentGroup, setup_component_group
 
-from automl.component import InputSignature, Component
-from automl.core.exceptions import common_exception_handling
+from automl.component import InputSignature
 from automl.hp_opt.hp_opt_strategies.workers.hp_worker import HyperparameterOptimizationWorkerIndexed
 from automl.hp_opt.hp_optimization_pipeline import Component_to_opt_type, HyperparameterOptimizationPipeline
 
@@ -17,14 +16,9 @@ import optuna
 
 from automl.basic_components.state_management import StatefulComponentLoader
 
-from automl.basic_components.state_management import save_state
- 
-from optuna.storages import JournalStorage
-from optuna.storages.journal import JournalFileBackend
+from automl.loggers.logger_component import use_logger
 
-from automl.loggers.logger_component import LoggerSchema, override_first_logger, use_logger
-
-from automl.basic_components.exec_component import State, StopExperiment
+from automl.basic_components.exec_component import StopExperiment
 import pandas
 
 MINIMUM_SLEEP = 1
@@ -289,8 +283,12 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             self._verify_and_aquire_worker_not_running_on_full_configuration(worker, trial, self.trainings_remaining_per_thread[index_in_trainings_remaining])
 
+            component_index = self._get_component_index_of_trial(trial, component_index, worker)
+
             try:
-                to_return = worker.try_run_component_in_group_all_steps(trial, self._get_component_index_of_trial(trial, component_index, worker), n_steps, self._get_loader_component_group(trial).get_loader(component_index), should_end)
+                to_return = worker.try_run_component_in_group_all_steps(trial, component_index, n_steps, 
+                                                    self._get_loader_component_group(trial).get_loader(component_index), 
+                                                    should_end)
 
             except Exception as e:
                 should_end[0] = True # if we receive an exception, we flag that the training for this trial should end
@@ -321,8 +319,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
                 self.trainings_remaining_per_thread[index_in_trainings_remaining][2] = current_number - 1
 
+            component_index = self._get_component_index_of_trial(trial, component_index, worker)
+
             try:
-                to_return = worker.try_run_component_in_group_until_step(trial, self._get_component_index_of_trial(trial, component_index, worker), last_step, self._get_loader_component_group(trial).get_loader(component_index), should_end)
+                to_return = worker.try_run_component_in_group_until_step(trial, component_index, last_step, self._get_loader_component_group(trial).get_loader(component_index), should_end)
 
             except Exception as e:
                 should_end[0] = True # if we receive an exception, we flag that the training for this trial should end
@@ -728,13 +728,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         '''Runs the optimization function for a trial (essentially the objective)'''
 
         if self.check_if_should_stop_execution_earlier(raise_exception=False):
-            self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
             self.check_if_should_stop_execution_earlier()
-
     
         if trial_run_function is None:
             trial_run_function = self._run_concurrent_experiments_for_single_trial
-
 
         if trial.number > self.beneficted_trainings and trial.number < self.trainings_at_a_time:
             time.sleep(60) # the idea is to do the maximum number of works per trial before going to the next trial
@@ -749,13 +746,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None
-            
-            if not isinstance(e, optuna.TrialPruned):
-
-                if not isinstance(e, StopExperiment): # if the reason the training ended was an interrupt, we first let all workers deal with it
-                    self.stop_execution_earlier()
-
-                self._wait_for_all_workers_free_so_experiment_can_gracefully_stop()
 
             raise e
 
@@ -781,8 +771,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     def _try_resume_single_trial(self, trial : optuna.trial.FrozenTrial):
 
         '''Tries resuming a single trial'''
-
-        self.lg.writeLine(f"HERE IN RESUME SINGLE TRIAL: {trial.number} with type {type(trial)}")
 
         try:
             value = self._run_optimization(trial, self._run_concurrent_experiments_for_single_trial, {"run_till_step" : True})
@@ -909,8 +897,13 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     with self.optuna_usage_sem:
                         self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
                     
+                    trial_component_path = trial.user_attrs.get("configuration_path")
+                    if trial_component_path is not None:
+                        self.on_general_exception_trial(exception, trial_component_path, trial)
+
                     if not self.continue_after_error:
                         self.lg.writeLine(f"There was an error in trial {trial.number}, as <continue_after_error> is set to false, will cancel other trials, error was: {exception}")
+                        self.stop_execution_earlier()
                         executor.shutdown(wait=True, cancel_futures=True)
                         exceptions_to_raise.append(exception)
 

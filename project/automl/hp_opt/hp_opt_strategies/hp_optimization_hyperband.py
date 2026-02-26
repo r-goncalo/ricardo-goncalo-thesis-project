@@ -222,6 +222,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                     f"{len(trials)} trials | steps={step_budget}"
                 )
 
+                self.lg.writeLine(f"Trials: {[trial.number for trial in trials]}")
+
                 if self.max_steps_per_trial is not None and step_budget + total_step_budget > self.max_steps_per_trial:
 
                     step_budget = self.max_steps_per_trial - total_step_budget

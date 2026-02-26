@@ -370,7 +370,7 @@ class HyperparameterOptimizationWorkerIndexed():
 
                     with self.parent_hp_pipeline.optuna_usage_sem:
 
-                        if enough_runs:
+                        if enough_runs or trial.user_attrs.get("component_index_to_continue_using") is not None:
 
                             self.thread_logger.writeLine(f"Using pruner to check if trial {trial.number} at step {step} should be pruned...")
 
