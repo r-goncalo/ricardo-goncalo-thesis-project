@@ -323,6 +323,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         elif passed_pruner_str == "PercentilePruner":
                 pruning_strategy = optuna.pruners.PercentilePruner(**pruner_input)
 
+                percentile = pruner_input.get("percentile")
+
+                if percentile is not None:
+                    self.lg.writeLine(f"The best {percentile} % will be kept using percentile pruner")
+
         elif passed_pruner_str == "HyperbandPruner":
                 pruning_strategy = optuna.pruners.HyperbandPruner(**pruner_input)
 
