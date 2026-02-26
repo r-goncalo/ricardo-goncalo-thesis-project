@@ -48,7 +48,7 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.component_loaders = []
+        self.components_loaders_in_group = []
 
     
     def _proccess_input_internal(self):
@@ -86,7 +86,7 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
             exceptions = []
 
             for l in range(len(self.components_loaders_in_group)):
-                loader = self.components_loaders_in_group[i]
+                loader = self.components_loaders_in_group[l]
                 try:
                     loader.unload_if_loaded()
                 except Exception as e:
@@ -118,10 +118,10 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
     def detach_run_all_components(self, number_of_threads = None, global_logger_level = None):
 
         if number_of_threads is None:
-             number_of_threads = len(self.component_loaders)
+             number_of_threads = len(self.components_loaders_in_group)
 
-        if number_of_threads > len(self.component_loaders):
-             raise Exception(f"Number of threads higher than components, {number_of_threads} > {len(self.component_loaders)}")
+        if number_of_threads > len(self.components_loaders_in_group):
+             raise Exception(f"Number of threads higher than components, {number_of_threads} > {len(self.components_loaders_in_group)}")
         
         loaders : list[StatefulComponentLoader] = list(self.components_loaders_in_group)
 
