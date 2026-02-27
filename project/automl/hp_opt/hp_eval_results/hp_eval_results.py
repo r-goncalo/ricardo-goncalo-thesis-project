@@ -303,7 +303,7 @@ def get_results_of_configurations(experiment_path,
                     )
 
                 except Exception as e:
-                    print(f"Did not manage to store configuration {configuration_name} due to error {e}")
+                    print(f"Did not manage to get configuration {configuration_name} due to error {e}")
 
             else:
                 globalWriteLine(f"WARNING: Configuration path with name {configuration_name} is not a directory")
@@ -341,7 +341,7 @@ def get_results_of_configurations_components(experiment_path,
                         )
 
                     except Exception as e:
-                        print(f"Did not manage to store configuration {configuration_name} due to error {e}")
+                        print(f"Did not manage to get configuration {configuration_name} due to error {e}")
 
                 results_of_configurations[configuration_name] = configuration_dict
 
