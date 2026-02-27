@@ -64,11 +64,11 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         results.sort(key=lambda x: x[1], reverse=(self.direction == "maximize"))
 
-        trials_to_mantain : list[tuple[optuna.Trial, int]] = [(t, r) for t, r in results[:(n_trials_to_mantain + 1)]]
+        trials_to_mantain : list[tuple[optuna.Trial, int]] = [(t, r) for t, r in results[:n_trials_to_mantain]]
 
         if len(trials_to_mantain) > 0: # if there are still trials to mantain, we mark as pruned the trials that were discarded
 
-            for trial_to_discard, result in results[(n_trials_to_mantain + 1):]:
+            for trial_to_discard, result in results[n_trials_to_mantain:]:
                 self.values["trials_done_in_this_execution"] += 1
                 with self.optuna_usage_sem:
                     self.study.tell(trial=trial_to_discard, state= optuna.trial.TrialState.PRUNED) # this is prunning due to sucessive halving
@@ -233,21 +233,22 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
                 results, completed_results, surviving_trials = self.run_trials(trials, steps_to_run=step_budget, mark_trials_as_completed=False)
 
+                total_step_budget = total_step_budget + step_budget
+
                 if end_successive_halving:
                     trials_and_results_to_mantain = completed_results # this is so this trials are later marked as completed
                     break
 
-                total_step_budget = total_step_budget + step_budget
-
-                n_trials_to_mantain = max(0, n_trials_to_mantain // configurations_to_study_decrease_rate) # the number of trials we expect to mantain (inclusive)
-                trials_and_results_to_mantain : list[tuple[optuna.Trial, int]] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
-
+                else:
+                    n_trials_to_mantain = max(0, n_trials_to_mantain // configurations_to_study_decrease_rate) # the number of trials we expect to mantain (inclusive)
+                    trials_and_results_to_mantain : list[tuple[optuna.Trial, int]] = self._reduce_trials_due_to_results(surviving_trials, completed_results, n_trials_to_mantain)
+                
                 trials = [t for t, _ in trials_and_results_to_mantain]
 
                 self.lg.writeLine(f"Step {i + 1} of successive halving: Expected to mantain {n_trials_to_mantain} from the original {len(results)} trials, mantained:")
                 self.lg.writeLine(f"{[trial.number for trial in trials]},  from: {[trial.number for (trial, _) in results]}\n")
 
-                if len(trials) < 1:
+                if len(trials) < 1 or end_successive_halving:
                     break
 
             for trial, result in trials_and_results_to_mantain: # if there are still trials at the end of the successive halving, we mark them as done
