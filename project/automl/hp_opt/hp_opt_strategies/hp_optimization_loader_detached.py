@@ -27,6 +27,9 @@ MAX_SLEEP = 60
 
 #OPTUNA_STUDY_PATH = "journal.log"
 
+CONFIGURATION_PATH_OPTUNA_KEY = "configuration_path"
+COMPONENT_INDEX_TO_USE_OPTUNA_KEY = "component_index_to_continue_using"
+
 
 class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizationPipeline):
     
@@ -157,14 +160,14 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             self.trial_loader_groups[trial.number] = setup_component_group(self.trainings_per_configuration, group_directory, base_name, component_to_opt, True)
 
-            trial.set_user_attr("configuration_path", self.trial_loader_groups[trial.number].get_artifact_directory())
+            trial.set_user_attr(CONFIGURATION_PATH_OPTUNA_KEY, self.trial_loader_groups[trial.number].get_artifact_directory())
 
             return self.trial_loader_groups[trial.number]
         
 
     def _try_load_component_into_trial_loader_groups(self, trial : optuna.Trial):
 
-        path_of_configuration = trial.user_attrs["configuration_path"]
+        path_of_configuration = trial.user_attrs[CONFIGURATION_PATH_OPTUNA_KEY]
         
         if os.path.exists(path_of_configuration):
 
@@ -222,7 +225,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             return component_index
         
         else:
-            to_return = trial.user_attrs.get("component_index_to_continue_using")
+            to_return = trial.user_attrs.get(COMPONENT_INDEX_TO_USE_OPTUNA_KEY)
 
             if to_return is None:
                 raise Exception(f"Trial {trial.number} does not have a component index specified and component index passed is None")
@@ -500,7 +503,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             best_result = best_row["result"]
 
             # Store component index so we can continue using it
-            trial.set_user_attr("component_index_to_continue_using", component_index_with_maximum_result)
+            trial.set_user_attr(COMPONENT_INDEX_TO_USE_OPTUNA_KEY, component_index_with_maximum_result)
 
             return best_result
 
@@ -523,7 +526,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         list_of_futures = []
 
-        component_index_to_use = trial.user_attrs.get("component_index_to_continue_using")
+        component_index_to_use = trial.user_attrs.get(COMPONENT_INDEX_TO_USE_OPTUNA_KEY)
 
         if component_index_to_use is not None:
             
@@ -897,7 +900,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     with self.optuna_usage_sem:
                         self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)
                     
-                    trial_component_path = trial.user_attrs.get("configuration_path")
+                    trial_component_path = trial.user_attrs.get(CONFIGURATION_PATH_OPTUNA_KEY)
                     if trial_component_path is not None:
                         self.on_general_exception_trial(exception, trial_component_path, trial)
 
