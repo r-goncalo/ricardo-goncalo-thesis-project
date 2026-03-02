@@ -6,6 +6,7 @@ import time
 from automl.basic_components.component_group import RunnableComponentGroup, setup_component_group
 
 from automl.component import InputSignature
+from automl.core.advanced_input_management import ComponentInputSignature
 from automl.hp_opt.hp_opt_strategies.workers.hp_worker import HyperparameterOptimizationWorkerIndexed
 from automl.hp_opt.hp_optimization_pipeline import Component_to_opt_type, HyperparameterOptimizationPipeline
 
@@ -42,7 +43,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                          "trainings_at_a_time" : InputSignature(default_value=6),
                          "trainings_per_configuration" : InputSignature(default_value=3),
                          "stop_gracefully_wait_time" : InputSignature(default_value=3600),
-                         "use_best_component_strategy" : InputSignature(default_value=True)
+                         "use_best_component_strategy" : InputSignature(default_value=True),
                        }
             
 
@@ -56,6 +57,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         super()._proccess_input_internal()
                 
         self.trial_loader_groups : dict[str, RunnableComponentGroup] = {} # the groups for each trial, each group has the same hyperparameter and different seeds
+
+        self.completed_pruner = self.get_input_value(f"completed_pruner")
 
         self.trainings_at_a_time = self.get_input_value("trainings_at_a_time") # training processes that can be done at a time
 

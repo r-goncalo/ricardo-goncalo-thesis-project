@@ -70,5 +70,9 @@ class MemoryComponent(StatefulComponent):
     def __len__(self):
         raise NotImplementedError()
     
+    @requires_input_proccess
+    def is_full(self):
+        return len(self) == self.capacity
+    
 
 

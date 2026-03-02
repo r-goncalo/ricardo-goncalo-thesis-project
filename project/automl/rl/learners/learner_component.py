@@ -1,8 +1,10 @@
 from automl.component import Component, InputSignature, requires_input_proccess
 
 
+from automl.core.advanced_input_management import ComponentListInputSignature
 from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
 from automl.rl.agent.agent_components import AgentSchema
+from automl.rl.learners.learning_acessory import LearningAcessory
 import torch
 
 class LearnerSchema(Component):
@@ -11,7 +13,8 @@ class LearnerSchema(Component):
         "agent" : InputSignature(),
         "optimizations_per_learn" : InputSignature(default_value=1,custom_dict={
                                     "hyperparameter_suggestion" : ("int", {"low" : 1, "high" : 32})
-                                })
+                                }),
+        "learning_acessories" : ComponentListInputSignature(mandatory=False)
 
     }
         
@@ -22,6 +25,10 @@ class LearnerSchema(Component):
         self.agent : AgentSchema = self.get_input_value("agent")
 
         self.optimizations_per_learn : int = self.get_input_value("optimizations_per_learn")
+
+        self.learning_acessories = self.get_input_value("learning_acessories")
+
+        self.learning_acessories : list[LearningAcessory] = [] if self.learning_acessories is None else self.learning_acessories
 
     
     def _learn(self, trajectory, discount_factor):
@@ -40,9 +47,14 @@ class LearnerSchema(Component):
                 
         '''
         
-        for _ in range(self.optimizations_per_learn):
-            self._learn(trajectory, discount_factor)
+        for learning_acessory in self.learning_acessories:
+            learning_acessory.pre_learning()
 
+        for _ in range(self.optimizations_per_learn):
+            values = self._learn(trajectory, discount_factor)
+
+        for learning_acessory in self.learning_acessories:
+            learning_acessory.post_learning(values)
         
 
 

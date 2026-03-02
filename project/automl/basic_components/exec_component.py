@@ -28,11 +28,12 @@ class ExecComponent(Component):
         
             "times_to_run" : InputSignature(mandatory=False, description="The number of times to run the component"),
             "save_state_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True),
-            "save_dataframes_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True)
+            "save_dataframes_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True),
+            "save_values_in_execution" : InputSignature(default_value=True)
     
     }
 
-    exposed_values = {"running_state" : State.IDLE, "times_ran" : 0}    
+    exposed_values = {"running_state" : State.IDLE, "times_ran" : 0, "values_in_execution" : []}    
     
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
@@ -44,6 +45,9 @@ class ExecComponent(Component):
 
         self._received_signal_to_stop = False        
 
+        self.save_values_in_execution = True
+
+        self._current_execution = self.values["times_ran"] + 1
 
     # METHODS TO OVERRIDE --------------------------------
 
@@ -54,10 +58,11 @@ class ExecComponent(Component):
     def _pre_algorithm(self): # a component may extend this for certain behaviours
         self.values["running_state"] = State.RUNNING
         self._received_signal_to_stop = False
+        self._current_execution = self.values["times_ran"] + 1
         
     def _pos_algorithm(self): # a component may extend this for certain behaviours
         
-        self.values["times_ran"] += 1
+        self.values["times_ran"] = self._current_execution
         
         if self._times_to_run != None and self.values["times_ran"] < self._times_to_run:
             self.values["running_state"] = State.IDLE
@@ -116,6 +121,19 @@ class ExecComponent(Component):
     def _deal_with_exception(self, exception):
         '''Called internally when an exception happens'''
         pass
+
+    def _save_values_in_execution(self):
+
+        values_to_save = {}
+
+        for key, value in self.values.items():
+            if key not in [ExecComponent.exposed_values.keys()]:
+                values_to_save[key] = value
+
+        if len(values_to_save) > 0:
+            values_to_save["execution"] = self._current_execution
+
+        self.values["values_in_execution"].append(values_to_save)
 
     # RUNNABLE METHOD --------------------------------
     
