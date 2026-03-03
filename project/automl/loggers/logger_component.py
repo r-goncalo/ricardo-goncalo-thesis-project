@@ -350,7 +350,6 @@ def generate_logger_for_component(self : ArtifactComponent):
             "artifact_relative_directory" : ""}
         )
 
-# TODO: In the future, components may extend this, but not the LoggingComponent
 class ComponentWithLogging(ArtifactComponent):
 
     '''
@@ -412,37 +411,3 @@ class ComponentWithLogging(ArtifactComponent):
         self.lg.writeLine(string=self_json_str, file=filename, level=level, use_time_stamp=False)
     
 
-    def _try_look_input_in_attribute(self, input_key, attribute_name):
-
-        if not hasattr(self, "lg"):
-            return super()._try_look_input_in_attribute(input_key, attribute_name)
-
-        self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
-
-        to_return = super()._try_look_input_in_attribute(input_key, attribute_name)
-
-        if to_return == None:
-            self.lg.writeLine(f"Did not have attribute '{attribute_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
-
-        else:
-            self.lg.writeLine(f"Attribute '{attribute_name}' for input '{input_key}' was found", level=DEBUG_LEVEL.DEBUG)
-
-        return to_return
-    
-
-    def _try_look_input_in_values(self, input_key, value_name):
-
-        if not hasattr(self, "lg"):
-            return super()._try_look_input_in_values(input_key, value_name)
-
-        self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
-
-        to_return = super()._try_look_input_in_values(input_key, value_name)
-
-        if to_return == None:
-            self.lg.writeLine(f"Did not have value '{value_name}' for input '{input_key}'", level=DEBUG_LEVEL.DEBUG)
-
-        else:
-            self.lg.writeLine(f"Value '{value_name}' for input '{input_key}' was found", level=DEBUG_LEVEL.DEBUG) 
-
-        return to_return

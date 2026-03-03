@@ -1,10 +1,11 @@
+from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
 from automl.rl.policy.policy import Policy
 from automl.rl.policy.qpolicy import QPolicy
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.component import requires_input_proccess
 import torch
 
-class PolicyDebug(Policy):
+class PolicyDebug(Policy, ComponentWithLoggingDebug):
         
     '''
     It abstracts the usage of a model for the agent in determining its actions

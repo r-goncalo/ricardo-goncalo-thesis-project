@@ -1,5 +1,7 @@
 
 
+import os
+
 from automl.component import  requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
@@ -21,6 +23,12 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         "device": InputSignature(default_value="cuda"),
     }
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.position = 0
+        self.total_size = 0
+
 
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
@@ -158,3 +166,84 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         
     def __len__(self):
         return self.total_size
+    
+    def _save_state_internal(self):
+
+        super()._save_state_internal()
+
+        if self.total_size == 0:
+            self.lg.writeLine("No transitions to save.")
+            return
+
+        self._save_transitions_to_disk()
+
+    def _save_transitions_to_disk(self):
+
+        transitions_dir = os.path.join(self.get_artifact_directory(), "transitions")
+
+        os.makedirs(transitions_dir, exist_ok=True)
+
+        self.lg.writeLine(f"Saving {self.total_size} transitions to {transitions_dir}")
+
+        # Optional: remove old transition files
+        for filename in os.listdir(transitions_dir):
+            if filename.startswith("transition_") and filename.endswith(".pt"):
+                os.remove(os.path.join(transitions_dir, filename))
+
+        for idx in range(self.total_size):
+
+            transition_dict = {}
+
+            for field_name in self.field_names:
+                # Always save on CPU (like torch models)
+                transition_dict[field_name] = (
+                    self.transitions[field_name][idx]
+                    .detach()
+                    .cpu()
+                    .clone()
+                )
+
+            file_path = os.path.join(transitions_dir, f"transition_{idx}.pt")
+
+            torch.save(transition_dict, file_path)
+
+        self.lg.writeLine("Finished saving transitions.")
+
+
+    def _load_state_internal(self):
+
+        super()._load_state_internal()
+        self._load_transitions_from_disk()
+
+        
+
+    def _load_transitions_from_disk(self):
+
+        transitions_dir = os.path.join(self.get_artifact_directory(), "transitions")
+
+        if not os.path.exists(transitions_dir):
+            self.lg.writeLine("No transitions directory found.")
+            return
+
+        files = sorted(
+            f for f in os.listdir(transitions_dir)
+            if f.startswith("transition_") and f.endswith(".pt")
+        )
+
+        self.clear()
+
+        for idx, filename in enumerate(files):
+
+            transition_dict = torch.load(
+                os.path.join(transitions_dir, filename),
+                map_location=self.device
+            )
+
+            for field_name in self.field_names:
+                self.transitions[field_name][idx].copy_(transition_dict[field_name])
+
+            self.total_size += 1
+
+        self.position = self.total_size % self.capacity
+
+        self.lg.writeLine(f"Loaded {self.total_size} transitions from disk.")

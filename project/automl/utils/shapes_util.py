@@ -311,21 +311,24 @@ def torch_shape_from_space(space_like) -> torch.Size:
     elif isinstance(space_like, gymnasium.Space):
         return torch_shape_from_space_gym(space_like)
 
-    elif isinstance(space_like, tuple):
-        # Normalize nested tuples (e.g., ((3,), (4,)) → (3, 4))
+    elif isinstance(space_like, (list, tuple)):
+
         flat = []
+
         for s in space_like:
-            if isinstance(s, Iterable) and not isinstance(s, (str, bytes)):
+            # Only flatten nested list/tuple — NOT generic Iterable
+            if isinstance(s, (list, tuple)):
                 flat.extend(s)
             else:
                 flat.append(s)
+
         return torch.Size(flat)
 
     elif isinstance(space_like, int):
         return torch.Size([space_like])
 
     else:
-        raise NotImplementedError(f"Unknown space/shape type: {type(space_like)}")
+        raise NotImplementedError(f"Unknown space/shape type: {type(space_like)} and value: {space_like}")
 
 
 # -----------------------------------------------------------------------------------------------

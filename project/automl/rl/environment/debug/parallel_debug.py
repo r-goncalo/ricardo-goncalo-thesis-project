@@ -1,9 +1,10 @@
+from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
 from automl.component import requires_input_proccess
 from automl.loggers.logger_component import ComponentWithLogging
 
 
-class ParallelEnvironmentComponentDebug(ParallelEnvironmentComponent, ComponentWithLogging):
+class ParallelEnvironmentComponentDebug(ParallelEnvironmentComponent, ComponentWithLoggingDebug):
 
     is_debug_schema = True
     

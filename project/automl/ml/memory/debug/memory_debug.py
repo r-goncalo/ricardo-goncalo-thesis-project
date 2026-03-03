@@ -1,9 +1,10 @@
+from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
 from automl.loggers.logger_component import DEBUG_LEVEL, ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.component import requires_input_proccess
 
 
-class MemoryDebug(MemoryComponent, ComponentWithLogging):
+class MemoryDebug(MemoryComponent, ComponentWithLoggingDebug):
 
     is_debug_schema = True
 

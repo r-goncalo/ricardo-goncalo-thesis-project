@@ -33,7 +33,11 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         self.__compare_old_and_new_critic_predictions = self.compare_old_and_new_critic_predictions_interval >= 1
 
         if self.__compare_old_and_new_critic_predictions:
+            self.lg.writeLine(f"Will compare old and new critic predictions")
             self.__old_critic_model: TorchModelComponent = self.critic.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_critic", "create_new_directory" : False}, is_deep_clone=True)
+
+        else:
+            self.lg.writeLine(f"Will not compare old and new critic predictions")
 
 
     def _split_actor_critic_params(self):

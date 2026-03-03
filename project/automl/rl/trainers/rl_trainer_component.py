@@ -1,6 +1,7 @@
 
 import math
 from typing import Dict
+from automl.basic_components.EventfulComponent import EventfulComponent, Event
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.core.advanced_input_management import ComponentDictInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
@@ -14,7 +15,7 @@ from automl.basic_components.exec_component import ExecComponent
 
 
 
-class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecComponent):
+class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecComponent, EventfulComponent):
 
     TRAIN_LOG = 'train.txt'
     
@@ -46,8 +47,13 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                       "episode_done_in_session" : 0,
                       "steps_done_in_session" : 0
                       } #this means we'll have a dic "values" with this starting values
-    
+     
     results_columns = ["episode", "episode_steps", "avg_reward", "episode_reward", "total_steps"]
+
+    STATIC_EVENTS = {
+        "ended_training" : Event(),
+        "ended_episode" : Event()
+        }
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
@@ -67,8 +73,13 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         
         self.env : AECEnvironmentComponent = self.get_input_value("environment")
 
-        
         self.setup_agents()
+
+        self.agents_trainings_over = {agent_trainer.name : False for agent_trainer in self.agents_trainers.values()}
+        self.external_should_end_training_session = False
+        
+        for trainer in self.agents_trainers.values():
+            trainer.subscribe_event("ended_agent_training", self.agent_training_over)
 
         self._optimizations_prediction()
         
@@ -144,16 +155,12 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         self.input.pop("agents_trainers_input", None)
 
-        
-
-
 
     def _make_optimization_prediction_for_agent_episodes(self, agent_key):
         raise NotImplementedError()
     
     def _make_optimization_prediction_for_agent_total_steps(self, agent_key):
-        return self.agents_trainers[agent_key].make_optimization_prediction_for_agent_steps(self.limit_total_steps)
-        
+        return self.agents_trainers[agent_key].make_optimization_prediction_for_agent_steps(self.limit_total_steps)        
 
     def _make_optimization_prediction_for_agent(self, agent_key):
 
@@ -189,6 +196,17 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                 self.lg._writeLine(f"RLTrainer predicted it will do {optimizations_for_agent} optimizations for agent with key '{key}'")
 
 
+    def agent_training_over(self, agent_trainer_name):
+        
+        # if we did not yet know that the training for this agent was already over
+        if not self.agents_trainings_over[agent_trainer_name]:
+            self.agents_trainings_over[agent_trainer_name] = True
+            
+            self.lg.writeLine(f"Noticed interruption in training for {agent_trainer_name}")
+
+            if all(self.agents_trainings_over.values()):
+                self.lg.writeLine(f"Noticed that interruption for training happened for all available trainers, will interrupt training")
+                self.external_should_end_training_session = True
 
 
 
@@ -262,9 +280,13 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         return False
     
 
+    def _check_if_to_end_training_by_other_means(self):
+        return self.external_should_end_training_session
+    
+
     def _check_if_to_end_training_session(self):
 
-        if self._check_if_to_end_training_by_episodes_done() or self._check_if_to_end_training_by_total_steps():
+        if self._check_if_to_end_training_by_episodes_done() or self._check_if_to_end_training_by_total_steps() or self._check_if_to_end_training_by_other_means():
             return True # we end the training
 
         return False
@@ -309,7 +331,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self.env.total_reset()
 
         for agent_in_training in self.agents_trainers.values():
-            agent_in_training.setup_training_session() 
+            agent_in_training._setup_training_session() 
 
 
         self.values["episode_done_in_session"] = 0

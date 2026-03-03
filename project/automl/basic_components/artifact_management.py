@@ -126,7 +126,7 @@ class ArtifactComponent(Component):
         
             
     
-    def __generate_artifact_directory(self):
+    def _generate_artifact_directory(self):
 
         necessary_parameters = ["artifact_relative_directory", "base_directory", "create_new_directory"]
         
@@ -165,7 +165,7 @@ class ArtifactComponent(Component):
         
                 
     def _force_generate_artifact_directory(self):
-        self.__generate_artifact_directory()
+        self._generate_artifact_directory()
 
     def __generate_base_directory(self):
 
@@ -193,7 +193,7 @@ class ArtifactComponent(Component):
         if hasattr(self, "artifact_directory"):
             raise Exception(f"Component {self.name} already had an artifact directory generated, \'{self.artifact_directory}\'")
             
-        self.__generate_artifact_directory()
+        self._generate_artifact_directory()
         
     
     def has_artifact_directory_defined_or_created(self) -> bool:
@@ -207,7 +207,7 @@ class ArtifactComponent(Component):
         '''Gets (and sets if needed) the artifact directory'''      
         
         if not self.has_artifact_directory():
-            self.__generate_artifact_directory()
+            self._generate_artifact_directory()
             
         return self.artifact_directory
     

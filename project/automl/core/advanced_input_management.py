@@ -75,6 +75,11 @@ class ComponentInputSignature(InputSignature):
 
         if value is None:
             return value
+
+        try:
+            component_with_input.lg.writeLine(f"Getting value for key {key}: {value}")
+        except:
+            pass
         
         try:
         

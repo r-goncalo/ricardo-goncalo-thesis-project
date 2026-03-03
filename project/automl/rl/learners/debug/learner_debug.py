@@ -1,5 +1,6 @@
 
 
+from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.component import requires_input_proccess
@@ -9,7 +10,7 @@ from automl.ml.models.torch_model_utils import model_parameter_distance
 from automl.core.input_management import InputSignature
 import torch
 
-class LearnerDebug(LearnerSchema, ComponentWithLogging):
+class LearnerDebug(LearnerSchema, ComponentWithLoggingDebug):
 
     is_debug_schema = True
 
@@ -29,6 +30,10 @@ class LearnerDebug(LearnerSchema, ComponentWithLogging):
         if self.compare_old_and_new_model_predictions:
             self.lg.writeLine(f"Will compare old and new model predictions")
             self.__temporary_model : TorchModelComponent = self.__agent_model.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_policy", "create_new_directory" : False}, is_deep_clone=True)        
+
+        else:
+            self.lg.writeLine(f"Will not compare old and new model predictions")
+
 
     def learn(self, trajectory, discount_factor) -> None:
         

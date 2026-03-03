@@ -309,5 +309,8 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         ratio, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, critic_pred_batch, values, returns)
 
         self._optimize_using_loss(policy_loss, value_loss, loss)
+        
+
+        return log_prob_batch, new_log_probs
 
 

@@ -3,27 +3,30 @@
 
 
 
-from typing import Dict
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.component import InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
-from automl.loggers.logger_component import DEBUG_LEVEL, LoggerSchema, ComponentWithLogging
+from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.memory_samplers.memory_sampler import MemorySampler
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
-from automl.loggers.result_logger import ResultLogger
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.learners.q_learner import DeepQLearnerSchema
 from automl.rl.policy.policy import Policy
 import torch
-import time
 
-class AgentTrainer(ComponentWithLogging, ComponentWithResults):
+from automl.basic_components.EventfulComponent import EventfulComponent, Event
+
+
+class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent):
     
-    '''Describes a trainer specific for an agent, using a learner algorithm, memory and more'''
+    '''
+    Describes a trainer specific for an agent, using a learner algorithm, memory and more
+    
+    '''
     
     TRAIN_LOG = 'train.txt'
     
@@ -64,13 +67,18 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                        
                        }
     
-    exposed_values = {"total_steps" : 0,
+    exposed_values = {
+                      "total_steps" : 0,
                       "episode_steps" : 0,
                       "episodes_done" : 0,
                       "episode_score" : 0,
                       "optimizations_done" : 0,
                       "average_optimization" : 0
                       } #this means we'll have a dic "values" with this starting values
+    
+    STATIC_EVENTS = {
+        "ended_agent_training" : Event()
+        }
     
     results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
     
@@ -97,6 +105,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.initialize_learner()
         self.initialize_memory()
         self.initialize_temp()
+
+        self.is_training = True
                                 
 
         
@@ -120,7 +130,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
     def initialize_learner(self):
         
         self.learner : LearnerSchema = self.get_input_value("learner", look_in_attribute_with_name="learner")
-        self.learner.pass_input({"device" : self.device, "agent" : self.agent})
+        self.learner.pass_input({"device" : self.device, "agent" : self.agent, "agent_trainer" : self})
         
 
 
@@ -171,15 +181,20 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         
         
     @requires_input_proccess
-    def setup_training_session(self):
+    def _setup_training_session(self):
         
         self.lg.writeLine("Setting up training session")
+
+        self.is_training = True
         
         
                 
     @requires_input_proccess
-    def end_training(self):        
-        self.lg.writeLine("Ending training session")
+    def end_training(self):
+
+        self.lg.writeLine("Ending training session... (Note that the trainer can still be used)")
+
+        self.is_training = False
         
         
     
@@ -190,6 +205,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
         self.values["episode_score"] = 0
         
         self.agent.reset_agent_in_environment(env.observe(self.agent.name))
+
         
             
         
@@ -200,20 +216,22 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults):
                 
         self.calculate_and_log_results()
 
-        
+
     
     def _learn_if_needed(self):
-        
-        can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episodes_done"] >= self.learning_start_ep_delay
-        can_learn_by_step_delay = self.learning_start_step_delay < 1 or self.values["total_steps"] >= self.learning_start_step_delay
 
-        if can_learn_by_ep_delay and can_learn_by_step_delay:          
+        if self.is_training:
         
-            if self.values["total_steps"] % self.optimization_interval == 0:
-                
-                self.lg.writeLine(f"In episode (total) {self.values['episodes_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
-                
-                self.optimizeAgent()
+            can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episodes_done"] >= self.learning_start_ep_delay
+            can_learn_by_step_delay = self.learning_start_step_delay < 1 or self.values["total_steps"] >= self.learning_start_step_delay
+
+            if can_learn_by_ep_delay and can_learn_by_step_delay:          
+            
+                if self.values["total_steps"] % self.optimization_interval == 0:
+
+                    self.lg.writeLine(f"In episode (total) {self.values['episodes_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
+
+                    self.optimizeAgent()
                     
             
         

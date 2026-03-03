@@ -58,8 +58,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 
         self.trial_loader_groups : dict[str, RunnableComponentGroup] = {} # the groups for each trial, each group has the same hyperparameter and different seeds
 
-        self.completed_pruner = self.get_input_value(f"completed_pruner")
-
         self.trainings_at_a_time = self.get_input_value("trainings_at_a_time") # training processes that can be done at a time
 
         self.trainings_per_configuration = self.get_input_value("trainings_per_configuration") # training processes per configuration, the result is the average

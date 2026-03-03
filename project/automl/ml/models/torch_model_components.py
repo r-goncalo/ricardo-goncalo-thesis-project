@@ -275,34 +275,6 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     # STATE MANAGEMENT -----------------------------------------------------
 
     def _save_model(self):
-        
-    
-        model_path = os.path.join(self.get_artifact_directory(), "model_weights.pth")
-        
-        if os.path.exists(model_path):
-            saved_state_dict = torch.load(model_path, map_location=torch.device('cpu'))
-
-            self.lg.writeLine(f"Model already existed, comparing new with old:")
-
-            params_a = torch.cat([
-                p.detach().flatten().cpu()
-                for p in self.model.state_dict().values()
-            ])
-
-            params_b = torch.cat([
-                p.detach().flatten().cpu()
-                for p in saved_state_dict.values()
-            ])
-
-
-            l2_distance = torch.norm(params_a - params_b, p=2).item()
-            avg_distance = l2_distance / params_a.numel()
-            cosine_sim = torch.nn.functional.cosine_similarity(
-                params_a.unsqueeze(0), params_b.unsqueeze(0)
-            ).item()
-
-            self.lg.writeLine(f"L2 dis: {l2_distance}, Avg dist: {avg_distance}, Cos dist: {cosine_sim}")
-
         torch.save(self.model.state_dict(), os.path.join(self.get_artifact_directory(), "model_weights.pth"))
 
 

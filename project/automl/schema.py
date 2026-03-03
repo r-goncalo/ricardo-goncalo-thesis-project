@@ -43,11 +43,12 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
 
         found_non_debug_base = False
         for base_class in bases:
+
             if hasattr(base_class, "is_debug_schema") and base_class.is_debug_schema:
                 self_class.is_debug_schema = True
-                
-                if found_non_debug_base:
-                    raise Exception(f"When generating Schema {self_class}: found a non debug schema as parent class before debug schema {base_class}")
+
+                #if found_non_debug_base:
+                #    raise Exception(f"When generating Schema {self_class}: found a non debug schema as parent class before debug schema {base_class}")
 
             else:
                 found_non_debug_base = True
