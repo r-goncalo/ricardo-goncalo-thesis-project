@@ -76,6 +76,8 @@ class ExecComponent(Component):
         if self.__save_dataframes_on_run_end:
             save_all_dataframes_of_component_and_children(self)
             flush_text_of_all_loggers_and_children(self)
+
+        self._save_values_in_execution()
             
     
     def _stop_earlier_signal_received(self):
@@ -177,6 +179,8 @@ class ExecComponent(Component):
                 if self.__save_dataframes_on_run_end:
                     save_all_dataframes_of_component_and_children(self)
                     flush_text_of_all_loggers_and_children(self)
+
+                self._save_values_in_execution()
 
             else:
                 self.values["running_state"] = State.ERROR
