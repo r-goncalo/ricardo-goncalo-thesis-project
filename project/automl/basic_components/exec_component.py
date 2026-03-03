@@ -129,8 +129,9 @@ class ExecComponent(Component):
         values_to_save = {}
 
         for key, value in self.values.items():
-            if key not in [ExecComponent.exposed_values.keys()]:
-                values_to_save[key] = value
+            if key not in ExecComponent.exposed_values.keys():
+                if not isinstance(value, (dict, list, tuple)):
+                    values_to_save[key] = value
 
         if len(values_to_save) > 0:
             values_to_save["execution"] = self._current_execution
