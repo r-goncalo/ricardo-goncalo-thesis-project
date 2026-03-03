@@ -1,7 +1,8 @@
 from automl.component import Component, InputSignature, requires_input_proccess
 
 
-from automl.core.advanced_input_management import ComponentListInputSignature
+from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
+from automl.fundamentals.acessories import AcessoryComponent
 from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
 from automl.rl.agent.agent_components import AgentSchema
 import torch
@@ -14,6 +15,11 @@ class LearnerSchema(Component):
                                     "hyperparameter_suggestion" : ("int", {"low" : 1, "high" : 32})
                                 }),
 
+        "learning_acessories" : ComponentListInputSignature(mandatory=False),
+
+        "agent_trainer" : ComponentInputSignature(mandatory=False),
+
+
     }
         
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
@@ -23,6 +29,17 @@ class LearnerSchema(Component):
         self.agent : AgentSchema = self.get_input_value("agent")
 
         self.optimizations_per_learn : int = self.get_input_value("optimizations_per_learn")
+
+        self.learning_acessories : list[AcessoryComponent] = self.get_input_value("learning_acessories")
+
+        if self.learning_acessories is None:
+            self.learning_acessories = []
+
+        else:
+            for acessory in self.learning_acessories:
+                acessory.pass_input({"affected_component" : self})
+
+        self.agent_trainer = self.get_input_value("agent_trainer")
 
 
 
@@ -42,9 +59,15 @@ class LearnerSchema(Component):
                 trajectory: batch of transitions [ (all states), (all actions), (all next states), (all rewards) ]
                 
         '''
+
+        for acessory in self.learning_acessories:
+            acessory.pre_fun()
         
         for _ in range(self.optimizations_per_learn):
             values = self._learn(trajectory, discount_factor)
+
+        for acessory in self.learning_acessories:
+            acessory.pos_fun(values)
 
 
     

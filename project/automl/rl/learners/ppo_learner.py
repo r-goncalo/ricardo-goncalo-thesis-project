@@ -311,6 +311,6 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self._optimize_using_loss(policy_loss, value_loss, loss)
         
 
-        return log_prob_batch, new_log_probs
+        return {"log_prob_batch" : log_prob_batch, "new_log_probs" : new_log_probs}
 
 

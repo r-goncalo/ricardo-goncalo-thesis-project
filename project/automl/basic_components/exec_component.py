@@ -33,7 +33,12 @@ class ExecComponent(Component):
     
     }
 
-    exposed_values = {"running_state" : State.IDLE, "times_ran" : 0, "values_in_execution" : []}    
+    exposed_values = {"running_state" : State.IDLE, "times_ran" : 0, "values_in_execution" : None}    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.values["values_in_execution"] = []
     
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
@@ -130,7 +135,6 @@ class ExecComponent(Component):
 
         for key, value in self.values.items():
             if key not in ExecComponent.exposed_values.keys():
-                if not isinstance(value, (dict, list, tuple)):
                     values_to_save[key] = value
 
         if len(values_to_save) > 0:

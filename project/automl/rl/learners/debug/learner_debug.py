@@ -50,7 +50,7 @@ class LearnerDebug(LearnerSchema, ComponentWithLoggingDebug):
 
             state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
 
-        super()._learn(trajectory, discount_factor)
+        to_return = super()._learn(trajectory, discount_factor)
 
         self.lg.writeLine("\naction, reward, done, old_model_predictions, new_model_predictions\n", file="batch_comparison.txt", use_time_stamp=False)
 
@@ -72,3 +72,4 @@ class LearnerDebug(LearnerSchema, ComponentWithLoggingDebug):
 
                 self.lg.writeLine(f"{i}: {action_val}, {reward_val}, {done_val}, {old_model_prediction_val}, {new_model_precitions_val}", file="batch_comparison.txt", use_time_stamp=False)
 
+        return to_return

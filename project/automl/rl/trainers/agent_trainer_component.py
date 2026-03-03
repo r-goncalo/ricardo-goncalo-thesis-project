@@ -73,7 +73,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                       "episodes_done" : 0,
                       "episode_score" : 0,
                       "optimizations_done" : 0,
-                      "average_optimization" : 0
+                      "average_optimization" : 0,
+                      "external_end_requests" : None
                       } #this means we'll have a dic "values" with this starting values
     
     STATIC_EVENTS = {
@@ -84,6 +85,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     
     def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
         super().__init__(*args, **kwargs)
+
+        self.values["external_end_requests"] = {}
         
 
     def _proccess_input_internal(self):
@@ -186,6 +189,11 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self.lg.writeLine("Setting up training session")
 
         self.is_training = True
+
+        external_end_requests : dict = self.values["external_end_requests"]
+        
+        for external_end_key in external_end_requests:
+            self.initialize_external_end_request(external_end_key)
         
         
                 
@@ -330,3 +338,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             batch = sampler.get_all()        
                 
         self._optimize_policy_model_with_batch(batch)
+
+    def request_end_from_external(self, key):
+
+        external_end_requests : dict = self.values["external_end_requests"]
+        external_end_requests[key] = True
+
+        if all(external_end_requests.values()):
+            self.lg.writeLine(f"All external end requests: {external_end_requests} are true, requesting to end training...")
+            self.end_training()
+
+    def initialize_external_end_request(self, key):
+
+        external_end_requests = self.values["external_end_requests"]
+        external_end_requests[key] = False

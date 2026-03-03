@@ -253,7 +253,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         if should_compare_old_and_new_critic:
             self.__old_critic_model.clone_other_model_into_this(self.critic)
 
-        super()._learn(trajectory, discount_factor)
+        to_return = super()._learn(trajectory, discount_factor)
             
         if should_compare_old_and_new_critic:
 
@@ -283,3 +283,5 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
                     )
 
         self.__current_learning_step += 1
+
+        return to_return

@@ -102,9 +102,11 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         else:
             self.__path_to_write = None
         
-        super()._learn(trajectory, discount_factor)
+        to_return = super()._learn(trajectory, discount_factor)
 
         self.__current_interval_computation_count += 1
+
+        return to_return
 
 
 

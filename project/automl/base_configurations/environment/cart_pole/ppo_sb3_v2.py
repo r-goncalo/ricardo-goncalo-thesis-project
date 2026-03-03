@@ -30,6 +30,7 @@ from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 from automl.ml.models.joint_model import ModelSequenceComponent
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
+from automl.rl.learners.convergence_detectors.avg_out_convergence_detector import ConvergenceDetector
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy
@@ -89,8 +90,7 @@ def config_dict():
                 
                 "optimization_interval": 256,
                 
-                "learner" : #(PPOLearner, {
-                            (ConvergenceAwarePPOLearner, {
+                "learner" : (PPOLearner, {
 
                     "lambda_gae" : 0.8,
 
@@ -134,7 +134,15 @@ def config_dict():
                                    }
                     ),
 
-
+                    "learning_acessories" : [
+                        ( ConvergenceDetector,
+                            {
+                                "memory_size" : 256,
+                                "convergence_treshold" : 0.001,
+                                "old_values_new_values_keys" : ["log_prob_batch", "new_log_probs"]
+                            }
+                        )
+                    ]
 
                 }),
 
