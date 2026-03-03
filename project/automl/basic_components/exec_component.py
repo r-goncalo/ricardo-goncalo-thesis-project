@@ -75,14 +75,7 @@ class ExecComponent(Component):
         else:
             self.values["running_state"] = State.OVER
         
-        if self.__save_state_on_run_end:
-            save_state(self)
-        
-        if self.__save_dataframes_on_run_end:
-            save_all_dataframes_of_component_and_children(self)
-            flush_text_of_all_loggers_and_children(self)
 
-        self._save_values_in_execution()
             
     
     def _stop_earlier_signal_received(self):
@@ -142,6 +135,7 @@ class ExecComponent(Component):
 
         self.values["values_in_execution"].append(values_to_save)
 
+
     # RUNNABLE METHOD --------------------------------
     
     @requires_input_proccess
@@ -178,14 +172,6 @@ class ExecComponent(Component):
                 self.stop_execution_earlier()
                 self._on_earlier_interruption()
 
-                if self.__save_state_on_run_end:
-                    save_state(self)
-
-                if self.__save_dataframes_on_run_end:
-                    save_all_dataframes_of_component_and_children(self)
-                    flush_text_of_all_loggers_and_children(self)
-
-                self._save_values_in_execution()
 
             else:
                 self.values["running_state"] = State.ERROR
@@ -193,12 +179,15 @@ class ExecComponent(Component):
 
             self.values["times_ran"] += 1
 
+            raise e
+
+        finally:
             if self.__save_state_on_run_end:
                 save_state(self)
-
+            
             if self.__save_dataframes_on_run_end:
                 save_all_dataframes_of_component_and_children(self)
                 flush_text_of_all_loggers_and_children(self)
-
-            raise e
+    
+            self._save_values_in_execution()
     

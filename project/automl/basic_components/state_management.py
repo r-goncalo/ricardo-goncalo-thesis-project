@@ -49,6 +49,12 @@ class StatefulComponent(ArtifactComponent):
             
         self._save_state_internal()
 
+    def save_state_and_rest_to_disk(self):
+
+        save_state(self, True)
+
+        save_all_dataframes_of_component_and_children(self)
+        flush_text_of_all_loggers_and_children(self)
         
     def _save_state_internal(self):
         pass

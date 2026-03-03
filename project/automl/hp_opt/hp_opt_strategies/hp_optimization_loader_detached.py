@@ -119,6 +119,11 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         self.lg.writeLine()
 
+
+    def report_value_for_optuna(self, trial : optuna.Trial, value, step):
+        with self.optuna_usage_sem:
+            super().report_value_for_optuna(trial, value, step)
+
     
     def _try_evaluate_component(self, component_to_test_path, trial : optuna.Trial, component_to_test = None) -> float:
 

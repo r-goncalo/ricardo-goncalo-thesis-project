@@ -180,15 +180,14 @@ class HyperparameterOptimizationWorkerIndexed():
                     f"Reporting result {max_result}, maximum of results: {last_results}"
                 )
 
-                with self.parent_hp_pipeline.optuna_usage_sem:
-                    trial.report(max_result, step)
+                self.parent_hp_pipeline.report_value_for_optuna(trial, max_result, step)
 
             else:
 
                 avg_result = sum(last_results) / len(last_results) if len(last_results) > 1 else last_results[0]
                 self.thread_logger.writeLine(f"Reporting result {avg_result}, average of results: {last_results}")
-                with self.parent_hp_pipeline.optuna_usage_sem:
-                    trial.report(avg_result, step)
+
+                self.parent_hp_pipeline.report_value_for_optuna(trial, avg_result, step)
         
         return enough_runs
 

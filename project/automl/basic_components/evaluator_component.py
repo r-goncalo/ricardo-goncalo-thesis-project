@@ -90,6 +90,10 @@ class ComponentWithEvaluator(Component):
         "component_evaluator" : ComponentInputSignature(mandatory=False),
     }
     
+    exposed_values = {
+        "last_evaluation" : None
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
@@ -101,6 +105,7 @@ class ComponentWithEvaluator(Component):
         
         self.component_evaluator : EvaluatorComponent = self.get_input_value("component_evaluator", look_in_attribute_with_name="component_evaluator")        
     
+    @requires_input_proccess
     def evaluate_this_component(self) -> dict:
         
         '''
@@ -110,16 +115,22 @@ class ComponentWithEvaluator(Component):
         if self.component_evaluator is None:
             raise Exception("This component does not have an evaluator")
         
-        self.last_evaluation = self.component_evaluator.evaluate(self)
+        self.values["last_evaluation"] = self._evaluate_this_component()
         
-        return self.last_evaluation
-    
+        return self.values["last_evaluation"]
+
+    def _evaluate_this_component(self) -> dict:
+        return self.component_evaluator.evaluate(self)
+
+    @requires_input_proccess
     def get_last_evaluation(self):
         
         if self.component_evaluator is None:
             raise Exception("This component does not have an evaluator")
         
-        elif not self.last_evaluation:
+        to_return = self.values.get("last_evaluation")
+
+        if to_return is None:        
             raise Exception("This component has not been evaluated yet")
         
-        return self.last_evaluation
+        return to_return

@@ -1,4 +1,5 @@
 import os
+import shutil
 import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
@@ -13,7 +14,7 @@ from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
 from automl.utils.files_utils import open_or_create_folder
-from automl.basic_components.state_management import StatefulComponent
+from automl.basic_components.state_management import StatefulComponent, load_component_from_folder
 
 import torch
 
@@ -44,9 +45,13 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                        "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
 
                        "fraction_of_training_to_do_in_session" : InputSignature(mandatory=False, description="If when this is run it is supposed to do only a fraction of the training, this affects the stop condition"),
-                       "generate_fraction_from_times_to_run" : InputSignature(default_value=False)
+                       "generate_fraction_from_times_to_run" : InputSignature(default_value=False),
+
+                       "save_checkpoints" : InputSignature(default_value=True)
                 
                        }
+
+    exposed_values = {}
     
     
     results_columns = ["episodes_done"] # this means a result_logger will exist with the column "episodes_done"
@@ -72,6 +77,8 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         self.setup_trainer()
         
         self.rl_setup_evaluator()
+        
+        self._setup_checkpoints()
 
         self.lg.writeLine(f"Finished processing rl pipeline with values {self.values}\n")
 
@@ -180,9 +187,6 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         '''Configures the agents, setting up their action and state spaces, the logger and more'''
             
         self.setup_agent_state_action_shape(agent_name, agent)
-                            
-
-        
 
 
             
@@ -249,6 +253,127 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
 
     
+    def _setup_checkpoints(self):
+
+        self.save_checkpoints = self.get_input_value("save_checkpoints")
+
+        if self.save_checkpoints:
+            checkpoints_and_evaluations = self.values.get("checkpoints_and_evaluations")
+
+            if checkpoints_and_evaluations is None:
+                self.values["checkpoints_and_evaluations"] = []
+
+    
+    def _create_checkpoint(self, checkpoint_path):
+            
+            this_component_path = self.get_artifact_directory()
+
+            # ensure checkpoint directory exists
+            open_or_create_folder(checkpoint_path)
+
+            for item in os.listdir(this_component_path):
+            
+                src = os.path.join(this_component_path, item)
+
+                # skip checkpoints folder itself
+                if item == "__checkpoints":
+                    continue
+                
+                dst = os.path.join(checkpoint_path, item)
+
+                try:
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(src, dst)
+                except Exception as e:
+                    self.lg.writeLine(
+                        f"Warning: failed copying {src} to {dst}. Error: {str(e)}"
+                    )
+                    
+            checkpoint_component : RLPipelineComponent = load_component_from_folder(checkpoint_path)
+
+            return checkpoint_component
+    
+    
+    def _evaluate_this_component(self):
+
+        if not self.save_checkpoints:
+            return super()._evaluate_this_component()
+        
+        else:
+
+            self.lg.writeLine(f"Evaluating this component with checkpoints...")
+
+            self.lg.writeLine(f"Will first save all there is to save into disk")
+
+            self.save_state_and_rest_to_disk()
+
+            self.lg.writeLine(f"Finished saving to disk")
+            
+            checkpoints_and_evaluations : list[tuple[str, float]] = self.values.get("checkpoints_and_evaluations")
+
+            self.lg.writeLine(f"Current checkpoints are {checkpoints_and_evaluations}")
+
+            this_component_path = self.get_artifact_directory()
+            checkpoint_path = os.path.join(this_component_path, "__checkpoints", str(len(checkpoints_and_evaluations)))
+
+            self.lg.writeLine(f"New checkpoint will be in {checkpoint_path}")
+
+            checkpoint_component = self._create_checkpoint(checkpoint_path)
+
+            checkpoint_component.pass_input({"base_directory" : checkpoint_path, "artifact_relative_directory" : '', "create_new_directory" : False})
+            
+            checkpoint_component.pass_input({"save_checkpoints" : False})
+
+            self.lg.writeLine(f"Created new checkpoint component in path {checkpoint_path}, evaluating it...")
+
+            evaluation_results = {**checkpoint_component.evaluate_this_component()}
+
+            checkpoints_and_evaluations.append((checkpoint_path, evaluation_results))
+
+            self.lg.writeLine(f"Finished evaluation with result {evaluation_results}")
+
+            (max_path, evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
+
+            self.lg.writeLine(f"Current best result is {evaluation_results} from path {max_path}, returning that one")
+
+            return evaluation_results
+
+
+    def get_best_evaluation_checkpoint_path_result(self):
+
+        checkpoints_and_evaluations = self.values.get("checkpoints_and_evaluations")
+
+        if checkpoints_and_evaluations is None or len(checkpoints_and_evaluations) == 0:
+            return None
+        
+        (path, evaluation_results) = checkpoints_and_evaluations[0]
+
+        max_evaluation_results = evaluation_results
+        max_path = path
+        
+        for (path, evaluation_results) in checkpoints_and_evaluations[1:]:
+
+            if evaluation_results["result"] >= max_evaluation_results["result"]:
+                max_evaluation_results = evaluation_results
+                max_path = path
+
+        return (max_path, max_evaluation_results)
+
+    
+    def get_best_evaluation_checkpoint_path(self):
+
+        (max_path, max_result) = self.get_best_evaluation_checkpoint_path_result()
+
+        return max_path
+    
+
+    def get_best_evaluation_checkpoint_result(self):
+
+        (max_path, max_result) = self.get_best_evaluation_checkpoint_path_result()
+
+        return max_result
         
     # TRAINING_PROCCESS ----------------------
     
@@ -291,7 +416,12 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         
         self.train() #trains the agents in the reinforcement learning pipeline
         
-        
+    
+
+    
+    def _pos_algorithm(self):
+        super()._pos_algorithm()
+
         if self.component_evaluator is not None:
             
             self.lg.writeLine("Evaluating the trained agents...")

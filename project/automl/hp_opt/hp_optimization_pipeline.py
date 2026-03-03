@@ -3,7 +3,7 @@ from typing import Union
 from automl.component import InputSignature, Component, requires_input_proccess
 from automl.basic_components.exec_component import ExecComponent, State
 from automl.core.advanced_input_management import ComponentInputSignature
-from automl.basic_components.evaluator_component import EvaluatorComponent
+from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.hp_opt.optuna.custom_pruners import MixturePruner
 from automl.hp_opt.samplers.sampler import OptunaSamplerComponent, OptunaSamplerWrapper
@@ -68,7 +68,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "pruner_input" : InputSignature(mandatory=False),
                         
                         "evaluator_component" : ComponentInputSignature(
-                            default_component_definition=(LastValuesAvgStdEvaluator, {}),
+                            mandatory=False,
                             description="The evaluator component to be used for evaluating the components to optimize in their training process"
                             ),
 
@@ -502,17 +502,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         '''Evaluates the component that has already run and returns the evaluation result'''
         
-        if self.evaluator_component is None: # TODO: Implement this, right now, the evaluator component is mandatory
+        if self.evaluator_component is None:
+
+            self.lg.writeLine(f"HP pipeline has no evaluator defined, using last evaluation of component...")
+
+            if not isinstance(component_to_test, ComponentWithEvaluator):
+                raise Exception("Component to test is not a ComponentWithEvaluator, cannot get evaluation")           
             
-            if not isinstance(component_to_test, ComponentWithResults):
-                raise Exception("Component to test is not a ComponentWithResults, cannot get evaluation")
-            
-            component_to_test_results : ResultLogger = component_to_test.get_results_logger()
-            
-            result = component_to_test_results.get_last_results()
+            result = component_to_test.get_last_evaluation()
             
         else:
-            
+
+            self.lg.writeLine(f"Using evaluator in hp pipeline to evaluate component...")
+
             result = self.evaluator_component.evaluate(component_to_test)
             
         return result          
@@ -589,7 +591,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
             self.lg.writeLine(f"Evaluation results for trial {trial.number} at step {step}: {evaluation_results}")
 
-            return evaluation_results                
+            return evaluation_results
+
+    def report_value_for_optuna(self, trial : optuna.Trial, value, step):
+        trial.report(value, step)
+
 
     def _try_run_single_step_of_objective(self, trial : optuna.Trial, step):
 
@@ -605,7 +611,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 try:
 
                     result = evaluation_results["result"]
-                    trial.report(result, step) # we report the results to optuna
+                    self.report_value_for_optuna(trial, result, step)
 
                     self.log_results_of_trial(trial, step, evaluation_results)
 
@@ -681,11 +687,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         return self._run_optimization(trial)
     
+    
     def _call_objective(self):
 
         self.study.optimize( lambda trial : self.objective(trial), 
                        n_trials=self.n_trials,
                        callbacks=[self.after_trial])
+    
         
     def after_trial(self, study : optuna.Study, trial : optuna.trial.FrozenTrial):
         
