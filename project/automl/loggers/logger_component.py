@@ -368,6 +368,11 @@ class ComponentWithLogging(ArtifactComponent):
                        }
 
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._lg = None
+
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
             
         super()._proccess_input_internal()
@@ -380,7 +385,7 @@ class ComponentWithLogging(ArtifactComponent):
         self._lg = new_logger
 
     def has_logger_object_defined(self):
-        return hasattr(self, "_lg")
+        self._lg is not None
 
     @property
     def lg(self) -> LoggerSchema: # this allows for external components to change the logger being used with their calls
@@ -398,10 +403,15 @@ class ComponentWithLogging(ArtifactComponent):
         return self._lg
 
 
-    @requires_input_proccess
     def change_logger_level(self, new_level : DEBUG_LEVEL):
 
+        if not self.has_logger_object_defined():
+            self.pass_input({"logger_object" : generate_logger_for_component(self)})
+
         self.lg.pass_input({"necessary_logger_level" : new_level})
+
+    
+
 
     @requires_input_proccess
     def write_configuration_to_relative_file(self, filename : str, level : DEBUG_LEVEL = DEBUG_LEVEL.INFO, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=False):

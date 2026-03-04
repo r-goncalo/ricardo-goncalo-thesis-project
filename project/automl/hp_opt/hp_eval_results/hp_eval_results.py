@@ -61,8 +61,35 @@ def print_optuna_param_importances(optuna_study):
         print(f"{param}: {importance:.4f}")
 
 
+#def get_params_in_optuna(optuna_study):
+#
+#    # DataFrame from study
+#    df = optuna_study.trials_dataframe()
+#    # Hyperparameter columns
+#    param_cols = [c for c in df.columns if c.startswith("params_")]
+#
+#    return param_cols
+#
+#
+#def plot_scattered_values_for_param(optuna_study, highlight_trials, param):
+#
+#    if highlight_trials is None:
+#        highlight_trials = []
+#
+#
+#def plot_scattered_values_for_params(optuna_study, highlight_trials, params=None):
+#
+#    if params is None:
+#        return plot_scattered_values_for_all_params(optuna_study, highlight_trials)
+#    
+#    elif isinstance(params, list):
+#        for param in params:
+#            plot_scattered_values_for_param(optuna_study, highlight_trials, param)
+#
+#    else:
+#        plot_scattered_values_for_param(optuna_study, highlight_trials, params)
 
-def plot_scattered_values_for_param(optuna_study, highlight_trials=None):
+def plot_scattered_values_for_all_params(optuna_study, highlight_trials=None):
 
     import optuna
     import matplotlib.pyplot as plt
@@ -89,6 +116,19 @@ def plot_scattered_values_for_param(optuna_study, highlight_trials=None):
         except:
             print(f"Warning: trial {tnum} not found, skipping.")
 
+    trial_numbers = df["number"].values
+
+    # Normalize trial numbers to [0,1]
+    min_trial = trial_numbers.min()
+    max_trial = trial_numbers.max()
+    
+    norm_trials =  ( (trial_numbers - min_trial) / (max_trial - min_trial + 1e-8) )
+    highlight_norm_trials = ( (trial_numbers - min_trial) / (max_trial - min_trial + 1e-8) ) 
+
+    # Invert so earlier trials are more transparent
+    alphas = 0.1 + 0.9 * norm_trials  # alpha between 0.1 and 1.0
+
+
     # Plot each parameter
     for param in param_cols:
         plt.figure(figsize=(7, 5))
@@ -96,8 +136,15 @@ def plot_scattered_values_for_param(optuna_study, highlight_trials=None):
         x = df[param].values
         y = df["value"].values
 
+        zipped_all_trials = iter(zip(x, y, alphas))
+
+        xi, yi, ai = next(zipped_all_trials)
+        plt.scatter(xi, yi, alpha=ai, color="red", label="All trials")
+
         # Base plot: all trials
-        plt.scatter(x, y, alpha=0.3, color="red", label="All trials")
+        for xi, yi, ai in zipped_all_trials:
+            plt.scatter(xi, yi, alpha=ai, color="red")
+        
 
         base_name = param.replace("params_", "")
 
@@ -255,7 +302,7 @@ def study_of_evaluations(configuration_name : str, results_logger : ResultLogger
     
     results_logger.plot_bar_graph(x_axis=x_axis_to_use, y_axis=y_axis_to_use, to_show=False)
 
-    results_logger.plot_linear_regression(x_axis='evaluation', y_axis='result', to_show=False)
+    results_logger.plot_linear_regression(x_axis='evaluation', y_axis='result', to_show=False, color="orange")
 
 
     results_logger.plot_current_graph(title=f"{configuration_name}_evaluations", y_label=y_axis_to_use, y_min=0)
@@ -282,6 +329,8 @@ def get_results_of_configuration_in_path(configuration_path,
 def get_results_of_configurations(experiment_path,
                                    base_configuration_name=BASE_CONFIGURATION_NAME,
                                   results_path=RESULTS_FILENAME) -> dict[str, ResultLogger]:
+    
+    '''Gets directly the results of configurations in a path'''
 
     results_of_configurations : dict[str, ResultLogger] = {}
 
@@ -296,7 +345,7 @@ def get_results_of_configurations(experiment_path,
             if os.path.isdir(configuration_path):  # Ensure it's a file, not a subdirectory
 
                 try:
-                    results_of_configurations[base_configuration_name] = get_results_of_configuration_in_path(
+                    results_of_configurations[configuration_name] = get_results_of_configuration_in_path(
                         configuration_path,
                         configurations_results_relative_path,
                         results_path
@@ -306,7 +355,7 @@ def get_results_of_configurations(experiment_path,
                     print(f"Did not manage to get configuration {configuration_name} due to error {e}")
 
             else:
-                globalWriteLine(f"WARNING: Configuration path with name {configuration_name} is not a directory")
+                print(f"WARNING: Configuration path with name {configuration_name} is not a directory")
 
             
     return results_of_configurations
@@ -315,7 +364,8 @@ def get_results_of_configurations(experiment_path,
 def get_results_of_configurations_components(experiment_path,
                                    base_configuration_name=BASE_CONFIGURATION_NAME,
                                    configurations_results_relative_path = "RLTrainerComponent",
-                                  results_path=RESULTS_FILENAME) -> dict[str, dict[str, ResultLogger]]:
+                                  results_path=RESULTS_FILENAME,
+                                  use_multiple=True) -> dict[str, dict[str, ResultLogger]]:
 
     results_of_configurations : dict[str, dict[str, ResultLogger]] = {}
 
@@ -329,19 +379,28 @@ def get_results_of_configurations_components(experiment_path,
 
                 configuration_dict = {}
 
-                for configuration_component_name in os.listdir(configuration_path):
+                if use_multiple:
 
-                    configuration_component_path = os.path.join(configuration_path, configuration_component_name)
+                    for configuration_component_name in os.listdir(configuration_path):
 
-                    try:
-                        configuration_dict[configuration_component_name] = get_results_of_configuration_in_path(
-                            configuration_component_path,
-                            configurations_results_relative_path,
-                            results_path
-                        )
+                        configuration_component_path = os.path.join(configuration_path, configuration_component_name)
 
-                    except Exception as e:
-                        print(f"Did not manage to get configuration {configuration_name} due to error {e}")
+                        try:
+                            configuration_dict[configuration_component_name] = get_results_of_configuration_in_path(
+                                configuration_component_path,
+                                configurations_results_relative_path,
+                                results_path
+                            )
+
+                        except Exception as e:
+                            print(f"Did not manage to get configuration {configuration_name} due to error {e}")
+                
+                else:
+                    configuration_dict["0"] = get_results_of_configuration_in_path(
+                                configuration_path,
+                                configurations_results_relative_path,
+                                results_path
+                            )
 
                 results_of_configurations[configuration_name] = configuration_dict
 
@@ -353,6 +412,8 @@ def get_results_of_configurations_components(experiment_path,
 
 
 def get_pruned_trials(optuna_study):
+
+    '''Gets pruned trials per steps, organized by steps'''
 
     pruned_optuna_trials = [trial for trial in optuna_study.trials if trial.state == optuna.trial.TrialState.PRUNED]
 
@@ -403,17 +464,18 @@ def get_trials_with_decreasing_intermediates(study):
                              for j in range(i + 1, len(values)))
 
         if ever_decreased:
-            bad_trials.append(trial.number)
+            bad_trials.append(trial)
 
     return bad_trials
 
-def print_intermidiate_values(trial_list, optuna_study):
+def print_intermidiate_values(trial_list : optuna.trial.FrozenTrial):
 
     import optuna
 
-    for trial_number in trial_list:
-
-        trial = optuna_study.trials[trial_number]
+    if len(trial_list) == 0:
+        return
+    
+    for trial in trial_list:
 
         # Sort the intermediate values by step index
         steps = sorted(trial.intermediate_values.keys())
@@ -421,4 +483,4 @@ def print_intermidiate_values(trial_list, optuna_study):
 
         # Format as: trial X: v1, v2, v3
         values_str = ", ".join(str(v) for v in values)
-        print(f"trial {trial_number}: {values_str}")
+        print(f"trial {trial.number}: {values_str}")

@@ -4,7 +4,8 @@
 
 
 from automl.component import InputSignature, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
+from automl.fundamentals.acessories import AcessoryComponent
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
@@ -64,7 +65,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                        "learner" : ComponentInputSignature(
                             default_component_definition=(DeepQLearnerSchema, {})
                         ),
-                       
+
+                        "agent_trainer_acessories" : ComponentListInputSignature(mandatory=False) 
+
                        }
     
     exposed_values = {
@@ -108,6 +111,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self.initialize_learner()
         self.initialize_memory()
         self.initialize_temp()
+        self._initialize_acessories()
 
         self.is_training = True
                                 
@@ -115,7 +119,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
 
     # INITIALIZATION ---------------------------------------------
-    
+
+    def _initialize_acessories(self):
+        self.agent_trainer_acessories : AcessoryComponent = self.get_input_value("agent_trainer_acessories")
+
+        if self.agent_trainer_acessories is None:
+            self.agent_trainer_acessories : AcessoryComponent = []
+
+        else:
+            for acessory in self.agent_trainer_acessories:
+                acessory.pass_input({"affected_component" : self})
+
     def _initialize_delays(self):
         
         self.learning_start_ep_delay = self.get_input_value("learning_start_ep_delay")
@@ -200,9 +214,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     @requires_input_proccess
     def end_training(self):
 
-        self.lg.writeLine("Ending training session... (Note that the trainer can still be used)")
+        if self.is_training:
 
-        self.is_training = False
+            self.lg.writeLine("Ending training session... (Note that the trainer can still be used)")
+
+            self.is_training = False
+
+        else:
+            self.lg.writeLine(f"Received request to end training session when it is already over")
         
         
     
@@ -223,6 +242,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self.values["episodes_done"] = self.values["episodes_done"] + 1
                 
         self.calculate_and_log_results()
+
+        for acessory in self.agent_trainer_acessories:
+            acessory.as_fun()
 
 
     
