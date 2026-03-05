@@ -1,7 +1,5 @@
 
 
-
-
 _global_logger = None
 DEFAULT_TO_PRINT_GLOBAL = False
 
@@ -9,6 +7,7 @@ DEFAULT_TO_PRINT_GLOBAL = False
 def activate_global_logger(global_logger_directory, global_logger_input : dict ={}):
 
     from automl.loggers.logger_component import LoggerSchema
+    import automl
 
     if DEFAULT_TO_PRINT_GLOBAL:
         print(f"Global logger is trying to be activated in directory: {global_logger_directory}")
@@ -37,8 +36,10 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
 
         _global_logger = LoggerSchema(global_logger_input)
 
-        globalWriteLine(f"Global logger activation as ended, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
+        globalWriteLine(f"Global logger activation done, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
         
+        globalWriteLine(f"Current version of automl is {automl.__version__}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
+
 
 def is_global_logger_active():
     
