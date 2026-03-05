@@ -8,3 +8,4 @@ peersim-environment/
 /project/examples/simple_metarl/state
 /archived_data
 /project/__debugs
+/project/.eggs
