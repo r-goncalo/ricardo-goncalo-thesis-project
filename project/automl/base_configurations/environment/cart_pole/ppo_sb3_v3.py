@@ -30,8 +30,11 @@ from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 from automl.ml.models.joint_model import ModelSequenceComponent
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
+from automl.rl.evaluators.rl_evaluator_player import EvaluatorWithPlayer
+from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 from automl.rl.learners.convergence_detectors.avg_out_convergence_detector import ConvergenceDetector
 from automl.rl.rl_pipeline import RLPipelineComponent
+from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector, AgentTrainerSlopeConvergenceDetector
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy
@@ -139,7 +142,7 @@ def config_dict():
                         ( ConvergenceDetector,
                             {
                                 "memory_size" : 256,
-                                "convergence_treshold" : 0.001,
+                                "convergence_treshold" : 0.01,
                                 "old_values_new_values_keys" : ["log_prob_batch", "new_log_probs"]
                             }
                         )
@@ -156,13 +159,28 @@ def config_dict():
                 }),
 
                 "agent_trainer_acessories" : [
-                    (AgentTrainerConvergenceDetector, {}),
-                    (AgentTrainerSlopeConvergenceDetector, {})
+                    (AgentTrainerConvergenceDetector, {
+                        "standard_deviation_treshold" : 10,
+                        "n_values_to_use" : 100
+                    }),
+                    (AgentTrainerSlopeConvergenceDetector, {
+                        "slope_threshold" : 0.1,
+                        "n_values_to_use" : 100
+                    })
                 ]
                 
             
             }
 
+            }
+        ),
+
+        "component_evaluator" : (
+            EvaluatorWithPlayer,
+            {
+                "number_of_episodes" : 5,
+                "rl_player_definition" : (RLPlayer, {}),
+                "base_evaluator" : (LastValuesAvgStdEvaluator, {"value_to_use" : "episode_steps"})
             }
         )
         

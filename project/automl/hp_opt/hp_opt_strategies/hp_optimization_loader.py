@@ -78,19 +78,6 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
         self.add_to_columns_of_results_logger(["experiment", "component_index", "step", *parameter_names, "result"])
 
 
-    def log_results_of_trial(self, trial : optuna.Trial, step : int, component_index : int, evaluation_results):
-
-        result = evaluation_results["result"]
-
-        results_to_log = {'experiment' : trial.number, "component_index" : component_index, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
-
-        for key, value in results_to_log.items():
-            results_to_log[key] = [value]
-
-        self.log_results(results_to_log)  
-
-        return  results_to_log
-
     # CREATION OF COMPONENT TO OPTIMIZE -------------------------------------------------------------
 
     def _generate_name_for_component_group(self, trial : optuna.Trial):
@@ -197,6 +184,19 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     # NOTING RESULTS ---------------------------------------------------   
 
 
+
+    def log_results_of_trial(self, trial : optuna.Trial, step : int, component_index : int, evaluation_results):
+
+        result = evaluation_results["result"]
+
+        results_to_log = {'experiment' : trial.number, "component_index" : component_index, "step" : step, **self._suggested_values_by_trials[trial.number], "result" : result}
+
+        for key, value in results_to_log.items():
+            results_to_log[key] = [value]
+
+        self.log_results(results_to_log)  
+
+
     def get_result_for_component_index_for_step(self, trial, component_index, step):
 
             # Count how many results we already have for this (trial, step)
@@ -219,7 +219,9 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
     def load_and_report_results(self, trial : optuna.Trial, component_index : int, step : int, evaluation_results):
 
-        last_results = self.log_results_of_trial(trial, step, component_index, evaluation_results)
+        self.log_results_of_trial(trial, step, component_index, evaluation_results)
+
+        last_results = self.get_result_for_component_index_for_step(trial, component_index, step)
 
         n_results_for_step = len(last_results)
 
@@ -281,23 +283,25 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     def _compute_result_for_trial_run(self, trial : optuna.Trial):
 
         '''Computes the result for a trial that was already run, to be used inside the objective'''
+
+        self.lg.writeLine(f"Computing results for trial {trial.number}")
     
         df_for_this_trial = self.get_results_dataframe_for_trial(trial)
 
         max_step = df_for_this_trial["step"].max()
 
-        last_step_for_this_trial = df_for_this_trial[df_for_this_trial["step"] == max_step]
+        last_step_for_this_trial_rows = df_for_this_trial[df_for_this_trial["step"] == max_step]
 
         if self.use_best_component_strategy_with_index > 0:
             
             # Find row with maximum result
-            idx_max = last_step_for_this_trial["result"].idxmax()
-            best_row = last_step_for_this_trial.loc[idx_max]
+            idx_max = last_step_for_this_trial_rows["result"].idxmax()
+            best_row = last_step_for_this_trial_rows.loc[idx_max]
 
             component_index_with_maximum_result = int(best_row["component_index"])
             best_result = best_row["result"]
 
-            if self.use_best_component_strategy_with_index > 0 and last_step_for_this_trial >= self.use_best_component_strategy_with_index:
+            if self.use_best_component_strategy_with_index > 0 and max_step >= self.use_best_component_strategy_with_index:
                 # Store component index so we can continue using it
                 trial.set_user_attr(COMPONENT_INDEX_TO_USE_OPTUNA_KEY, component_index_with_maximum_result)
 
@@ -305,9 +309,9 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         else:
 
-            n_results_for_step = len(last_step_for_this_trial)
+            n_results_for_step = len(last_step_for_this_trial_rows)
 
-            last_results = last_step_for_this_trial["result"].tolist()
+            last_results = last_step_for_this_trial_rows["result"].tolist()
 
             if n_results_for_step != self.trainings_per_configuration:
                 raise Exception(f"Mismatch between number of trainings that should have completed for trial {trial.number} ({self.trainings_per_configuration}) and actual number: {n_results_for_step}")
@@ -408,8 +412,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
                     self.lg.writeLine(f"Ended step {step} for component {component_index} in trial {trial.number}\n") 
 
                     if enough_runs:
-
-                        self.check_if_should_prune_trial()
+                        self.check_if_should_prune_trial(trial, step)
 
                     return evaluation_results
                 

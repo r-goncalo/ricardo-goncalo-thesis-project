@@ -28,7 +28,7 @@ class DEBUG_LEVEL(SmartEnum):
 
 IDENT_SPACE = '    '
 
-DEFAULT_LOGGER_LEVEL = DEBUG_LEVEL.ERROR
+DEFAULT_LOGGER_LEVEL = DEBUG_LEVEL.DEBUG
 
 def change_default_logger_level(new_value):
 
@@ -51,8 +51,7 @@ class LoggerSchema(ArtifactComponent):
     parameters_signature = {
 
                        "necessary_logger_level" : InputSignature(
-                            default_value=DEBUG_LEVEL.DEBUG, 
-                            #default_value=DEFAULT_LOGGER_LEVEL,
+                            default_value=DEFAULT_LOGGER_LEVEL,
                             ignore_at_serialization=True),
 
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
@@ -310,6 +309,8 @@ def flush_text_of_all_loggers_and_children(component : Component):
 
 # COMPONENT WITH LOGGING -------------------------------------------------------------------------------------------------    
     
+# CONTEXT STUFF -----------------------------------------------------
+
 from contextlib import contextmanager
 
 from contextvars import ContextVar
@@ -324,6 +325,11 @@ _first_logger_override: ContextVar["LoggerSchema | None"] = ContextVar(
     default=None
 )
 
+_component_that_got_first_logger_override: ContextVar["LoggerSchema | None"] = ContextVar(
+    "component_that_got_first_logger_override",
+    default=None
+)
+
 @contextmanager
 def use_logger(logger: "LoggerSchema"):
     token = _current_logger.set(logger)
@@ -333,12 +339,17 @@ def use_logger(logger: "LoggerSchema"):
         _current_logger.reset(token)
 
 @contextmanager
-def override_first_logger(logger: "LoggerSchema"):
-    token = _first_logger_override.set(logger)
+def override_first_logger(logger):
+    token1 = _first_logger_override.set(logger)
+    token2 = _component_that_got_first_logger_override.set(None)
     try:
         yield logger
     finally:
-        _first_logger_override.reset(token)
+        _first_logger_override.reset(token1)
+        _component_that_got_first_logger_override.reset(token2)
+
+
+# ACTUAL COMPONENT WITH LOGGING ---------------------------------------------------------
 
 def on_log_pass(self : Component):
     self.define_new_logger_object(self.get_input_value("logger_object"))
@@ -388,18 +399,25 @@ class ComponentWithLogging(ArtifactComponent):
         self._lg is not None
 
     @property
-    def lg(self) -> LoggerSchema: # this allows for external components to change the logger being used with their calls
-        
+    def lg(self) -> LoggerSchema:
+
         first_override = _first_logger_override.get()
+
         if first_override is not None:
-            # consume it
-            _first_logger_override.set(None)
-            return first_override
-        
+            
+            component_that_got_first_override = _component_that_got_first_logger_override.get()
+
+            if component_that_got_first_override is None:
+                _component_that_got_first_logger_override.set(self)
+                component_that_got_first_override = self
+
+            if component_that_got_first_override is self:
+                return first_override
+
         ctx_logger = _current_logger.get()
         if ctx_logger is not None:
             return ctx_logger
-        
+
         return self._lg
 
 

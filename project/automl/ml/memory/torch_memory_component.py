@@ -226,6 +226,10 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
         self.lg.writeLine(f"Loading transitions from {file_path}")
 
+        if not hasattr(self, "device"):
+            self.device = self.get_input_value("device")
+            self.lg.writeLine(f"Transitions stored on device: {self.device}")
+
         checkpoint = torch.load(file_path, map_location=self.device)
 
         self.clear()

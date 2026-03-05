@@ -12,7 +12,58 @@ from automl.rl.trainers.agent_trainer_component import AgentTrainer
 import torch
 
 
-class AgentTrainerConvergenceDetector(AcessoryComponent, ComponentWithLogging):
+class AgentTrainerTrainingEnder(AcessoryComponent, ComponentWithLogging):
+    
+    '''
+    Detects convergence by comparing old and new values and noting their differences
+    '''
+
+    # INITIALIZATION --------------------------------------------------------------------------
+
+    parameters_signature = {
+                        "check_interval" : InputSignature(default_value=10)
+                        }    
+    
+    
+    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+        
+        super()._proccess_input_internal()
+                
+        self.affected_component : AgentTrainer = self.affected_component
+
+        if self.affected_component is None:
+            raise Exception(f"Needs training")
+        
+        self.affected_component.initialize_external_end_request(self.name)
+
+        self.check_interval = self.get_input_value("check_interval")
+
+        self.current_check_counter = 0
+
+
+    def check_if_should_end(self, values):
+        return False
+
+    @requires_input_proccess
+    def as_fun(self, values : dict = None):
+        '''To be called after a functionality is executed'''
+
+        if self.current_check_counter == 0:
+            if self.check_if_should_end(values):
+                self.affected_component.request_end_from_external(self.name)
+            
+            else:
+                self.affected_component.request_continue_from_external(self.name)
+        
+        self.current_check_counter += 1
+
+        if self.current_check_counter == self.check_interval:
+            self.current_check_counter = 0
+
+
+
+
+class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
     
     '''
     Detects convergence by comparing old and new values and noting their differences
@@ -28,33 +79,23 @@ class AgentTrainerConvergenceDetector(AcessoryComponent, ComponentWithLogging):
 
                         "n_values_to_use" : InputSignature(default_value=100),
 
-                        "check_interval" : InputSignature(default_value=10)
-
                         }    
     
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._proccess_input_internal()
-                
-        self.affected_component : AgentTrainer = self.affected_component
-
-        if self.affected_component is None:
-            raise Exception(f"Needs training")
-        
-        self.affected_component.initialize_external_end_request(self.name)
 
         self.standard_deviation_treshold = self.get_input_value("standard_deviation_treshold")
 
         self.value_key = self.get_input_value("value_key")
         self.n_values_to_use = self.get_input_value("n_values_to_use")
-        self.check_interval = self.get_input_value("check_interval")
 
         self.lg.writeLine(f"Convergence will be noted with standard deviation, using an average of {self.n_values_to_use} values, that must be bellow {self.standard_deviation_treshold}")
 
-        self.current_check_counter = 0
 
-    def _check_last_n_values_standard_deviation(self):
+
+    def check_if_should_end(self, values):
         """
         Checks if the standard deviation of the last n_values_to_use
         values of value_key is below the defined threshold.
@@ -81,7 +122,7 @@ class AgentTrainerConvergenceDetector(AcessoryComponent, ComponentWithLogging):
         std = float(torch.tensor(last_values, dtype=torch.float32).std().item())
 
         self.lg.writeLine(
-            f"[ConvergenceDetector] Last {self.n_values_to_use} "
+            f"Last {self.n_values_to_use} "
             f"{self.value_key} std = {std}"
         )
 
@@ -89,21 +130,10 @@ class AgentTrainerConvergenceDetector(AcessoryComponent, ComponentWithLogging):
         return std < self.standard_deviation_treshold
     
 
-    @requires_input_proccess
-    def as_fun(self, values : dict = None):
-        '''To be called after a functionality is executed'''
-
-        if self.current_check_counter == 0:
-            if self._check_last_n_values_standard_deviation():
-                self.affected_component.request_end_from_external(self.name)
-        
-        self.current_check_counter += 1
-
-        if self.current_check_counter == self.check_interval:
-            self.current_check_counter = 0
 
 
-class AgentTrainerSlopeConvergenceDetector(AcessoryComponent, ComponentWithLogging):
+
+class AgentTrainerSlopeConvergenceDetector(AgentTrainerTrainingEnder):
     
     '''
     Detects convergence by computing the slope of the last n episode values.
@@ -120,7 +150,6 @@ class AgentTrainerSlopeConvergenceDetector(AcessoryComponent, ComponentWithLoggi
 
         "n_values_to_use": InputSignature(default_value=100),
 
-        "check_interval": InputSignature(default_value=10)
     }
 
     # INITIALIZATION ----------------------------------------------------------------------
@@ -129,19 +158,10 @@ class AgentTrainerSlopeConvergenceDetector(AcessoryComponent, ComponentWithLoggi
         
         super()._proccess_input_internal()
 
-        self.affected_component: AgentTrainer = self.affected_component
-
-        if self.affected_component is None:
-            raise Exception("Slope convergence detector requires an AgentTrainer")
-
-        self.affected_component.initialize_external_end_request(self.name)
 
         self.slope_threshold = self.get_input_value("slope_threshold")
         self.value_key = self.get_input_value("value_key")
         self.n_values_to_use = self.get_input_value("n_values_to_use")
-        self.check_interval = self.get_input_value("check_interval")
-
-        self.current_check_counter = 0
 
         self.lg.writeLine(
             f"Slope convergence detector initialized. "
@@ -172,7 +192,7 @@ class AgentTrainerSlopeConvergenceDetector(AcessoryComponent, ComponentWithLoggi
         slope = cov_xy / var_x
         return slope.item()
 
-    def _check_last_n_values_slope(self):
+    def check_if_should_end(self, values):
 
         results_logger: ResultLogger = self.affected_component.get_results_logger()
         df = results_logger.get_dataframe()
@@ -191,26 +211,10 @@ class AgentTrainerSlopeConvergenceDetector(AcessoryComponent, ComponentWithLoggi
         slope = self._compute_slope(y_tensor)
 
         self.lg.writeLine(
-            f"[SlopeConvergenceDetector] "
-            f"Slope of last {self.n_values_to_use} "
-            f"{self.value_key} values = {slope}"
+            f"Slope of last {self.n_values_to_use} {self.value_key} values = {slope}"
         )
 
         return slope < self.slope_threshold
 
-    # FUNCTIONAL INTERFACE ----------------------------------------------------------------
-
-    @requires_input_proccess
-    def as_fun(self, values: dict = None):
-        '''Called after episode ends'''
-
-        if self.current_check_counter == 0:
-            if self._check_last_n_values_slope():
-                self.affected_component.request_end_from_external(self.name)
-
-        self.current_check_counter += 1
-
-        if self.current_check_counter == self.check_interval:
-            self.current_check_counter = 0
 
     

@@ -196,6 +196,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     
     # TRAINING_PROCESS ----------------------
         
+    def is_agent_training(self):
+        return self.is_training
         
         
     @requires_input_proccess
@@ -220,6 +222,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             self.lg.writeLine("Ending training session... (Note that the trainer can still be used)")
 
             self.is_training = False
+
+            self.EVENTS["ended_agent_training"].notify(self.name)
 
         else:
             self.lg.writeLine(f"Received request to end training session when it is already over")
@@ -278,8 +282,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             
             with torch.no_grad():                
                 action = self.select_action(observation) # decides the next action to take (can be random)
-
-            self.lg.writeLine(f"Chosen action: {action}", file="actions.txt")
                                                                                          
             env.step(action.item()) #makes the game proccess the action that was taken
                 
@@ -370,6 +372,12 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         if all(external_end_requests.values()):
             self.lg.writeLine(f"All external end requests: {external_end_requests} are true, requesting to end training...")
             self.end_training()
+
+    def request_continue_from_external(self, key):
+
+        external_end_requests : dict = self.values["external_end_requests"]
+        external_end_requests[key] = False
+
 
     def initialize_external_end_request(self, key):
 

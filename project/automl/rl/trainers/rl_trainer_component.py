@@ -50,11 +50,6 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
      
     results_columns = ["episode", "episode_steps", "avg_reward", "episode_reward", "total_steps"]
 
-    STATIC_EVENTS = {
-        "ended_training" : Event(),
-        "ended_episode" : Event()
-        }
-
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
         super()._proccess_input_internal()
@@ -75,11 +70,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         self.setup_agents()
 
-        self.agents_trainings_over = {agent_trainer.name : False for agent_trainer in self.agents_trainers.values()}
         self.external_should_end_training_session = False
         
-        for trainer in self.agents_trainers.values():
-            trainer.subscribe_event("ended_agent_training", self.agent_training_over)
+        self._setup_agents_trainer_events()
 
         self._optimizations_prediction()
         
@@ -155,6 +148,28 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         self.input.pop("agents_trainers_input", None)
 
+    def _setup_agents_trainer_events(self):
+        AgentTrainer.STATIC_EVENTS["ended_agent_training"].subscribe(self._on_agent_trainer_train_ending)
+
+    
+    def _on_agent_trainer_train_ending(self, agent_trainer_name):
+
+        self.lg.writeLine(f"Trainer noticed that agent trainer {agent_trainer_name} has ended is training")
+
+        if not self.external_should_end_training_session:
+
+            should_end_training = True
+            for agent_trainer in self.agents_trainers.values():
+                if agent_trainer.is_agent_training():
+                    should_end_training = False
+                    break
+
+            if should_end_training:
+                self.lg.writeLine(f"Noticed that none of the agents are now learning, ending training on next episode...")
+                self.external_should_end_training_session = True
+
+        
+
 
     def _make_optimization_prediction_for_agent_episodes(self, agent_key):
         raise NotImplementedError()
@@ -196,17 +211,6 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                 self.lg._writeLine(f"RLTrainer predicted it will do {optimizations_for_agent} optimizations for agent with key '{key}'")
 
 
-    def agent_training_over(self, agent_trainer_name):
-        
-        # if we did not yet know that the training for this agent was already over
-        if not self.agents_trainings_over[agent_trainer_name]:
-            self.agents_trainings_over[agent_trainer_name] = True
-            
-            self.lg.writeLine(f"Noticed interruption in training for {agent_trainer_name}")
-
-            if all(self.agents_trainings_over.values()):
-                self.lg.writeLine(f"Noticed that interruption for training happened for all available trainers, will interrupt training")
-                self.external_should_end_training_session = True
 
 
 

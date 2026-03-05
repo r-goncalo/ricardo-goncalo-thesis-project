@@ -290,11 +290,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                     self.lg.writeLine(
                         f"Warning: failed copying {src} to {dst}. Error: {str(e)}"
                     )
-                    
-            checkpoint_component : RLPipelineComponent = load_component_from_folder(checkpoint_path)
-
-            return checkpoint_component
-    
+                        
     
     def _evaluate_this_component(self):
 
@@ -305,7 +301,13 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
             self.lg.writeLine(f"Evaluating this component with checkpoints...")
 
-            self.lg.writeLine(f"Will first save all there is to save into disk")
+            self.lg.writeLine(f"Will first evaluate this component...")
+
+            evaluation_results = super()._evaluate_this_component()
+
+            self.lg.writeLine(f"Finished evaluating with results: {evaluation_results}")
+
+            self.lg.writeLine(f"Will now save all there is to save into disk...")
 
             self.save_state_and_rest_to_disk()
 
@@ -320,25 +322,17 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
             self.lg.writeLine(f"New checkpoint will be in {checkpoint_path}")
 
-            checkpoint_component = self._create_checkpoint(checkpoint_path)
+            self._create_checkpoint(checkpoint_path)
 
-            checkpoint_component.pass_input({"base_directory" : checkpoint_path, "artifact_relative_directory" : '', "create_new_directory" : False})
-            
-            checkpoint_component.pass_input({"save_checkpoints" : False})
-
-            self.lg.writeLine(f"Created new checkpoint component in path {checkpoint_path}, evaluating it...")
-
-            evaluation_results = {**checkpoint_component.evaluate_this_component()}
+            self.lg.writeLine(f"Finished copying component to checkpoint")
 
             checkpoints_and_evaluations.append((checkpoint_path, evaluation_results))
 
-            self.lg.writeLine(f"Finished evaluation with result {evaluation_results}")
+            (max_path, max_evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
 
-            (max_path, evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
+            self.lg.writeLine(f"Current best result is {max_evaluation_results} from path {max_path}, returning that one")
 
-            self.lg.writeLine(f"Current best result is {evaluation_results} from path {max_path}, returning that one")
-
-            return evaluation_results
+            return max_evaluation_results
 
 
     def get_best_evaluation_checkpoint_path_result(self):
