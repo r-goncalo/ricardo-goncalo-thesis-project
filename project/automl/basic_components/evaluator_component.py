@@ -129,8 +129,5 @@ class ComponentWithEvaluator(Component):
             raise Exception("This component does not have an evaluator")
         
         to_return = self.values.get("last_evaluation")
-
-        if to_return is None:        
-            raise Exception("This component has not been evaluated yet")
         
         return to_return

@@ -300,7 +300,7 @@ def flush_text_of_all_loggers_and_children(component : Component):
     if isinstance(component, LoggerSchema):
         component.flush_text()
 
-    elif isinstance(component, ComponentWithLogging) and hasattr(component, "lg"):
+    elif isinstance(component, ComponentWithLogging) and component.has_logger_object_defined():
         component.lg.flush_text()
 
     for child_component in component.child_components:

@@ -31,6 +31,7 @@ from automl.consts import CONFIGURATION_FILE_NAME
 from automl.core.exceptions import common_exception_handling
 
 from automl.core.debug.debug_utils import substitute_classes_by_debug_classes
+import pandas
 
 TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
 
@@ -510,7 +511,14 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 raise Exception("Component to test is not a ComponentWithEvaluator, cannot get evaluation")           
             
             result = component_to_test.get_last_evaluation()
+
+            if result is None:
+                self.lg.writeLine(f"Component had no last evaluation, evaluating it...")
+                result = component_to_test.evaluate_this_component()
             
+            self.lg.writeLine(f"Result got in component was {result}")
+
+
         else:
 
             self.lg.writeLine(f"Using evaluator in hp pipeline to evaluate component...")
@@ -597,6 +605,20 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         trial.report(value, step)
 
 
+    def check_if_should_prune_trial(self, trial : optuna.Trial, step):
+
+        self.lg.writeLine(f"Using pruner to check if trial {trial.number} at step {step} should be pruned...")
+
+        if trial.should_prune(): # we verify this after reporting the result
+
+            self.lg.writeLine("Prunning current experiment due to pruner...\n")
+            trial.set_user_attr("prune_reason", "pruner")
+            raise optuna.TrialPruned()
+
+        else:
+            self.lg.writeLine(f"Trial survived prunning strategy")
+
+
     def _try_run_single_step_of_objective(self, trial : optuna.Trial, step):
 
             self.lg.writeLine()
@@ -620,10 +642,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
                     self.lg.writeLine(f"Ended step {step}") 
 
-                if trial.should_prune(): # we verify this after reporting the result
-                    self.lg.writeLine("Prunning current experiment due to pruner...")
-                    trial.set_user_attr("prune_reason", "pruner")
-                    raise optuna.TrialPruned()
+                self.check_if_should_prune_trial(trial, step)
                     
 
                 return evaluation_results
@@ -657,6 +676,22 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _pre_proccess_component_before_objective(self, trial : optuna.Trial):
         pass
 
+    def _generate_trial(self) -> optuna.Trial:
+        return self.study.ask()
+
+    def _run_single_trial(self, trial=None):
+
+        '''Runs optimization for a single trial, returning itself, the value, and an exception if any'''
+
+        if trial is None:
+            trial = self.study.ask()
+
+        try:
+            value = self.objective(trial)
+            return trial, value, None
+
+        except Exception as e:
+            return trial, None, e
     
     def _run_optimization(self, trial: optuna.Trial):
 
@@ -796,6 +831,16 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.queued_studies_to_resume = []
         self._do_optimization_algorithm()
+
+    
+    # TRIAL ALTERATION AND GENERATION ------------------------------------------------
+
+    def mark_trial_as_complete(self, trial, value):
+                    
+                    self.lg.writeLine(f"Trial {trial.number} marked as completed with value: {value}")
+                    self.values["trials_done_in_this_execution"] += 1
+                    
+                    self.study.tell(trial, value)
 
 
         
@@ -1005,3 +1050,20 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         common_exception_handling(self.lg, exception, error_report_path)
 
         raise exception
+
+
+    # EXTRA LOGGING ---------------------------------------------
+
+    def get_results_dataframe_for_trial(self, trial : optuna.Trial):
+
+        # Count how many results we already have for this (trial, step)
+        results_logger: ResultLogger = self.get_results_logger()
+
+        df : pandas.DataFrame = results_logger.get_dataframe()
+
+        mask = (
+                (df["experiment"] == trial.number) 
+            
+        )
+
+        return df.loc[mask]

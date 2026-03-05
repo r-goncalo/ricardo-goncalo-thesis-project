@@ -85,12 +85,13 @@ class ExecComponent(Component):
         self._received_signal_to_stop = True
 
     def _check_if_should_stop_execution_earlier(self):
+        '''Checks if the component should stop its execution earlier, returning a boolean (meant to be extended)'''
         return False
     
     
     def check_if_should_stop_execution_earlier(self, raise_exception=True):
 
-        '''Raises exception if the execution should stop earlier'''
+        '''Raises exception if the execution should stop earlier, meant to be used'''
 
         if self._stop_earlier_signal_received():
             if raise_exception:
@@ -109,6 +110,7 @@ class ExecComponent(Component):
             return False
         
     def _on_earlier_interruption(self):
+        '''Called when runnable component is interrupted earlier'''
         pass
     
     

@@ -121,14 +121,15 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     # INITIALIZATION ---------------------------------------------
 
     def _initialize_acessories(self):
-        self.agent_trainer_acessories : AcessoryComponent = self.get_input_value("agent_trainer_acessories")
+        self.agent_trainer_acessories : list[AcessoryComponent] = self.get_input_value("agent_trainer_acessories")
 
         if self.agent_trainer_acessories is None:
-            self.agent_trainer_acessories : AcessoryComponent = []
+            self.agent_trainer_acessories : list[AcessoryComponent] = []
 
         else:
             for acessory in self.agent_trainer_acessories:
                 acessory.pass_input({"affected_component" : self})
+                self.lg.writeLine(f"Agent trainer has acessory: {acessory.name}")
 
     def _initialize_delays(self):
         
@@ -371,6 +372,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             self.end_training()
 
     def initialize_external_end_request(self, key):
+
+        self.lg.writeLine(f"Received request to register an end condition with key: {key}")
 
         external_end_requests = self.values["external_end_requests"]
         external_end_requests[key] = False

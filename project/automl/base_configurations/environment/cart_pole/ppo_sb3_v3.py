@@ -32,6 +32,7 @@ from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
 from automl.rl.learners.convergence_detectors.avg_out_convergence_detector import ConvergenceDetector
 from automl.rl.rl_pipeline import RLPipelineComponent
+from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector, AgentTrainerSlopeConvergenceDetector
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
@@ -132,7 +133,17 @@ def config_dict():
                                            }
                                        )                 
                                    }
-                    )
+                    ),
+
+                    "learning_acessories" : [
+                        ( ConvergenceDetector,
+                            {
+                                "memory_size" : 256,
+                                "convergence_treshold" : 0.001,
+                                "old_values_new_values_keys" : ["log_prob_batch", "new_log_probs"]
+                            }
+                        )
+                    ]
 
                 }),
 
@@ -142,7 +153,12 @@ def config_dict():
             
                 "memory" : (TorchMemoryComponent, {
                     "capacity" : 256
-                })
+                }),
+
+                "agent_trainer_acessories" : [
+                    (AgentTrainerConvergenceDetector, {}),
+                    (AgentTrainerSlopeConvergenceDetector, {})
+                ]
                 
             
             }

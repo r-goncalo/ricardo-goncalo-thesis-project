@@ -1,20 +1,11 @@
 
 
-import os
-
 from automl.component import InputSignature
 from automl.hp_opt.hp_opt_strategies.hp_optimization_loader_detached import HyperparameterOptimizationPipelineLoaderDetached
 
 import math
 import optuna
 
- 
-from optuna.storages import JournalStorage
-from optuna.storages.journal import JournalFileBackend
-
-MINIMUM_SLEEP = 1
-SLEEP_INCR_RATE = 2
-MAX_SLEEP = 60
 
 
 class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipelineLoaderDetached):

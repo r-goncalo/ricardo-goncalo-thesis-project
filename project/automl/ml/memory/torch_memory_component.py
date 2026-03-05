@@ -179,34 +179,33 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     def _save_transitions_to_disk(self):
 
-        transitions_dir = os.path.join(self.get_artifact_directory(), "transitions")
+        file_path = os.path.join(self.get_artifact_directory(), "transitions.pt")
 
-        os.makedirs(transitions_dir, exist_ok=True)
+        if self.total_size == 0:
+            self.lg.writeLine("No transitions to save.")
+            return
 
-        self.lg.writeLine(f"Saving {self.total_size} transitions to {transitions_dir}")
+        self.lg.writeLine(f"Saving {self.total_size} transitions to {file_path}")
 
-        # Optional: remove old transition files
-        for filename in os.listdir(transitions_dir):
-            if filename.startswith("transition_") and filename.endswith(".pt"):
-                os.remove(os.path.join(transitions_dir, filename))
+        # Save only the used portion of memory
+        transitions_to_save = {
+            field_name: (
+                self.transitions[field_name][:self.total_size]
+                .detach()
+                .cpu()
+                .clone()
+            )
+            for field_name in self.field_names
+        }
 
-        for idx in range(self.total_size):
-
-            transition_dict = {}
-
-            for field_name in self.field_names:
-                # Always save on CPU (like torch models)
-                transition_dict[field_name] = (
-                    self.transitions[field_name][idx]
-                    .detach()
-                    .cpu()
-                    .clone()
-                )
-
-            file_path = os.path.join(transitions_dir, f"transition_{idx}.pt")
-
-            torch.save(transition_dict, file_path)
-
+        save_dict = {
+            "total_size": self.total_size,
+            "position": self.position,
+            "transitions": transitions_to_save,
+        }
+    
+        torch.save(save_dict, file_path)
+    
         self.lg.writeLine("Finished saving transitions.")
 
 
@@ -219,31 +218,32 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     def _load_transitions_from_disk(self):
 
-        transitions_dir = os.path.join(self.get_artifact_directory(), "transitions")
+        file_path = os.path.join(self.get_artifact_directory(), "transitions.pt")
 
-        if not os.path.exists(transitions_dir):
-            self.lg.writeLine("No transitions directory found.")
+        if not os.path.exists(file_path):
+            self.lg.writeLine("No transitions file found.")
             return
 
-        files = sorted(
-            f for f in os.listdir(transitions_dir)
-            if f.startswith("transition_") and f.endswith(".pt")
-        )
+        self.lg.writeLine(f"Loading transitions from {file_path}")
+
+        checkpoint = torch.load(file_path, map_location=self.device)
 
         self.clear()
 
-        for idx, filename in enumerate(files):
+        loaded_transitions = checkpoint["transitions"]
+        loaded_size = checkpoint["total_size"]
 
-            transition_dict = torch.load(
-                os.path.join(transitions_dir, filename),
-                map_location=self.device
+        if loaded_size > self.capacity:
+            raise ValueError(
+                f"Saved transitions ({loaded_size}) exceed memory capacity ({self.capacity})."
             )
 
-            for field_name in self.field_names:
-                self.transitions[field_name][idx].copy_(transition_dict[field_name])
+        for field_name in self.field_names:
+            self.transitions[field_name][:loaded_size].copy_(
+                loaded_transitions[field_name].to(self.device)
+            )
 
-            self.total_size += 1
-
-        self.position = self.total_size % self.capacity
+        self.total_size = loaded_size
+        self.position = checkpoint.get("position", loaded_size % self.capacity)
 
         self.lg.writeLine(f"Loaded {self.total_size} transitions from disk.")
