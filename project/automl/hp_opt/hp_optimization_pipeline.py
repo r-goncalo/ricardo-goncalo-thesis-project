@@ -287,6 +287,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         else:
             self.lg.writeLine(f"We won't use a pruning strategy, none passed")
+            self.pruning_strategy = None
 
         
     def _return_pruning_strategy(self, passed_pruner, pruner_input):
