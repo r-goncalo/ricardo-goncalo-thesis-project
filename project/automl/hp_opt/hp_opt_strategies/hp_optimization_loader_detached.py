@@ -588,6 +588,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             run_first_worker_fun = self._run_worker
             run_other_workers_fun = self._run_available_worker
 
+        first_worker.thread_logger.writeLine(f"------------------- TRIAL {trial.number} --------------------------")
+
         with use_logger(first_worker.thread_logger):
             
             # this is to force create the component for the trial

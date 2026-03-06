@@ -863,6 +863,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def get_study(self):
         return self.study
     
+    def get_prunning_strategy_for_optuna(self):
+        return self.pruning_strategy if self.pruning_strategy is not None else optuna.pruners.NopPruner()
+    
     def _try_load_study(self):
             
         # Try loading existing study
@@ -870,7 +873,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             sampler=self.sampler.get_optuna_sampler(),
             storage=self.storage,
             study_name=self.study_name,
-            pruner=self.pruning_strategy
+            pruner=self.get_prunning_strategy_for_optuna()
         )
         self.lg.writeLine(f"Loaded existing study '{self.study_name}'")
 
@@ -925,7 +928,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     storage=self.storage,
                     study_name=self.study_name,
                     direction=self.direction,
-                    pruner=self.pruning_strategy
+                    pruner=self.get_prunning_strategy_for_optuna()
                 )
 
                 self.lg.writeLine(f"Created new study '{self.study_name}'")
