@@ -127,7 +127,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     
     # RUNNING THE WORKERS ------------------------------------------------------
 
-        
+    def sample_trial(self):
+
+        with self.optuna_usage_sem:
+            return super().sample_trial()
 
     def _run_available_worker(self, trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
 
@@ -714,7 +717,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         elif isinstance(trials, int):
             for _ in range(trials):
-                futures.append(executor.submit(running_method, self.study.ask()))
+                futures.append(executor.submit(running_method))
 
         else:
             raise Exception(f"Trials must be a list of trials or an integer specifying the number of trials")

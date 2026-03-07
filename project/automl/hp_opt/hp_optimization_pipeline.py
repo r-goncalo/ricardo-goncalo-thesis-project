@@ -679,13 +679,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     def _generate_trial(self) -> optuna.Trial:
         return self.study.ask()
+    
+    def sample_trial(self):
+        self.lg.writeLine(f"Sampling trial...")
+        trial = self.study.ask()
+        self.lg.writeLine(f"Sampled trial {trial.number}")
+        return trial
 
     def _run_single_trial(self, trial=None):
 
         '''Runs optimization for a single trial, returning itself, the value, and an exception if any'''
 
         if trial is None:
-            trial = self.study.ask()
+            trial = self.sample_trial()
 
         try:
             value = self.objective(trial)
