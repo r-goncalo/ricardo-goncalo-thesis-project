@@ -3,6 +3,7 @@
 
 
 
+from automl.basic_components.exec_component import ExecComponent
 from automl.component import InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
 from automl.fundamentals.acessories import AcessoryComponent
@@ -22,7 +23,7 @@ import torch
 from automl.basic_components.EventfulComponent import EventfulComponent, Event
 
 
-class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent):
+class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent, ExecComponent):
     
     '''
     Describes a trainer specific for an agent, using a learner algorithm, memory and more
@@ -211,6 +212,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         for external_end_key in external_end_requests:
             self.initialize_external_end_request(external_end_key)
+
+        self.start_algorithm()
         
         
                 
@@ -224,6 +227,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             self.is_training = False
 
             self.EVENTS["ended_agent_training"].notify(self.name)
+
+            self.end_algorithm()
 
         else:
             self.lg.writeLine(f"Received request to end training session when it is already over")

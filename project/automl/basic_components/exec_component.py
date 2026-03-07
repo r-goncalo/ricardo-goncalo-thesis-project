@@ -138,7 +138,61 @@ class ExecComponent(Component):
         self.values["values_in_execution"].append(values_to_save)
 
 
+    def _on_exception_running(self, exception : Exception):
+    
+            if isinstance(exception, StopExperiment):
+                self.values["running_state"] = State.INTERRUPTED
+                self.stop_execution_earlier()
+                self._on_earlier_interruption()
+
+
+            else:
+                self.values["running_state"] = State.ERROR
+                self.__on_exception(exception)
+
+            self.values["times_ran"] += 1
+
+            raise exception
+
     # RUNNABLE METHOD --------------------------------
+
+    @requires_input_proccess
+    @final
+    def start_algorithm(self):
+
+        '''
+        This offers an interface for components to extend, when they want to control if the algorithm is running or not
+        '''
+
+        if self.values["running_state"] == State.RUNNING:
+            raise Exception(f"Algorithm was started while being run, current state is: {self.values['running_state']}")
+
+        try:
+            self._pre_algorithm()
+        
+        except:
+            self._on_exception_running()
+
+
+    @requires_input_proccess
+    @final
+    def end_algorithm(self):
+
+        '''
+        This offers an interface for components to extend, when they want to control if the algorithm is running or not
+        '''
+
+        if self.values["running_state"] != State.RUNNING:
+            raise Exception(f"Algorithm was ended while not being run, current state is: {self.values['running_state']}")
+
+        try:
+            self._pos_algorithm()
+        
+        except:
+            self._on_exception_running()
+
+    
+    
     
     @requires_input_proccess
     @final
@@ -169,19 +223,7 @@ class ExecComponent(Component):
         
         except Exception as e:
 
-            if isinstance(e, StopExperiment):
-                self.values["running_state"] = State.INTERRUPTED
-                self.stop_execution_earlier()
-                self._on_earlier_interruption()
-
-
-            else:
-                self.values["running_state"] = State.ERROR
-                self.__on_exception(e)
-
-            self.values["times_ran"] += 1
-
-            raise e
+            self._on_exception_running(e)
 
         finally:
             if self.__save_state_on_run_end:
