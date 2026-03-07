@@ -413,7 +413,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             first_worker.thread_logger.writeLine(f"Trial {trial.number} does not have registered component index as the only one to be used")
             
             last_step_trial_run = self.get_last_reported_step(trial)
-            step_to_end_this_execution = self.n_steps
+            last_step_trial_run = 0 if last_step_trial_run < 0 else last_step_trial_run
+
+            step_to_end_this_execution = last_step_trial_run + self.n_steps
             
             first_worker.thread_logger.writeLine(f"Last step for {trial.number} was {last_step_trial_run}, and this execution with {self.n_steps} steps will end at step {step_to_end_this_execution}")
 
@@ -430,7 +432,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             else:
                 steps_until_decision = self.use_best_component_strategy_with_index - last_step_trial_run
-                self.lg.writeLine(f"There are {steps_until_decision} until decision of best component")
+                self.lg.writeLine(f"There are {steps_until_decision} steps until decision of best component")
 
             list_of_futures = []
 
