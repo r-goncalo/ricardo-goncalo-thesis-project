@@ -303,7 +303,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             
     def _get_next_available_index_trainings(self):
         
-        '''Gets an index to represent an optuna job'''
+        '''
+        Gets the next available index to represent a trial job
+        Each trial job will wait for available workers
+        '''
 
         while True:
 
@@ -711,7 +714,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         elif isinstance(trials, int):
             for _ in range(trials):
-                futures.append(executor.submit(running_method))
+                futures.append(executor.submit(running_method, self.study.ask()))
 
         else:
             raise Exception(f"Trials must be a list of trials or an integer specifying the number of trials")
