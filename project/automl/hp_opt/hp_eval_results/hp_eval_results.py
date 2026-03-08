@@ -1,13 +1,17 @@
 
 
 import os
+from automl.consts import CONFIGURATION_FILE_NAME
 from automl.loggers.result_logger import ResultLogger, RESULTS_FILENAME
 from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline, OPTUNA_STUDY_PATH, BASE_CONFIGURATION_NAME
+from automl.rl.rl_pipeline import RLPipelineComponent
+from automl.utils.json_utils.json_component_utils import dict_from_path, gen_component_from
 from automl.utils.optuna_utils import load_study_from_database
 from optuna.importance import get_param_importances
 import optuna
 from automl.loggers.global_logger import globalWriteLine
 from automl.utils.files_utils import get_first_path_with_name
+import pandas as pd
 
 
 
@@ -36,6 +40,52 @@ def get_hp_opt_optuna_study(hp_results_logger : ResultLogger, database_path=OPTU
     return optuna_study
 
 
+def get_evaluation_statistics_per_step(hp_results_logger : ResultLogger):
+    '''
+    Returns, for each step, the average mean results of trials and average standard deviation of results of trials
+    That is, the standard deviation and mean of results for the same experiment (different component indexes) and step
+    '''
+
+    df = hp_results_logger.get_dataframe()
+
+    if df.empty:
+        return {}
+
+    # Step 1: stats per (experiment, step)
+    exp_step_stats = (
+        df.groupby(["experiment", "step"])["result"]
+        .agg(["mean", "std"])
+        .reset_index()
+    )
+
+    # Step 2: aggregate per step
+    step_stats = (
+        exp_step_stats.groupby("step")
+        .agg(
+            avg_mean=("mean", "mean"),
+            avg_std=("std", "mean")
+        )
+        .reset_index()
+    )
+
+    # Convert to dictionary {step: {avg_mean, avg_std}}
+    statistics_per_step = {
+        int(row["step"]): {
+            "avg_mean": float(row["avg_mean"]),
+            "avg_std": float(row["avg_std"]) if not pd.isna(row["avg_std"]) else 0.0
+        }
+        for _, row in step_stats.iterrows()
+    }
+
+    return statistics_per_step
+
+
+
+def get_component_stats_by_step(component_path):
+
+    configuration_dict = dict_from_path(os.path.join(component_path, CONFIGURATION_FILE_NAME))
+
+    raise NotImplementedError()
 
 
 def print_optuna_trials_info(optuna_study):
