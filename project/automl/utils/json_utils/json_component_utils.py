@@ -506,9 +506,16 @@ def gen_component_from_dict(dict_representation : dict, parent_component_for_gen
 
 
 def dict_from_json_string(json_string) -> dict:
-    '''Returns a dictionary representation of a system, decoded from a json string'''
+    '''Returns a dictionary representation of a system, decoded from a json string, without being interpreted'''
     return json.loads(json_string)
 
+
+def dict_from_path(path) -> dict:
+
+    with open(path, "r") as f:
+        configuration_dict = f.read()
+
+    return dict_from_json_string(configuration_dict)
 
 
 def component_from_json_string(json_string) -> Component:
@@ -520,6 +527,8 @@ def component_from_json_string(json_string) -> Component:
 
 
 def value_from_json_string(source_component, json_string):
+
+    '''Decodes a value from a json string, interpreting it'''
 
     dict_representation = dict_from_json_string(json_string)
 

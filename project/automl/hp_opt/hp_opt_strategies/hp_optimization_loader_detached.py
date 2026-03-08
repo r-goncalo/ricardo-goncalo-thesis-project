@@ -432,7 +432,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             else:
                 steps_until_decision = self.use_best_component_strategy_with_index - last_step_trial_run
-                self.lg.writeLine(f"There are {steps_until_decision} steps until decision of best component")
+                first_worker.thread_logger.writeLine(f"There are {steps_until_decision} steps until decision of best component")
 
             list_of_futures = []
 

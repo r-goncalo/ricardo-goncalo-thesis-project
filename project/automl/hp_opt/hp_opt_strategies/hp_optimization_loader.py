@@ -196,6 +196,23 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         self.log_results(results_to_log)  
 
+    def get_result_for_trial_for_step(self, trial, step):
+
+            # Count how many results we already have for this (trial, step)
+            results_logger: ResultLogger = self.get_results_logger()
+
+            df : pandas.DataFrame = results_logger.get_dataframe()
+
+            mask = (
+                (df["experiment"] == trial.number) &
+                (df["step"] == step)
+            )
+
+            filtered_df = df.loc[mask]
+
+            last_results = filtered_df["result"].tolist()
+
+            return last_results
 
     def get_result_for_component_index_for_step(self, trial, component_index, step):
 
@@ -221,7 +238,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         self.log_results_of_trial(trial, step, component_index, evaluation_results)
 
-        last_results = self.get_result_for_component_index_for_step(trial, component_index, step)
+        last_results = self.get_result_for_trial_for_step(trial, component_index, step)
 
         n_results_for_step = len(last_results)
 

@@ -153,6 +153,18 @@ class ExecComponent(Component):
             self.values["times_ran"] += 1
 
             raise exception
+    
+
+    def _on_algorithm_end(self):
+            
+            if self.__save_state_on_run_end:
+                save_state(self)
+            
+            if self.__save_dataframes_on_run_end:
+                save_all_dataframes_of_component_and_children(self)
+                flush_text_of_all_loggers_and_children(self)
+    
+            self._save_values_in_execution()
 
     # RUNNABLE METHOD --------------------------------
 
@@ -165,14 +177,14 @@ class ExecComponent(Component):
         '''
 
         if self.values["running_state"] == State.RUNNING:
-            raise Exception(f"Algorithm was started while being run, current state is: {self.values['running_state']}")
+            raise Exception(f"{self.name}: Algorithm was started while being run, current state is: {self.values['running_state']}")
 
         try:
             self._pre_algorithm()
         
         except:
             self._on_exception_running()
-
+            self._on_algorithm_end()
 
     @requires_input_proccess
     @final
@@ -183,13 +195,16 @@ class ExecComponent(Component):
         '''
 
         if self.values["running_state"] != State.RUNNING:
-            raise Exception(f"Algorithm was ended while not being run, current state is: {self.values['running_state']}")
+            raise Exception(f"{self.name}: Algorithm was ended while not being run, current state is: {self.values['running_state']}")
 
         try:
             self._pos_algorithm()
         
         except:
             self._on_exception_running()
+
+        finally:
+            self._on_algorithm_end()
 
     
     
@@ -222,16 +237,8 @@ class ExecComponent(Component):
             return self.get_output()
         
         except Exception as e:
-
             self._on_exception_running(e)
 
         finally:
-            if self.__save_state_on_run_end:
-                save_state(self)
-            
-            if self.__save_dataframes_on_run_end:
-                save_all_dataframes_of_component_and_children(self)
-                flush_text_of_all_loggers_and_children(self)
-    
-            self._save_values_in_execution()
+            self._on_algorithm_end()
     

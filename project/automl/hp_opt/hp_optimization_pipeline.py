@@ -606,6 +606,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         trial.report(value, step)
 
 
+    def check_if_should_complete_trial(self, trial=None, component=None):
+        return False
+
     def check_if_should_prune_trial(self, trial : optuna.Trial, step):
 
         self.lg.writeLine(f"Using pruner to check if trial {trial.number} at step {step} should be pruned...")
@@ -716,6 +719,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         for step in range(1, self.n_steps + 1):
 
             evaluation_results = self._try_run_single_step_of_objective(trial, step)
+
+            if self.check_if_should_complete_trial():
+                self.lg.writeLine(f"Stopping the trial early...")
+                return evaluation_results["result"]
 
 
         return evaluation_results["result"]   # this is the value the objective will optimize
