@@ -56,6 +56,19 @@ class ExecComponent(Component):
 
     # METHODS TO OVERRIDE --------------------------------
 
+    def is_over(self):
+        return State.equals_value(State.OVER, self.values["running_state"])
+
+    def _is_over(self):
+        '''
+        Defines condition for execution to be considered over instead of idle
+        The base condition is for the training to have been run more times than the ones defined
+        '''
+
+        isover = self._times_to_run != None and self.values["times_ran"] >= self._times_to_run
+
+        return isover
+
 
     def _algorithm(self): #the algorithm of the component
         pass
@@ -69,12 +82,12 @@ class ExecComponent(Component):
         
         self.values["times_ran"] = self._current_execution
         
-        if self._times_to_run != None and self.values["times_ran"] < self._times_to_run:
-            self.values["running_state"] = State.IDLE
+        if self._is_over():
+            self.values["running_state"] = State.OVER
             
         else:
-            self.values["running_state"] = State.OVER
-        
+            self.values["running_state"] = State.IDLE
+       
 
             
     
@@ -129,7 +142,8 @@ class ExecComponent(Component):
         values_to_save = {}
 
         for key, value in self.values.items():
-            if key not in ExecComponent.exposed_values.keys():
+            #if key not in ExecComponent.exposed_values.keys():
+            if key != "values_in_execution":
                     values_to_save[key] = value
 
         if len(values_to_save) > 0:
