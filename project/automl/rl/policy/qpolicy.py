@@ -6,7 +6,7 @@ import torch
 import random
 
 from automl.rl.policy.policy import Policy
-from automl.utils.shapes_util import single_action_shape
+from automl.utils.shapes_util import reduce_space_dimension
 
 
 class QPolicy(Policy):

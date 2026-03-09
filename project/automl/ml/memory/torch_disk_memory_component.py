@@ -2,7 +2,6 @@
 
 from collections import namedtuple
 from typing import Iterable
-from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging
@@ -14,10 +13,8 @@ from automl.ml.memory.memory_components import MemoryComponent
 
 import os
 import torch
-import numpy as np
 from pathlib import Path
 
-from automl.basic_components.state_management import StatefulComponent
 from automl.component import Component, requires_input_proccess
 from automl.core.input_management import InputSignature
 from automl.loggers.logger_component import ComponentWithLogging

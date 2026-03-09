@@ -1,4 +1,4 @@
-from automl.basic_components.state_management import StatefulComponent
+
 from automl.component import InputSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentInputSignature

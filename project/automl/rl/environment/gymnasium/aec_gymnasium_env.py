@@ -130,7 +130,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
     def step(self, action):
         
         if isinstance(action, torch.Tensor):
-            action = action.item()
+            action = action.cpu().numpy()
 
         obs, reward, terminated, truncated, info = self.env.step(action)       
                 

@@ -21,7 +21,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
     
     parameters_signature = {
         
-                        "device" : InputSignature(ignore_at_serialization=True),
+                        "device" : InputSignature(ignore_at_serialization=True, get_from_parent=True),
                         
                        "num_episodes" : InputSignature(default_value=-1, description="Number of episodes to do in this training session"),
                        "limit_total_steps" : InputSignature(default_value=-1, description="Number of total steps to do in this training session"), # Note how this changes with multiple agents
@@ -209,6 +209,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
                 self.values["optimizations_to_do_per_agent"][key] = optimizations_for_agent
                 self.lg._writeLine(f"RLTrainer predicted it will do {optimizations_for_agent} optimizations for agent with key '{key}'")
+
+                self.agents_trainers[key].values["optimizations_to_do"] = optimizations_for_agent
 
 
 
@@ -404,7 +406,16 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         
         self.calculate_and_log_results()
 
+    def _is_over(self):
+        
+        isover = super()._is_over()
 
+        if not isover:
+            if self.external_should_end_training_session:
+                self.lg.writeLine(f"As there were external requests to end training sesssion, it will be considered over")
+                isover = True
+
+        return isover
 
     def _algorithm(self):
         

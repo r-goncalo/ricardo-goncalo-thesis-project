@@ -165,26 +165,26 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         return values_error, non_normalized_advantages, advantages, returns
     
     def _evaluate_actions(self, states, actions):
-        action_logits, new_log_probs, entropy = super()._evaluate_actions(states, actions)
+        model_output, new_log_probs, entropy = super()._evaluate_actions(states, actions)
 
         if self._should_log():
 
             self.lg.writeLine(
-                "\nEvaluation of actions:\npolicy_predicted_action_logits selected by action -> log_probs of chosen actions",
+                "\nEvaluation of actions:\nmodel_output selected by action -> log_probs of chosen actions",
                 file=self.__debug_path,
                 use_time_stamp=False,
             )
 
-            for i in range(len(action_logits)):
+            for i in range(len(model_output)):
 
                 self.lg.writeLine(
-                    f"{action_logits[i]} ({actions[i]}) -> {new_log_probs[i]}",
+                    f"{model_output[i]} ({actions[i]}) -> {new_log_probs[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )
 
 
-        return action_logits, new_log_probs, entropy
+        return model_output, new_log_probs, entropy
     
 
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):

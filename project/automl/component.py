@@ -14,6 +14,9 @@ def on_name_pass(self):
     self.name = self.input["name"] #sets the name of the component to the input name
     self._was_custom_name_set = True
 
+def on_child_components_passed(self):
+    self._proccess_passed_child_components()
+
 INPUT_LOGGER_FILE='input_stuff.txt'
 
 class Component(metaclass=Schema): # a component that receives and verifies input
@@ -25,6 +28,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     parameters_signature : dict[str, InputSignature] = {
         "name" : InputSignature(on_pass=on_name_pass, ignore_at_serialization=True, mandatory=False, priority=0), #the name of the component
+        "child_components" : InputSignature(mandatory=False, on_pass=on_child_components_passed)
     }
 
     original_parameters_signature : dict[str, InputSignature] = {} # this is not for users to change, as the schema automatically stores here the original parameters_signature as it was defined
@@ -315,8 +319,25 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                         
             self.__add_default_values_of_class_input(passed_keys, type(self).organized_parameters_signatures[priority])
             
-            self.__verify_input(passed_keys, type(self).organized_parameters_signatures[priority])            
-            
+            self.__verify_input(passed_keys, type(self).organized_parameters_signatures[priority])     
+
+        self._proccess_passed_child_components()
+
+
+    def _proccess_passed_child_components(self):
+
+        passed_child_components = self.get_input_value("child_components")
+
+        if passed_child_components is not None:
+            from automl.core.advanced_input_management import ComponentListInputSignature
+            passed_child_components = ComponentListInputSignature.get_value_from_input_class(self, "child_components", is_none_ok=True)
+
+            for passed_child_component in passed_child_components:
+                if passed_child_component.parent_component != self:
+                    self.define_component_as_child(passed_child_component) 
+        
+        self.input.pop("child_components", None)
+
         
     def proccess_input(self):
         '''
@@ -331,7 +352,6 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     def _post_proccess_input(self):
         '''Called after the input was proccessed, to do any post processing necessary'''
-        
         pass
 
     
@@ -395,7 +415,12 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             return None
         
         else:
-            if hasattr(self.parent_component, attr_name):
+            value_in_parent_input = self.parent_component.input.get(attr_name)
+
+            if value_in_parent_input is not None:
+                return value_in_parent_input
+            
+            elif hasattr(self.parent_component, attr_name):
                 return getattr(self.parent_component, attr_name)
             else:
                 return self.parent_component.get_attr_from_parent(attr_name)

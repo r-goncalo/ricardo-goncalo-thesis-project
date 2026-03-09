@@ -123,13 +123,14 @@ class ComponentInputSignature(InputSignature):
 class ComponentListInputSignature(InputSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
-    
 
-    def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True):
-        
-        '''Returns a component list from a ComponentListInputSignature passed value'''
-        
-        list_of_components = super().get_value_from_input(component_with_input, key, is_none_ok)
+    @classmethod
+    def get_value_from_input_class(cls, component_with_input : Component, key, is_none_ok=True):
+
+        list_of_components = super().get_value_from_input_class(component_with_input, key, is_none_ok)
+
+        if list_of_components is None:
+            return list_of_components
         
         to_return : list[Component] = []
 
@@ -147,7 +148,7 @@ class ComponentListInputSignature(InputSignature):
             component_with_input.input[key] = to_return
 
         return to_return
-    
+
     
     
     def __init__(self, default_component_definition = None, **kwargs):

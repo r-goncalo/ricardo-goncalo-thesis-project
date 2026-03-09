@@ -660,7 +660,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"Error in trial {trial.number} at step {step}, prunning it...")
                 trial.set_user_attr("prune_reason", "error")
 
-
                 if self.continue_after_error: # if we are to continue after an error, we count the trial simply as pruned, and let optuna deal with it
                     self.lg.writeLine(f"Exception will make the trial be ignored and continue, exception was: {e}")
                     raise optuna.TrialPruned("error")

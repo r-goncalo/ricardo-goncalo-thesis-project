@@ -25,6 +25,7 @@ class AgentTrainerDebug(AgentTrainer, ComponentWithLoggingDebug):
     
             if self.verify_model_difference_after_optimize:
                 self.model : TorchModelComponent = self.agent_policy.model
+                self.model.proccess_input_if_not_proccesd()
 
                 self.lg.writeLine(f"Creating temporary model to note difference in optimizations...")
 

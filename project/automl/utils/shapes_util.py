@@ -121,6 +121,10 @@ def discrete_output_layer_size_of_space_gym(action_space : gymnasium.Space):
     else:
         raise NotImplementedError(f"Unknown gym action space type: {type(action_space)} with value {action_space}")
     
+def discrete_output_layer_size_of_space_torch(action_space : torch.Size):
+    
+    return int(prod(action_space))
+    
     
 def discrete_output_layer_size_of_space(action_space):
     
@@ -134,33 +138,51 @@ def discrete_output_layer_size_of_space(action_space):
     elif isinstance(action_space, int):
         return action_space
     
+    elif isinstance(action_space, torch.Size):
+        return discrete_output_layer_size_of_space_torch(action_space)
+    
     else:
         raise NotImplementedError(f"Unknown action space type: {type(action_space)} with value {action_space}")
     
     
 # ACTION SHAPE SIZE ---------------------------------------------------------------------
 
-def single_action_shape_gym(action_space : gymnasium.Space):
-    
-    """
-    Determines the shape needed to encode single actions
-    """
-    
+def reduce_space_dimension_gym(action_space: gymnasium.Space):
+
     if isinstance(action_space, gymnasium.spaces.Discrete):
-        return 1  # Number of discrete actions (one-hot encoded output)
+        return 1  # scalar action index
     
+    elif isinstance(action_space, gymnasium.spaces.Box):
+        # continuous vector action
+        return int(np.prod(action_space.shape))
+    
+    elif isinstance(action_space, gymnasium.spaces.MultiDiscrete):
+        return len(action_space.nvec)
+
+    elif isinstance(action_space, gymnasium.spaces.MultiBinary):
+        return action_space.n
+
+    elif isinstance(action_space, gymnasium.spaces.Tuple):
+        return sum(reduce_space_dimension_gym(s) for s in action_space.spaces)
+
+    elif isinstance(action_space, gymnasium.spaces.Dict):
+        return sum(reduce_space_dimension_gym(s) for s in action_space.spaces.values())
+
     else:
-        raise NotImplementedError(f"Unknown action space type: {type(action_space)}")
+        raise NotImplementedError(
+            f"Unknown action space type: {type(action_space)} and value {action_space}"
+        )
 
     
-def single_action_shape(action_space):
+def reduce_space_dimension(action_space):
     
     """
-    Determines the shape needed to encode single actions
+    Reduces a space dimension, useful to understand the shape we need to store a chosen action
     """
     
     if isinstance(action_space, gymnasium.spaces.Space):
-        return single_action_shape_gym(action_space)
+        return reduce_space_dimension_gym(action_space)
+    
     
     elif isinstance(action_space, int):
         return 1
@@ -351,3 +373,34 @@ def tuple_of_torch_shapes_from_spaces(spaces_like) -> tuple[torch.Size, ...]:
 
     else:
         raise NotImplementedError(f"Unknown composite type: {type(spaces_like)}")
+
+
+# -----------------------------------------------------------------------------------------------
+# OPERATIONS_ON_SHAPES
+# -----------------------------------------------------------------------------------------------
+
+def double_final_size(spaces_like):
+
+    """
+    Doubles the final flattened dimensionality of a space/shape.
+    Used for policies that output mean + std (e.g., PPO Gaussian policies).
+    """
+
+    if isinstance(spaces_like, tuple):
+        # Convert to torch shape then double
+        shape = torch_shape_from_space(spaces_like)
+        return torch.Size([prod(shape) * 2])
+    
+    elif isinstance(spaces_like, list):
+        shape = torch_shape_from_space(spaces_like)
+        return torch.Size([prod(shape) * 2])
+    
+    elif isinstance(spaces_like, torch.Size):
+        return torch.Size([prod(spaces_like) * 2])
+    
+    elif isinstance(spaces_like, gymnasium.Space):
+        shape = torch_shape_from_space(spaces_like)
+        return torch.Size([prod(shape) * 2])
+    
+    else:
+        raise NotImplementedError(f"Unsupported type for double_final_size: {type(spaces_like)}")

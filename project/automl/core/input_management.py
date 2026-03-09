@@ -67,9 +67,8 @@ class InputSignature():
     def change_default_value(self, new_default_value):
         self.default_value = new_default_value
 
-
-
-    def get_value_from_input(self, component_with_input, key, is_none_ok=True):
+    @classmethod
+    def get_value_from_input_class(cls, component_with_input, key, is_none_ok=True):
 
         '''Gets the value from input, returning None if it does not exist'''
 
@@ -85,6 +84,12 @@ class InputSignature():
 
 
         return to_return
+
+    def get_value_from_input(self, component_with_input, key, is_none_ok=True):
+
+        '''Gets the value from input, returning None if it does not exist'''
+
+        return type(self).get_value_from_input_class(component_with_input, key, is_none_ok)
     
     def fuse_with_new(self, other_input_signature):
 

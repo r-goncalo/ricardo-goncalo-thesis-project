@@ -11,7 +11,7 @@ import math
 from automl.rl.evaluators.rl_std_avg_evaluator import ResultLogger
 import optuna
 
-from automl.basic_components.state_management import StatefulComponentLoader
+from automl.basic_components.stateful_component_loder import StatefulComponentLoader
 
 import pandas
 
@@ -238,7 +238,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         self.log_results_of_trial(trial, step, component_index, evaluation_results)
 
-        last_results = self.get_result_for_trial_for_step(trial, component_index, step)
+        last_results = self.get_result_for_trial_for_step(trial, step)
 
         n_results_for_step = len(last_results)
 
@@ -375,6 +375,13 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
         component_to_test_path = str(component_loader.get_artifact_directory())
 
         self.load_component_to_test(component_loader)
+
+        component_to_test_state = component_loader.get_loaded_component_state()
+
+        if State.equals_value(component_to_test_state, State.OVER):
+            self.lg.writeLine(f"In trial {trial.number}, component index {component_index} was already over, will not execute it again")
+            component_loader.unload_component_if_loaded_with_retries(lg=self.lg)
+            return
 
         try:
   

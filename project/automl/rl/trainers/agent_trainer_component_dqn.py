@@ -6,7 +6,7 @@ from automl.rl.trainers.agent_trainer_component import AgentTrainer
 
 import torch
 
-from automl.utils.shapes_util import single_action_shape
+from automl.utils.shapes_util import reduce_space_dimension
 
 class AgentTrainerDQN(AgentTrainer):
     
@@ -54,7 +54,7 @@ class AgentTrainerDQN(AgentTrainer):
         
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
                                         ("state", self.agent.model_input_shape), 
-                                        ("action", single_action_shape(self.agent.get_policy().get_policy_output_shape()), torch.int64),
+                                        ("action", reduce_space_dimension(self.agent.get_policy().get_policy_output_shape()), torch.int64),
                                         ("next_state", self.agent.model_input_shape),
                                         ("reward", 1),
                                         ("done", 1)

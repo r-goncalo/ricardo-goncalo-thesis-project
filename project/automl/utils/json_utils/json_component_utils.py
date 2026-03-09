@@ -12,7 +12,9 @@ from automl.utils.json_utils.custom_json_logic import get_custom_strategy
 from automl.core.localizations import get_component_by_localization
 from automl.loggers.global_logger import globalWriteLine
 
+import inspect
 
+TRY_CORRECT_ABSTRACT_CLASSES = True
 
 
 # ENCODING --------------------------------------------------
@@ -540,13 +542,29 @@ def generate_component_from_class_input_definition(class_of_component, input : d
     '''Generate a component from its class and the input to pass'''
 
     class_definition = class_of_component
-    class_of_component : type = get_class_from(class_definition)
+    class_of_component : type = get_class_with_context(class_definition, input)
 
     component_to_return = class_of_component(input=input)
     return component_to_return
 
 
+def get_class_with_context(class_definition, input=None):
+    '''
+    Loads a class and may use some additional context
+    '''
+    to_return = get_class_from(class_definition)
+    
+    if TRY_CORRECT_ABSTRACT_CLASSES and input is not None and inspect.isabstract(to_return):
+        globalWriteLine(f"Trying to load class {class_definition}, which is abstract, will try to look for substitute...")
+        from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
+        try:
+            to_return = get_sub_class_with_correct_parameter_signature(to_return, input)
+            globalWriteLine(f"Class was substituted by {to_return}")
+        except:
+            globalWriteLine(f"Did not manage to find class with correct input signature")
 
+    return to_return
+                
 
 def is_valid_component_tuple_definition(tuple_definition):
 

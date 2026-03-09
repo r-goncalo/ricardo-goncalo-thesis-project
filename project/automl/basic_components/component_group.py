@@ -19,7 +19,8 @@ from automl.utils.json_utils.json_component_utils import gen_component_from_dict
 
 from typing import Union
 
-from automl.basic_components.state_management import StatefulComponent, StatefulComponentLoader
+from automl.basic_components.state_management import StatefulComponent
+from automl.basic_components.stateful_component_loder import StatefulComponentLoader
 
 AGGREGATE_RESULTS_KEY = "aggregate_results"
 

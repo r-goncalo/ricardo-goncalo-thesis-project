@@ -1,7 +1,7 @@
 import importlib
 import os
 
-def get_class_from(class_definition):
+def get_class_from(class_definition) -> type:
     
     if isinstance(class_definition, type):
         return class_definition

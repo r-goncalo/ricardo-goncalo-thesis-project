@@ -18,35 +18,8 @@ class RLTrainerComponentParallel(RLTrainerComponent):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
-        
-                        "device" : InputSignature(ignore_at_serialization=True),
-                        
-                       "num_episodes" : InputSignature(default_value=-1, description="Number of episodes to do in this training session"),
-                       "limit_total_steps" : InputSignature(default_value=-1, description="Number of total steps to do in this training session"), # Note how this changes with multiple agents
-                       
-                       "fraction_training_to_do" : InputSignature(mandatory=False),
-
-                       "environment" : InputSignature(),
-                       
-                       "agents" : InputSignature(),
-                       "agents_trainers_input" : InputSignature(default_value={}, ignore_at_serialization=True),
-                       "default_trainer_class" : InputSignature(default_value=AgentTrainer),
-                       
-                       "limit_steps" : InputSignature(default_value=-1),
-
-                       "predict_optimizations_to_do" : InputSignature(default_value=False),
-                       
+                                
                        }
-    
-    exposed_values = {"total_steps" : 0,
-                      "episode_steps" : 0,
-                      "episodes_done" : 0,
-                      "episode_score" : 0,
-                      "episode_done_in_session" : 0,
-                      "steps_done_in_session" : 0
-                      } #this means we'll have a dic "values" with this starting values
-    
-    results_columns = ["episode", "episode_steps", "avg_reward", "episode_reward", "total_steps"]
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
@@ -70,7 +43,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
             with torch.no_grad():                
                 action = agent_trainer.select_action_with_memory() # decides the next action to take (can be random)
 
-            self.chosen_actions[agent_name] = action.item()
+            self.chosen_actions[agent_name] = action.squeeze(0)
 
         return self.chosen_actions
     

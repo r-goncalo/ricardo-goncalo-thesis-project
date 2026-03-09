@@ -1,13 +1,63 @@
+from automl.hp_opt.samplers.sampler import OptunaSamplerWrapper
 from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
 import optuna
 
-class LoggingTPESampler(optuna.samplers.TPESampler, ComponentWithLoggingDebug):
+class OptunaSamplerWrapperDebug(OptunaSamplerWrapper):
 
-    def sample_relative(self, study, trial, search_space):
-        result = super().sample_relative(study, trial, search_space)
+    is_debug_schema = True
 
-        if hasattr(self, "_search_space_group"):
-            groups = self._search_space_group._groups
-            self.lg.writeLine("Groups:", groups)
+    def proccess_input(self):
+        super().proccess_input()
 
-        return result
+    def _patch_sampler(self):
+
+        sampler = self.optuna_sampler
+
+        if sampler is None:
+            raise Exception("Sampler not initialized")
+
+        # Store original methods
+        sampler._original_sample_relative = sampler.sample_relative
+        sampler._original_sample_independent = sampler.sample_independent
+
+        def debug_sample_relative(study, trial, search_space):
+
+            self.lg.writeLine("Optuna sampler: sample_relative called")
+            self.lg.writeLine(f"Search space: {list(search_space.keys())}")
+
+            result = sampler._original_sample_relative(study, trial, search_space)
+
+            self.lg.writeLine(f"Relative sample result: {result}")
+
+            # If this is TPE with grouping we can inspect internal groups
+            if isinstance(sampler, optuna.samplers.TPESampler):
+
+                group_obj = getattr(sampler, "_search_space_group", None)
+
+                if group_obj is not None:
+
+                    groups = getattr(group_obj, "_groups", None)
+
+                    if groups is not None:
+                        formatted = [list(g) for g in groups]
+                        self.lg.writeLine(f"TPE parameter groups: {formatted}")
+
+            return result
+
+        def debug_sample_independent(study, trial, param_name, param_distribution):
+
+            self.lg.writeLine("Optuna sampler: sample_independent called")
+            self.lg.writeLine(f"Parameter: {param_name}")
+            self.lg.writeLine(f"Distribution: {param_distribution}")
+
+            result = sampler._original_sample_independent(
+                study, trial, param_name, param_distribution
+            )
+
+            self.lg.writeLine(f"Independent sample result: {param_name}={result}")
+
+            return result
+
+        # Monkey patch methods
+        sampler.sample_relative = debug_sample_relative
+        sampler.sample_independent = debug_sample_independent

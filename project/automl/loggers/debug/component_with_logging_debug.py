@@ -19,13 +19,13 @@ class ComponentWithLoggingDebug(ComponentWithLogging):
     def pass_input(self, input):
         super().pass_input(input)
 
-        if hasattr(self, "_lg"):
+        if self.has_logger_object_defined():
             self.lg.writeLine(f"Received input: {input}")
         
 
     def _try_look_input_in_attribute(self, input_key, attribute_name):
 
-        if not hasattr(self, "_lg"):
+        if self.has_logger_object_defined():
             return super()._try_look_input_in_attribute(input_key, attribute_name)
 
         self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'")
@@ -43,7 +43,7 @@ class ComponentWithLoggingDebug(ComponentWithLogging):
 
     def _try_look_input_in_values(self, input_key, value_name):
 
-        if not hasattr(self, "_lg"):
+        if self.has_logger_object_defined():
             return super()._try_look_input_in_values(input_key, value_name)
 
         self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'")
@@ -62,7 +62,7 @@ class ComponentWithLoggingDebug(ComponentWithLogging):
     def on_parent_component_defined(self):
         super().on_parent_component_defined()
 
-        if hasattr(self, "_lg"):
+        if self.has_logger_object_defined():
             self.lg.writeLine(f"New parent component was defined: {self.parent_component}")
 
 

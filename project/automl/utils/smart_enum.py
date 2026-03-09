@@ -12,7 +12,7 @@ class SmartEnum(Enum, metaclass=SmartEnumMeta):
 
     @classmethod
     def clone(cls, value):
-        return SmartEnum.from_value(SmartEnum.from_value(value).value)
+        return cls.from_value(cls.from_value(value).value)
 
     @classmethod
     def from_value(cls, value):

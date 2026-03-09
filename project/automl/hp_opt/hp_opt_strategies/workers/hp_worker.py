@@ -1,7 +1,7 @@
 import os
 import threading
 from automl.basic_components.exec_component import State, StopExperiment
-from automl.basic_components.state_management import StatefulComponentLoader
+from automl.basic_components.stateful_component_loder import StatefulComponentLoader
 from automl.component import Component
 from automl.hp_opt.hp_opt_strategies.hp_optimization_loader import HyperparameterOptimizationLoader
 from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline, Component_to_opt_type

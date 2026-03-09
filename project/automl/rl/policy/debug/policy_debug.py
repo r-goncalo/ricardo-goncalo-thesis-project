@@ -25,14 +25,6 @@ class PolicyDebug(Policy, ComponentWithLoggingDebug):
         self.lg.writeLine(f"Processing policy debug input...\n")
         self.lg.writeLine(f"Finished policy debug input...\n")
     
-        
-        
-    def _setup_model(self):
-        self.model.pass_input({
-            "input_shape" : self.input_state_shape, 
-            "output_shape" : self.output_action_shape, 
-            "device" : self.device
-            }) 
 
         
         
@@ -83,9 +75,9 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
     is_debug_schema = True
 
     
-    def predict_logits(self, state) -> torch.Tensor:
+    def predict_model_output(self, state) -> torch.Tensor:
 
-        probabilitiesForActionsLogits = super().predict_logits(state)
+        probabilitiesForActionsLogits = super().predict_model_output(state)
         
         self.lg.writeLine(f"Probabilities for action logits: {probabilitiesForActionsLogits}", file='predicted_values.txt')
 
@@ -93,27 +85,19 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
         return probabilitiesForActionsLogits
     
     
-    def probabilities_from_logits(self, logits) -> torch.Tensor:
-
-        probs = super().probabilities_from_logits(logits)
-
-        self.lg.writeLine(f"Probabilities from logits: {logits} -> {probs}", file='predicted_values.txt')
-        
-        return probs
     
+    def predict_from_distribution(self, probs):
     
-    def predict_from_probability(self, probs):
-    
-        action = super().predict_from_probability(probs)
+        action = super().predict_from_distribution(probs)
 
         self.lg.writeLine(f"Action from probabilities: {probs} -> {action}", file='predicted_values.txt')
         
         return action
 
     
-    def predict_from_probability_with_log(self, probs):
+    def predict_from_model_output_with_log(self, probs):
 
-        action, log_prob = super().predict_from_probability_with_log(probs)
+        action, log_prob = super().predict_from_model_output_with_log(probs)
 
         self.lg.writeLine(f"Action, log prob from probabilities: {probs} -> {action}, {log_prob}", file='predicted_values.txt')
                 
@@ -122,8 +106,8 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
     
     def predict_with_log(self, state):
         
-        logits = self.predict_logits(state) # real numbers higher the higher probability        
+        logits = self.predict_model_output(state) # real numbers higher the higher probability        
         
-        probs = self.probabilities_from_logits(logits) # probabilities computed from logits
+        probs = self.distribution_from_model_output(logits) # probabilities computed from logits
         
-        return self.predict_from_probability_with_log(probs)
+        return self.predict_from_model_output_with_log(probs)

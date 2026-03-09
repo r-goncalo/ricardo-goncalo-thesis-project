@@ -22,7 +22,7 @@ from automl.loggers.global_logger import globalWriteLine
 from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
 
 from automl.basic_components.exec_component import State
-from automl.basic_components.state_management import StatefulComponent
+from automl.basic_components.state_management import StatefulComponent, load_component_from_folder, save_state
 import torch
                 
 import sys

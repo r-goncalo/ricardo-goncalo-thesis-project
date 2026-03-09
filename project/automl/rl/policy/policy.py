@@ -5,7 +5,7 @@ from automl.ml.models.model_components import ModelComponent
 
 from automl.utils.class_util import get_class_from
 
-from automl.utils.shapes_util import single_action_shape
+from automl.utils.shapes_util import reduce_space_dimension
 from automl.loggers.logger_component import ComponentWithLogging
 
 
@@ -66,12 +66,18 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self._setup_model()
 
         self.lg.writeLine(f"Finished processing policy input\n")
+
+    def _compute_model_output_shape(self):
+        self.model_output_shape = self.output_action_shape
         
         
     def _setup_model(self):
+
+        self._compute_model_output_shape()
+
         self.model.pass_input({
             "input_shape" : self.input_state_shape, 
-            "output_shape" : self.output_action_shape, 
+            "output_shape" : self.model_output_shape, 
             "device" : self.device
             }) 
 

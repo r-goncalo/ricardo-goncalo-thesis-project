@@ -4,6 +4,22 @@ _global_logger = None
 DEFAULT_TO_PRINT_GLOBAL = False
 
 
+def print_general_information():
+        
+        import automl
+        import torch
+
+        globalWriteLine(f"Global logger activation done, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
+        
+        globalWriteLine(f"Current version of automl is {automl.__version__}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
+
+        if torch.cuda.is_available():
+            globalWriteLine(f"Cuda is available with version {torch.version.cuda}")
+        
+        else:
+            globalWriteLine(f"Cuda is not available")
+
+
 def activate_global_logger(global_logger_directory, global_logger_input : dict ={}):
 
     from automl.loggers.logger_component import LoggerSchema
@@ -36,9 +52,7 @@ def activate_global_logger(global_logger_directory, global_logger_input : dict =
 
         _global_logger = LoggerSchema(global_logger_input)
 
-        globalWriteLine(f"Global logger activation done, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
-        
-        globalWriteLine(f"Current version of automl is {automl.__version__}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
+        print_general_information()
 
 
 def is_global_logger_active():

@@ -41,7 +41,7 @@ def gen_component_in_directory(dir_path, parent_component_for_generated : Compon
     if os.path.exists(component_loaded_file):
         return gen_component_in_file_path(component_loaded_file)
 
-    raise Exception("No component defined in folder")
+    raise Exception(f"No component defined in folder: {dir_path}")
 
 
 

@@ -126,7 +126,15 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         Returns:
             next_obs_dict, rewards, terminations, truncations, infos
         """
-        next_obs, rewards, terminations, truncations, infos = self.env.step(actions)
+        actions_to_pass =  {}
+
+        for key, action in actions.items():
+            if isinstance(action, torch.Tensor):
+                action = action.cpu().numpy()
+
+            actions_to_pass[key] = action
+
+        next_obs, rewards, terminations, truncations, infos = self.env.step(actions_to_pass)
 
         self._last_obs = next_obs
         return next_obs, rewards, terminations, truncations, infos

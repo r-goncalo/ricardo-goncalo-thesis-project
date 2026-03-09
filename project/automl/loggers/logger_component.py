@@ -396,7 +396,7 @@ class ComponentWithLogging(ArtifactComponent):
         self._lg = new_logger
 
     def has_logger_object_defined(self):
-        self._lg is not None
+        hasattr(self, "_lg") and self._lg is not None
 
     @property
     def lg(self) -> LoggerSchema:

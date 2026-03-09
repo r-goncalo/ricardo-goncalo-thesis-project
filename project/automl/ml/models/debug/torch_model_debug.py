@@ -1,5 +1,4 @@
 import os
-from automl.basic_components.state_management import StatefulComponent
 from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
 from automl.loggers.global_logger import globalWriteLine
 from automl.loggers.logger_component import ComponentWithLogging

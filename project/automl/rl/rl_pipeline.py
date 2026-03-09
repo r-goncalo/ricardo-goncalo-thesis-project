@@ -146,6 +146,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
         if self.fraction_of_training_to_do_in_session is not None:
             rl_trainer_input["fraction_training_to_do"] = self.fraction_of_training_to_do_in_session
+            self.lg.writeLine(f"Fraction of training to do: {self.fraction_of_training_to_do_in_session}")
 
 
         self.rl_trainer : RLTrainerComponent = self.get_input_value("rl_trainer", look_in_value_with_key="rl_trainer", look_in_attribute_with_name="rl_trainer")
@@ -396,7 +397,18 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
         self.lg.writeLine(f"Finished training proccess\n")
         
-    
+
+    def _is_over(self):
+        isover = super()._is_over()
+
+        if not isover:
+            is_rl_trainer_over = self.rl_trainer.is_over()
+            if is_rl_trainer_over:
+                self.lg.writeLine(f"As rl trainer defined its running state as over, the rl pipeline will also be considered over")
+                isover = is_rl_trainer_over
+        
+        return isover
+
     @requires_input_proccess
     def _algorithm(self):
         

@@ -25,6 +25,9 @@ for example:
 
 from collections import deque
 
+from automl.utils.class_util import get_class_from
+from automl.loggers.global_logger import globalWriteLine
+
 # VALUE LOCALIZATION OPERATIONS --------------------------------------------------------------
 
 def get_any(collection, default_value=None, non_exist_safe=False):
@@ -160,6 +163,47 @@ def look_for_component_with_name(component, name):
     return component_with_name
 
 
+def component_has_correct_name(name : str, component):
+    return component.name == name
+
+def component_has_correct_type(type : type, component):
+    return isinstance(component, type)
+
+def relative_look_for_component(initial_component, is_correct_condition):
+
+    current_component = initial_component
+    already_looked_in = []
+
+    components_to_look_for = []
+
+    while current_component is not None:
+
+        globalWriteLine(f"Looking into component {current_component.name}")
+
+        if is_correct_condition(current_component):
+            return current_component
+        
+        already_looked_in.append(current_component)
+            
+        if current_component.parent_component is not None:
+            if not current_component.parent_component in already_looked_in:
+                components_to_look_for.append(current_component.parent_component)
+
+        for child in current_component.child_components:
+            if not child in already_looked_in:
+                components_to_look_for.append(child)
+
+        
+        
+        if len(components_to_look_for) > 0:
+            current_component = components_to_look_for.pop(0)
+        
+        else:
+            current_component = None
+
+    return None
+
+
 
 
 def get_parent_component(component):
@@ -180,7 +224,14 @@ def get_next_component_by_tuple_operation(component, tuple_operation : tuple):
     operation_parameters = tuple_operation[1]
 
     if operation_str == '__get_by_name__':
-        return look_for_component_with_name(component, operation_parameters["name_of_component"])
+        return relative_look_for_component(component, 
+                                lambda x: component_has_correct_name(operation_parameters["name_of_component"],x)
+                                )
+    
+    elif operation_str == '__get_by_type__':
+        type_to_look = get_class_from(operation_parameters["type"])
+        return relative_look_for_component(component, 
+                                lambda x: component_has_correct_type(type_to_look, x))
     
     elif operation_str == '__get_exposed_value__':
 
@@ -262,6 +313,8 @@ def get_component_by_localization_list(component, localization : list):
 def get_component_by_localization(component, localization):
 
     localization_type, localization_list = interpret_localization(localization)
+
+    globalWriteLine(f"Getting by localization with component {component.name} and localization {localization}")
 
     try:
 
