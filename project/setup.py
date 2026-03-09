@@ -3,6 +3,8 @@ from setuptools import find_packages, setup
 # to install module localy:
 # pip install -e <path>  
 
+# MODULES THAT MAY BE MISSING: "gymnasium[box2d]"
+
 setup(
     name='automl',
     packages=find_packages(include=['automl']),
