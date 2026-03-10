@@ -72,15 +72,17 @@ class MemoryDebug(MemoryComponent, ComponentWithLoggingDebug):
         
         self.lg.writeLine(f"\nBefore cleaning ({len(self)}) transitions, noting their values...\n", file="on_clear_transitions.txt", use_time_stamp=False)
 
-        for i in range(len(self)):
-
-            str_pushing = ' '
-    
-            for field_name in self.field_names:
-                            
-                str_pushing = f"{str_pushing}{field_name}: {self.transitions[field_name][i][:30]} " # TODO: there should be a clear way to get a single transition
-    
-            self.lg.writeLine(f"{str_pushing}", file="on_clear_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
+        #for i in range(len(self)):
+#
+        #    str_pushing = ' '
+    #
+        #    for field_name in self.field_names:
+        #                    
+        #        str_pushing = f"{str_pushing}{field_name}: {self.transitions[field_name][i][:30]} " # TODO: there should be a clear way to get a single transition
+    #
+        #    self.lg.writeLine(f"{str_pushing}", file="on_clear_transitions.txt", use_time_stamp=False, level=DEBUG_LEVEL.DEBUG)
 
         super().clear()
+
+        self.lg.writeLine(f"\After cleaning ({len(self)}) transitions\n", file="on_clear_transitions.txt", use_time_stamp=False)
 

@@ -422,6 +422,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             
             elif hasattr(self.parent_component, attr_name):
                 return getattr(self.parent_component, attr_name)
+            
             else:
                 return self.parent_component.get_attr_from_parent(attr_name)
             

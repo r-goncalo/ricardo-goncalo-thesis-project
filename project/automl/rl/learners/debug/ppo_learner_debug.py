@@ -178,7 +178,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             for i in range(len(model_output)):
 
                 self.lg.writeLine(
-                    f"{model_output[i]} ({actions[i]}) -> {new_log_probs[i]}",
+                    f" | output {model_output[i]} | -> | action {actions[i]} | -> | log {new_log_probs[i]} |",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )

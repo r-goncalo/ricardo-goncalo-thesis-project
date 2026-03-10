@@ -14,7 +14,8 @@ class AgentTrainerDebug(AgentTrainer, ComponentWithLoggingDebug):
         is_debug_schema = True
 
         parameters_signature = {
-             "verify_model_difference_after_optimize" : InputSignature(default_value=True)
+             "verify_model_difference_after_optimize" : InputSignature(default_value=True),
+             "note_observed_transitions" : InputSignature(default_value=False)
         }
 
         def _proccess_input_internal(self):
@@ -31,7 +32,11 @@ class AgentTrainerDebug(AgentTrainer, ComponentWithLoggingDebug):
 
                 self.__temporary_model : TorchModelComponent = self.model.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_opti", "create_new_directory" : False}, is_deep_clone=True)
         
-            self.lg.writeLine(f"total_step, episode, episode_step: state + action -> new_state, reward, done\n", file="observed_transitions.txt", use_time_stamp=False)
+            self.note_observed_transitions = self.get_input_value("note_observed_transitions")
+            
+            if self.note_observed_transitions:
+                self.lg.writeLine(f"total_step, episode, episode_step: state + action -> new_state, reward, done\n", file="observed_transitions.txt", use_time_stamp=False)
+            
             self.lg.writeLine(f"total_step, episode, episode_step: reward, done\n", file="training_steps.txt", use_time_stamp=False)
     
             self.learner.pass_input({"logger_object" : self.lg})
@@ -70,17 +75,22 @@ class AgentTrainerDebug(AgentTrainer, ComponentWithLoggingDebug):
     
         def _observe_transiction_to(self, new_state, action, reward, done):
 
-            old_state = self.agent.get_current_state_in_memory().clone()
-        
-            super()._observe_transiction_to(new_state, action, reward, done)
+            if not self.note_observed_transitions:
+                super()._observe_transiction_to(new_state, action, reward, done)
 
-            old_state_str = str(old_state)
-            if len(old_state_str) > 30:
-                old_state_str = f"{old_state_str[10:]}...{old_state_str[:10]}"   
-    
-            new_state_str = str(new_state)
-            if len(new_state_str) > 30:
-                new_state_str = f"{new_state_str[10:]}...{new_state_str[:10]}"   
-    
-            self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {old_state_str} + {action} -> {new_state_str}, {reward}, {done}", file="observed_transitions.txt")
+            else:
+
+                old_state = self.agent.get_current_state_in_memory().clone()
+
+                super()._observe_transiction_to(new_state, action, reward, done)
+
+                old_state_str = str(old_state)
+                if len(old_state_str) > 30:
+                    old_state_str = f"{old_state_str[10:]}...{old_state_str[:10]}"   
+
+                new_state_str = str(new_state)
+                if len(new_state_str) > 30:
+                    new_state_str = f"{new_state_str[10:]}...{new_state_str[:10]}"   
+
+                self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {old_state_str} + {action} -> {new_state_str}, {reward}, {done}", file="observed_transitions.txt")
     

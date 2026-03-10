@@ -25,7 +25,7 @@ class ComponentWithLoggingDebug(ComponentWithLogging):
 
     def _try_look_input_in_attribute(self, input_key, attribute_name):
 
-        if self.has_logger_object_defined():
+        if not self.has_logger_object_defined():
             return super()._try_look_input_in_attribute(input_key, attribute_name)
 
         self.lg.writeLine(f"Trying to look for attribute '{attribute_name}' for input '{input_key}'")
@@ -43,7 +43,7 @@ class ComponentWithLoggingDebug(ComponentWithLogging):
 
     def _try_look_input_in_values(self, input_key, value_name):
 
-        if self.has_logger_object_defined():
+        if not self.has_logger_object_defined():
             return super()._try_look_input_in_values(input_key, value_name)
 
         self.lg.writeLine(f"Trying to look for value '{value_name}' for input '{input_key}'")
@@ -66,9 +66,21 @@ class ComponentWithLoggingDebug(ComponentWithLogging):
             self.lg.writeLine(f"New parent component was defined: {self.parent_component}")
 
 
-    def _generate_artifact_directory(self):
+    def get_attr_from_parent(self, attr_name : str):
+        '''Gets an attribute from a parent component, None if non existent'''
+        
+        if self.has_logger_object_defined():
+            self.lg.writeLine(f"Trying to get value with key {attr_name} from parent component")
+            self.lg.writeLine(f"Parent component is: {self.parent_component if self.parent_component is None else self.parent_component.name}")
 
-        super()._generate_artifact_directory()
+            to_return = super().get_attr_from_parent(attr_name)
+
+            self.lg.writeLine(f"Value got from parent: {to_return}")
+
+            return to_return
+
+        else:
+            return super().get_attr_from_parent(attr_name)
 
     def clone(self, *args, **kwargs):
 
