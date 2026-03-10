@@ -178,8 +178,6 @@ def relative_look_for_component(initial_component, is_correct_condition):
 
     while current_component is not None:
 
-        globalWriteLine(f"Looking into component {current_component.name}")
-
         if is_correct_condition(current_component):
             return current_component
         
