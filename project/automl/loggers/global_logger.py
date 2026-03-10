@@ -1,5 +1,8 @@
 
 
+import sys
+
+
 _global_logger = None
 DEFAULT_TO_PRINT_GLOBAL = False
 
@@ -11,6 +14,12 @@ def print_general_information():
 
         globalWriteLine(f"Global logger activation done, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
         
+        try:
+            globalWriteLine(f"Python version is {sys.version_info[0]}, {sys.version_info[1]}")
+
+        except:
+            globalWriteLine(f"Could not note python version")
+
         globalWriteLine(f"Current version of automl is {automl.__version__}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
 
         if torch.cuda.is_available():
