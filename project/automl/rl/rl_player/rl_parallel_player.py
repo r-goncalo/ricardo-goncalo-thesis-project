@@ -26,7 +26,7 @@ class RLParallelPlayer(RLPlayer):
             for agent_name, agent in self.agents.items():
 
                 act = agent.policy_predict_with_memory()
-                actions[agent_name] = act.item()
+                actions[agent_name] = act.squeeze(0)
 
         observations, rewards, terminations, truncations, infos = self.env.step(actions)
 
