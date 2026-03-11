@@ -9,7 +9,9 @@ import torch
 
 class AgentSchemaWithStateMemory(AgentSchema):
     
-    '''An agent which state has memory of previous states, such as a robot remembering its previous positions'''
+    '''
+    An agent which state has memory of previous states, such as a robot remembering its previous positions
+    '''
 
 
     # INITIALIZATION --------------------------------------------------------------------------
@@ -103,12 +105,13 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         Note that this tensor is cloned and not used anymore by the agent, so it can be safely used
         '''
-                
-        # shift previous memory left by one position
-        self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:]) #note that this strategy does not work well with autograd, as this can be changed after it was used to compute a tensor
+        with torch.no_gard():
 
-        # insert new state into the last position
-        self.temp_cache_state_memory[-1].copy_(new_state)
+            # shift previous memory left by one position
+            self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:]) #note that this strategy does not work well with autograd, as this can be changed after it was used to compute a tensor
+    
+            # insert new state into the last position
+            self.temp_cache_state_memory[-1].copy_(new_state)
         
         return self.temp_cache_state_memory
     

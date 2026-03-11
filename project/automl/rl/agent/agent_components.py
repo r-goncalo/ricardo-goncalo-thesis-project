@@ -23,6 +23,11 @@ def no_proccess_state_for_agent(state):
 
 class AgentSchema(ComponentWithLogging, StatefulComponent):
 
+    '''
+    Represents an Agent in an RL environment.
+    It will also contain its policy, model and any other necessary data.
+    '''
+
 
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -125,12 +130,15 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
     
     def get_policy(self):
+        '''
+        Returns the policy of the agent
+        '''
         return self.policy
     
     @requires_input_proccess
     def policy_predict(self, state):
         
-        '''makes a prediction based on the new state for a new action, using the current memory'''
+        '''makes a prediction based on the new state for a new action, using the current memory if need be'''
         
         to_return = self.policy.predict(self.proccess_env_state(state))
 
@@ -139,7 +147,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     @requires_input_proccess
     def policy_predict_with_memory(self):
         
-        '''makes a prediction based on the new state for a new action, using the current memory'''
+        '''makes a prediction for a new action, using the current memory'''
         
         return self.policy.predict(self.state_memory)
     
@@ -161,6 +169,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     @requires_input_proccess
     def policy_random_predict(self):
+        '''
+        Uses the policies's random prediction strategy to return an action
+        '''
         to_return =  self.policy.random_prediction()
 
         return to_return
@@ -171,11 +182,17 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     @requires_input_proccess
     def reset_agent_in_environment(self, initial_state): # resets anything the agent has saved regarding the environment
+        '''
+        Resets an agent in the environment, mainly making it remember a state in memory
+        '''
         self.update_state_memory(initial_state)
     
 
     @requires_input_proccess    
     def update_state_memory(self, new_state): #update memory shared accross agents
+        '''
+        Makes the agent remember a new state
+        '''
         self.state_memory.copy_(self.proccess_env_state(new_state))
         
 
