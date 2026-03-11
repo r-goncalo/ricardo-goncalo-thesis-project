@@ -68,8 +68,6 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super()._learn(trajectory, discount_factor)
 
-        self.batch_size = len(trajectory[0])
-
         state_batch, action_batch, next_state_batch, reward_batch, done_batch = self.interpret_trajectory(trajectory)
                     
         predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(state_batch, action_batch) 
