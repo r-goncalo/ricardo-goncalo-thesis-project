@@ -17,6 +17,8 @@ from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 from automl.rl.evaluators.rl_evaluator_player import EvaluatorWithPlayer
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 
+from automl.rl.rl_player.rl_parallel_player import RLParallelPlayer
+
 
 def config_dict():
 
@@ -207,7 +209,7 @@ def config_dict():
             EvaluatorWithPlayer,
             {
                 "number_of_episodes" : 5,
-                "rl_player_definition" : (RLTrainerComponentParallel, {}),
+                "rl_player_definition" : (RLParallelPlayer, {}),
                 "base_evaluator" : (LastValuesAvgStdEvaluator, {"value_to_use" : "total_reward"})
             }
         )
