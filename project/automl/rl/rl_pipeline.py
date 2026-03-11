@@ -282,27 +282,15 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                 shutil.rmtree(checkpoint_path)
 
             # ensure checkpoint directory exists
-            open_or_create_folder(checkpoint_path)
+            open_or_create_folder(checkpoint_path, create_new=False)
 
-            for item in os.listdir(this_component_path):
-            
-                src = os.path.join(this_component_path, item)
+            shutil.copytree(
+                this_component_path,
+                checkpoint_path,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__checkpoints", "__checkpoint", "__pycache__", "__temp*", "*.tmp")
+            )
 
-                # skip checkpoints folder itself
-                if item == "__checkpoints":
-                    continue
-                
-                dst = os.path.join(checkpoint_path, item)
-
-                try:
-                    if os.path.isdir(src):
-                        shutil.copytree(src, dst, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(src, dst)
-                except Exception as e:
-                    self.lg.writeLine(
-                        f"Warning: failed copying {src} to {dst}. Error: {str(e)}"
-                    )
 
 
     def _add_checkpoint(self, evaluation_results):
