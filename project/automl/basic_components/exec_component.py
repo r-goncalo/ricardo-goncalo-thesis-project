@@ -2,11 +2,8 @@ from automl.loggers.component_with_results import save_all_dataframes_of_compone
 from automl.basic_components.state_management import save_state
 from automl.utils.smart_enum import SmartEnum
 from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
-from automl.loggers.global_logger import globalWriteLine
 from ..component import InputSignature, Component, requires_input_proccess
 
-from abc import abstractmethod
-from enum import Enum
 
 from typing import final
 
@@ -18,6 +15,10 @@ class State(SmartEnum): #an enumerator to track state of executable component
         INTERRUPTED = 5
 
 class StopExperiment(Exception):
+    '''
+    An exception which implies an earlier stopping of the experiment without it being an error
+    Usually will mean an outside interruption
+    '''
     pass
 
 # EXECUTABLE COMPONENT --------------------------
@@ -50,13 +51,14 @@ class ExecComponent(Component):
 
         self._received_signal_to_stop = False        
 
-        self.save_values_in_execution = True
+        self.save_values_in_execution = self.get_input_value("save_values_in_execution")
 
         self._current_execution = self.values["times_ran"] + 1
 
     # METHODS TO OVERRIDE --------------------------------
 
     def is_over(self):
+        '''Returns true if the this component is over'''
         return State.equals_value(State.OVER, self.values["running_state"])
 
     def _is_over(self):
