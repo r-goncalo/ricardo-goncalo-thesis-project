@@ -56,7 +56,6 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         self.model_output_shape = self.get_input_value("action_shape") #shape of the action
 
-
         self.initialize_state_translator()
         self.initialize_state_memory()
         self.initialize_policy()
@@ -172,7 +171,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
     @requires_input_proccess
     def reset_agent_in_environment(self, initial_state): # resets anything the agent has saved regarding the environment
-        self.update_state_memory(self.proccess_env_state(initial_state))
+        self.update_state_memory(initial_state)
     
 
     @requires_input_proccess    
