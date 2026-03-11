@@ -47,7 +47,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                        "fraction_of_training_to_do_in_session" : InputSignature(mandatory=False, description="If when this is run it is supposed to do only a fraction of the training, this affects the stop condition"),
                        "generate_fraction_from_times_to_run" : InputSignature(default_value=False),
 
-                       "save_checkpoints" : InputSignature(default_value=True)
+                       "save_checkpoints" : InputSignature(default_value="best")
                 
                        }
 
@@ -132,6 +132,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
             "device" : self.device,
             "environment" : self.env,
             "times_to_run" : self._times_to_run,
+            "create_new_directory" : False,
             "agents" : self.agents.copy() # so changes to the rl trainer dict do not translate to the agents passed
         }        
         
@@ -146,7 +147,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
         if self.fraction_of_training_to_do_in_session is not None:
             rl_trainer_input["fraction_training_to_do"] = self.fraction_of_training_to_do_in_session
-            self.lg.writeLine(f"Fraction of training to do: {self.fraction_of_training_to_do_in_session}")
+            self.lg.writeLine(f"Fraction of training to do: {self.fraction_of_training_to_do_in_session} was passed to rl trainer")
 
 
         self.rl_trainer : RLTrainerComponent = self.get_input_value("rl_trainer", look_in_value_with_key="rl_trainer", look_in_attribute_with_name="rl_trainer")
@@ -258,16 +259,27 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
         self.save_checkpoints = self.get_input_value("save_checkpoints")
 
-        if self.save_checkpoints:
+        if self.save_checkpoints is not None and self.save_checkpoints != False:
+
             checkpoints_and_evaluations = self.values.get("checkpoints_and_evaluations")
 
             if checkpoints_and_evaluations is None:
                 self.values["checkpoints_and_evaluations"] = []
 
+            if self.save_checkpoints == "best":
+                self.save_only_best_checkpoint = True
+
+            else:
+                self.save_only_best_checkpoint = False
+
     
     def _create_checkpoint(self, checkpoint_path):
             
             this_component_path = self.get_artifact_directory()
+
+            if os.path.exists(checkpoint_path):
+                self.lg.writeLine(f"Checkpoint already existed, deleting it...")
+                shutil.rmtree(checkpoint_path)
 
             # ensure checkpoint directory exists
             open_or_create_folder(checkpoint_path)
@@ -291,6 +303,83 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                     self.lg.writeLine(
                         f"Warning: failed copying {src} to {dst}. Error: {str(e)}"
                     )
+
+
+    def _add_checkpoint(self, evaluation_results):
+
+            '''Adds a checkpoint for the training'''
+
+            checkpoints_and_evaluations : list[tuple[str, float]] = self.values.get("checkpoints_and_evaluations")
+
+            self.lg.writeLine(f"Current checkpoints are {checkpoints_and_evaluations}")
+
+            this_component_path = self.get_artifact_directory()
+
+            checkpoint_path = os.path.join(this_component_path, "__checkpoints", str(len(checkpoints_and_evaluations)))
+
+            self.lg.writeLine(f"New checkpoint will be in {checkpoint_path}")
+
+            self._create_checkpoint(checkpoint_path)
+
+            self.lg.writeLine(f"Finished copying component to checkpoint")
+
+            checkpoints_and_evaluations.append((checkpoint_path, evaluation_results))
+
+            (max_path, max_evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
+
+            self.lg.writeLine(f"Current best result is {max_evaluation_results} from path {max_path}, returning that one")
+
+            return max_evaluation_results
+    
+    
+    def _create_best_checkpoint(self, evaluation_results):
+            
+            '''
+            Sets the best checkpoint
+            '''
+
+            checkpoints_and_evaluations : list[tuple[str, float]] = self.values.get("checkpoints_and_evaluations")
+
+            self.lg.writeLine(f"Current checkpoints are {checkpoints_and_evaluations}")
+
+            is_best_result = False
+
+            last_eval_tuple = self.get_best_evaluation_checkpoint_path_result()
+
+            if last_eval_tuple is None:
+                last_max_evaluation = None
+            
+            else:
+                (_, last_max_evaluation) = last_eval_tuple
+
+            if last_max_evaluation is not None:
+                if last_max_evaluation["result"] <= evaluation_results["result"]:
+                    is_best_result = True
+            
+            else:
+                is_best_result = True
+
+            if is_best_result:
+
+                this_component_path = self.get_artifact_directory()
+
+                checkpoint_path = os.path.join(this_component_path, "__checkpoint")
+
+                self.lg.writeLine(f"New checkpoint will be in {checkpoint_path}")
+
+                self._create_checkpoint(checkpoint_path)
+
+                self.lg.writeLine(f"Finished copying component to checkpoint")
+
+                checkpoints_and_evaluations.append((checkpoint_path, evaluation_results))
+
+                (max_path, max_evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
+
+                self.lg.writeLine(f"Current best result is {max_evaluation_results} from path {max_path}, returning that one")
+
+            max_evaluation_results = evaluation_results if is_best_result else last_max_evaluation
+
+            return max_evaluation_results
                         
     
     def _evaluate_this_component(self):
@@ -313,21 +402,16 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
             self.save_state_and_rest_to_disk()
 
             self.lg.writeLine(f"Finished saving to disk")
+
+            if self.save_only_best_checkpoint:
+                max_evaluation_results = self._create_best_checkpoint(evaluation_results)
+
+            else:
+                max_evaluation_results = self._add_checkpoint(evaluation_results)
             
             checkpoints_and_evaluations : list[tuple[str, float]] = self.values.get("checkpoints_and_evaluations")
 
             self.lg.writeLine(f"Current checkpoints are {checkpoints_and_evaluations}")
-
-            this_component_path = self.get_artifact_directory()
-            checkpoint_path = os.path.join(this_component_path, "__checkpoints", str(len(checkpoints_and_evaluations)))
-
-            self.lg.writeLine(f"New checkpoint will be in {checkpoint_path}")
-
-            self._create_checkpoint(checkpoint_path)
-
-            self.lg.writeLine(f"Finished copying component to checkpoint")
-
-            checkpoints_and_evaluations.append((checkpoint_path, evaluation_results))
 
             (max_path, max_evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
 

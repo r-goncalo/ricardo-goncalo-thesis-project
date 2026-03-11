@@ -5,11 +5,9 @@ from automl.basic_components.exec_component import ExecComponent, State
 from automl.core.advanced_input_management import ComponentInputSignature
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
-from automl.hp_opt.optuna.custom_pruners import MixturePruner
 from automl.hp_opt.samplers.sampler import OptunaSamplerComponent, OptunaSamplerWrapper
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.result_logger import ResultLogger
-from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 
 from automl.loggers.logger_component import ComponentWithLogging
 
@@ -32,6 +30,8 @@ from automl.core.exceptions import common_exception_handling
 
 from automl.core.debug.debug_utils import substitute_classes_by_debug_classes
 import pandas
+
+from automl.hp_opt.pruners.pruner import OptunaPrunerWrapper, OptunaPrunerComponent
 
 TO_OPTIMIZE_CONFIG_FILE = f"to_optimize_{CONFIGURATION_FILE_NAME}"
 
@@ -65,8 +65,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "n_trials" : InputSignature(),
                         
                         "steps" : InputSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
-                        "pruner" : InputSignature(mandatory=False),
-                        "pruner_input" : InputSignature(mandatory=False),
+                        
+                        "pruner": ComponentInputSignature(
+                            mandatory=False,
+                            default_component_definition=(OptunaPrunerWrapper, {})
+                        ),
                         
                         "evaluator_component" : ComponentInputSignature(
                             mandatory=False,
@@ -269,94 +272,21 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     
     def _initialize_pruning_strategy(self):
-        
-        passed_pruner = self.get_input_value("pruner")
 
-        if passed_pruner is not  None:
+        pruner_component  : OptunaPrunerComponent = self.get_input_value("pruner")
 
-            pruner_input = self.get_input_value("pruner_input")
+        if pruner_component is None:
 
-            if pruner_input is not None:
-                self.lg.writeLine(f"Pruner input passed: {pruner_input}")
-
-            else:
-                pruner_input = {}
-                self.lg.writeLine(f"No pruner input passed")
-
-            self.pruning_strategy = self._return_pruning_strategy(passed_pruner, pruner_input)
-        
-        else:
-            self.lg.writeLine(f"We won't use a pruning strategy, none passed")
-            self.pruning_strategy = None
-
-        
-    def _return_pruning_strategy(self, passed_pruner, pruner_input):
-                
-            
-        self.lg.writeLine("Prunning strategy was defined")
-                    
-        if isinstance(passed_pruner, optuna.pruners.BasePruner):
-            
-            self.lg.writeLine(f"Passed instanced pruner of type: {type(passed_pruner)}")
-            pruning_strategy = passed_pruner
-        
-        elif isinstance(passed_pruner, str):
-
-            self.lg.writeLine(f"Passed pruner string: {passed_pruner}")
-        
-            pruning_strategy = self._initialize_pruner_from_string(passed_pruner, pruner_input)
-            
+            self.lg.writeLine("No pruning strategy defined")
+            self.pruning_strategy  : OptunaPrunerComponent  = None
 
         else:
-            raise NotImplementedError(f"Pruner type {type(passed_pruner)} is not implemented")
-        
-        return pruning_strategy
-            
-            
-        
-    def _initialize_pruner_from_string(self, passed_pruner_str : str, pruner_input):
 
-        self.lg.writeLine(f"Initializing pruner from string {passed_pruner_str} and input {pruner_input}")
-        
-        
-        if passed_pruner_str == "Median":
-                pruning_strategy = optuna.pruners.MedianPruner(**pruner_input)
-                
-        elif passed_pruner_str == "PercentilePruner":
-                pruning_strategy = optuna.pruners.PercentilePruner(**pruner_input)
+            self.pruning_strategy  : OptunaPrunerComponent = pruner_component
 
-                percentile = pruner_input.get("percentile")
-
-                if percentile is not None:
-                    self.lg.writeLine(f"The best {percentile} % will be kept using percentile pruner")
-
-        elif passed_pruner_str == "HyperbandPruner":
-                pruning_strategy = optuna.pruners.HyperbandPruner(**pruner_input)
-
-        elif passed_pruner_str == 'MixturePruner':
-            
-            pruners_for_mixture = pruner_input["pruners"]
-            instanced_pruners_for_mixture = []
-
-            for pruner_definition in pruners_for_mixture:
-                
-                pruner_for_mixture = pruner_definition[0]
-                pruner_for_mixture_input = pruner_definition[1]
-
-                instanced_pruners_for_mixture.append(
-                    self._return_pruning_strategy(pruner_for_mixture, pruner_for_mixture_input)
-                )
-
-            pruning_strategy = MixturePruner([
-                    instanced_pruners_for_mixture        
-                ])
-
-        
-        else:
-            raise NotImplementedError(f"Pruner '{passed_pruner_str}' is not implemented")
-        
-
-        return pruning_strategy
+            self.lg.writeLine(
+                f"Using pruner of type {type(self.pruning_strategy)}"
+            )
     
     
         
@@ -876,7 +806,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         return self.study
     
     def get_prunning_strategy_for_optuna(self):
-        return self.pruning_strategy if self.pruning_strategy is not None else optuna.pruners.NopPruner()
+        return self.pruning_strategy.get_optuna_pruner() if self.pruning_strategy is not None else optuna.pruners.NopPruner()
     
     def _try_load_study(self):
             

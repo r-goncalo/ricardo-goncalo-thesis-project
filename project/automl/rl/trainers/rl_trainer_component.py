@@ -131,9 +131,13 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
                 else:
                     self.lg.writeLine(f"Agent {key} did not have a loaded trainer, creating one...")
-                    agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agent_in_input} 
+                    agent_trainer_input_in_creation = {**agent_trainer_input, "agent" : agent_in_input, 
+                                                       "create_new_directory" : False,
+                                                       "name" : f"{key}_trainer"} 
 
-                    agent_trainer = self.initialize_child_component(self.default_trainer_class, agent_trainer_input_in_creation)
+                    agent_trainer = self.initialize_child_component(
+                        self.default_trainer_class, 
+                        agent_trainer_input_in_creation)
 
                     self.agents_trainers[key] = agent_trainer
 

@@ -70,7 +70,8 @@ class LoggerSchema(ArtifactComponent):
                        "log_text_file" : InputSignature(default_value='log.txt', ignore_at_serialization=True, description="The name of the log text file, if it is not specified, it will be created as 'log.txt' in the log directory"),
                     
                         "object_with_name" : InputSignature(mandatory=False, ignore_at_serialization=True, description="The object that will be used to create the profile for the logger, if it is not specified, the logger will not have a profile"),
-                    
+
+                        "create_new_directory" : InputSignature(default_value=False), # this is to overwrite behavior defined in artifact component
                     }
         
 
