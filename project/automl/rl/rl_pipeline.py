@@ -66,7 +66,13 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                 
         self.device = self.get_input_value("device")
 
-        self.agents_input = self.get_input_value("agents_input")
+        self.agents_input : dict = self.get_input_value("agents_input")
+
+        state_memory_size = self.agents_input.get("state_memory_size")
+        if state_memory_size is not None and state_memory_size <= 1:
+            self.lg.writeLine(f"There was state memory defined for agents with size {state_memory_size}, which is less than the minimum of 2")
+            self.agents_input.pop("state_memory_size")
+
         
         self.configure_device(self.device)
         
