@@ -117,6 +117,36 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         
         return batch_data
     
+    
+    @requires_input_proccess
+    def sample_all_with_batches(self, batch_size) -> list:
+        '''
+        Samples all memory divided by a list of batches of the specified size, without repeating information
+
+        If there is more memory than the allowed by the batches, some of it is left out
+        '''
+        
+        total_full_batches = self.total_size // batch_size
+
+        total_to_sample = total_full_batches * batch_size
+
+        # Random permutation without repetition
+        indices = torch.randperm(self.total_size, device=self.device)[:total_to_sample]
+
+        batches = []
+
+        for i in range(0, total_to_sample, batch_size):
+            batch_indices = indices[i:i + batch_size]
+
+            batch_data = {
+                field_name: self.transitions[field_name][batch_indices]
+                for field_name in self.field_names
+            }
+
+            batches.append(batch_data)
+
+        return batches
+    
 
     @requires_input_proccess
     def get_all(self):

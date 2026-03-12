@@ -141,8 +141,8 @@ def config_dict():
                     "learning_acessories" : [
                         ( ConvergenceDetector,
                             {
-                                "memory_size" : 256,
-                                "convergence_treshold" : 0.01,
+                                "memory_size" : 50,
+                                "convergence_treshold" : 0.05, # if average difference between logs is less than this, is convergence, evaluated at learning time
                                 "old_values_new_values_keys" : ["log_prob_batch", "new_log_probs"]
                             }
                         )
@@ -160,12 +160,12 @@ def config_dict():
 
                 "agent_trainer_acessories" : [
                     (AgentTrainerConvergenceDetector, {
-                        "standard_deviation_treshold" : 10,
-                        "n_values_to_use" : 100
+                        "standard_deviation_treshold" : 15, # less than this is convergence
+                        "n_values_to_use" : 200
                     }),
                     (AgentTrainerSlopeConvergenceDetector, {
-                        "slope_threshold" : 0.1,
-                        "n_values_to_use" : 100
+                        "slope_threshold" : 0.2, # less than this is convergence
+                        "n_values_to_use" : 200
                     })
                 ]
                 

@@ -2,10 +2,6 @@ from automl.ml.memory.memory_samplers.advantages_calc_sampler import PPOAdvantag
 from automl.rl.learners.q_learner import ComponentInputSignature
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
-import torch
-
-from automl.utils.shapes_util import reduce_space_dimension
-
 
 class AgentTrainerPPO(AgentTrainer):
     
@@ -53,6 +49,8 @@ class AgentTrainerPPO(AgentTrainer):
                 "learner" : self.learner,
                 "discount_factor" : self.discount_factor
                 })
+        else:
+            self.lg.writeLine(f"Note that PPO assumes advantage estimation rollot")
 
     def initialize_agent(self):
         

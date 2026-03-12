@@ -61,6 +61,9 @@ class RLLearningEvaluatorSlope(RLPipelineEvaluator):
 
 
     # EVALUATION -------------------------------------------------------------------------------
+
+    def get_metrics_strings(self) -> list[str]:
+        return [*super().get_metrics_strings(), "result"]
     
     @requires_input_proccess
     def _evaluate(self, component_to_evaluate : RLPipelineComponent):
@@ -119,4 +122,4 @@ class RLLearningEvaluatorSlope(RLPipelineEvaluator):
 
         slope = float(model.coef_[0])
 
-        return slope
+        return {"result" : slope}

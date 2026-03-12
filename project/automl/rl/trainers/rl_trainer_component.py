@@ -1,16 +1,14 @@
-
 import math
 from typing import Dict
-from automl.basic_components.EventfulComponent import EventfulComponent, Event
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.basic_components.EventfulComponent import EventfulComponent
+from automl.component import InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentDictInputSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
-from automl.loggers.result_logger import ResultLogger
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
+from automl.loggers.logger_component import ComponentWithLogging
 from automl.basic_components.exec_component import ExecComponent
 
 
@@ -34,7 +32,10 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                        "agents_trainers_input" : InputSignature(default_value={}, ignore_at_serialization=True),
                        "default_trainer_class" : InputSignature(default_value=AgentTrainer),
                        
-                       "limit_steps" : InputSignature(default_value=-1),
+                       "limit_steps" : InputSignature(
+                           default_value=-1,
+                           description="Limits the steps in a single training session"
+                          ),
 
                        "predict_optimizations_to_do" : InputSignature(default_value=False),
                        
@@ -44,7 +45,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                       "episode_steps" : 0,
                       "episodes_done" : 0,
                       "episode_score" : 0,
-                      "episode_done_in_session" : 0,
+                      "episodes_done_in_session" : 0,
                       "steps_done_in_session" : 0
                       } #this means we'll have a dic "values" with this starting values
      
@@ -269,7 +270,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
             max_episodes_to_do = self._return_fraction_of_training_stop_value_if_any(self.num_episodes)
 
-            if self.values["episode_done_in_session"] >= max_episodes_to_do:
+            if self.values["episodes_done_in_session"] >= max_episodes_to_do:
                 self.lg._writeLine("Reached episode " + str(self.values["episodes_done"]) + " that is beyond the current limit, " + str(max_episodes_to_do))
                 return True
         
@@ -283,9 +284,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             max_total_steps_to_do = self._return_fraction_of_training_stop_value_if_any(self.limit_total_steps)
 
             if  self.values["steps_done_in_session"] >= max_total_steps_to_do:
-                self.lg._writeLine(f"Total episodes done in this session, {self.values['steps_done_in_session']}, is greater than the limit for it, {max_total_steps_to_do}")
+                self.lg._writeLine(f"Total episode steps done in this session, {self.values['steps_done_in_session']}, is greater than the limit for it, {max_total_steps_to_do}")
                 return True
-                
                 
         return False
     
@@ -344,7 +344,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             agent_in_training._setup_training_session() 
 
 
-        self.values["episode_done_in_session"] = 0
+        self.values["episodes_done_in_session"] = 0
         self.values["steps_done_in_session"] = 0
 
 
@@ -406,7 +406,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             agent_in_training.end_episode() 
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1
-        self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
+        self.values["episodes_done_in_session"] = self.values["episodes_done_in_session"] + 1
         
         self.calculate_and_log_results()
 
@@ -414,10 +414,14 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         
         isover = super()._is_over()
 
+        # if a previous condition has not considered the training over
         if not isover:
-            if self.external_should_end_training_session:
-                self.lg.writeLine(f"As there were external requests to end training sesssion, it will be considered over")
-                isover = True
+            isover = True
+            for agent_trainer in self.agents_trainers.values():
+                if not agent_trainer.is_over():
+                    self.lg.writeLine(f"Noticed at least one trainer ({agent_trainer.name}) that is not considered over. As such, RLTrainer will not be considered over")
+                    isover = False
+                    break
 
         return isover
 

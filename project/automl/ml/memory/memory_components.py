@@ -49,6 +49,15 @@ class MemoryComponent(StatefulComponent):
     def sample(self, batch_size):
         raise NotImplementedError()
     
+    @requires_input_proccess
+    def sample_all_with_batches(self, batch_size):
+        '''
+        Samples all memory divided by batches of the specified size, without repeating information
+
+        If there is more memory than the allowed by the batches, some of it is left out
+        '''
+        raise NotImplementedError()
+    
     
     @requires_input_proccess
     def clear(self):

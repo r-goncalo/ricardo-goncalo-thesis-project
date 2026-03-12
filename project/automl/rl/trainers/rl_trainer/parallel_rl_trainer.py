@@ -1,13 +1,4 @@
 
-import math
-from typing import Dict
-from automl.component import InputSignature, Component, requires_input_proccess
-from automl.loggers.component_with_results import ComponentWithResults
-from automl.rl.agent.agent_components import AgentSchema
-from automl.rl.trainers.agent_trainer_component import AgentTrainer
-from automl.loggers.result_logger import ResultLogger
-
-from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
@@ -75,7 +66,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
                         
         self.setup_single_episode(i_episode)
 
-        agent_names = [*self.env.parallel_agents()] 
+        agent_names = [*self.env.parallel_agents()] # TODO: CORRECT THIS, ASSUMES ALL AGENTS STAY THE SAME
 
         while True:
 
@@ -92,13 +83,14 @@ class RLTrainerComponentParallel(RLTrainerComponent):
             self.values["episode_score"] = self.values["episode_score"] + sum(rewards.values())
 
             if done or self._check_if_to_end_episode():
-                break    
+                break
+    
 
         for agent_in_training in self.agents_trainers.values():
             agent_in_training.end_episode() 
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1
-        self.values["episode_done_in_session"] = self.values["episode_done_in_session"] + 1
+        self.values["episodes_done_in_session"] = self.values["episodes_done_in_session"] + 1
         
         self.calculate_and_log_results()
             

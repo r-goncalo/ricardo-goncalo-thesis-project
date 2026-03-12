@@ -57,7 +57,13 @@ class AgentTrainerDebug(AgentTrainer, ComponentWithLoggingDebug):
 
             self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt")
 
-    
+        def optimizeAgent(self):
+            
+            self.lg.writeLine(f"In episode (total) {self.values['episodes_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
+
+            return super().optimizeAgent()
+
+
         def _optimize_policy_model(self):
         
             if self.verify_model_difference_after_optimize:

@@ -11,6 +11,10 @@ is_full_seed_setup_done = False
 
 
 def generate_and_setup_a_seed():
+
+    '''
+    Generates a seed and sets up the whole stochastic process with it
+    '''
     
     seed = generate_seed()
 
@@ -42,7 +46,9 @@ def generate_seed_configuration(seed_configuration : dict = None):
 
 def setup_seed_from_dict_configuration(seed_configuration : dict = None, force_new = False):
 
-    
+    '''
+    Sets up seed for other libraries using the respective keys
+    '''
 
     global is_full_seed_setup_done
 
@@ -69,19 +75,22 @@ def setup_seed_from_dict_configuration(seed_configuration : dict = None, force_n
 
 def do_full_setup_of_single_seed(seed, force_new=False):
 
+    '''
+    Does full setup with a single seed
+    '''
+
     setup_python_seed(seed)
     
     return setup_seed_from_dict_configuration(
         {
             "python" : seed
         },
-        force_new=False
+        force_new=force_new
     )
 
 
 def setup_python_seed(seed):
     globalWriteLine(f"    Python seed {seed}", file=SEED_GLOBAL_LOGGER)
-
     random.seed(seed)    
 
 
@@ -101,6 +110,10 @@ def setup_torch_seed(seed):
 
 
 def get_random_state() -> str:
+
+    '''
+    Returns a string representing the whole random state
+    '''
     
     python_state_str = str(random.getstate())
     numpy_state_str = str(numpy.random.get_state())

@@ -16,6 +16,12 @@ class OptimizerSchema(Component):
     parameters_signature = {"model" : ComponentInputSignature(mandatory=False, ignore_at_serialization=True),
                             "params" : InputSignature(mandatory=False, ignore_at_serialization=True)}
     
+    
+    exposed_values = {
+        "optimizations_done" : 0
+    }
+    
+    
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
         
@@ -60,6 +66,12 @@ class OptimizerSchema(Component):
         pass
 
     def optimize_with_backward_pass_done(self):
+
+        self._optimize_with_backward_pass_done()
+
+        self.values["optimizations_done"] = self.values["optimizations_done"] + 1
+
+    def _optimize_with_backward_pass_done(self):
         pass
 
 
@@ -84,11 +96,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
                        
                        
                        }    
-    
-    exposed_values = {
-        "optimizations_done" : 0
-    }
-    
+
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
@@ -175,7 +183,8 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         if self.clip_grad_norm != None:
             nn.utils.clip_grad_norm_(self.params, get_value_or_dynamic_value(self.clip_grad_norm))
     
-    def optimize_with_backward_pass_done(self):
+    
+    def _optimize_with_backward_pass_done(self):
 
         self._apply_clipping()
         
@@ -184,7 +193,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
 
-        self.values["optimizations_done"] = self.values["optimizations_done"] + 1
+        
         
 
 class SimpleSGDOptimizer(OptimizerSchema):

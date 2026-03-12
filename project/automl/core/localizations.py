@@ -278,7 +278,7 @@ def get_next_component_by_int_operation(component, integer : int):
 def get_component_by_localization_list(component, localization : list):
     
     '''
-    Gets child component by its location
+    Gets child component or value by its location
     Note that an emty localization will return the component itself
     '''
     

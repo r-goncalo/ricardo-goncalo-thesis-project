@@ -207,6 +207,11 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         return list(self.model.parameters())
     
     @requires_input_proccess
+    def get_model_state_dict(self):
+        '''returns a list of model parameters'''
+        return self.model.state_dict()
+    
+    @requires_input_proccess
     def predict(self, state):
         super().predict(state)
         return self.model(state)

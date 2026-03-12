@@ -91,12 +91,14 @@ class ExecComponent(Component):
             self.values["running_state"] = State.IDLE
        
 
-            
-    
     def _stop_earlier_signal_received(self):
         return self._received_signal_to_stop
     
     def stop_execution_earlier(self):
+        '''
+        Stops the execution of this component by just setting the flag
+        The component will have to have its state checked for this to raise an exception
+        '''
         self._received_signal_to_stop = True
 
     def _check_if_should_stop_execution_earlier(self):

@@ -29,6 +29,7 @@ class DEBUG_LEVEL(SmartEnum):
 IDENT_SPACE = '    '
 
 DEFAULT_LOGGER_LEVEL = DEBUG_LEVEL.DEBUG
+DEFAULT_WRITE_TO_FILE_WHEN = -1 
 
 def change_default_logger_level(new_value):
 
@@ -51,13 +52,13 @@ class LoggerSchema(ArtifactComponent):
     parameters_signature = {
 
                        "necessary_logger_level" : InputSignature(
-                            default_value=DEFAULT_LOGGER_LEVEL,
+                            generator= lambda _ : DEFAULT_LOGGER_LEVEL, # this is so we can swith the default logger level
                             ignore_at_serialization=True),
 
                        "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
 
                        "write_to_file_when_text_lines_over" : InputSignature(
-                           default_value=1000,
+                           default_value=DEFAULT_WRITE_TO_FILE_WHEN,
                            mandatory=False),
 
                        "artifact_relative_directory" : InputSignature(

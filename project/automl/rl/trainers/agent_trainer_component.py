@@ -1,8 +1,3 @@
-
-
-
-
-
 from automl.basic_components.exec_component import ExecComponent
 from automl.component import InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
@@ -27,7 +22,12 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     
     '''
     Describes a trainer specific for an agent, using a learner algorithm, memory and more
-    
+
+    It serves as a connection between an RLTrainer (which describes a general training algorithm for single or multi agent RL) and the agents
+
+    It is resposible for knowing when the agent is learning or just being used, logging results, connecting the memory and the learning algorithm and so on
+
+    Functionality such as using acessories is turned off when the agent is not learning
     '''
     
     TRAIN_LOG = 'train.txt'
@@ -51,6 +51,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                         "agent" : ComponentInputSignature(),
 
                        "batch_size" : InputSignature(mandatory=False, custom_dict={"hyperparameter_suggestion" : [ "cat", {"choices": [8, 16, 32, 64, 128, 256]}]}),
+                       
+                       "learn_with_all_memory" : InputSignature(default_value=False, 
+                                                                description="When true, each learning will consist of dividing the entire memory into batches with the specified size, and learning with each of them"
+                                                                ),
                     
                        "discount_factor" : InputSignature(
                            default_value=0.95,
@@ -67,7 +71,12 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                             default_component_definition=(DeepQLearnerSchema, {})
                         ),
 
-                        "agent_trainer_acessories" : ComponentListInputSignature(mandatory=False) 
+                        "agent_trainer_acessories" : ComponentListInputSignature(mandatory=False, description="Acessories used for when the agent is learning"),
+
+                       "limit_steps" : InputSignature(
+                           default_value=-1,
+                           description="Limits the steps in a single training session"
+                          ),                         
 
                        }
     
@@ -78,19 +87,20 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                       "episode_score" : 0,
                       "optimizations_done" : 0,
                       "average_optimization" : 0,
-                      "external_end_requests" : None
+                      "external_end_requests" : None,
+                      "is_training" : False
                       } #this means we'll have a dic "values" with this starting values
     
     STATIC_EVENTS = {
         "ended_agent_training" : Event()
         }
     
-    results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward"]
+    results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward", "is_training"]
     
     def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
         super().__init__(*args, **kwargs)
 
-        self.values["external_end_requests"] = {}
+        self.values["external_end_requests"] = {} # this is to be sure that same instances are not shared
         
 
     def _proccess_input_internal(self):
@@ -102,9 +112,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self.save_interval = self.get_input_value("save_interval")
     
         self.BATCH_SIZE = self.get_input_value("batch_size") #the number of transitions sampled from the replay buffer
+        
+        self.learn_with_all_memory = self.get_input_value("learn_with_all_memory")
+        
         self.discount_factor = self.get_input_value("discount_factor") # the discount factor, A value of 0 makes the agent consider only immediate rewards, while a value close to 1 encourages it to look far into the future for rewards.
                               
-        self.times_to_learn = self.get_input_value("times_to_learn")    
+        self.times_to_learn = self.get_input_value("times_to_learn")
+
+        self.limit_steps = self.get_input_value("limit_steps")
+
+        if self.limit_steps >= 0:
+            self.lg.writeLine(f"Will limit the learning of this agent to {self.limit_steps} steps in this training session")    
         
         self._initialize_delays()                  
                                 
@@ -114,7 +132,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self.initialize_temp()
         self._initialize_acessories()
 
-        self.is_training = True
+        self.values['is_training'] = False
                                 
 
         
@@ -183,7 +201,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             "episode" : [self.values["episodes_done"]],
             "episode_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["total_steps"]]
+            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
+            "is_training" : [self.values['is_training']]
             }
         
 
@@ -195,10 +214,27 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         return  ( total_steps / self.optimization_interval ) * self.times_to_learn
     
     
+    # STOP CONDITIONS ------------------------
+
+    def _check_if_to_end_training_by_steps(self):
+
+        if self.limit_steps >= 1: # if we're using steps to stop training
+
+            if  self.values["steps_done_in_session"] >= self.limit_steps:
+                self.lg._writeLine(f"Total episodes done in this session, {self.values['steps_done_in_session']}, is greater than the limit for it, {self.limit_steps}")
+                return True                
+                
+        return False
+
+    def _check_if_to_end_training(self):
+        return self._check_if_to_end_training_by_steps()
+    
     # TRAINING_PROCESS ----------------------
+
+
         
     def is_agent_training(self):
-        return self.is_training
+        return self.values['is_training']
         
         
     @requires_input_proccess
@@ -206,33 +242,43 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         self.lg.writeLine("Setting up training session")
 
-        self.is_training = True
+        self.values['is_training'] = True
 
         external_end_requests : dict = self.values["external_end_requests"]
         
         for external_end_key in external_end_requests:
             self.initialize_external_end_request(external_end_key)
 
-        self.start_algorithm()
+        self.values["steps_done_in_session"] = 0
+
+        self.start_algorithm() # this tells the compon
         
         
                 
     @requires_input_proccess
     def end_training(self):
 
-        if self.is_training:
-
+        if self.values['is_training']:
             self.lg.writeLine("Ending training session... (Note that the trainer can still be used)")
 
-            self.is_training = False
+            self.values['is_training'] = False
 
             self.EVENTS["ended_agent_training"].notify(self.name)
 
             self.end_algorithm()
-
-        else:
-            self.lg.writeLine(f"Received request to end training session when it is already over")
         
+    
+    def _is_over(self):
+        
+        isover = super()._is_over()
+
+        # the training is considered over when the reason for the training ended was external
+        if not isover:
+            if len(self.values["external_end_requests"]) > 0 and all(self.values["external_end_requests"].values()):
+                self.lg.writeLine(f"Training is considered over because all external conditions asked for the training of the agent to end")
+                isover = True
+
+        return isover
         
     
     @requires_input_proccess
@@ -250,29 +296,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     def end_episode(self):
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1
-                
         self.calculate_and_log_results()
 
-        for acessory in self.agent_trainer_acessories:
-            acessory.as_fun()
+        # we just log results when the agent is training
+        if self.values['is_training']: 
 
+            for acessory in self.agent_trainer_acessories:
+                acessory.as_fun()
 
     
-    def _learn_if_needed(self):
-
-        if self.is_training:
-        
-            can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episodes_done"] >= self.learning_start_ep_delay
-            can_learn_by_step_delay = self.learning_start_step_delay < 1 or self.values["total_steps"] >= self.learning_start_step_delay
-
-            if can_learn_by_ep_delay and can_learn_by_step_delay:          
-            
-                if self.values["total_steps"] % self.optimization_interval == 0:
-
-                    self.lg.writeLine(f"In episode (total) {self.values['episodes_done']}, optimizing at step {self.values['episode_steps']} that is the total step {self.values['total_steps']}", file=self.TRAIN_LOG)
-
-                    self.optimizeAgent()
-                    
+    # LEARNING AND INTERACTING WITH THE ENVIRONMENT -------------------------------
+                
             
         
     @requires_input_proccess
@@ -280,10 +314,12 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
             '''
             Does a step, in which the agent acts and observers the transition
-            Note that any other agents will not notice this change
+            Note that any other agents will not notice this change without outside coordination
+            
+            This method can be used when the agent is not training
             '''
                     
-            observation = env.observe(self.name)
+            observation = env.observe(self.agent.name)
             
             with torch.no_grad():                
                 action = self.select_action(observation).squeeze(0) # decides the next action to take (can be random)
@@ -299,14 +335,25 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                             
     def do_after_training_step(self, i_episode, action, observation, reward, done, truncated):
 
-            self.values["episode_score"] = self.values["episode_score"] + reward
+        '''
+        Does the normal computation after a training step
+        This assumes an observation was just made, an action chosen and the environment was notified of that action
+        
+        It observeses the transition of the environment to the received observation, and notes that an episode step was just made
+        '''
+
+        self.values["episode_score"] = self.values["episode_score"] + reward
                             
-            self._observe_transiction_to(observation, action, reward, done)
+        self._observe_transiction_to(observation, action, reward, done)
             
-            self.values["episode_steps"] = self.values["episode_steps"] + 1
-            self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
+        self.values["episode_steps"] = self.values["episode_steps"] + 1
+        self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
+        self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
             
-            self._learn_if_needed() # uses the learning strategy to learn if it verifies the conditions to do so
+        if self._check_if_to_end_training():
+            self.end_training()
+
+        self._learn_if_needed() # uses the learning strategy to learn if it verifies the conditions to do so
                 
         
 
@@ -320,7 +367,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
     def observe_new_state(self, env : AECEnvironmentComponent):
         '''Makes the agent observe a new state, remembering it in case it needs that information in future computations'''
-        self.agent.update_state_memory(env.observe(self.name))
+        self.agent.update_state_memory(env.observe(self.agent.name))
         
 
     def select_action(self, state):
@@ -334,6 +381,26 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         return self.agent.policy_predict_with_memory()
 
+    # LEARNING PROCESS --------------------------------------------
+
+
+    def _learn_if_needed(self):
+
+        '''
+        Does a learning step if the agent is still learning
+        This means calling optimize agent          
+        '''
+
+        if self.values['is_training']:
+        
+            can_learn_by_ep_delay = self.learning_start_ep_delay < 1 or self.values["episodes_done"] >= self.learning_start_ep_delay
+            can_learn_by_step_delay = self.learning_start_step_delay < 1 or self.values["total_steps"] >= self.learning_start_step_delay
+
+            if can_learn_by_ep_delay and can_learn_by_step_delay:          
+            
+                if self.values["total_steps"] % self.optimization_interval == 0:
+
+                    self.optimizeAgent()
 
 
     def optimizeAgent(self):
@@ -361,15 +428,26 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             if len(self.memory) < self.BATCH_SIZE:
                 return
 
-            #a batch of transitions [(state, action next_state, reward)] transposed to [ (all states), (all actions), (all next states), (all rewards) ]
-            batch = sampler.sample(self.BATCH_SIZE)
+            if self.learn_with_all_memory:
+                batches = sampler.sample_all_with_batches(self. BATCH_SIZE)
+            
+            else:
+                batches = [sampler.sample(self.BATCH_SIZE)]
 
         else:
-            batch = sampler.get_all()        
+            batches = [sampler.get_all()]        
                 
-        self._optimize_policy_model_with_batch(batch)
+        for b in batches:
+            self._optimize_policy_model_with_batch(b)
+
+    # EXTERNAL ACESSORIES PROCESSING ----------------------------------------------
 
     def request_end_from_external(self, key):
+
+        '''
+        Receives a request from an outside entity to terminate the training of this agent
+        This usually means convergence was detected
+        '''
 
         external_end_requests : dict = self.values["external_end_requests"]
         external_end_requests[key] = True

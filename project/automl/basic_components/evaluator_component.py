@@ -5,11 +5,6 @@ from automl.core.advanced_input_management import ComponentInputSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.basic_components.exec_component import ExecComponent
 
-
-from abc import abstractmethod
-
-from automl.loggers.logger_component import ComponentWithLogging
-
 class EvaluatorComponent(ExecComponent):
     
     '''
@@ -44,6 +39,10 @@ class EvaluatorComponent(ExecComponent):
     
     @requires_input_proccess # needs to be extended
     def get_metrics_strings(self) -> list[str]:
+        '''
+        Gets the keys for the evaluation this evaluator
+        This method is meant to be extended
+        '''
         return []
     
     @requires_input_proccess

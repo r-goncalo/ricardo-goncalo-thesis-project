@@ -81,25 +81,27 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     # SET VALUE IN LOCALIZATION -----------------------------------
 
-    def set_suggested_value(self, suggested_value, component_definition : Union[Component, dict], localization=None):
+    def set_suggested_value(self, suggested_value, component_definition : Union[Component, dict], localizations=None):
         
-        '''Sets the suggested value in the component (or component input), using the localization'''
+        '''Sets the suggested value in the component (or component input), using the localizations'''
         
-        localization = self.hyperparameter_localizations if localization is None else localization
+        localizations = self.hyperparameter_localizations if localizations is None else localizations
 
-        if localization is None:
-            raise Exception(f"No localization specified in function call nor in object to set suggested value in component")
+        if localizations is None:
+            raise Exception(f"No localizations specified in function call nor in object to set suggested value in component")
 
-        return self._set_suggested_value(suggested_value, component_definition, localization)
+        return self._set_suggested_value(suggested_value, component_definition, localizations)
 
 
-    def _set_suggested_value(self, suggested_value, component_definition : Union[Component, dict], localization=None): 
+    def _set_suggested_value(self, suggested_value, component_definition : Union[Component, dict], localizations=None): 
+
+        '''Sets the suggested value in passed localizations'''
 
         if isinstance(component_definition, Component):
-            self._set_suggested_value_in_component(suggested_value, component_definition, localization)
+            self._set_suggested_value_in_component(suggested_value, component_definition, localizations)
             
         elif isinstance(component_definition, (dict, list)):
-            self._set_suggested_value_in_dict(suggested_value, component_definition, localization)
+            self._set_suggested_value_in_dict(suggested_value, component_definition, localizations)
             
         else:   
             raise Exception(f"Component definition is not a Component or a dict, but {type(component_definition)}")
@@ -107,7 +109,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
     
     def _set_suggested_value_in_component(self, suggested_value, component : Component, hyperparameter_localizations):
         
-        '''Sets the suggested value in the component, using the localization'''
+        '''Sets the suggested value in the component, using the localizations'''
     
         for hyperparameter_localizer in hyperparameter_localizations:
             
@@ -124,7 +126,7 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     def _set_suggested_value_in_dict(self, suggested_value, component_dict : dict, hyperparameter_localizations):
     
-        '''Sets the suggested value in the dictionary representing a component, using the localization'''
+        '''Sets the suggested value in the dictionary representing a component, using the localizations'''
 
         for hyperparameter_localizer in hyperparameter_localizations:
             
@@ -138,6 +140,8 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     def try_get_suggested_optuna_values(self, component_definition, localizations=None):
 
+        '''Tries to get the already suggested value in a configuration'''
+
         localizations = self.hyperparameter_localizations if localizations is None else localizations
 
         if localizations is None:
@@ -149,6 +153,8 @@ class HyperparameterSuggestion(CustomJsonLogic):
 
     def _try_get_suggested_optuna_values(self, component_definition, localizations):
 
+        '''Tries to get the already suggested value in a configuration'''
+
         value_to_return = self.try_get_suggested_value(component_definition, localizations)
 
         if value_to_return is None:
@@ -157,27 +163,27 @@ class HyperparameterSuggestion(CustomJsonLogic):
         return {self.get_name() : value_to_return}
 
 
-    def try_get_suggested_value(self, component_definition : Union[Component, dict], localization=None):
+    def try_get_suggested_value(self, component_definition : Union[Component, dict], localizations=None):
         
-        '''Gets the suggested value in the component (or component input), using the localization'''
+        '''Gets the suggested value in the component (or component input), using the localizations'''
         
-        localization = self.hyperparameter_localizations if localization is None else localization
+        localizations = self.hyperparameter_localizations if localizations is None else localizations
 
-        if localization is None:
+        if localizations is None:
             raise Exception(f"No localization specified in function call nor in object ({self.name}) to get suggested value in component")
 
-        return self._try_get_suggested_value(component_definition, localization)
+        return self._try_get_suggested_value(component_definition, localizations)
 
 
-    def _try_get_suggested_value(self, component_definition : Union[Component, dict], localization):
+    def _try_get_suggested_value(self, component_definition : Union[Component, dict], localizations):
         
         '''Gets the suggested value in the component (or component input), using the localization'''
         
         if isinstance(component_definition, Component):
-            return self._try_get_already_suggested_value_in_component(component_definition, localization)
+            return self._try_get_already_suggested_value_in_component(component_definition, localizations)
             
         elif isinstance(component_definition, (dict, list)):
-            return self._try_get_suggested_value_in_dict(component_definition, localization)
+            return self._try_get_suggested_value_in_dict(component_definition, localizations)
             
         else:   
             raise Exception(f"Component definition is not a Component or a (dict | list), but {type(component_definition)}") 
@@ -244,18 +250,6 @@ class HyperparameterSuggestion(CustomJsonLogic):
         return suggested_value
 
 
-    def _try_get_already_passed_input_to_component_input(self, component_input, hyperparameter_localizer):
-        
-        '''Passes the suggested value to the component input, using the localization'''
-        
-        current_input_dict = get_last_collection_where_value_is(component_input, hyperparameter_localizer)
-
-        try:
-            return safe_get(current_input_dict, hyperparameter_localizer[len(hyperparameter_localizer) - 1], default_value=None)
-        
-        except Exception as e:
-            raise Exception(f"Exception when trying to get last indice ({hyperparameter_localizer[len(hyperparameter_localizer) - 1]}) of hyperparameter_localizer: {hyperparameter_localizer}, {e}")
-        
 
     # REMOVING VALUE --------------------------------
 

@@ -16,8 +16,6 @@ import torch
 
 from automl.utils.class_util import get_class_from
 
-import torch.nn.functional as F
-
 SHOULD_INITIALIZE_NEW_CRITIC = False
 
 class PPOLearner(LearnerSchema, ComponentWithLogging):
@@ -117,7 +115,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.actor_optimizer.pass_input({"model" : self.model})
         
         if not self.actor_optimizer.has_custom_name_passed():
-            self.actor_optimizer.pass_input({"ActorOptimizer"})
+            self.actor_optimizer.pass_input({"name" : "ActorOptimizer"})
 
         # Critic optimizer
         self.critic_optimizer : OptimizerSchema  = self.get_input_value("critic_optimizer")
