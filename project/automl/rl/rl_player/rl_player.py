@@ -25,7 +25,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                        "agents" : InputSignature(),
                        "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
                        "num_episodes" : InputSignature(default_value=1),
-                       "limit_steps" : InputSignature(default_value=-1),
                        "store_env_at_end" : InputSignature(default_value=False)
 
                        
@@ -39,7 +38,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                       } 
     
     results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward", "environment"]
-
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after
         
@@ -48,8 +46,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         self.env : AECEnvironmentComponent = self.get_input_value("environment")
         self.num_episodes = self.get_input_value("num_episodes")
         
-        self.limit_steps = self.get_input_value("limit_steps")
-
         self.store_env_at_end = self.get_input_value("store_env_at_end")
 
         self._setup_agents()
@@ -61,7 +57,11 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         self.agents_input = self.get_input_value("agents_input")
         
         self.agents : dict[str, AgentSchema] = initialize_agents_components(self.agents, self.env, self.agents_input, self)
-        
+
+        self.values["agents_episode_score"] = {agent.name : 0 for agent in self.agents.values()}
+
+        self.add_to_columns_of_results_logger([f"{agent_name}_reward" for agent_name in self.values["agents_episode_score"].keys()])
+
         # if the agents have no base directory associated with it, use RL player's
         for agent in self.agents.values():
             if not "base_directory" in agent.input.keys():
@@ -74,6 +74,10 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
+        
+        for agent_name in self.values["agents_episode_score"].keys():
+            self.values["agents_episode_score"][agent_name] = 0
+
         self.env.reset()
         
         self.lg.writeLine("Starting episode " + str(self.values["episodes_done"] + 1) + " with agents: " + str(self.agents.keys()))
@@ -86,7 +90,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
 
     def _end_episode(self):
-        self.values["total_steps"] = self.values["total_steps"] + self.values["episode_steps"]
         self.values["episodes_done"] = self.values["episodes_done"] + 1
         
         self.lg.writeLine(f"Finished episode {self.values['episodes_done']} with results: {self.values}")
@@ -99,6 +102,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         for agent_name in self.env.agent_iter():
             
             reward, done, truncated = self._do_agent_step(agent_name)
+            
             
             for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
                 if other_agent_name != agent_name:
@@ -125,6 +129,9 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                       
         self.values["episode_steps"] = self.values["episode_steps"] + 1
         self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step
+
+        self.values["agents_episode_score"][agent_name] += reward
+
         
         return reward, done, truncated
     
@@ -156,7 +163,8 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             "episode_reward" : [self.values["episode_score"]],
             "episode_steps" : [self.values["episode_steps"]], 
             "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
-            "environment" : [self.env.name]
+            "environment" : [self.env.name],
+            **{f"{agent_name}_reward" : agent_reward for agent_name, agent_reward in self.values["agents_episode_score"].items()}
             }
         
 

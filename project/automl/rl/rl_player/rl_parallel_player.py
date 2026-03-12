@@ -34,7 +34,12 @@ class RLParallelPlayer(RLPlayer):
         total_reward = 0.0
 
         for agent_name in self.agents.keys():
-            total_reward += rewards[agent_name]
+
+            agent_reward = rewards[agent_name]
+
+            total_reward += agent_reward
+            self.values["agents_episode_score"][agent_name] += agent_reward
+
             self.agents[agent_name].update_state_memory(observations[agent.name])
 
             if terminations[agent_name] or truncations[agent_name]:
