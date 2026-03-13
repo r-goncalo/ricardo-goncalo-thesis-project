@@ -131,7 +131,7 @@ def config_dict():
                                         "input_for_fun_key": "optimizations_done",
                                         "initial_value": 0.5,
                                         "final_value": 0,
-                                        "input_component": ('relative', ("__get_by_name__", {"name_of_component": "AdamOptimizerComponent"})),
+                                        "input_component": ('relative', [("__get_by_name__", {"name_of_component": "AdamOptimizerComponent"})]),
 
                                         "input_for_fun_max_value":
                                         ('relative',

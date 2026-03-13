@@ -65,6 +65,3 @@ class RLParallelPlayer(RLPlayer):
 
             if done:
                 break
-
-            if self.limit_steps > 0 and self.values["episode_steps"] >= self.limit_steps:
-                break
