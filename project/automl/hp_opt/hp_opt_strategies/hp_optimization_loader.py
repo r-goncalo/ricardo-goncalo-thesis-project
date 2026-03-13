@@ -74,7 +74,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
     # THREADS SETUP ---------------------------------------------------
 
-    def _setup_results_logger(self, parameter_names):
+    def _setup_hp_results_logger(self, parameter_names):
         self.add_to_columns_of_results_logger(["experiment", "component_index", "step", *parameter_names, "result"])
 
 
@@ -507,14 +507,14 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
         else:
             next_step = last_reported_step + 1
 
-        n_steps = final_step - next_step
+        n_steps = final_step - next_step + 1
 
     
         self.lg.writeLine(f"----------------------- TRIAL: {trial.number}, COMPONENT_INDEX: {component_index}, STEPS TO DO {n_steps}, ENDS AT {n_steps} -----------------------\n")
             
         to_return = None
 
-        for step in range(next_step, next_step + n_steps):
+        for step in range(next_step, final_step + 1):
             to_return = self.try_run_component_in_group(trial, component_index, step, component_loader)
 
         self.lg.writeLine(f"Ended execution of trial {trial.number}, component index {component_index}")

@@ -105,7 +105,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         with self.evaluator_sem:
             return super()._try_evaluate_component(component_to_test_path, trial, component_to_test)
 
-    def _setup_results_logger(self, parameter_names):
+    def _setup_hp_results_logger(self, parameter_names):
         self.add_to_columns_of_results_logger(["experiment", "component_index", "step", *parameter_names, "result"])
 
 
@@ -158,6 +158,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     
     def _verify_and_aquire_worker_not_running_on_full_configuration(self, worker : HyperparameterOptimizationWorkerIndexed, trial, list_where_worker_working):
 
+        '''
+        Aquires a configuration to be trained in a trial for a worker
+        '''
+
         [_, sem, current_number] = list_where_worker_working
 
         with sem:
@@ -206,18 +210,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             '''Runs a job with a worker and then frees it'''
 
-            #self.lg.writeLine(f"HERE IN _run_worker_till_step: {trial.number}")
-
-            # we remove a configuration
-            [_, sem, _] = self.trainings_remaining_per_thread[index_in_trainings_remaining]
-            with sem:
-                current_number = self.trainings_remaining_per_thread[index_in_trainings_remaining][2]
-                
-                if current_number <= 0:
-                    worker.free_worker()
-                    raise Exception(f"Worker {worker.thread_index} attributed to trial {trial.number}, when that trial had already all its configurations trained / being trained")
-
-                self.trainings_remaining_per_thread[index_in_trainings_remaining][2] = current_number - 1
+            self._verify_and_aquire_worker_not_running_on_full_configuration(worker, trial, self.trainings_remaining_per_thread[index_in_trainings_remaining])
 
             with override_first_logger(worker.thread_logger):
                 component_index = self._get_component_index_of_trial(trial, component_index)
@@ -227,9 +220,11 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             except Exception as e:
                 should_end[0] = True # if we receive an exception, we flag that the training for this trial should end
+                self._let_go_worker_list(worker, trial, self.trainings_remaining_per_thread[index_in_trainings_remaining])
                 worker.free_worker()
                 raise e
-            
+
+            self._let_go_worker_list(worker, trial, self.trainings_remaining_per_thread[index_in_trainings_remaining])
             worker.free_worker()
             return to_return
     
@@ -427,7 +422,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 index_in_trainings_remaining,
                 first_worker,
                 run_first_worker_fun,
-                run_other_workers_fun
+                run_other_workers_fun,
+                should_end
             )
 
             else:
@@ -741,11 +737,12 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         self.lg.writeLine(f"Running {len(trials) if isinstance(trials, list) else trials} trials with running method: {running_method.__name__}, steps to run: {self.n_steps if steps_to_run is None else steps_to_run}, mark trials as completed: {mark_trials_as_completed}")
 
-        results = []
+        results = [] # all results
+        completed_results = [] # results of trials that were completed or at least not interrupted
+        
         executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
 
-        completed_results = []
-        surviving_trials = []
+        
 
         if steps_to_run is not None:
             old_n_steps = self.n_steps
@@ -793,7 +790,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             else:
                 completed_results.append((trial, value))
-                surviving_trials.append(trial)
 
                 if mark_trials_as_completed:
                     self.mark_trial_as_complete(trial, value)
@@ -808,18 +804,23 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         self._raise_exception_in_execution(exceptions_to_raise)
 
-        return results, completed_results, surviving_trials
+        return results, completed_results
         
 
     # CHANGING TRIALS -------------
 
     def mark_trial_as_complete(self, trial, value):
         with self.optuna_usage_sem:
-            super().mark_trial_as_complete(trial, value)
+            return super().mark_trial_as_complete(trial, value)
+
+    def mark_trial_as_pruned(self, trial, value=None):
+
+        with self.optuna_usage_sem:
+            return super().mark_trial_as_pruned(trial, value)
 
     def _generate_trial(self):
         with self.optuna_usage_sem:
-            super()._generate_trial()
+            return super()._generate_trial()
 
 
     # RUNNING A TRIAL -----------------------------------------------------------------------

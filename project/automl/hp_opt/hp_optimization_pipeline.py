@@ -47,6 +47,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     '''
     An hyperparameter optimization pipeline
+
+    The configuration is changed as a dictionary, before the component being instatiated, as it is the earliest the changes can be made.
+    This means that any localizations passed to the hyperparameter suggestions must be in reference to the dictionary
     '''
 
 
@@ -141,6 +144,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _proccess_input_internal(self): # this is the best method to have initialization done right after
                 
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Processing input for HP optimization...")
                 
         # LOAD VALUES
         self.start_with_given_values = self.get_input_value("start_with_given_values")
@@ -156,7 +161,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.direction = self.get_input_value("direction")
 
-        self.sampler : OptunaSamplerComponent = self.get_input_value("sampler")
+        self.lg.writeLine(f"This experiment will optimize with direction {self.direction}")
 
         self.queued_studies_to_resume = []
 
@@ -164,7 +169,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self._initialize_hyperparameter_range_list()
         self._initialize_config_dict()
         self._initialize_database()
+
         self._initialize_pruning_strategy()
+        self._initialize_sampler()
+
+
         self._initialize_study()
 
         # SETUP AUX VALUES
@@ -173,14 +182,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
         
-        self._setup_results_logger(parameter_names)
+        self._setup_hp_results_logger(parameter_names)
                 
         self._suggested_values_by_trials = {}  
 
+        self.lg.writeLine(f"Finished processing input for base HP optimization\n")
+
         
+    # INITIALIZATION ----------------------------------------------------------
 
 
     def _initialize_hyperparameter_range_list(self):
+
+        '''Initializes the hyperparameter suggestions'''
 
         self.hyperparameters_range_list : list[HyperparameterSuggestion] = self.get_input_value("hyperparameters_range_list")
 
@@ -204,7 +218,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         
 
-    def _setup_results_logger(self, parameter_names):
+    def _setup_hp_results_logger(self, parameter_names):
+        
         self.add_to_columns_of_results_logger(["experiment", "step", *parameter_names, "result"])
                 
 
@@ -212,9 +227,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         '''Substitutes the configuration dict by passed debug classes'''
 
         self.config_dict = substitute_classes_by_debug_classes(self.config_dict, self.debug_classes)
+
     
-    # initialize the base configuration to create components to test
     def _initialize_config_dict(self):
+
+        '''Initializes the configuration dictionary that will be optimized'''
         
         if "base_component_configuration_path" in self.input.keys():
 
@@ -251,9 +268,18 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         if self.debug_classes is not None and len(self.debug_classes) > 0:
             self.lg.writeLine(f"There are debug classes to use: {self.debug_classes}")
             self._setup_configuration_dict_with_debug_classes()
-            
+
+
+    def load_configuration_dict_from_path(self, path):
+
+        '''Loads the configuration dict that will be optimized from a path'''
         
-        
+        with open(path, 'r') as fd:
+            self.config_str = fd.read()
+            fd.close()
+
+        self.config_dict = dict_from_json_string(self.config_str)
+
     
     #it constructs the path for the database        
     def _initialize_database(self):
@@ -265,7 +291,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.storage = f"sqlite:///{self.database_path}"  # This will save the study results to the file
 
 
-
     def get_database(self):
 
         return self.storage
@@ -273,34 +298,30 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     
     def _initialize_pruning_strategy(self):
 
-        pruner_component  : OptunaPrunerComponent = self.get_input_value("pruner")
+        self.pruning_strategy  : OptunaPrunerComponent = self.get_input_value("pruner")
 
-        if pruner_component is None:
-
+        if self.pruning_strategy  is None:
             self.lg.writeLine("No pruning strategy defined")
-            self.pruning_strategy  : OptunaPrunerComponent  = None
 
         else:
-
-            self.pruning_strategy  : OptunaPrunerComponent = pruner_component
-
             self.lg.writeLine(
                 f"Using pruner of type {type(self.pruning_strategy)}"
             )
+
     
+    def get_prunning_strategy_for_optuna(self):
+        return self.pruning_strategy.get_optuna_pruner() if self.pruning_strategy is not None else optuna.pruners.NopPruner()
     
-        
-    def load_configuration_dict_from_path(self, path):
 
-        '''Loads the configuration dict that will be optimized from a path'''
-        
-        with open(path, 'r') as fd:
-            fd = open(path, 'r') 
-            self.config_str = fd.read()
-            fd.close()
+    def _initialize_sampler(self):
 
-        self.config_dict = dict_from_json_string(self.config_str)
+        self.sampler  : OptunaSamplerComponent = self.get_input_value("sampler")
 
+        self.lg.writeLine(
+                f"Using sampler of type {type(self.pruning_strategy)}"
+            )
+            
+    
 
 
     # OPTIMIZATION -------------------------------------------------------------------------
@@ -722,8 +743,6 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         old_trial_number = old_trial.number
 
-        self.study.add_trial(new_trial)
-
         self.lg.writeLine(f"Transformed old trial {old_trial_number} into new trial {new_trial.number}")
 
         return new_trial
@@ -785,6 +804,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
                     self.study.tell(trial, value)
 
+    def mark_trial_as_pruned(self, trial, value=None):
+                    
+                    self.lg.writeLine(f"Trial {trial.number} marked as pruned {f'with value: {value}' if value is not None else ''}")
+                    self.values["trials_done_in_this_execution"] += 1
+                    
+                    self.study.tell(trial=trial, state= optuna.trial.TrialState.PRUNED)
+
 
         
     
@@ -805,9 +831,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def get_study(self):
         return self.study
     
-    def get_prunning_strategy_for_optuna(self):
-        return self.pruning_strategy.get_optuna_pruner() if self.pruning_strategy is not None else optuna.pruners.NopPruner()
-    
+
     def _try_load_study(self):
             
         # Try loading existing study
@@ -890,11 +914,11 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     def _do_optimization_algorithm(self):
                         
-            self.lg.writeLine(f"OPTIMIZING WITH {self.n_trials} TRIALS ------------------------------------------\n")      
+            self.lg.writeLine(f"OPTIMIZING ({self.direction}) WITH {self.n_trials} TRIALS ------------------------------------------\n")      
 
             self._call_objective()
 
-            self.lg.writeLine(f"OPTIMIZATION WITH {self.n_trials} TRIALS OVER --------------------------------------------------------------------")
+            self.lg.writeLine(f"OPTIMIZATION WITH ({self.direction}) TRIALS OVER --------------------------------------------------------------------")
 
             try:
                 self.lg.writeLine(f"Best parameters: {self.study.best_params}, used in trial {self.study.best_trial.number}, with best result {self.study.best_value}" )
