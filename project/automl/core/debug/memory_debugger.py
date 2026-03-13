@@ -1,5 +1,5 @@
 import os
-from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
+from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.component import Component
 import psutil
@@ -10,7 +10,7 @@ def process_memory():
     return mem_info.rss, mem_info.vms
 
 
-class MemoryDebuggerComponent(ComponentWithLoggingDebug):
+class MemoryDebuggerComponent(ComponentDebug):
     
     is_debug_schema = True
     

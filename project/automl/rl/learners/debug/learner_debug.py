@@ -1,6 +1,6 @@
 
 
-from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
+from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.component import requires_input_proccess
@@ -10,7 +10,7 @@ from automl.ml.models.torch_model_utils import model_parameter_distance
 from automl.core.input_management import InputSignature
 import torch
 
-class LearnerDebug(LearnerSchema, ComponentWithLoggingDebug):
+class LearnerDebug(LearnerSchema, ComponentDebug):
 
     is_debug_schema = True
 

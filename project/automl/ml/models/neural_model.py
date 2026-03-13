@@ -98,7 +98,9 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self.hidden_size: int = self.get_input_value("hidden_size")
         self.hidden_layers: int = self.get_input_value("hidden_layers")
-        self.layers = [*self.get_input_value("layers")]
+
+        self.layers = self.get_input_value("layers")
+        self.layers = [*self.layers] if self.layers is not None else None
 
         self.lg.writeLine(f"Model specification: hidden size: {self.hidden_size}, hidden_layers: {self.hidden_layers}, layers: {self.layers}")
 

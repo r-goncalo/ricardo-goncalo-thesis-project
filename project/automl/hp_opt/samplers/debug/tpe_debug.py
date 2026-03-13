@@ -1,5 +1,5 @@
 from automl.hp_opt.samplers.sampler import OptunaSamplerWrapper
-from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
+from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 import optuna
 
 class OptunaSamplerWrapperDebug(OptunaSamplerWrapper):

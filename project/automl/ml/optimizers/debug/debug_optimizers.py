@@ -1,10 +1,10 @@
-from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
+from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.component import requires_input_proccess
 
 
-class AdamOptimizerDebug(AdamOptimizer, ComponentWithLoggingDebug):
+class AdamOptimizerDebug(AdamOptimizer, ComponentDebug):
 
     is_debug_schema = True
 

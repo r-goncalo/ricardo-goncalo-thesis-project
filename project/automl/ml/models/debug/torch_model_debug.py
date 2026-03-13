@@ -1,5 +1,5 @@
 import os
-from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
+from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.loggers.global_logger import globalWriteLine
 from automl.loggers.logger_component import ComponentWithLogging
 import torch
@@ -12,7 +12,7 @@ from automl.ml.models.torch_model_components import TorchModelComponent
 
 from automl.ml.models.torch_model_utils import model_parameter_distance_by_params, split_shared_params
 
-class TorchModelComponentDebug(TorchModelComponent, ComponentWithLoggingDebug):
+class TorchModelComponentDebug(TorchModelComponent, ComponentDebug):
 
     is_debug_schema = True
 

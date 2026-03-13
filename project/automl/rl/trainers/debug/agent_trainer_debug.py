@@ -1,13 +1,13 @@
 
 
 
-from automl.loggers.debug.component_with_logging_debug import ComponentWithLoggingDebug
+from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.core.input_management import InputSignature
 from automl.ml.models.torch_model_utils import model_parameter_distance
 
-class AgentTrainerDebug(AgentTrainer, ComponentWithLoggingDebug):
+class AgentTrainerDebug(AgentTrainer, ComponentDebug):
         
         '''A debug class that is not meant to be used '''
 
