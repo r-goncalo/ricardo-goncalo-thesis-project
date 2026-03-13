@@ -287,7 +287,7 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         if self.min_steps > 0:
 
-            self.lg.writeLine(f"Will first run each of the n_trials for {self.min_steps}")
+            self.lg.writeLine(f"Will first run each of the {n_trials} for {self.min_steps}")
 
             results, completed_results = self.run_trials(trials, mark_trials_as_completed=False, steps_to_run=self.min_steps)
 
