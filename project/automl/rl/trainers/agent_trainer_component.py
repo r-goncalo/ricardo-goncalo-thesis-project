@@ -347,11 +347,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self._observe_transiction_to(observation, action, reward, done)
             
         self.values["episode_steps"] = self.values["episode_steps"] + 1
-        self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step                                
-        self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
+        self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step      ~
+
+        if self.values['is_training']:
+
+            self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
             
-        if self._check_if_to_end_training():
-            self.end_training()
+            if self._check_if_to_end_training():
+                self.end_training()
 
         self._learn_if_needed() # uses the learning strategy to learn if it verifies the conditions to do so
                 

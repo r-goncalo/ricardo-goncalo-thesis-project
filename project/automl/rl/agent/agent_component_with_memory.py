@@ -105,7 +105,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         Note that this tensor is cloned and not used anymore by the agent, so it can be safely used
         '''
-        with torch.no_gard():
+        with torch.no_grad():
 
             # shift previous memory left by one position
             self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:]) #note that this strategy does not work well with autograd, as this can be changed after it was used to compute a tensor

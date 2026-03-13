@@ -87,6 +87,8 @@ class ModelSequenceComponent(TorchModelComponent):
                 self.lg.writeLine(f"Connecting models: {current_model.name} -> {current_model_output_shape} -> {next_model.name}")
 
             next_model.proccess_input_if_not_proccesd() # proccess last model
+
+            self.lg.writeLine(f"Connecting models: {next_model.name} -> {next_model.get_model_output_shape()}")
         
         else: # initialize the only model available
             self.models[0].proccess_input_if_not_proccesd()

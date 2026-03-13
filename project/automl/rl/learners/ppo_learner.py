@@ -98,6 +98,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
             self.critic.pass_input(critic_model_passed_input)
 
         self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
+        self.critic.pass_input({"output_shape" : 1})
 
         self.critic.proccess_input_if_not_proccesd()
 
