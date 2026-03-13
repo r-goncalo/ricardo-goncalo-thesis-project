@@ -124,6 +124,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         '''Resumes a sucessive halging algorithm resuming a bracket it was doing and then continuing it normally'''
 
+        raise NotImplementedError()
+
         total_step_budget = 0  
         end_successive_halving = False
 
@@ -158,7 +160,7 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
             # this is here in case the number of trials received by the function is less than the ones it is supposed to mantain, such as in the case of some of them having been pruned
             n_trials_to_mantain = len(trials) if initial_trials_to_mantain is None else initial_trials_to_mantain
 
-            total_step_budget = 0  
+            total_step_budget = self.min_steps  # when we reach the sucessive halving algorithm, it means we already have a budget of min steps
             end_successive_halving = False
 
             for i in range(initial_i, number_of_runs + 1):
@@ -174,12 +176,12 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
                 self.lg.writeLine(f"Trials: {[trial.number for trial in trials]}")
 
-                if self.max_steps is not None and step_budget + total_step_budget > self.max_steps:
+                if step_budget + total_step_budget > self.max_steps:
 
                     step_budget = self.max_steps - total_step_budget
                     end_successive_halving = True
 
-                    self.lg.writeLine(f"Because of limit of max steps per trial of {self.max_steps} and current steps done {total_step_budget}, this will be last bracket with {step_budget} steps instead")
+                    self.lg.writeLine(f"Because of limit of max steps per trial of {self.max_steps} and current steps done {total_step_budget}, this will be last bracket with {step_budget} steps instead\n")
 
                 # here we receive all results and the results of the trials that were not pruned 
                 results, completed_results = self.run_trials(trials, steps_to_run=step_budget, mark_trials_as_completed=False)
@@ -214,6 +216,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         ''' Resumes an hyperband bracket'''
 
+        raise NotImplementedError()
+
         r = int(self.max_steps * self.eta ** (-s))
 
         self._resume_successive_halving(trials, r, s, self.eta)
@@ -222,6 +226,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
     def _resume_hyperband(self, trials):
 
         '''Resumes the hyperband algorithm with trials that were still being run'''
+
+        raise NotImplementedError()
 
         self.lg.writeLine(f"Resuming hyperband algorithm, last bracket registered was: {self.values['current_hyperband_bracket']}")
 
@@ -259,7 +265,7 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
     
 
     def _try_resuming_unfinished_trials(self, trials : list[optuna.trial.FrozenTrial]):
-        
+    
         if self.values["current_hyperband_bracket"] > -1:
             self.lg.writeLine(f"Noticed hyperband was running before interruption of training process, resuming using it...")
             self._try_load_all_resumed_trials(trials)
@@ -287,17 +293,23 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
         if self.min_steps > 0:
 
-            self.lg.writeLine(f"Will first run each of the {n_trials} for {self.min_steps}")
+            self.lg.writeLine(f"Will first run each of the {n_trials} trials for {self.min_steps} before executing the normal hyperband algorithm")
 
             results, completed_results = self.run_trials(trials, mark_trials_as_completed=False, steps_to_run=self.min_steps)
 
             trials = [trial for trial, result in completed_results]
 
-        self._do_successive_halving(trials=trials, 
-                                    initial_resource_per_config=r, 
-                                    number_of_runs=current_hyperband_bracket, 
-                                    configurations_to_study_decrease_rate=self.eta,
-                                    initial_trials_to_mantain=n_trials)
+
+        if len(trials) > 0:
+
+            self._do_successive_halving(trials=trials, 
+                                        initial_resource_per_config=r, 
+                                        number_of_runs=current_hyperband_bracket, 
+                                        configurations_to_study_decrease_rate=self.eta,
+                                        initial_trials_to_mantain=n_trials)
+        
+        else:
+            self.lg.writeLine(f"There were no remaining trials to execute the sucessive halving algorithm")
 
 
     def _run_true_hyperband(self, s_max=None):
@@ -319,6 +331,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         n_trials_done = 0
 
         for current_hyperband_bracket in reversed(range(s_max + 1)):
+
+            self.lg.writeLine(f"Executing hyperband bracket {current_hyperband_bracket}...\n")
 
             self.values["current_hyperband_bracket"] = current_hyperband_bracket
 
@@ -342,6 +356,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
             if end_early:
                 break
+
+            self.lg.writeLine(f"Finished executing hyperband bracket {current_hyperband_bracket}\n")
 
         self.values["current_hyperband_bracket"] = -1
 
