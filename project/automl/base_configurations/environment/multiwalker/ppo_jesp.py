@@ -499,13 +499,13 @@ def hyperparameter_suggestions():
             hyperparameter_localizations=[
 
                 [
-                    *shared_model_location, 1, "layers"
+                    *shared_model_location, 1, "parameters_initialization_strategy"
                 ],
                 [
-                    *policy_model_head_location, 1, "layers"
+                    *policy_model_head_location, 1, "parameters_initialization_strategy"
                 ],
                 [
-                    *critic_model_head_location, 1, "layers"
+                    *critic_model_head_location, 1, "parameters_initialization_strategy"
                 ],
             ],
             allow_none=True,
