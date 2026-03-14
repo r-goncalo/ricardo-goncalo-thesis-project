@@ -71,6 +71,11 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     
     @requires_input_proccess
     def agents(self):
+        return self.env.possible_agents
+    
+    @requires_input_proccess    
+    def get_active_agents(self):
+        '''Returns all the active agents'''
         return self.env.agents
     
     

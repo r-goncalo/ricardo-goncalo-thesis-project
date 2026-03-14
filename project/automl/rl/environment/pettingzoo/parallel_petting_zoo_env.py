@@ -44,11 +44,13 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         if environment_name == "cooperative_pong":
             from pettingzoo.butterfly import cooperative_pong_v5
             self.env: ParallelEnv = cooperative_pong_v5.parallel_env(render_mode=self.render_mode)
+            self.lg.writeLine("Using cooperative pong environment")
 
         elif environment_name == "multiwalker":
             from pettingzoo.sisl import multiwalker_v9
             self.env: ParallelEnv = multiwalker_v9.parallel_env(render_mode=self.render_mode)
-            
+            self.lg.writeLine(f"Using multiwalker environment")
+
         else:
             raise Exception(f"No valid PettingZoo environment named '{environment_name}'")
         
@@ -76,23 +78,12 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
 
     @requires_input_proccess
     def agents(self):
-
-        to_return = None
-        
-        if hasattr(self.env, "agents"):
-            to_return = list(self.env.agents)
-
-
-        if (to_return is None or len(to_return) == 0) and hasattr(self.env, "possible_agents"):
-            to_return = list(self.env.possible_agents)
-
-        if to_return is None:
-            raise AttributeError("Environment has neither .agents nor .possible_agents")
-        else:
-            return to_return
+        return self.env.possible_agents
         
     
-    def parallel_agents(self):
+    @requires_input_proccess    
+    def get_active_agents(self):
+        '''Returns all the active agents'''
         return self.env.agents
 
     def reset(self):
@@ -117,6 +108,21 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         self.reset_info = info
         return obs
     
+    def _process_action_of_agent(self, agent, action):
+            
+            if isinstance(action, torch.Tensor):
+                action = action.detach().cpu().numpy()
+
+            #action_space = self.env.action_space(agent)
+#
+            ## Prefer per-agent action space bounds
+            #if hasattr(action_space, "low") and hasattr(action_space, "high"):
+            #    low = action_space.low
+            #    high = action_space.high
+            #    action = np.clip(action, low, high)
+
+            return action
+
     def _process_actions(self, actions: dict):
         """
         Clips actions to the environment bounds when available.
@@ -125,19 +131,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         processed = {}
 
         for agent, action in actions.items():
-            # torch -> numpy
-            if isinstance(action, torch.Tensor):
-                action = action.detach().cpu().numpy()
-
-            action_space = self.env.action_space(agent)
-
-            # Prefer per-agent action space bounds
-            if hasattr(action_space, "low") and hasattr(action_space, "high"):
-                low = action_space.low
-                high = action_space.high
-                action = np.clip(action, low, high)
-
-            processed[agent] = action
+            processed[agent] = self._process_action_of_agent(agent, action)
 
         return processed
 

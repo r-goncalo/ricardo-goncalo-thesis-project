@@ -19,6 +19,8 @@ class RLTrainerComponentParallel(RLTrainerComponent):
         if not isinstance(self.env, ParallelEnvironmentComponent):
             raise Exception(f"Parallel RL training requires parallel component")
         
+        self.env : ParallelEnvironmentComponent = self.env
+
         self.lg.writeLine(f"Setting up RL trainer Component Parallel")
         
         self.chosen_actions = {}
@@ -42,7 +44,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
     def proccess_env_step_for_agents(self, i_episode, agents_names : list[str], actions, observations, rewards, terminations, truncations):
 
-        done = False
+        done = True
 
         for agent_name in agents_names:
             
@@ -56,7 +58,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
             agent_trainer.do_after_training_step(i_episode, action, observation, reward, termination, truncation)
 
-            done = done or termination or truncation
+            done = done and (termination or truncation)
 
         return done
 
@@ -66,9 +68,9 @@ class RLTrainerComponentParallel(RLTrainerComponent):
                         
         self.setup_single_episode(i_episode)
 
-        agent_names = [*self.env.parallel_agents()] # TODO: CORRECT THIS, ASSUMES ALL AGENTS STAY THE SAME
-
         while True:
+
+            agent_names = self.env.get_active_agents()
 
             actions = self.choose_actions_for_agents(agent_names, i_episode)
 

@@ -2,10 +2,7 @@ from types import FunctionType
 from automl.component import Component, InputSignature, requires_input_proccess
 from automl.core.advanced_input_management import ComponentListInputSignature
 from automl.basic_components.sampler import Sampler
-import torch
-import random
-import math
-import numpy as nn
+from abc import abstractmethod
 
 
 class EnvironmentComponent(Component):
@@ -14,23 +11,53 @@ class EnvironmentComponent(Component):
     
     
     @requires_input_proccess
+    @abstractmethod
     def close(self):
-        raise NotImplementedError()
-    
-    @requires_input_proccess
-    def get_env_name(self):
-        raise NotImplementedError()
+        '''Closes an environment, telling it its execution is not being used'''
+        pass
 
-    @requires_input_proccess    
+    @requires_input_proccess
+    @abstractmethod
+    def get_env_name(self):
+        '''Gets the internal name of an environment'''
+        pass
+
+    @requires_input_proccess
+    @abstractmethod    
     def reset(self):
         '''A soft reset of the environment, only to guarantee it is in its initial state'''
-        raise NotImplementedError()
+        pass
     
-    @requires_input_proccess    
+    @requires_input_proccess
+    @abstractmethod    
     def total_reset(self):
         '''Resets all, including RNG state'''
-        raise NotImplementedError()
+        pass
     
+    @requires_input_proccess
+    @abstractmethod
+    def agents(self):
+        '''Returns all possible agents to exist on an environment'''
+        pass    
+
+    @requires_input_proccess
+    @abstractmethod    
+    def get_active_agents(self):
+        '''Returns all the active agents'''
+        pass
+
+
+    @requires_input_proccess
+    @abstractmethod
+    def get_agent_action_space(self, agent):
+        '''returns the action space for the given agent'''
+        pass
+    
+    @requires_input_proccess
+    @abstractmethod
+    def get_agent_state_space(self, agent):
+        '''returns the state space for the environment'''
+        pass
 
 
 

@@ -3,59 +3,43 @@
 from automl.rl.environment.environment_components import EnvironmentComponent, EnvironmentSampler, sampled_environment_fun
 from automl.component import requires_input_proccess
 
+from abc import abstractmethod
 
 class AECEnvironmentComponent(EnvironmentComponent):
     
     parameters_signature =  {} 
     
-        
 
         
     @requires_input_proccess   
-    def observe(self, *args):
-        raise NotImplementedError()
+    def observe(self, agent_name : str):
+        '''Returns the observation for the given agent'''
+        pass
         
     @requires_input_proccess   
-    def agents(self):
-        raise NotImplementedError()
+    @abstractmethod
+    def last(self,):
+        '''Gets last transitions / observations done'''
+        pass
     
     @requires_input_proccess
-    def get_agent_action_space(self, agent):
-        '''returns the action space for the given agent'''
-        raise NotImplementedError()
-    
-    @requires_input_proccess
-    def get_agent_state_space(self, agent):
-        '''returns the state space for the environment'''
-        raise NotImplementedError()
-    
-    @requires_input_proccess   
-    def last(self):
-        raise NotImplementedError()
-    
-    @requires_input_proccess   
+    @abstractmethod   
     def agent_iter(self):
-        raise NotImplementedError()
+        '''Returns an iterator for the active agents'''
+        pass
     
-    @requires_input_proccess    
-    def step(self, *args):
-        raise NotImplementedError()
+    @requires_input_proccess
+    @abstractmethod    
+    def step(self, action):
+        '''Makes a step in the environment for the currently active agent and the given action'''
+        pass
         
     @requires_input_proccess    
+    @abstractmethod
     def rewards(self):
         raise NotImplementedError()    
     
-    @requires_input_proccess
-    def render(self):
-        raise NotImplementedError()
-    
-    @requires_input_proccess
-    def close(self):
-        raise NotImplementedError()
-    
-    @requires_input_proccess
-    def get_env_name(self):
-        raise NotImplementedError()
+
     
 
 class AECEnvironmentSampler(EnvironmentSampler, AECEnvironmentComponent):

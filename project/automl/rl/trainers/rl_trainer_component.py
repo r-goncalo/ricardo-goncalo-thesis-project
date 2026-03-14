@@ -376,7 +376,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             
         reward, done, truncated = agent_in_training.do_training_step(i_episode, self.env)
                         
-        for other_agent_name in self.agents_trainers.keys(): #make the other agents observe the transiction without remembering it
+        for other_agent_name in self.env.get_active_agents(): #make the other agents observe the transition without puting it in memory (as it is not theirs)
             if other_agent_name != agent_name:
                     self.agents_trainers[other_agent_name].observe_new_state(self.env)
                     
@@ -398,7 +398,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
             done, truncated = self.run_episode_step_for_agent_name(i_episode, agent_name)
                       
-            if done or truncated or self._check_if_to_end_episode():
+            if self._check_if_to_end_episode():
                 break                      
 
 

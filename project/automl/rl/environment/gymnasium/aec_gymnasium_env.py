@@ -118,13 +118,12 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
     def last(self):
         return self.last_observation, self.last_reward, self.last_done, self.last_truncation, self.last_info
 
-
     def agents(self):
         return ["agent"]
 
-
     def agent_iter(self):
-        return itertools.repeat("agent")
+        return itertools.repeat("agent") if not self.last_done and not self.last_truncation else iter([])
+    
 
 
     def step(self, action):
@@ -155,7 +154,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
         return self.env.observation_space
 
     
-    def observe(self, *args):
+    def observe(self):
         return self.last_observation
     
     def get_env_info(self):

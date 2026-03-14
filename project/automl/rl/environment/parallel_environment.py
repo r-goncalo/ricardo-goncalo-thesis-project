@@ -2,13 +2,14 @@
 from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.component import requires_input_proccess
 
+from abc import abstractmethod
 
 class ParallelEnvironmentComponent(EnvironmentComponent):
     
     parameters_signature =  {} 
         
 
-
+    @abstractmethod
     def step(self, actions):
         """
         Args:
@@ -16,23 +17,6 @@ class ParallelEnvironmentComponent(EnvironmentComponent):
         Returns:
             next_obs_dict, rewards, terminations, truncations, infos
         """
-        raise NotImplementedError()
-
-
-    def parallel_agents(self):
-        raise NotImplementedError()
+        pass
 
         
-    @requires_input_proccess   
-    def agents(self):
-        raise NotImplementedError()
-    
-    @requires_input_proccess
-    def get_agent_action_space(self, agent):
-        '''returns the action space for the given agent'''
-        raise NotImplementedError()
-    
-    @requires_input_proccess
-    def get_agent_state_space(self, agent):
-        '''returns the state space for the environment'''
-        raise NotImplementedError()
