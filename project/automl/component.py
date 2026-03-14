@@ -401,9 +401,9 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
             new_child_component.parent_component = self
         
-            new_child_component.on_parent_component_defined()
+            new_child_component._on_parent_component_defined()
         
-    def on_parent_component_defined(self):
+    def _on_parent_component_defined(self):
         '''called after this component as another parent component defined'''
         pass
         

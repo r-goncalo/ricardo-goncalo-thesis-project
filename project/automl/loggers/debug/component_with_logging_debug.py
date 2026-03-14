@@ -93,8 +93,8 @@ class ComponentDebug(ComponentWithLogging):
         return to_return
     
 
-    def on_parent_component_defined(self):
-        super().on_parent_component_defined()
+    def _on_parent_component_defined(self):
+        super()._on_parent_component_defined()
 
         globalWriteLine(f"{self.name}: New parent component was defined: {self.parent_component}", file="__input_debug.txt") 
 

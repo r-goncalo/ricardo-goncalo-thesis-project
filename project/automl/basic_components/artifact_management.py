@@ -94,9 +94,9 @@ class ArtifactComponent(Component):
                        }
   
             
-    def on_parent_component_defined(self):
+    def _on_parent_component_defined(self):
         '''Artifact Components try to get the directory of a parent component to use as a base directory'''
-        super().on_parent_component_defined()
+        super()._on_parent_component_defined()
 
         if not "base_directory" in self.input.keys() and not hasattr(self, "base_directory"):
                 
