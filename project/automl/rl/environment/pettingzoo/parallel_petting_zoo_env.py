@@ -44,12 +44,10 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         if environment_name == "cooperative_pong":
             from pettingzoo.butterfly import cooperative_pong_v5
             self.env: ParallelEnv = cooperative_pong_v5.parallel_env(render_mode=self.render_mode)
-            self.lg.writeLine("Using cooperative pong environment")
 
         elif environment_name == "multiwalker":
             from pettingzoo.sisl import multiwalker_v9
             self.env: ParallelEnv = multiwalker_v9.parallel_env(render_mode=self.render_mode)
-            self.lg.writeLine(f"Using multiwalker environment")
 
         else:
             raise Exception(f"No valid PettingZoo environment named '{environment_name}'")
