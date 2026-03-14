@@ -1,4 +1,4 @@
-from automl.core.input_management import InputMetaData, ParameterSignature
+from automl.core.input_management import ParameterMetaData, ParameterSignature
 from types import FunctionType
 import copy
 
@@ -52,7 +52,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
                         
         self.input : dict[str, any] = {} #the input will be a dictionary
         
-        self.__input_meta : dict[str, InputMetaData] = {} # will store meta data according to the input
+        self.__input_meta : dict[str, ParameterMetaData] = {} # will store meta data according to the input
         self.__initialize_input_meta_data()
         
         self.values = {**type(self).exposed_values} #this is where the exposed values will be stored
@@ -612,12 +612,12 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         '''Initializes the dictionary __input_meta'''
             
         for key in type(self).parameters_signature.keys():
-            self.__input_meta[key] = InputMetaData(parameter_signature=type(self).parameters_signature[key])
+            self.__input_meta[key] = ParameterMetaData(parameter_signature=type(self).parameters_signature[key])
         
 
             
             
-    def get_input_meta(self) -> dict[str, InputMetaData]:
+    def get_input_meta(self) -> dict[str, ParameterMetaData]:
         return self.__input_meta
         
     # VALIDITY VERIFICATION ---------------------------------------------

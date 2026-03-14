@@ -222,7 +222,7 @@ def fuse_input_signatures(first_input_signature : ParameterSignature, second_inp
 
 
 
-class InputMetaData():
+class ParameterMetaData():
     
     '''
     Represents the metadata of an input of a component
@@ -240,7 +240,7 @@ class InputMetaData():
     
     def __init__(self, parameter_signature : ParameterSignature):
         
-        self.origin = InputMetaData.InputOrigin.DEFAULT
+        self.origin = ParameterMetaData.InputOrigin.DEFAULT
         self.parameter_signature : ParameterSignature = parameter_signature
 
         self.ignore_at_serialization = parameter_signature.ignore_at_serialization
@@ -248,19 +248,19 @@ class InputMetaData():
         self.value_got = False
 
     def custom_value_passed(self):
-        self.origin = InputMetaData.InputOrigin.PASSED
+        self.origin = ParameterMetaData.InputOrigin.PASSED
         
     def custom_value_removed(self):
-        self.origin = InputMetaData.InputOrigin.DEFAULT
+        self.origin = ParameterMetaData.InputOrigin.DEFAULT
         
     def default_value_was_set(self):
-        self.origin = InputMetaData.InputOrigin.DEFAULT
+        self.origin = ParameterMetaData.InputOrigin.DEFAULT
         
     def generator_value_was_set(self):
-        self.origin = InputMetaData.InputOrigin.DEFAULT
+        self.origin = ParameterMetaData.InputOrigin.DEFAULT
         
     def was_custom_value_passed(self):
-        return self.origin == InputMetaData.InputOrigin.PASSED
+        return self.origin == ParameterMetaData.InputOrigin.PASSED
     
 
     def value_was_got(self):

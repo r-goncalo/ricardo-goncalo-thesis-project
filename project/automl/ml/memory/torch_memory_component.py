@@ -6,7 +6,6 @@ from automl.component import  requires_input_proccess
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.shapes_util import torch_shape_from_space
-from automl.loggers.global_logger import globalWriteLine
 import torch
 from automl.ml.memory.memory_components import MemoryComponent
 
