@@ -49,6 +49,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         self.trainings_per_configuration = self.get_input_value("trainings_per_configuration") # training processes per configuration, the result is the average
 
+        self._init_component_of_trial_selection_strategy()
 
         self.only_report_with_enough_runs = self.get_input_value("only_report_with_enough_runs")
 
