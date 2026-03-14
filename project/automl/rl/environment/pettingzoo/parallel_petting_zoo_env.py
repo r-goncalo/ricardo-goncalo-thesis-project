@@ -7,7 +7,7 @@ import torch
 
 from pettingzoo import ParallelEnv
 
-
+import numpy as np
 
 class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededComponent):
 
@@ -25,7 +25,6 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         self.device = self.get_input_value("device")
 
         self._setup_environment()
-
 
     def _setup_environment(self):
         env_input = self.get_input_value("environment")
@@ -117,7 +116,30 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         self._last_obs = obs  # store so .observe(agent) can work
         self.reset_info = info
         return obs
+    
+    def _process_actions(self, actions: dict):
+        """
+        Clips actions to the environment bounds when available.
+        Returns a new dict.
+        """
+        processed = {}
 
+        for agent, action in actions.items():
+            # torch -> numpy
+            if isinstance(action, torch.Tensor):
+                action = action.detach().cpu().numpy()
+
+            action_space = self.env.action_space(agent)
+
+            # Prefer per-agent action space bounds
+            if hasattr(action_space, "low") and hasattr(action_space, "high"):
+                low = action_space.low
+                high = action_space.high
+                action = np.clip(action, low, high)
+
+            processed[agent] = action
+
+        return processed
 
     def step(self, actions):
         """
@@ -126,15 +148,9 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         Returns:
             next_obs_dict, rewards, terminations, truncations, infos
         """
-        actions_to_pass =  {}
+        actions = self._process_actions(actions)
 
-        for key, action in actions.items():
-            if isinstance(action, torch.Tensor):
-                action = action.cpu().numpy()
-
-            actions_to_pass[key] = action
-
-        next_obs, rewards, terminations, truncations, infos = self.env.step(actions_to_pass)
+        next_obs, rewards, terminations, truncations, infos = self.env.step(actions)
 
         self._last_obs = next_obs
         return next_obs, rewards, terminations, truncations, infos
