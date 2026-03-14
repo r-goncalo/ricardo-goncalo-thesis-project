@@ -42,18 +42,12 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     def _proccess_input_internal(self): # this is the best method to have initialization done right after
                 
         super()._proccess_input_internal()
+
+        self.lg.writeLine(f"Starting processing input related to multiple components per trial in disk...")
                 
         self.trial_loader_groups : dict[str, RunnableComponentGroup] = {} # the groups for each trial, each group has the same hyperparameter and different seeds
 
         self.trainings_per_configuration = self.get_input_value("trainings_per_configuration") # training processes per configuration, the result is the average
-
-        self.use_best_component_strategy_with_index = self.get_input_value("use_best_component_strategy_with_index")
-
-        if self.use_best_component_strategy_with_index > 0:
-            self.lg.writeLine(f"The strategy on using the multiple components will be to take the best of the {self.use_best_component_strategy_with_index}nth step and only continue with that")
-
-        else:
-            self.lg.writeLine(f"The strategy on using multiple components will be to train in parallel all the steps")
 
 
         self.only_report_with_enough_runs = self.get_input_value("only_report_with_enough_runs")
@@ -65,16 +59,25 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
             self.lg.writeLine(f"Will reports results as they appear, not only when we have enough runs")
 
 
+        self.lg.writeLine(f"Finished processing input related to multiple components per trial execution\n")
 
 
-        self.lg.writeLine(f"Finished processing input related to multiple components per trial execution")
+    def _init_component_of_trial_selection_strategy(self):
+
+        self.use_best_component_strategy_with_index = self.get_input_value("use_best_component_strategy_with_index")
+
+        if self.use_best_component_strategy_with_index >= 0:
+            self.lg.writeLine(f"The strategy on using the multiple components will be to take the best of the {self.use_best_component_strategy_with_index}nth step and only continue with that")
+
+        else:
+            self.lg.writeLine(f"The strategy on using multiple components will be to train in parallel all the steps")
 
 
+    def _should_report_best_component(self):
+        return self.use_best_component_strategy_with_index >= 0
 
 
-    # THREADS SETUP ---------------------------------------------------
-
-    def _setup_hp_results_logger(self, parameter_names):
+    def _setup_hp_results_logger(self, parameter_names): # overwrites so we also store component index when reporting results
         self.add_to_columns_of_results_logger(["experiment", "component_index", "step", *parameter_names, "result"])
 
 
