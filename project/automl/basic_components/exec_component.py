@@ -2,7 +2,7 @@ from automl.loggers.component_with_results import save_all_dataframes_of_compone
 from automl.basic_components.state_management import save_state
 from automl.utils.smart_enum import SmartEnum
 from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
-from ..component import InputSignature, Component, requires_input_proccess
+from ..component import ParameterSignature, Component, requires_input_proccess
 
 
 from typing import final
@@ -27,10 +27,10 @@ class ExecComponent(Component):
     
     parameters_signature = {
         
-            "times_to_run" : InputSignature(mandatory=False, description="The number of times to run the component"),
-            "save_state_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True),
-            "save_dataframes_on_run_end" : InputSignature(default_value=True, ignore_at_serialization=True),
-            "save_values_in_execution" : InputSignature(default_value=True)
+            "times_to_run" : ParameterSignature(mandatory=False, description="The number of times to run the component"),
+            "save_state_on_run_end" : ParameterSignature(default_value=True, ignore_at_serialization=True),
+            "save_dataframes_on_run_end" : ParameterSignature(default_value=True, ignore_at_serialization=True),
+            "save_values_in_execution" : ParameterSignature(default_value=True)
     
     }
 

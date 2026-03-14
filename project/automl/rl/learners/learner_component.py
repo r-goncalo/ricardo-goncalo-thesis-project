@@ -1,7 +1,7 @@
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
 
-from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
 from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
 from automl.rl.agent.agent_components import AgentSchema
@@ -10,14 +10,14 @@ import torch
 class LearnerSchema(Component):
         
     parameters_signature = {
-        "agent" : InputSignature(),
-        "optimizations_per_learn" : InputSignature(default_value=1,custom_dict={
+        "agent" : ParameterSignature(),
+        "optimizations_per_learn" : ParameterSignature(default_value=1,custom_dict={
                                     "hyperparameter_suggestion" : ("int", {"low" : 1, "high" : 32})
                                 }),
 
-        "learning_acessories" : ComponentListInputSignature(mandatory=False),
+        "learning_acessories" : ComponentListParameterSignature(mandatory=False),
 
-        "agent_trainer" : ComponentInputSignature(mandatory=False),
+        "agent_trainer" : ComponentParameterSignature(mandatory=False),
 
 
     }

@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 from automl.loggers.logger_component import LoggerSchema
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
@@ -21,9 +21,9 @@ class ResultLogger(LoggerSchema):
     # TODO: empty parameters_signature should be able to be removed
     # TODO: verify order at which keys are verified
     parameters_signature = {
-            "results_filename" : InputSignature(default_value=RESULTS_FILENAME, description="The filename of the results file, in this case a csv file"),
-            "results_columns" : InputSignature(possible_types=[list], description="The columns (metrics) of the results", mandatory=False),
-            "save_results_on_log" : InputSignature(default_value=True, description="If the results should be save on the disk after each log")
+            "results_filename" : ParameterSignature(default_value=RESULTS_FILENAME, description="The filename of the results file, in this case a csv file"),
+            "results_columns" : ParameterSignature(possible_types=[list], description="The columns (metrics) of the results", mandatory=False),
+            "save_results_on_log" : ParameterSignature(default_value=True, description="If the results should be save on the disk after each log")
         } 
     
 

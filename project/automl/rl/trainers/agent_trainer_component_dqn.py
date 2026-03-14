@@ -1,5 +1,5 @@
 from automl.component import requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
@@ -16,7 +16,7 @@ class AgentTrainerDQN(AgentTrainer):
     
     parameters_signature = {
         
-                        "exploration_strategy" : ComponentInputSignature(mandatory=False
+                        "exploration_strategy" : ComponentParameterSignature(mandatory=False
                                                         ),
                        
                        }        

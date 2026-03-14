@@ -1,7 +1,7 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.advanced_input_utils import get_value_of_type_or_component
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.memory.memory_utils import interpret_unit_values
@@ -28,32 +28,32 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
     parameters_signature = {
                                
-                        "device" : InputSignature(ignore_at_serialization=True),
+                        "device" : ParameterSignature(ignore_at_serialization=True),
                         
-                        "critic_model" : ComponentInputSignature(
+                        "critic_model" : ComponentParameterSignature(
                             default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64, "output_shape" : 1})    
                         ),
 
-                        "critic_model_input" : InputSignature(mandatory=False, ignore_at_serialization=True),
+                        "critic_model_input" : ParameterSignature(mandatory=False, ignore_at_serialization=True),
 
-                        "optimizer" : ComponentInputSignature(
+                        "optimizer" : ComponentParameterSignature(
                             default_component_definition=(
                                 AdamOptimizer,
                                 {}
                             )
                             ),
-                        "critic_optimizer" : ComponentInputSignature(mandatory=False),
+                        "critic_optimizer" : ComponentParameterSignature(mandatory=False),
                         
-                        "clip_epsilon" : InputSignature(default_value=0.2, description="The clip range",
+                        "clip_epsilon" : ParameterSignature(default_value=0.2, description="The clip range",
                                                         custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.1, "high": 0.3 }]}),
                         
-                        "entropy_coef" : InputSignature(default_value=0.01, description="How much weight entropy has", 
+                        "entropy_coef" : ParameterSignature(default_value=0.01, description="How much weight entropy has", 
                                                         custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.0, "high": 0.3 }]}),
                         
-                        "value_loss_coef" : InputSignature(default_value=0.5, description="The weight given to the critic value loss",
+                        "value_loss_coef" : ParameterSignature(default_value=0.5, description="The weight given to the critic value loss",
                                                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.3, "high": 0.7 }]}),
                         
-                        "lambda_gae" : InputSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
+                        "lambda_gae" : ParameterSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
                                                      custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
 
                         }    
@@ -100,7 +100,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
         self.critic.pass_input({"output_shape" : 1})
 
-        self.critic.proccess_input_if_not_proccesd()
+        self.critic.proccess_input_if_not_processed()
 
 
     def _split_actor_critic_params(self):

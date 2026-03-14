@@ -1,8 +1,8 @@
 import math
 from typing import Dict
 from automl.basic_components.EventfulComponent import EventfulComponent
-from automl.component import InputSignature, requires_input_proccess
-from automl.core.advanced_input_management import ComponentDictInputSignature
+from automl.component import ParameterSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentDictParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
@@ -19,25 +19,25 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
     
     parameters_signature = {
         
-                        "device" : InputSignature(ignore_at_serialization=True, get_from_parent=True),
+                        "device" : ParameterSignature(ignore_at_serialization=True, get_from_parent=True),
                         
-                       "num_episodes" : InputSignature(default_value=-1, description="Number of episodes to do in this training session"),
-                       "limit_total_steps" : InputSignature(default_value=-1, description="Number of total steps to do in this training session"), # Note how this changes with multiple agents
+                       "num_episodes" : ParameterSignature(default_value=-1, description="Number of episodes to do in this training session"),
+                       "limit_total_steps" : ParameterSignature(default_value=-1, description="Number of total steps to do in this training session"), # Note how this changes with multiple agents
                        
-                       "fraction_training_to_do" : InputSignature(mandatory=False),
+                       "fraction_training_to_do" : ParameterSignature(mandatory=False),
 
-                       "environment" : InputSignature(),
+                       "environment" : ParameterSignature(),
                        
-                       "agents" : ComponentDictInputSignature(),
-                       "agents_trainers_input" : InputSignature(default_value={}, ignore_at_serialization=True),
-                       "default_trainer_class" : InputSignature(default_value=AgentTrainer),
+                       "agents" : ComponentDictParameterSignature(),
+                       "agents_trainers_input" : ParameterSignature(default_value={}, ignore_at_serialization=True),
+                       "default_trainer_class" : ParameterSignature(default_value=AgentTrainer),
                        
-                       "limit_steps" : InputSignature(
+                       "limit_steps" : ParameterSignature(
                            default_value=-1,
                            description="Limits the steps in a single training session"
                           ),
 
-                       "predict_optimizations_to_do" : InputSignature(default_value=False),
+                       "predict_optimizations_to_do" : ParameterSignature(default_value=False),
                        
                        }
     

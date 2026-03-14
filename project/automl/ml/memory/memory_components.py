@@ -5,13 +5,13 @@ import random
 
 
 from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
 class MemoryComponent(StatefulComponent):
     
     parameters_signature = {
-                        "capacity" : InputSignature(default_value=1000),
-                        "transition_data" : InputSignature(description="A list of data there is for the transitions, of tuples (name, shape, (type)?)")
+                        "capacity" : ParameterSignature(default_value=1000),
+                        "transition_data" : ParameterSignature(description="A list of data there is for the transitions, of tuples (name, shape, (type)?)")
                     }
     
 

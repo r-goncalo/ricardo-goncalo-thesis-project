@@ -1,7 +1,7 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
 
 
@@ -21,7 +21,7 @@ class AgentTrainerTrainingEnder(AcessoryComponent, ComponentWithLogging):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-                        "check_interval" : InputSignature(default_value=10)
+                        "check_interval" : ParameterSignature(default_value=10)
                         }    
     
     
@@ -73,11 +73,11 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
 
     parameters_signature = {
                                                        
-                        "standard_deviation_treshold" : InputSignature(default_value=10),
+                        "standard_deviation_treshold" : ParameterSignature(default_value=10),
                         
-                        "value_key" : InputSignature(default_value="episode_reward"),
+                        "value_key" : ParameterSignature(default_value="episode_reward"),
 
-                        "n_values_to_use" : InputSignature(default_value=100),
+                        "n_values_to_use" : ParameterSignature(default_value=100),
 
                         }    
     
@@ -144,11 +144,11 @@ class AgentTrainerSlopeConvergenceDetector(AgentTrainerTrainingEnder):
 
     parameters_signature = {
                         
-        "slope_threshold": InputSignature(default_value=0.1),
+        "slope_threshold": ParameterSignature(default_value=0.1),
         
-        "value_key": InputSignature(default_value="episode_reward"),
+        "value_key": ParameterSignature(default_value="episode_reward"),
 
-        "n_values_to_use": InputSignature(default_value=100),
+        "n_values_to_use": ParameterSignature(default_value=100),
 
     }
 

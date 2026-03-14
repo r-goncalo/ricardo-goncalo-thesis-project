@@ -3,7 +3,7 @@
 from collections import namedtuple
 from typing import Iterable
 from automl.component import Component, requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.maths import nearest_highest_multiple, nearest_multiple
 from automl.utils.shapes_util import discrete_output_layer_size_of_space
@@ -16,7 +16,7 @@ import torch
 from pathlib import Path
 
 from automl.component import Component, requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.shapes_util import discrete_output_layer_size_of_space
 from automl.ml.memory.memory_components import MemoryComponent
@@ -25,10 +25,10 @@ from automl.ml.memory.memory_components import MemoryComponent
 class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     parameters_signature = {
-        "capacity": InputSignature(default_value=1_000),
-        "device": InputSignature(default_value="cuda"),
-        "max_in_memory": InputSignature(default_value=80),
-        "storage_dir": InputSignature(default_value="./memory_storage"),
+        "capacity": ParameterSignature(default_value=1_000),
+        "device": ParameterSignature(default_value="cuda"),
+        "max_in_memory": ParameterSignature(default_value=80),
+        "storage_dir": ParameterSignature(default_value="./memory_storage"),
     }
     
 

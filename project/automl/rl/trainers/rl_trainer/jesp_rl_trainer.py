@@ -3,7 +3,7 @@ from automl.rl.policy.policy import Policy
 from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 from automl.rl.trainers.rl_trainer.parallel_rl_trainer import RLTrainerComponentParallel
 
 
@@ -21,11 +21,11 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
     TRAIN_LOG = "train.txt"
 
     parameters_signature = {
-        "policy_change_tolerance": InputSignature(
+        "policy_change_tolerance": ParameterSignature(
             default_value=0.0,
             description="Tolerance used when comparing policy parameters."
         ),
-        "max_steps_per_jesp_maximization" : InputSignature(
+        "max_steps_per_jesp_maximization" : ParameterSignature(
             default_value=-1
         )
     }

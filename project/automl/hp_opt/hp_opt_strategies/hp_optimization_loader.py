@@ -2,7 +2,7 @@ import os
 from automl.basic_components.component_group import RunnableComponentGroup, setup_component_group
 
 from automl.basic_components.exec_component import State
-from automl.component import Component, InputSignature
+from automl.component import Component, ParameterSignature
 from automl.core.exceptions import common_exception_handling
 from automl.hp_opt.hp_optimization_pipeline import Component_to_opt_type, HyperparameterOptimizationPipeline
 
@@ -28,9 +28,9 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     '''
 
     parameters_signature = {
-                         "trainings_per_configuration" : InputSignature(default_value=3),
-                         "use_best_component_strategy_with_index" : InputSignature(default_value=1),
-                         "only_report_with_enough_runs" : InputSignature(default_value=True)
+                         "trainings_per_configuration" : ParameterSignature(default_value=3),
+                         "use_best_component_strategy_with_index" : ParameterSignature(default_value=1),
+                         "only_report_with_enough_runs" : ParameterSignature(default_value=True)
                        }
             
 

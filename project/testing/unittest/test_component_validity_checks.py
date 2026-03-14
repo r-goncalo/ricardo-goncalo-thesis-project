@@ -1,4 +1,4 @@
-from automl.component import Component, InputSignature
+from automl.component import Component, ParameterSignature
 import unittest
 
 
@@ -11,7 +11,7 @@ class TestComponentLambdaVerificator(unittest.TestCase):
     
         N_MUST_BE_GREATER_THAN = 5
     
-        parameters_signature = {"number" : InputSignature(validity_verificator=lambda n : n > TestComponentLambdaVerificator._ComponentLambdaVerificator.N_MUST_BE_GREATER_THAN)}        
+        parameters_signature = {"number" : ParameterSignature(validity_verificator=lambda n : n > TestComponentLambdaVerificator._ComponentLambdaVerificator.N_MUST_BE_GREATER_THAN)}        
         
     def test_wrong_input(self):
                 

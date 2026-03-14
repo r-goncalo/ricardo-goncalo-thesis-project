@@ -1,6 +1,6 @@
 from datetime import datetime
 import pickle
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_proccess
 
 from automl.utils.files_utils import  saveDataframe
 
@@ -51,28 +51,28 @@ class LoggerSchema(ArtifactComponent):
     
     parameters_signature = {
 
-                       "necessary_logger_level" : InputSignature(
+                       "necessary_logger_level" : ParameterSignature(
                             generator= lambda _ : DEFAULT_LOGGER_LEVEL, # this is so we can swith the default logger level
                             ignore_at_serialization=True),
 
-                       "default_print" : InputSignature(default_value=False, ignore_at_serialization=True),
+                       "default_print" : ParameterSignature(default_value=False, ignore_at_serialization=True),
 
-                       "write_to_file_when_text_lines_over" : InputSignature(
+                       "write_to_file_when_text_lines_over" : ParameterSignature(
                            default_value=DEFAULT_WRITE_TO_FILE_WHEN,
                            mandatory=False),
 
-                       "artifact_relative_directory" : InputSignature(
+                       "artifact_relative_directory" : ParameterSignature(
                                 priority=1,
                                 default_value="log"
                                 ),
                                               
-                       "user_timestamp_in_logs" : InputSignature(default_value=True, ignore_at_serialization=True),
+                       "user_timestamp_in_logs" : ParameterSignature(default_value=True, ignore_at_serialization=True),
                        
-                       "log_text_file" : InputSignature(default_value='log.txt', ignore_at_serialization=True, description="The name of the log text file, if it is not specified, it will be created as 'log.txt' in the log directory"),
+                       "log_text_file" : ParameterSignature(default_value='log.txt', ignore_at_serialization=True, description="The name of the log text file, if it is not specified, it will be created as 'log.txt' in the log directory"),
                     
-                        "object_with_name" : InputSignature(mandatory=False, ignore_at_serialization=True, description="The object that will be used to create the profile for the logger, if it is not specified, the logger will not have a profile"),
+                        "object_with_name" : ParameterSignature(mandatory=False, ignore_at_serialization=True, description="The object that will be used to create the profile for the logger, if it is not specified, the logger will not have a profile"),
 
-                        "create_new_directory" : InputSignature(default_value=False), # this is to overwrite behavior defined in artifact component
+                        "create_new_directory" : ParameterSignature(default_value=False), # this is to overwrite behavior defined in artifact component
                     }
         
 
@@ -372,11 +372,11 @@ class ComponentWithLogging(ArtifactComponent):
     
     parameters_signature = {
                                                                                 
-                       "logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
+                       "logger_object" : ParameterSignature(ignore_at_serialization=True, priority=10, 
                                                         generator = generate_logger_for_component , 
                                                         on_pass=on_log_pass),
 
-                        "logger_input" : InputSignature(ignore_at_serialization=True, default_value={}),
+                        "logger_input" : ParameterSignature(ignore_at_serialization=True, default_value={}),
 
                        }
 

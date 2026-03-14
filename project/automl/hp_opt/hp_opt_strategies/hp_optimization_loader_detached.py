@@ -3,7 +3,7 @@ import threading
 import time
 from automl.basic_components.component_group import RunnableComponentGroup
 
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 from automl.hp_opt.hp_opt_strategies.hp_optimization_loader import COMPONENT_INDEX_TO_USE_OPTUNA_KEY, CONFIGURATION_PATH_OPTUNA_KEY, HyperparameterOptimizationLoader
 from automl.hp_opt.hp_opt_strategies.workers.hp_worker import HyperparameterOptimizationWorkerIndexed
 from automl.hp_opt.hp_optimization_pipeline import Component_to_opt_type
@@ -29,8 +29,8 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     '''
 
     parameters_signature = {
-                         "trainings_at_a_time" : InputSignature(default_value=6),
-                         "stop_gracefully_wait_time" : InputSignature(default_value=3600),
+                         "trainings_at_a_time" : ParameterSignature(default_value=6),
+                         "stop_gracefully_wait_time" : ParameterSignature(default_value=3600),
                        }
             
 

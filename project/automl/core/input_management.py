@@ -8,7 +8,7 @@ DEFAULT_IGNORE_AT_SERIALIZATION = False
 DEFAULT_PRIORITY = 50
 DEFAULT_MANDATORY = True
 
-class InputSignature():
+class ParameterSignature():
     
     
     def __init__(self,
@@ -41,8 +41,8 @@ class InputSignature():
 
         self.custom_dict = custom_dict
 
-        self.child_parameter_signatures : list[InputSignature] = [] # a list with the input signatures that were fused with this one
-        self.parent_parameter_signatures : list[InputSignature] = []
+        self.child_parameter_signatures : list[ParameterSignature] = [] # a list with the input signatures that were fused with this one
+        self.parent_parameter_signatures : list[ParameterSignature] = []
 
     
     def setup_default_values(self):
@@ -94,11 +94,11 @@ class InputSignature():
     def fuse_with_new(self, other_input_signature):
 
         '''
-        Creates a new InputSignature by fusing this one with another
+        Creates a new ParameterSignature by fusing this one with another
         The other is treated as new, having some of its values as priority
         '''
 
-        other_input_signature : InputSignature = other_input_signature
+        other_input_signature : ParameterSignature = other_input_signature
 
         new_default_value = self.default_value if other_input_signature.default_value == None else other_input_signature.default_value
 
@@ -205,7 +205,7 @@ class InputSignature():
     
 
 # TODO: there should be a priority parameter to define which came first
-def fuse_input_signatures(first_input_signature : InputSignature, second_input_signature : InputSignature):
+def fuse_input_signatures(first_input_signature : ParameterSignature, second_input_signature : ParameterSignature):
 
     if issubclass(type(first_input_signature), type(second_input_signature)):
         to_return = first_input_signature.clone()
@@ -238,10 +238,10 @@ class InputMetaData():
         PASSED = 2   
         
     
-    def __init__(self, parameter_signature : InputSignature):
+    def __init__(self, parameter_signature : ParameterSignature):
         
         self.origin = InputMetaData.InputOrigin.DEFAULT
-        self.parameter_signature : InputSignature = parameter_signature
+        self.parameter_signature : ParameterSignature = parameter_signature
 
         self.ignore_at_serialization = parameter_signature.ignore_at_serialization
     

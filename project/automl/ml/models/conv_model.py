@@ -8,7 +8,7 @@ from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
 
-from ...component import InputSignature
+from ...component import ParameterSignature
 import torch
 import random
 import math
@@ -20,7 +20,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from automl.ml.models.torch_model_components import TorchModelComponent
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 from automl.utils.shapes_util import  discrete_output_layer_size_of_space
 
 

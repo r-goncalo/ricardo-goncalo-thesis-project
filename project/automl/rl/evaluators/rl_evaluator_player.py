@@ -4,14 +4,14 @@ import os
 from automl.utils.random_utils import generate_seed
 import pandas
 from automl.component import Component
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.loggers.logger_component import LoggerSchema, use_logger
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.result_logger import aggregate_results_logger
 
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
@@ -30,13 +30,13 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
     '''
     
     parameters_signature = {
-        "base_evaluator" : ComponentInputSignature(default_component_definition=(LastValuesAvgStdEvaluator, {})),
-        "rl_player_definition" : InputSignature(default_value=(RLPlayer, {})),
-        "number_of_episodes" : InputSignature(default_value=5),
-        "number_of_evaluations" : InputSignature(default_value=1),
-        "environment" : ComponentInputSignature(mandatory=False),
-        "save_after_evaluation" : InputSignature(ignore_at_serialization=True, default_value=False),
-        "setup_seeds_of_player" : InputSignature(default_value=True)
+        "base_evaluator" : ComponentParameterSignature(default_component_definition=(LastValuesAvgStdEvaluator, {})),
+        "rl_player_definition" : ParameterSignature(default_value=(RLPlayer, {})),
+        "number_of_episodes" : ParameterSignature(default_value=5),
+        "number_of_evaluations" : ParameterSignature(default_value=1),
+        "environment" : ComponentParameterSignature(mandatory=False),
+        "save_after_evaluation" : ParameterSignature(ignore_at_serialization=True, default_value=False),
+        "setup_seeds_of_player" : ParameterSignature(default_value=True)
     }
     
     exposed_values = {

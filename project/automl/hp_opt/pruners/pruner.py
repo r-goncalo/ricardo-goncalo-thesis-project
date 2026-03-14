@@ -2,7 +2,7 @@
 
 from automl.basic_components.seeded_component import SeededComponent
 from automl.component import requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 
 import optuna
@@ -19,8 +19,8 @@ class OptunaPrunerComponent(ComponentWithLogging):
 class OptunaPrunerWrapper(OptunaPrunerComponent, SeededComponent):
 
     parameters_signature = {
-        "optuna_pruner": InputSignature(default_value="Median"),
-        "pruner_input": InputSignature(mandatory=False)
+        "optuna_pruner": ParameterSignature(default_value="Median"),
+        "pruner_input": ParameterSignature(mandatory=False)
     }
 
     def proccess_input(self):

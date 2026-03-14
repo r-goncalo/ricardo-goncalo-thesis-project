@@ -1,7 +1,7 @@
 
 # DEFAULT COMPONENTS -------------------------------------
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 
 from automl.rl.policy.policy import Policy
 
@@ -11,7 +11,7 @@ from automl.loggers.logger_component import ComponentWithLogging
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from automl.component import InputSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_proccess
 from automl.fundamentals.translator.translator import Translator
 
 from automl.utils.shapes_util import torch_zeros_for_space
@@ -32,17 +32,17 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = { 
-                        "name" : InputSignature(),
-                       "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
+                        "name" : ParameterSignature(),
+                       "device" : ParameterSignature(get_from_parent=True, ignore_at_serialization=True),
                                    
-                       "state_shape" : InputSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized', ignore_at_serialization=True),
-                       "action_shape" : InputSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already', ignore_at_serialization=True),
+                       "state_shape" : ParameterSignature(default_value='', description='The shape received by the model, only used when the model was not passed already initialized', ignore_at_serialization=True),
+                       "action_shape" : ParameterSignature(default_value='', description='Shape of the output of the model, only used when the model was not passed already', ignore_at_serialization=True),
                                               
-                       "policy" : ComponentInputSignature(
+                       "policy" : ComponentParameterSignature(
                             priority=100, description="The policy to use for the agent, if not defined it will be created using the policy_class and policy_input"
                        ),
                     
-                    "state_translator" : ComponentInputSignature(mandatory=False)
+                    "state_translator" : ComponentParameterSignature(mandatory=False)
 
                        
                     }
@@ -77,7 +77,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
             self.state_translator.pass_input({"original_shape" : self.state_shape})
 
-            self.state_translator.proccess_input_if_not_proccesd()
+            self.state_translator.proccess_input_if_not_processed()
 
             self.lg.writeLine(f"Agent has state translator: {self.state_translator}")
             self.proccess_env_state = self.state_translator.translate_state

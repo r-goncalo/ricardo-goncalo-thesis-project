@@ -1,7 +1,7 @@
 
-from automl.basic_components.exec_component import InputSignature
+from automl.basic_components.exec_component import ParameterSignature
 from automl.component import Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.memory_samplers.memory_sampler import MemorySampler
 from automl.ml.memory.memory_utils import interpret_values
@@ -18,8 +18,8 @@ class PPOAdvantagesCalcSampler(MemorySampler):
     '''
 
     parameters_signature = {
-        "learner" : ComponentInputSignature(),
-        "discount_factor" : InputSignature()
+        "learner" : ComponentParameterSignature(),
+        "discount_factor" : ParameterSignature()
     }
 
     def _proccess_input_internal(self):

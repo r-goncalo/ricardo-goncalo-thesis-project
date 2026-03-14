@@ -1,7 +1,7 @@
 
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 
 import random
 import math
@@ -13,13 +13,13 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
 
     # INITIALIZATION --------------------------------------------------------------------------
 
-    parameters_signature = { "epsilon_end" : InputSignature(default_value=0.025,
+    parameters_signature = { "epsilon_end" : ParameterSignature(default_value=0.025,
                                 custom_dict={
                                     "hyperparameter_suggestion" : ("float", {"low" : 0.001, "high" : 0.15})
                                 }),
-                       "epsilon_start" : InputSignature(default_value=1.0),
-                       "epsilon_decay" : InputSignature(default_value=0.01),
-                       "training_context" : InputSignature(
+                       "epsilon_start" : ParameterSignature(default_value=1.0),
+                       "epsilon_decay" : ParameterSignature(default_value=0.01),
+                       "training_context" : ParameterSignature(
                            validity_verificator= lambda ctx : all(key in ctx.values.keys() for key in ["total_steps", "episodes_done"]))} #training context is a dictionary where we'll be able to get outside data   
     
     exposed_values = {"n_random" : 0, "n_greedy" : 0}

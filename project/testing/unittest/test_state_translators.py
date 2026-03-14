@@ -4,7 +4,7 @@ from automl.fundamentals.translator.translator import TranslatorSequence
 import numpy as np
 import torch
 from automl.basic_components import loop_components
-from automl.component import Component, InputSignature
+from automl.component import Component, ParameterSignature
 import unittest
               
     

@@ -3,7 +3,7 @@
 
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 
 import random
 import math
@@ -15,8 +15,8 @@ class UpperConfidenceBoundStrategy(ExplorationStrategySchema):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-                       "n_action" : InputSignature(),
-                       "exploration_param" : InputSignature(default_value=0.01)
+                       "n_action" : ParameterSignature(),
+                       "exploration_param" : ParameterSignature(default_value=0.01)
                        }    
     
     

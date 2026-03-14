@@ -5,7 +5,7 @@ from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
 
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 
 from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
 
@@ -64,9 +64,9 @@ class FullyConnectedModelSchema(TorchModelComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "hidden_layers" : InputSignature(mandatory=False, description="Number of hidden layers"),
-        "hidden_size": InputSignature(mandatory=False, description="Size of hidden layers"),
-        "layers" : InputSignature(mandatory=False, 
+        "hidden_layers" : ParameterSignature(mandatory=False, description="Number of hidden layers"),
+        "hidden_size": ParameterSignature(mandatory=False, description="Size of hidden layers"),
+        "layers" : ParameterSignature(mandatory=False, 
                                   custom_dict={"hyperparameter_suggestion" : 
                                                VariableListHyperparameterSuggestion(
                                                    name="layers",
@@ -78,7 +78,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
                                                    ))
                                             }
                                     ),
-        "activation_function" : InputSignature(default_value="relu")
+        "activation_function" : ParameterSignature(default_value="relu")
     }    
     
     def _proccess_input_internal(self):

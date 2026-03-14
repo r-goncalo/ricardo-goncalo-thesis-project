@@ -11,7 +11,7 @@ import torch.nn as nn
 from automl.ml.models.model_components import ModelComponent
 
 from automl.ml.models.torch_model_components import TorchModelComponent
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 from automl.utils.shapes_util import  discrete_output_layer_size_of_space
 
 
@@ -90,7 +90,7 @@ class DynamicConvModelSchema(TorchModelComponent):
 
     parameters_signature = {
 
-        "cnn_layers": InputSignature(
+        "cnn_layers": ParameterSignature(
             custom_dict={"hyperparameter_suggestion": 
                 VariableListHyperparameterSuggestion(
                     name='cnn_layers',

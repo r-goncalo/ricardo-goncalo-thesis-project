@@ -1,5 +1,5 @@
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
 from automl.fundamentals.translator.translator import Translator
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
@@ -12,9 +12,9 @@ import numpy as np
 class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededComponent):
 
     parameters_signature = { 
-        "environment": InputSignature(default_value="cooperative_pong"),
-        "render_mode": InputSignature(default_value="rgb_array", validity_verificator=lambda x: x in ["rgb_array", "human"]),
-        "device": InputSignature(ignore_at_serialization=True)
+        "environment": ParameterSignature(default_value="cooperative_pong"),
+        "render_mode": ParameterSignature(default_value="rgb_array", validity_verificator=lambda x: x in ["rgb_array", "human"]),
+        "device": ParameterSignature(ignore_at_serialization=True)
     }
 
 

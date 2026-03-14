@@ -1,6 +1,6 @@
 
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.hp_opt.samplers.sampler import OptunaSamplerComponent, OptunaSamplerWrapper
 
 import optuna
@@ -13,7 +13,7 @@ from optuna.trial import FrozenTrial
 class AlternatingRandomSampler(OptunaSamplerComponent):
 
     parameters_signature = {
-        "other_sampler" : ComponentInputSignature(default_component_definition=(OptunaSamplerWrapper, {}))
+        "other_sampler" : ComponentParameterSignature(default_component_definition=(OptunaSamplerWrapper, {}))
     }
 
     def proccess_input(self):

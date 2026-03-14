@@ -2,17 +2,17 @@
 
 import types
 
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.basic_components.exec_component import ExecComponent
 
 class WhileFunDoFunComponent(ExecComponent):
 
     #The inputs this component receives
     parameters_signature = { 
-                       "execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)), #have no default values (None) and are functions
-                       "condition" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
-                       "pre_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
-                       "post_execution" : InputSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType))}
+                       "execution" : ParameterSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)), #have no default values (None) and are functions
+                       "condition" : ParameterSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
+                       "pre_execution" : ParameterSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType)),
+                       "post_execution" : ParameterSignature(validity_verificator= lambda x : isinstance(x, types.FunctionType))}
     
     def _algorithm(self):
                 
@@ -34,10 +34,10 @@ class DoNTimesComponent(ExecComponent):
     DEFAULT_TIMES_TO_DO = 10
         
     parameters_signature = {
-        "execution" : InputSignature(possible_types=[types.FunctionType]),
-        "pre_execution" : InputSignature(possible_types=[types.FunctionType]),
-        "post_execution" : InputSignature(possible_types=[types.FunctionType]),
-        "times_to_do" : InputSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))
+        "execution" : ParameterSignature(possible_types=[types.FunctionType]),
+        "pre_execution" : ParameterSignature(possible_types=[types.FunctionType]),
+        "post_execution" : ParameterSignature(possible_types=[types.FunctionType]),
+        "times_to_do" : ParameterSignature(default_value=DEFAULT_TIMES_TO_DO, validity_verificator=lambda x : isinstance(x, int))
         }
     
     def _algorithm(self):

@@ -2,7 +2,7 @@
 
 from automl.basic_components.seeded_component import SeededComponent
 from automl.component import requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 import optuna
 
@@ -20,8 +20,8 @@ class OptunaSamplerComponent(ComponentWithLogging):
 class OptunaSamplerWrapper(OptunaSamplerComponent, SeededComponent):
 
     parameters_signature = {
-        "optuna_sampler" : InputSignature(default_value="TreeParzen"),
-        "sampler_input" : InputSignature(mandatory=False)
+        "optuna_sampler" : ParameterSignature(default_value="TreeParzen"),
+        "sampler_input" : ParameterSignature(mandatory=False)
     }
 
     def proccess_input(self):

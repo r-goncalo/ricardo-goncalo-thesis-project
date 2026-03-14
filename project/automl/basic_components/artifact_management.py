@@ -4,7 +4,7 @@ from automl.component import Component
 
 from automl.utils.files_utils import new_path_if_exists, open_or_create_folder
 
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 
 import os
 
@@ -74,17 +74,17 @@ class ArtifactComponent(Component):
     
     parameters_signature = {
         
-                        "create_new_directory" : InputSignature(
+                        "create_new_directory" : ParameterSignature(
                             priority=1, default_value=True, ignore_at_serialization=True,
                             description="If it is supposed to create a new directory if existent"),
         
-                        "artifact_relative_directory" : InputSignature(
+                        "artifact_relative_directory" : ParameterSignature(
                                 priority=2,
                                 generator= lambda self : self.name, #the default value for the name of the artifact folder is its name
                                 on_pass=on_artifact_directory_change
                                 ),
                         
-                        "base_directory" : InputSignature(
+                        "base_directory" : ParameterSignature(
                             priority=2,
                             ignore_at_serialization=True,
                             generator=define_base_directory_with_parent,

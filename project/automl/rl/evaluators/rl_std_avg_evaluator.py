@@ -4,7 +4,7 @@ from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.result_logger import ResultLogger
 
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.global_logger import globalWriteLine
 
 class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
@@ -17,9 +17,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     '''
     
     parameters_signature = {
-        "n_results_to_use" : InputSignature(default_value=10),
-        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
-        "value_to_use" : InputSignature(default_value="episode_reward", description="The value to use for evaluation, note that a higher value is expected to be a better value")
+        "n_results_to_use" : ParameterSignature(default_value=10),
+        "std_deviation_factor" : ParameterSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
+        "value_to_use" : ParameterSignature(default_value="episode_reward", description="The value to use for evaluation, note that a higher value is expected to be a better value")
     }
     
 

@@ -1,7 +1,7 @@
 
 
 from automl.component import Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 
 class AcessoryComponent(Component):
     
@@ -12,7 +12,7 @@ class AcessoryComponent(Component):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "affected_component" : ComponentInputSignature(mandatory=False)
+        "affected_component" : ComponentParameterSignature(mandatory=False)
     }    
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined

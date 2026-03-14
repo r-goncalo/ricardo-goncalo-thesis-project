@@ -1,8 +1,8 @@
 import os
 import traceback
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import InputSignature, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.component import ParameterSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
 from automl.basic_components.state_management import StatefulComponent
@@ -21,11 +21,11 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
     
     parameters_signature = {
                                                                                        
-                       "environment" :  ComponentInputSignature(),
-                       "agents" : InputSignature(),
-                       "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
-                       "num_episodes" : InputSignature(default_value=1),
-                       "store_env_at_end" : InputSignature(default_value=False)
+                       "environment" :  ComponentParameterSignature(),
+                       "agents" : ParameterSignature(),
+                       "agents_input" : ParameterSignature(default_value={}, ignore_at_serialization=True),
+                       "num_episodes" : ParameterSignature(default_value=1),
+                       "store_env_at_end" : ParameterSignature(default_value=False)
 
                        
                        }

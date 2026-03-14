@@ -1,7 +1,7 @@
 import itertools
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 
@@ -17,8 +17,8 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "environment": InputSignature(default_value="CartPole-v1"),
-        "render_mode": InputSignature(default_value="rgb_array", validity_verificator=lambda x: x in ["rgb_array", "human"])
+        "environment": ParameterSignature(default_value="CartPole-v1"),
+        "render_mode": ParameterSignature(default_value="rgb_array", validity_verificator=lambda x: x in ["rgb_array", "human"])
     }
         
         

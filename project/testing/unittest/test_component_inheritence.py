@@ -1,26 +1,26 @@
-from automl.basic_components.artifact_management import InputSignature
+from automl.basic_components.artifact_management import ParameterSignature
 from automl.component import Component
 import unittest
 
 
 class _SimpleComponent(Component):
     
-    parameters_signature = {"number" : InputSignature()}
+    parameters_signature = {"number" : ParameterSignature()}
     
 
 class _SimpleExtendendComponent(_SimpleComponent):
     
-    parameters_signature = {"number" : InputSignature(default_value=10)}
+    parameters_signature = {"number" : ParameterSignature(default_value=10)}
     
     
 class _SimpleComponent_2(Component):
     
-    parameters_signature = {"number" : InputSignature(default_value=10)}
+    parameters_signature = {"number" : ParameterSignature(default_value=10)}
     
 
 class _SimpleExtendendComponent_2(_SimpleComponent_2):
     
-    parameters_signature = {"number" : InputSignature()}
+    parameters_signature = {"number" : ParameterSignature()}
 
 
 class TestDefaultOverlap(unittest.TestCase):

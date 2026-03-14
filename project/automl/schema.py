@@ -1,5 +1,5 @@
 import copy
-from automl.core.input_management import InputSignature, fuse_input_signatures
+from automl.core.input_management import ParameterSignature, fuse_input_signatures
 from abc import ABCMeta
 
 
@@ -73,15 +73,15 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         Updates the input signatures with super classes for this squema
         '''
 
-        self_class.fused_parameters_signature : dict[str, InputSignature]  = {**self_class.original_parameters_signature}
+        self_class.fused_parameters_signature : dict[str, ParameterSignature]  = {**self_class.original_parameters_signature}
 
-        self_fused_parameters_signature : dict[str, InputSignature] = self_class.fused_parameters_signature
+        self_fused_parameters_signature : dict[str, ParameterSignature] = self_class.fused_parameters_signature
 
         # for each of the explicitly defined super classes
         for base_class in bases:
 
             # we look into its parameters signature
-            base_class_fused_parameters_signature : dict[str, InputSignature] = base_class.fused_parameters_signature
+            base_class_fused_parameters_signature : dict[str, ParameterSignature] = base_class.fused_parameters_signature
 
             for input_key in base_class_fused_parameters_signature.keys():
 
@@ -107,8 +107,8 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
 
     def __setup_default_values_in_parameter_signatures(self_class):
 
-        self_parameters_signature : dict[str, InputSignature] = self_class.parameters_signature
-        self_fused_parameters_signature : dict[str, InputSignature] = self_class.fused_parameters_signature
+        self_parameters_signature : dict[str, ParameterSignature] = self_class.parameters_signature
+        self_fused_parameters_signature : dict[str, ParameterSignature] = self_class.fused_parameters_signature
 
         for parameter_signature_key in self_fused_parameters_signature.keys():
 
@@ -123,9 +123,9 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
         '''
 
         self_class.parameters_signature_priorities : list[int] = [] #all priorities defined
-        self_class.organized_parameters_signatures : dict[int, list[InputSignature]] = {} #InputSignatures organized by priorities
+        self_class.organized_parameters_signatures : dict[int, list[ParameterSignature]] = {} #ParameterSignatures organized by priorities
 
-        self_parameters_signature : dict[str, InputSignature] = self_class.parameters_signature
+        self_parameters_signature : dict[str, ParameterSignature] = self_class.parameters_signature
 
     
         for key, parameter_signature in self_parameters_signature.items():

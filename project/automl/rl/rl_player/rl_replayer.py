@@ -2,9 +2,9 @@ import os
 import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_proccess
 from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
-from automl.core.advanced_input_management import ComponentDictInputSignature, ComponentInputSignature, ComponentListInputSignature
+from automl.core.advanced_input_management import ComponentDictParameterSignature, ComponentParameterSignature, ComponentListParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.rl.agent.agent_components import AgentSchema
@@ -30,9 +30,9 @@ class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Stat
     
     parameters_signature = {
                                                                                        
-                       "environment" :  ComponentInputSignature(default_component_definition=(PettingZooEnvironmentWrapper, {})),
+                       "environment" :  ComponentParameterSignature(default_component_definition=(PettingZooEnvironmentWrapper, {})),
                        
-                       "memory_list" : ComponentDictInputSignature(mandatory=True)
+                       "memory_list" : ComponentDictParameterSignature(mandatory=True)
                        
                        }
     

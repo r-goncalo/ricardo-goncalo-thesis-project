@@ -2,7 +2,7 @@ from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
 import torch.nn as nn
 
-from automl.component import InputSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
     
     
@@ -31,7 +31,7 @@ def perturb_model_parameters(
     if "perturbed_percentage" in torch_model.values.keys():
         print("WARNING: model has already had its parameters perturbed")
 
-    torch_model.proccess_input_if_not_proccesd()
+    torch_model.proccess_input_if_not_processed()
 
     with torch.no_grad():
         for param in torch_model.model.parameters():
@@ -63,7 +63,7 @@ def perturb_model_parameters_gaussian(
     if not (0 < fraction <= 1.0):
         raise ValueError("Fraction must be in (0,1]")
 
-    torch_model.proccess_input_if_not_proccesd()
+    torch_model.proccess_input_if_not_processed()
 
     with torch.no_grad():
         for param in torch_model.model.parameters():
@@ -93,7 +93,7 @@ def perturb_model_parameters_partial_forgetting(
     if "perturbed_partial_forgetting" in torch_model.values.keys():
         print("WARNING: model has already had partial forgetting applied")
 
-    torch_model.proccess_input_if_not_proccesd()
+    torch_model.proccess_input_if_not_processed()
 
     with torch.no_grad():
         for param in torch_model.model.parameters():

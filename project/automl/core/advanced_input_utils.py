@@ -3,8 +3,8 @@
 
 
 from automl.component import Component
-from automl.core.input_management import InputSignature
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.input_management import ParameterSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.loggers.global_logger import globalWriteLine
 
 
@@ -22,7 +22,7 @@ def get_value_of_type_or_component(component_with_input : Component, key : str, 
         return value_in_input
 
     try:
-        component_to_return = ComponentInputSignature.proccess_value_in_input(component_with_input, key, value_in_input)
+        component_to_return = ComponentParameterSignature.proccess_value_in_input(component_with_input, key, value_in_input)
         return component_to_return
     
     except Exception as e:

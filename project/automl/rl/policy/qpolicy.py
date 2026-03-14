@@ -1,4 +1,4 @@
-from automl.component import  InputSignature, requires_input_proccess
+from automl.component import  ParameterSignature, requires_input_proccess
 
 
 import torch

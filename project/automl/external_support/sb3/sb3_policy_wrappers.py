@@ -1,6 +1,6 @@
 
 
-from automl.component import  InputSignature, requires_input_proccess
+from automl.component import  ParameterSignature, requires_input_proccess
 
 
 
@@ -11,7 +11,7 @@ from automl.rl.policy.policy import PolicyInterface
 class SB3Wrapper(PolicyInterface):
     
     parameters_signature = {
-        "sb3_model" : InputSignature(default_value="dqn-MountainCar-v0")
+        "sb3_model" : ParameterSignature(default_value="dqn-MountainCar-v0")
     }    
     
     def _proccess_input_internal(self):

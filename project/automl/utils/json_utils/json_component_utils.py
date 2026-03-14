@@ -2,7 +2,7 @@ import json
 import os
 from typing import Union
 
-from automl.component import Component, InputSignature, InputMetaData
+from automl.component import Component, ParameterSignature, InputMetaData
 
 from automl.utils.class_util import get_class_from, is_valid_str_class_definition
 
@@ -98,7 +98,7 @@ class ComponentInputEncoder(json.JSONEncoder):
             for key in input.keys():
                 
                 parameter_meta : InputMetaData = obj.get_input_meta()[key]
-                parameters_signature : InputSignature = parameter_meta.parameter_signature
+                parameters_signature : ParameterSignature = parameter_meta.parameter_signature
                 
                 # we we're set to ignore defaults and the value set is a default value
                 to_ignore_due_to_defaults =  ( not parameter_meta.was_custom_value_passed() ) and self.ignore_defaults 

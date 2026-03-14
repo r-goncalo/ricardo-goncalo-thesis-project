@@ -6,11 +6,11 @@ import shutil
 import subprocess
 import time
 from automl.basic_components.artifact_management import ArtifactComponent
-from automl.component import InputSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_proccess
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
-from automl.core.advanced_input_management import ComponentListInputSignature
+from automl.core.advanced_input_management import ComponentListParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults, DEFAULT_RESULTS_LOGGER_KEY
 from automl.loggers.global_logger import globalWriteLine
 from automl.loggers.logger_component import ComponentWithLogging
@@ -32,7 +32,7 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
     
     parameters_signature = {
         
-        "components_loaders_in_group" : ComponentListInputSignature(mandatory=False)
+        "components_loaders_in_group" : ComponentListParameterSignature(mandatory=False)
     
     }
     

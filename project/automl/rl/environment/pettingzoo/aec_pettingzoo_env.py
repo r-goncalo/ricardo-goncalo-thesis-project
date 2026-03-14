@@ -1,7 +1,7 @@
 
 
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
@@ -16,7 +16,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = { 
-                       "environment" : InputSignature(default_value="cooperative_pong"),
+                       "environment" : ParameterSignature(default_value="cooperative_pong"),
                        }    
     
     

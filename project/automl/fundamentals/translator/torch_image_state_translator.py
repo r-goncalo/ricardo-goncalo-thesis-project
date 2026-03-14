@@ -1,7 +1,7 @@
 
 
 from automl.fundamentals.translator.translator import Translator
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.utils.shapes_util import torch_shape_from_space
 import torch
 

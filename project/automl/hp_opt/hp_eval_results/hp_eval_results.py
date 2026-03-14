@@ -27,7 +27,7 @@ def get_hp_opt_results_logger(experiment_path, results_filename=RESULTS_FILENAME
                                         "create_new_directory" : False
                                       })
 
-    hyperparameter_optimization_results.proccess_input_if_not_proccesd()
+    hyperparameter_optimization_results.proccess_input_if_not_processed()
 
     return hyperparameter_optimization_results
 

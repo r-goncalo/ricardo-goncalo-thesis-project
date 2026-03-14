@@ -1,7 +1,7 @@
 
 
 from automl.component import requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.rl.agent.agent_components import AgentSchema
 from automl.utils.shapes_util import torch_shape_from_space
 import torch
@@ -18,7 +18,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
 
     parameters_signature = { 
                        
-                       "state_memory_size" : InputSignature(default_value=2, description="This makes the agent remember previous states of the environment and concatenates them"),
+                       "state_memory_size" : ParameterSignature(default_value=2, description="This makes the agent remember previous states of the environment and concatenates them"),
 
                     }
 

@@ -1,6 +1,6 @@
 
 from automl.component import Component, requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
@@ -16,9 +16,9 @@ class RLLearningEvaluatorSlope(RLPipelineEvaluator):
     '''
     
     parameters_signature = {
-        "number_of_episodes_percentage" : InputSignature(default_value=10),
-        "init" : InputSignature(default_value=(0, "episode")),
-        "final" : InputSignature(mandatory=False) 
+        "number_of_episodes_percentage" : ParameterSignature(default_value=10),
+        "init" : ParameterSignature(default_value=(0, "episode")),
+        "final" : ParameterSignature(mandatory=False) 
     }
     
 

@@ -2,7 +2,7 @@
 from typing import Union
 from automl.component import Component, requires_input_proccess
 from automl.basic_components.artifact_management import ArtifactComponent
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.result_logger import ResultLogger, get_results_logger_from_file
 
 
@@ -56,14 +56,14 @@ class ComponentWithResults(ArtifactComponent):
     
     parameters_signature = {
                                                                                 
-                       "results_logger_object" : InputSignature(ignore_at_serialization=True, priority=10, 
+                       "results_logger_object" : ParameterSignature(ignore_at_serialization=True, priority=10, 
                                                         generator = generate_logger_for_component , 
                                                         on_pass=on_log_pass,
                                                         description="A dictionary of result loggers object or single one",
                                                         mandatory=False),
 
 
-                        "results_logger_input" : InputSignature(ignore_at_serialization=True, default_value={}),
+                        "results_logger_input" : ParameterSignature(ignore_at_serialization=True, default_value={}),
                                                     
                                                 
                        }

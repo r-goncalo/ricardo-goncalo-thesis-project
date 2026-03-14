@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
 
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
 
 class TorchModelInitializationStrategy(Component):
@@ -33,7 +33,7 @@ class TorchModelInitializationStrategyOrthogonal(TorchModelInitializationStrateg
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "gain" : InputSignature(default_value=1.0)
+        "gain" : ParameterSignature(default_value=1.0)
     }    
 
     
@@ -74,8 +74,8 @@ class TorchModelInitializationGaussian(TorchModelInitializationStrategy):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "mean" : InputSignature(default_value=0.0),
-        "std" : InputSignature(default_value=1.0)
+        "mean" : ParameterSignature(default_value=0.0),
+        "std" : ParameterSignature(default_value=1.0)
     }    
 
     

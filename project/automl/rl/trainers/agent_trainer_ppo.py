@@ -1,5 +1,5 @@
 from automl.ml.memory.memory_samplers.advantages_calc_sampler import PPOAdvantagesCalcSampler
-from automl.rl.learners.q_learner import ComponentInputSignature
+from automl.rl.learners.q_learner import ComponentParameterSignature
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 
@@ -10,7 +10,7 @@ class AgentTrainerPPO(AgentTrainer):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
-                       "memory_transformer" : ComponentInputSignature(default_component_definition=(PPOAdvantagesCalcSampler, {})),
+                       "memory_transformer" : ComponentParameterSignature(default_component_definition=(PPOAdvantagesCalcSampler, {})),
 
                        }
     

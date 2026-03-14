@@ -21,7 +21,7 @@ class HyperparameterOptimizationWorkerIndexed():
         
         self.parent_hp_pipeline : HyperparameterOptimizationLoader = parent_hp_pipeline
 
-        self.parent_hp_pipeline.lg.proccess_input_if_not_proccesd()
+        self.parent_hp_pipeline.lg.proccess_input_if_not_processed()
         self.thread_logger = self.parent_hp_pipeline.lg.clone(input_for_clone={"name" : f"{thread_index}", 
                                                                                "base_directory" : self.parent_hp_pipeline,
                                                                                "artifact_relative_directory" : "thread_loggers",

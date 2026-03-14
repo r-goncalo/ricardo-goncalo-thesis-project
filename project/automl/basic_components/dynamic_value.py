@@ -1,7 +1,7 @@
 
 from automl.component import Component, requires_input_proccess
-from automl.core.input_management import InputSignature
-from automl.core.advanced_input_management import ComponentInputSignature, LookableInputSignature
+from automl.core.input_management import ParameterSignature
+from automl.core.advanced_input_management import ComponentParameterSignature, LookableParameterSignature
 
 from automl.core.types import numeric_type
 from automl.loggers.global_logger import globalWriteLine, is_global_logger_active
@@ -75,7 +75,7 @@ class DynamicValueBasedOnComponent(DynamicValue):
     
     parameters_signature = {
 
-        "input_component" : ComponentInputSignature()
+        "input_component" : ComponentParameterSignature()
 
     }    
 
@@ -95,10 +95,10 @@ class DynamicLinearValueInRange(DynamicValue):
     
     parameters_signature = {
 
-        "initial_value" : InputSignature(),
-        "final_value" : InputSignature(),
+        "initial_value" : ParameterSignature(),
+        "final_value" : ParameterSignature(),
 
-        "input_for_fun_max_value" : LookableInputSignature(),
+        "input_for_fun_max_value" : LookableParameterSignature(),
 
     }    
 
@@ -119,8 +119,8 @@ class DynamicLinearValueInRangeBasedOnComponent(DynamicLinearValueInRange, Dynam
     
     parameters_signature = {
 
-        "input_for_fun_key" : InputSignature(),
-        "input_for_fun_initial_value" : InputSignature(default_value=0)
+        "input_for_fun_key" : ParameterSignature(),
+        "input_for_fun_initial_value" : ParameterSignature(default_value=0)
 
     }    
 

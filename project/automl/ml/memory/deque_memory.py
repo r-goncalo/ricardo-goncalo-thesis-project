@@ -4,7 +4,7 @@ import random
 
 
 
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 from automl.ml.memory.memory_components import MemoryComponent
 
 class DeqeueMemoryComponent(MemoryComponent):

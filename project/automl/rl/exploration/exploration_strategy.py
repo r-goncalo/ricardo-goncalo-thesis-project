@@ -1,4 +1,4 @@
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 import torch
 import numpy as nn
 
@@ -10,7 +10,7 @@ from automl.rl.agent.agent_components import AgentSchema
 class ExplorationStrategySchema(Component):
     
     parameters_signature =  {
-        "training_context" : InputSignature(possible_types=[Component])
+        "training_context" : ParameterSignature(possible_types=[Component])
         } 
 
     

@@ -1,4 +1,4 @@
-from automl.core.input_management import InputMetaData, InputSignature
+from automl.core.input_management import InputMetaData, ParameterSignature
 from types import FunctionType
 import copy
 
@@ -26,13 +26,13 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     All its defiined values are still processed by the metaclass Schema
     '''
     
-    parameters_signature : dict[str, InputSignature] = {
-        "name" : InputSignature(on_pass=on_name_pass, ignore_at_serialization=True, mandatory=False, priority=0), #the name of the component
-        "child_components" : InputSignature(mandatory=False)
+    parameters_signature : dict[str, ParameterSignature] = {
+        "name" : ParameterSignature(on_pass=on_name_pass, ignore_at_serialization=True, mandatory=False, priority=0), #the name of the component
+        "child_components" : ParameterSignature(mandatory=False)
     }
 
-    original_parameters_signature : dict[str, InputSignature] = {} # this is not for users to change, as the schema automatically stores here the original parameters_signature as it was defined
-    fused_parameters_signature : dict[str, InputSignature] = {} # this is not for users to change, as the schema saves here the fused parameter signatures without default values
+    original_parameters_signature : dict[str, ParameterSignature] = {} # this is not for users to change, as the schema automatically stores here the original parameters_signature as it was defined
+    fused_parameters_signature : dict[str, ParameterSignature] = {} # this is not for users to change, as the schema saves here the fused parameter signatures without default values
 
     is_debug_schema = False # meant to be True if a class is to be used as debug, this means it will always be counted last in the mro
     
@@ -43,7 +43,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     #this does not need to be stored in the component, the only reason it is is to standardize this kind of exposure
     exposed_values : dict[str, any] = {}
 
-    organized_parameters_signatures : dict[int, list[InputSignature]] = {} #InputSignatures organized by priorities
+    organized_parameters_signatures : dict[int, list[ParameterSignature]] = {} #ParameterSignatures organized by priorities
     
     
     # INITIALIZATION -------------------------------------------------------------------------
@@ -227,12 +227,12 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         '''
         This is the method meant to get input from the component
-        It generalizes using the method giving from the InputSignature of the specific key
+        It generalizes using the method giving from the ParameterSignature of the specific key
         '''
 
         try:
 
-            parameter_signature : InputSignature = self.get_parameter_signature(key)
+            parameter_signature : ParameterSignature = self.get_parameter_signature(key)
            
             to_return = parameter_signature.get_value_from_input(self, key, **kwargs)
 
@@ -262,7 +262,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         '''
         This is the method meant to get input from the component
-        It generalizes using the method giving from the InputSignature of the specific key
+        It generalizes using the method giving from the ParameterSignature of the specific key
         '''
 
         to_return = None
@@ -329,8 +329,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         passed_child_components = self.get_input_value("child_components")
 
         if passed_child_components is not None:
-            from automl.core.advanced_input_management import ComponentListInputSignature
-            passed_child_components = ComponentListInputSignature.get_value_from_input_class(self, "child_components", is_none_ok=True)
+            from automl.core.advanced_input_management import ComponentListParameterSignature
+            passed_child_components = ComponentListParameterSignature.get_value_from_input_class(self, "child_components", is_none_ok=True)
 
             for passed_child_component in passed_child_components:
                 if passed_child_component.parent_component != self:
@@ -359,7 +359,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         return self.__input_was_proccessed and not self.__input_is_being_processed
     
         
-    def proccess_input_if_not_proccesd(self): 
+    def proccess_input_if_not_processed(self): 
            
         if not self.__input_was_proccessed:
             
@@ -496,7 +496,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         Note that the clone will not have the same parent component
         '''
 
-        #self.proccess_input_if_not_proccesd()
+        #self.proccess_input_if_not_processed()
 
         input_for_clone = {} if input_for_clone is None else input_for_clone    
 
@@ -516,7 +516,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
 
     @classmethod
-    def get_schema_exposed_values(cls) -> dict[str, InputSignature]:
+    def get_schema_exposed_values(cls) -> dict[str, ParameterSignature]:
         
         '''Returns the parameters signatures for this Schema'''
 
@@ -531,7 +531,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     
     @classmethod
-    def get_schema_parameter_signature(cls, key) -> InputSignature:
+    def get_schema_parameter_signature(cls, key) -> ParameterSignature:
         
         '''
         Returns the parameter signature for a key for this Schema
@@ -542,7 +542,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
 
     @classmethod
-    def get_schema_parameters_signatures(cls) -> dict[str, InputSignature]:
+    def get_schema_parameters_signatures(cls) -> dict[str, ParameterSignature]:
         
         '''Returns the parameters signatures for this Schema'''
 
@@ -553,7 +553,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     
 
-    def get_parameter_signature(self, key) -> InputSignature:
+    def get_parameter_signature(self, key) -> ParameterSignature:
         
         '''Gets the parameter signature for a key for this component'''
         
@@ -561,7 +561,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
 
 
-    def get_parameters_signatures(self) -> dict[str, InputSignature]:
+    def get_parameters_signatures(self) -> dict[str, ParameterSignature]:
         
         '''Returns the parameters signatures for this component'''
         
@@ -577,7 +577,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             
     # DEFAULT VALUES -------------------------------------------------
             
-    def __add_default_values_of_class_input(self, passed_keys, list_of_signatures : dict[str, InputSignature]):
+    def __add_default_values_of_class_input(self, passed_keys, list_of_signatures : dict[str, ParameterSignature]):
                         
         for input_key, parameter_signature in list_of_signatures.items():
 
@@ -622,7 +622,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
     # VALIDITY VERIFICATION ---------------------------------------------
 
-    def __verify_input(self, passed_keys, list_of_signatures : dict[str, InputSignature]): #verify the input to this component and add default values, to the self.input dict
+    def __verify_input(self, passed_keys, list_of_signatures : dict[str, ParameterSignature]): #verify the input to this component and add default values, to the self.input dict
 
         for input_key, parameter_signature in list_of_signatures.items():
                                     
@@ -703,7 +703,7 @@ def requires_input_proccess(func : FunctionType):
     '''
         
     def process_input_if_not_processed_wrapper(self : Component, *args, **kwargs):
-        self.proccess_input_if_not_proccesd()
+        self.proccess_input_if_not_processed()
         return func(self, *args, **kwargs)
     
     return process_input_if_not_processed_wrapper

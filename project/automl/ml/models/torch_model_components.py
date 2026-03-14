@@ -7,10 +7,10 @@ import torch.nn as nn
 
 from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
 
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 
 from automl.ml.models.model_initialization_strategy import TorchModelInitializationStrategy
 
@@ -21,10 +21,10 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
 
     parameters_signature = {
 
-        "device": InputSignature(get_from_parent=True, ignore_at_serialization=True),
-        "model" : InputSignature(mandatory=False, possible_types=[nn.Module]),
+        "device": ParameterSignature(get_from_parent=True, ignore_at_serialization=True),
+        "model" : ParameterSignature(mandatory=False, possible_types=[nn.Module]),
 
-        "parameters_initialization_strategy" : ComponentInputSignature(mandatory=False)
+        "parameters_initialization_strategy" : ComponentParameterSignature(mandatory=False)
     }    
 
     exposed_values = {
@@ -274,7 +274,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
     def clone_other_model_into_this(self, other_model):
 
         other_model : TorchModelComponent = other_model
-        other_model.proccess_input_if_not_proccesd()
+        other_model.proccess_input_if_not_processed()
         self.model.load_state_dict(other_model.model.state_dict())
     
     # STATE MANAGEMENT -----------------------------------------------------

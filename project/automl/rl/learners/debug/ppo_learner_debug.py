@@ -1,7 +1,7 @@
 import torch
 from automl.rl.learners.ppo_learner import PPOLearner
 from automl.rl.learners.debug.learner_debug import LearnerDebug
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.ml.models.torch_model_components import TorchModelComponent
 
 import torch.nn.functional as F
@@ -14,8 +14,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
     is_debug_schema = True
 
     parameters_signature = {
-        "interval_between_debug_writes": InputSignature(default_value=15),
-        "compare_old_and_new_critic_predictions_interval": InputSignature(default_value=15),
+        "interval_between_debug_writes": ParameterSignature(default_value=15),
+        "compare_old_and_new_critic_predictions_interval": ParameterSignature(default_value=15),
     }
 
     def _proccess_input_internal(self):

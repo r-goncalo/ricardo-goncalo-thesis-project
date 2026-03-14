@@ -1,11 +1,11 @@
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
 
 class ModelComponent(Component):
         
     parameters_signature = {
-        "input_shape": InputSignature(mandatory=False, description="Used for models which can still change their input shape"),
-        "output_shape": InputSignature(mandatory=False, description="Used for models which can still change their output shape"), #output shape can have a default value
+        "input_shape": ParameterSignature(mandatory=False, description="Used for models which can still change their input shape"),
+        "output_shape": ParameterSignature(mandatory=False, description="Used for models which can still change their output shape"), #output shape can have a default value
     }    
     
     def _proccess_input_internal(self):

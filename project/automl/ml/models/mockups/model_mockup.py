@@ -1,7 +1,7 @@
 
 
 from automl.component import Component, requires_input_proccess
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.ml.models.model_components import ModelComponent
 from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
 import torch
@@ -10,9 +10,9 @@ import torch
 class MockupRandomModel(ModelComponent):
     
     parameters_signature = {
-        "input_shape": InputSignature(),
-        "output_shape": InputSignature(),
-        "device": InputSignature(get_from_parent=True, ignore_at_serialization=True)
+        "input_shape": ParameterSignature(),
+        "output_shape": ParameterSignature(),
+        "device": ParameterSignature(get_from_parent=True, ignore_at_serialization=True)
     }    
     
     def _proccess_input_internal(self):

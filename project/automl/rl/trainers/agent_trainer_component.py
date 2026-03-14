@@ -1,6 +1,6 @@
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import InputSignature, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
+from automl.component import ParameterSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.loggers.logger_component import ComponentWithLogging
@@ -34,46 +34,46 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     
     parameters_signature = {
         
-                       "optimization_interval" : InputSignature(description="How many steps between optimizations", default_value=1,
+                       "optimization_interval" : ParameterSignature(description="How many steps between optimizations", default_value=1,
                                                                 custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 100, "high": 500 }]}
                                                                 ),
                        
-                       "times_to_learn" : InputSignature(default_value=1, description="How many times to optimize at learning time",
+                       "times_to_learn" : ParameterSignature(default_value=1, description="How many times to optimize at learning time",
                                                          custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 1, "high": 256 }]}), 
                        
-                       "learning_start_ep_delay" : InputSignature(default_value=-1),
-                        "learning_start_step_delay" : InputSignature(default_value=-1),
+                       "learning_start_ep_delay" : ParameterSignature(default_value=-1),
+                        "learning_start_step_delay" : ParameterSignature(default_value=-1),
 
-                       "save_interval" : InputSignature(default_value=100),
+                       "save_interval" : ParameterSignature(default_value=100),
                         
-                       "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True),
+                       "device" : ParameterSignature(get_from_parent=True, ignore_at_serialization=True),
                             
-                        "agent" : ComponentInputSignature(),
+                        "agent" : ComponentParameterSignature(),
 
-                       "batch_size" : InputSignature(mandatory=False, custom_dict={"hyperparameter_suggestion" : [ "cat", {"choices": [8, 16, 32, 64, 128, 256]}]}),
+                       "batch_size" : ParameterSignature(mandatory=False, custom_dict={"hyperparameter_suggestion" : [ "cat", {"choices": [8, 16, 32, 64, 128, 256]}]}),
                        
-                       "learn_with_all_memory" : InputSignature(default_value=False, 
+                       "learn_with_all_memory" : ParameterSignature(default_value=False, 
                                                                 description="When true, each learning will consist of dividing the entire memory into batches with the specified size, and learning with each of them"
                                                                 ),
                     
-                       "discount_factor" : InputSignature(
+                       "discount_factor" : ParameterSignature(
                            default_value=0.95,
                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.7, "high": 0.99999 }]}
                            ),
 
-                       "memory" : ComponentInputSignature(
+                       "memory" : ComponentParameterSignature(
                             default_component_definition=(TorchMemoryComponent, {}),
                        ),
 
-                       "memory_transformer" : ComponentInputSignature(mandatory=False),
+                       "memory_transformer" : ComponentParameterSignature(mandatory=False),
                        
-                       "learner" : ComponentInputSignature(
+                       "learner" : ComponentParameterSignature(
                             default_component_definition=(DeepQLearnerSchema, {})
                         ),
 
-                        "agent_trainer_acessories" : ComponentListInputSignature(mandatory=False, description="Acessories used for when the agent is learning"),
+                        "agent_trainer_acessories" : ComponentListParameterSignature(mandatory=False, description="Acessories used for when the agent is learning"),
 
-                       "limit_steps" : InputSignature(
+                       "limit_steps" : ParameterSignature(
                            default_value=-1,
                            description="Limits the steps in a single training session"
                           ),                         
@@ -159,7 +159,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     def initialize_agent(self):
     
         self.agent : AgentSchema = self.get_input_value("agent", look_in_attribute_with_name="agent")
-        self.agent.proccess_input_if_not_proccesd()
+        self.agent.proccess_input_if_not_processed()
 
         self.agent_policy : Policy = self.agent.policy
         

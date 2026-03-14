@@ -4,7 +4,7 @@ import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_proccess
 from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
@@ -22,7 +22,7 @@ import gc
 
 from automl.loggers.logger_component import LoggerSchema, ComponentWithLogging
 
-from automl.core.advanced_input_management import ComponentDictInputSignature, ComponentInputSignature
+from automl.core.advanced_input_management import ComponentDictParameterSignature, ComponentParameterSignature
 
 from automl.utils.random_utils import generate_seed, do_full_setup_of_single_seed
 from automl.core.exceptions import common_exception_handling
@@ -35,19 +35,19 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
     parameters_signature = {
         
-                        "device" : InputSignature(default_value="cuda", ignore_at_serialization=True),
+                        "device" : ParameterSignature(default_value="cuda", ignore_at_serialization=True),
                                                                                
-                       "environment" : ComponentInputSignature(default_component_definition=(AECPettingZooEnvironmentWrapper, {}), possible_types=[AECEnvironmentComponent]),
+                       "environment" : ComponentParameterSignature(default_component_definition=(AECPettingZooEnvironmentWrapper, {}), possible_types=[AECEnvironmentComponent]),
                        
-                       "agents" : ComponentDictInputSignature(default_component_definition={}),
-                       "agents_input" : InputSignature(default_value={}, ignore_at_serialization=True),
+                       "agents" : ComponentDictParameterSignature(default_component_definition={}),
+                       "agents_input" : ParameterSignature(default_value={}, ignore_at_serialization=True),
                        
-                       "rl_trainer" : ComponentInputSignature(default_component_definition=(RLTrainerComponent, {})),
+                       "rl_trainer" : ComponentParameterSignature(default_component_definition=(RLTrainerComponent, {})),
 
-                       "fraction_of_training_to_do_in_session" : InputSignature(mandatory=False, description="If when this is run it is supposed to do only a fraction of the training, this affects the stop condition"),
-                       "generate_fraction_from_times_to_run" : InputSignature(default_value=False),
+                       "fraction_of_training_to_do_in_session" : ParameterSignature(mandatory=False, description="If when this is run it is supposed to do only a fraction of the training, this affects the stop condition"),
+                       "generate_fraction_from_times_to_run" : ParameterSignature(default_value=False),
 
-                       "save_checkpoints" : InputSignature(default_value="best")
+                       "save_checkpoints" : ParameterSignature(default_value="best")
                 
                        }
 
@@ -94,7 +94,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                 
         self.env.pass_input({"device" : self.device})
         
-        self.env.proccess_input_if_not_proccesd()
+        self.env.proccess_input_if_not_processed()
         
         self.lg.writeLine(f"Setting up RL pipeline with environment: {self.env.get_env_name()}")
 

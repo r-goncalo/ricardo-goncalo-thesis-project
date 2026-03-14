@@ -1,6 +1,6 @@
 from types import FunctionType
-from automl.component import Component, InputSignature, requires_input_proccess
-from automl.core.advanced_input_management import ComponentListInputSignature
+from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentListParameterSignature
 from automl.basic_components.sampler import Sampler
 from abc import abstractmethod
 
@@ -91,7 +91,7 @@ class EnvironmentSampler(Sampler, EnvironmentComponent):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "environment_input": InputSignature(default_value={}),
+        "environment_input": ParameterSignature(default_value={}),
     }
 
     def __init__(self, *args, **kwargs):
@@ -128,8 +128,8 @@ class EnvironmentCycler(EnvironmentSampler):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "environments": ComponentListInputSignature(),
-        "generate_name" : InputSignature(default_value=False)
+        "environments": ComponentListParameterSignature(),
+        "generate_name" : ParameterSignature(default_value=False)
     }
 
     def __init__(self, *args, **kwargs):

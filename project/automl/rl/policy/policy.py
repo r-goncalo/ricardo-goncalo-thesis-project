@@ -1,6 +1,6 @@
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.ml.models.model_components import ModelComponent
 
 from automl.utils.class_util import get_class_from
@@ -38,11 +38,11 @@ class Policy(PolicyInterface, ComponentWithLogging):
         
     parameters_signature = {
         
-        "model" : ComponentInputSignature(mandatory=False),
+        "model" : ComponentParameterSignature(mandatory=False),
         
-        "state_shape": InputSignature(ignore_at_serialization=True),
-        "action_shape": InputSignature(ignore_at_serialization=True),
-        "device" : InputSignature(get_from_parent=True, ignore_at_serialization=True)
+        "state_shape": ParameterSignature(ignore_at_serialization=True),
+        "action_shape": ParameterSignature(ignore_at_serialization=True),
+        "device" : ParameterSignature(get_from_parent=True, ignore_at_serialization=True)
     }   
 
     exposed_values = {"model" : 0}

@@ -4,7 +4,7 @@
 from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.ml.models.torch_model_components import TorchModelComponent
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.ml.models.torch_model_utils import model_parameter_distance
 
 class AgentTrainerDebug(AgentTrainer, ComponentDebug):
@@ -14,8 +14,8 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
         is_debug_schema = True
 
         parameters_signature = {
-             "verify_model_difference_after_optimize" : InputSignature(default_value=True),
-             "note_observed_transitions" : InputSignature(default_value=False)
+             "verify_model_difference_after_optimize" : ParameterSignature(default_value=True),
+             "note_observed_transitions" : ParameterSignature(default_value=False)
         }
 
         def _proccess_input_internal(self):
@@ -26,7 +26,7 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
     
             if self.verify_model_difference_after_optimize:
                 self.model : TorchModelComponent = self.agent_policy.model
-                self.model.proccess_input_if_not_proccesd()
+                self.model.proccess_input_if_not_processed()
 
                 self.lg.writeLine(f"Creating temporary model to note difference in optimizations...")
 

@@ -3,8 +3,8 @@
 from automl.basic_components.component_group import RunnableComponentGroup
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.component import Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
-from automl.core.input_management import InputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.result_logger import ResultLogger
 import pandas
 
@@ -21,8 +21,8 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
     '''
     
     parameters_signature = {
-        "std_deviation_factor" : InputSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
-        "base_evaluator" : ComponentInputSignature(mandatory=False)
+        "std_deviation_factor" : ParameterSignature(default_value=4, description="The factor to be used to calculate the standard deviation"),
+        "base_evaluator" : ComponentParameterSignature(mandatory=False)
     }
 
     def _proccess_input_internal(self):

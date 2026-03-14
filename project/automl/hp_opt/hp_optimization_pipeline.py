@@ -1,8 +1,8 @@
 import os
 from typing import Union
-from automl.component import InputSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_proccess
 from automl.basic_components.exec_component import ExecComponent, State
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
 from automl.hp_opt.hp_suggestion.hyperparameter_suggestion import HyperparameterSuggestion
 from automl.hp_opt.samplers.sampler import OptunaSamplerComponent, OptunaSamplerWrapper
@@ -55,37 +55,37 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     parameters_signature = {
         
-                        "sampler" : ComponentInputSignature(default_component_definition=(OptunaSamplerWrapper, {})),
+                        "sampler" : ComponentParameterSignature(default_component_definition=(OptunaSamplerWrapper, {})),
         
-                        "configuration_dict" : InputSignature(mandatory=False, possible_types=[dict, str]),
-                        "base_component_configuration_path" : InputSignature(mandatory=False),
+                        "configuration_dict" : ParameterSignature(mandatory=False, possible_types=[dict, str]),
+                        "base_component_configuration_path" : ParameterSignature(mandatory=False),
 
-                        "database_study_name" : InputSignature(default_value='experiment'),
+                        "database_study_name" : ParameterSignature(default_value='experiment'),
                         
-                        "direction" : InputSignature(default_value='maximize'),
+                        "direction" : ParameterSignature(default_value='maximize'),
                                                 
-                        "hyperparameters_range_list" : InputSignature(mandatory=False),
-                        "n_trials" : InputSignature(),
+                        "hyperparameters_range_list" : ParameterSignature(mandatory=False),
+                        "n_trials" : ParameterSignature(),
                         
-                        "steps" : InputSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
+                        "steps" : ParameterSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
                         
-                        "pruner": ComponentInputSignature(
+                        "pruner": ComponentParameterSignature(
                             mandatory=False,
                             default_component_definition=(OptunaPrunerWrapper, {})
                         ),
                         
-                        "evaluator_component" : ComponentInputSignature(
+                        "evaluator_component" : ComponentParameterSignature(
                             mandatory=False,
                             description="The evaluator component to be used for evaluating the components to optimize in their training process"
                             ),
 
-                        "start_with_given_values" : InputSignature(default_value=True),
+                        "start_with_given_values" : ParameterSignature(default_value=True),
 
-                        "continue_after_error" : InputSignature(default_value=True, ignore_at_serialization=True, description="If trials should continue after an error or not"),
+                        "continue_after_error" : ParameterSignature(default_value=True, ignore_at_serialization=True, description="If trials should continue after an error or not"),
 
-                        "do_initial_evaluation" : InputSignature(default_value=False),
+                        "do_initial_evaluation" : ParameterSignature(default_value=False),
 
-                        "debug_classes" : InputSignature(mandatory=False)
+                        "debug_classes" : ParameterSignature(mandatory=False)
                                                     
                        }
     

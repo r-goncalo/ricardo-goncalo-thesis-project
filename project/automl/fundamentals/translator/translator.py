@@ -1,8 +1,8 @@
 
 
 from automl.component import Component
-from automl.core.advanced_input_management import ComponentListInputSignature
-from automl.core.input_management import InputSignature
+from automl.core.advanced_input_management import ComponentListParameterSignature
+from automl.core.input_management import ParameterSignature
 
 
 class Translator(Component):
@@ -11,12 +11,12 @@ class Translator(Component):
 
     parameters_signature = {
 
-        "original_shape" : InputSignature(mandatory=False),
-        "in_place_translation" : InputSignature(default_value=False),
-        "buffered_operations" : InputSignature(default_value=False),
+        "original_shape" : ParameterSignature(mandatory=False),
+        "in_place_translation" : ParameterSignature(default_value=False),
+        "buffered_operations" : ParameterSignature(default_value=False),
         
         
-        "device" : InputSignature(default_value="cpu", ignore_at_serialization=True, get_from_parent=True)
+        "device" : ParameterSignature(default_value="cpu", ignore_at_serialization=True, get_from_parent=True)
 
     }
 
@@ -68,7 +68,7 @@ class TranslatorSequence(Translator):
     '''A strategy that translates data with a preditermined type and shape to another'''
 
     parameters_signature = {
-        "translators_sequence" : ComponentListInputSignature()
+        "translators_sequence" : ComponentListParameterSignature()
     }
 
     def _proccess_input_internal(self):
@@ -82,7 +82,7 @@ class TranslatorSequence(Translator):
         self._setup_sequence_state_cache()
 
         for translator in self.translators_sequence:
-            translator.proccess_input_if_not_proccesd()
+            translator.proccess_input_if_not_processed()
 
     
     def _setup_translators_in_sequence_input(self):
@@ -114,7 +114,7 @@ class TranslatorSequence(Translator):
             for translator in self.translators_sequence:
 
                 translator.pass_input({"original_shape" : current_shape})
-                translator.proccess_input_if_not_proccesd()
+                translator.proccess_input_if_not_processed()
                 current_shape = translator.get_shape()
 
             self.new_shape = current_shape

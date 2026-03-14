@@ -1,8 +1,8 @@
 
 
 from automl.component import Component
-from automl.core.advanced_input_management import ComponentListInputSignature
-from automl.core.input_management import InputSignature
+from automl.core.advanced_input_management import ComponentListParameterSignature
+from automl.core.input_management import ParameterSignature
 
 
 class Transformer(Component):

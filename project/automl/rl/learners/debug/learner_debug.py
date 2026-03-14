@@ -7,7 +7,7 @@ from automl.component import requires_input_proccess
 from automl.rl.learners.q_learner import DeepQLearnerSchema, QLearnerSchema
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.ml.models.torch_model_utils import model_parameter_distance
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 import torch
 
 class LearnerDebug(LearnerSchema, ComponentDebug):
@@ -15,7 +15,7 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
     is_debug_schema = True
 
     parameters_signature = {
-        "compare_old_and_new_model_predictions" : InputSignature(default_value=True)
+        "compare_old_and_new_model_predictions" : ParameterSignature(default_value=True)
     }
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined

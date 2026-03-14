@@ -2,7 +2,7 @@
 
 
 from automl.component import Component
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.random_utils import SEED_GLOBAL_LOGGER, do_full_setup_of_single_seed, generate_seed, setup_seed_from_dict_configuration
 from automl.loggers.global_logger import globalWriteLine
@@ -15,8 +15,8 @@ class SeededComponent(Component):
     '''
     
     parameters_signature = {
-                       "seed" : InputSignature(generator=lambda self : generate_seed()),
-                       "do_full_setup_of_seed" : InputSignature(mandatory=False, description="If it is supposed to setup the seed for things like torch, python, and so on")
+                       "seed" : ParameterSignature(generator=lambda self : generate_seed()),
+                       "do_full_setup_of_seed" : ParameterSignature(mandatory=False, description="If it is supposed to setup the seed for things like torch, python, and so on")
                        }
     
 

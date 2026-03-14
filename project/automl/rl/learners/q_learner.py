@@ -1,7 +1,7 @@
 
-from automl.component import InputSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.models.model_components import ModelComponent
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
@@ -93,24 +93,24 @@ class DeepQLearnerSchema(QLearnerSchema):
 
     parameters_signature = {
                                
-                        "target_update_rate" : InputSignature(
+                        "target_update_rate" : ParameterSignature(
                             default_value=0.05,
                             custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.5, "high": 1.0 }]}
                             ),
 
-                        "target_update_learn_interval" : InputSignature(default_value=1, description="How many optimization times before we update the target model",
+                        "target_update_learn_interval" : ParameterSignature(default_value=1, description="How many optimization times before we update the target model",
                                                                         custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 1, "high": 10 }]}),
                         
-                        "device" : InputSignature(ignore_at_serialization=True),
+                        "device" : ParameterSignature(ignore_at_serialization=True),
                         
-                        "optimizer" : ComponentInputSignature(
+                        "optimizer" : ComponentParameterSignature(
                             default_component_definition=(
                                 AdamOptimizer,
                                 {}
                             )
                             ),
                         
-                        "target_network" : InputSignature(mandatory=False, possible_types=[ModelComponent], description="The target network if it already exists, a clone of the network of the policy")
+                        "target_network" : ParameterSignature(mandatory=False, possible_types=[ModelComponent], description="The target network if it already exists, a clone of the network of the policy")
 
                         }    
     

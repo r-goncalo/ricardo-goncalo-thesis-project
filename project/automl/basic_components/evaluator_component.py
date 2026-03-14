@@ -1,7 +1,7 @@
 
 
 from automl.component import Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.basic_components.exec_component import ExecComponent
 
@@ -14,7 +14,7 @@ class EvaluatorComponent(ExecComponent):
     '''
     
     parameters_signature = {
-        "component_to_evaluate" : ComponentInputSignature(mandatory=False)
+        "component_to_evaluate" : ComponentParameterSignature(mandatory=False)
                     }    
     
     exposed_values = {
@@ -86,7 +86,7 @@ class ComponentWithEvaluator(Component):
     '''
     
     parameters_signature = {
-        "component_evaluator" : ComponentInputSignature(mandatory=False),
+        "component_evaluator" : ComponentParameterSignature(mandatory=False),
     }
     
     exposed_values = {

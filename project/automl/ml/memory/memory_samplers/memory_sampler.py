@@ -1,8 +1,8 @@
 
 
 from automl.component import Component, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature, ComponentListInputSignature
-from automl.core.input_management import InputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
+from automl.core.input_management import ParameterSignature
 from automl.ml.memory.memory_components import MemoryComponent
 
 

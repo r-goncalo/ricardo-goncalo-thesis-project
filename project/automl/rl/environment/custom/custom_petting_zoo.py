@@ -1,5 +1,5 @@
 
-from automl.schema import InputSignature
+from automl.schema import ParameterSignature
 import numpy as np
 from pettingzoo.butterfly.cooperative_pong.cooperative_pong import CooperativePong
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
@@ -10,7 +10,7 @@ class TorchCooperativePong(CooperativePong, ParallelEnvironmentComponent):
     raise NotImplementedError()
 
     parameters_signature = {
-        "device" : InputSignature(get_from_parent=True)
+        "device" : ParameterSignature(get_from_parent=True)
     }
 
 

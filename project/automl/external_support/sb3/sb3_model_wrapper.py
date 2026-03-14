@@ -1,6 +1,6 @@
 
 import copy
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
 from automl.external_support.sb3.sb3_utils import load_policy_network_from_architecture, load_sb3_net
 from automl.ml.models.model_components import ModelComponent
@@ -15,7 +15,7 @@ SUPPORTED_MODELS = ["dqn-MountainCar-v0", "dqn-CartPole-v1", "ppo-CartPole-v1"]
 class SB3WrapperTorch(TorchModelComponent):
     
     parameters_signature = {
-        "sb3_model" : InputSignature(default_value="dqn-MountainCar-v0", mandatory=False)
+        "sb3_model" : ParameterSignature(default_value="dqn-MountainCar-v0", mandatory=False)
     }    
     
 

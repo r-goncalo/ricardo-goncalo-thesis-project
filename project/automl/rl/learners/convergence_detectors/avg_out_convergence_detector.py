@@ -1,7 +1,7 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
 
 
@@ -21,11 +21,11 @@ class ConvergenceDetector(AcessoryComponent, ComponentWithLogging):
 
     parameters_signature = {
                                
-                        "memory_size" : InputSignature(default_value=256),
+                        "memory_size" : ParameterSignature(default_value=256),
                         
-                        "convergence_treshold" : InputSignature(default_value=0.001),
+                        "convergence_treshold" : ParameterSignature(default_value=0.001),
                         
-                        "old_values_new_values_keys" : InputSignature(default_value=["log_prob_batch", "new_log_probs"])
+                        "old_values_new_values_keys" : ParameterSignature(default_value=["log_prob_batch", "new_log_probs"])
 
                         }    
     

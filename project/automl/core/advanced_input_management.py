@@ -5,14 +5,14 @@
         
 
 from automl.component import Component
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.core.localizations import get_component_by_localization
 
 
 CHANGE_INPUT = True
 
-class LookableInputSignature(InputSignature):
+class LookableParameterSignature(ParameterSignature):
 
     '''An input with functionality that allows it to look for its value when it is not of one of the explicitly defined types'''
 
@@ -42,7 +42,7 @@ class LookableInputSignature(InputSignature):
     
 
 
-class ComponentInputSignature(InputSignature):
+class ComponentParameterSignature(ParameterSignature):
     
     '''Abstracts the passage of components in other components inputs'''
 
@@ -69,7 +69,7 @@ class ComponentInputSignature(InputSignature):
 
     def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True, input_if_generated=None):
         
-        '''Returns a component from a ComponentInputSignature passed value'''
+        '''Returns a component from a ComponentParameterSignature passed value'''
 
         value = super().get_value_from_input(component_with_input, key, is_none_ok)
 
@@ -78,7 +78,7 @@ class ComponentInputSignature(InputSignature):
         
         try:
         
-            return ComponentInputSignature.proccess_value_in_input(component_with_input, key, value, input_if_generated)
+            return ComponentParameterSignature.proccess_value_in_input(component_with_input, key, value, input_if_generated)
         
         except Exception as e:
 
@@ -92,10 +92,10 @@ class ComponentInputSignature(InputSignature):
         '''Default component definition can be a component, a json string, a dictionary, and so on'''
         
         if "possible_types" in kwargs.keys():
-            kwargs["possible_types"] = [*ComponentInputSignature.possible_types, *kwargs["possible_types"]]
+            kwargs["possible_types"] = [*ComponentParameterSignature.possible_types, *kwargs["possible_types"]]
 
         else:
-            kwargs["possible_types"] = ComponentInputSignature.possible_types
+            kwargs["possible_types"] = ComponentParameterSignature.possible_types
 
         if default_component_definition is not None:
         
@@ -120,7 +120,7 @@ class ComponentInputSignature(InputSignature):
 
 
 
-class ComponentListInputSignature(InputSignature):
+class ComponentListParameterSignature(ParameterSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
 
@@ -168,13 +168,13 @@ class ComponentListInputSignature(InputSignature):
         
 
             
-class ComponentDictInputSignature(InputSignature):
+class ComponentDictParameterSignature(ParameterSignature):
     
     '''Abstracts the passage of component list in other components inputs'''
 
     def get_value_from_input(self, component_with_input : Component, key, is_none_ok=True):
         
-        '''Returns a component list from a ComponentListInputSignature passed value'''
+        '''Returns a component list from a ComponentListParameterSignature passed value'''
         
         dict_of_components : dict = super().get_value_from_input(component_with_input, key, is_none_ok)
         

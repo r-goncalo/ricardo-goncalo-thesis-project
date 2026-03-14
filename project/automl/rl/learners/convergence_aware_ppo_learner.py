@@ -1,7 +1,7 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.advanced_input_utils import get_value_of_type_or_component
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
@@ -34,11 +34,11 @@ class ConvergenceAwarePPOLearner(PPOLearner):
 
     parameters_signature = {
                                
-                        "kl_divergence_memory_size" : InputSignature(default_value=256),
+                        "kl_divergence_memory_size" : ParameterSignature(default_value=256),
                         
-                        "kl_divergence_treshold" : InputSignature(default_value=0.001),
+                        "kl_divergence_treshold" : ParameterSignature(default_value=0.001),
                         
-                        "agent_trainer" : ComponentInputSignature()
+                        "agent_trainer" : ComponentParameterSignature()
 
                         }    
     

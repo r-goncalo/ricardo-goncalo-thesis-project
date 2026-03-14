@@ -1,12 +1,12 @@
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.component import Component
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 
 
 class ValueEvaluator(EvaluatorComponent):
 
     parameters_signature = {
-        "value_to_use" : InputSignature(description="The exposed value to use")
+        "value_to_use" : ParameterSignature(description="The exposed value to use")
     }
 
     def _proccess_input_internal(self):

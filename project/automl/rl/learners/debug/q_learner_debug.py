@@ -6,7 +6,7 @@ from automl.component import requires_input_proccess
 from automl.rl.learners.q_learner import DeepQLearnerSchema, QLearnerSchema
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.ml.models.torch_model_utils import model_parameter_distance
-from automl.core.input_management import InputSignature
+from automl.core.input_management import ParameterSignature
 import torch
 
 from automl.rl.learners.debug.learner_debug import LearnerDebug
@@ -16,7 +16,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
     is_debug_schema = True
 
     parameters_signature = {
-        "interval_beetwenn_computation_writes" : InputSignature(default_value=10)
+        "interval_beetwenn_computation_writes" : ParameterSignature(default_value=10)
     }
 
     def _proccess_input_internal(self):
@@ -117,8 +117,8 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
     is_debug_schema = True
 
     parameters_signature = {
-        "compare_old_and_new_target_predictions" : InputSignature(default_value=True),
-        "compare_old_and_new_target_model_params" : InputSignature(default_value=True),
+        "compare_old_and_new_target_predictions" : ParameterSignature(default_value=True),
+        "compare_old_and_new_target_model_params" : ParameterSignature(default_value=True),
     }
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined

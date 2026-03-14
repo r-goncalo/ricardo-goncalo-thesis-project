@@ -1,8 +1,8 @@
 from abc import abstractmethod
 
-from automl.component import InputSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_proccess
 
-from automl.core.advanced_input_management import ComponentInputSignature
+from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.utils.shapes_util import double_final_size
 import torch
 

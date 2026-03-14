@@ -5,7 +5,7 @@ from automl.loggers.logger_component import ComponentWithLogging
 import torch
 import torch.nn as nn
 
-from automl.component import Component, InputSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_proccess
 from automl.ml.models.model_components import ModelComponent
 
 from automl.ml.models.torch_model_components import TorchModelComponent
@@ -19,7 +19,7 @@ class TorchModelComponentDebug(TorchModelComponent, ComponentDebug):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-        "note_model_difference_on_init" : InputSignature(default_value=True)
+        "note_model_difference_on_init" : ParameterSignature(default_value=True)
     }    
 
     exposed_values = {

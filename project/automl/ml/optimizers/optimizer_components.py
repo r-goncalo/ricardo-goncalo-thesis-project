@@ -1,5 +1,5 @@
-from automl.component import Component, InputSignature, requires_input_proccess
-from automl.core.advanced_input_management import ComponentInputSignature, LookableInputSignature
+from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.core.advanced_input_management import ComponentParameterSignature, LookableParameterSignature
 from automl.ml.models.model_components import ModelComponent
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
 from automl.core.advanced_input_utils import get_value_of_type_or_component
@@ -13,8 +13,8 @@ from abc import abstractmethod
 
 class OptimizerSchema(Component):
     
-    parameters_signature = {"model" : ComponentInputSignature(mandatory=False, ignore_at_serialization=True),
-                            "params" : InputSignature(mandatory=False, ignore_at_serialization=True)}
+    parameters_signature = {"model" : ComponentParameterSignature(mandatory=False, ignore_at_serialization=True),
+                            "params" : ParameterSignature(mandatory=False, ignore_at_serialization=True)}
     
     
     exposed_values = {
@@ -80,19 +80,19 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
-                       "learning_rate" : InputSignature(
+                       "learning_rate" : ParameterSignature(
                            default_value=0.001,
                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 1.5e-8, "high": 9e-2 }]}
                            ),
-                       "amsgrad" : InputSignature(default_value=False),
+                       "amsgrad" : ParameterSignature(default_value=False),
 
-                       "clip_grad_value" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given value",
+                       "clip_grad_value" : ParameterSignature(mandatory=False, description="If defined, it clips the gradients to the given value",
                                                           custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.05, "high": 0.5 }]}
                                                                                                       ),
 
-                       "clip_grad_norm" : InputSignature(mandatory=False, description="If defined, it clips the gradients to the given norm"),
+                       "clip_grad_norm" : ParameterSignature(mandatory=False, description="If defined, it clips the gradients to the given norm"),
 
-                       "linear_decay_learning_rate_with_final_input_value_of" : LookableInputSignature(mandatory=False)
+                       "linear_decay_learning_rate_with_final_input_value_of" : LookableParameterSignature(mandatory=False)
                        
                        
                        }    
@@ -199,7 +199,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
 class SimpleSGDOptimizer(OptimizerSchema):
 
     parameters_signature = {
-        "learning_rate": InputSignature(default_value=0.01)
+        "learning_rate": ParameterSignature(default_value=0.01)
     }
 
     def _proccess_input_internal(self):

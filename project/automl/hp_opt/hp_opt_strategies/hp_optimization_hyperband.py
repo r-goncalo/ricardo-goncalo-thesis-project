@@ -1,6 +1,6 @@
 
 
-from automl.component import InputSignature
+from automl.component import ParameterSignature
 from automl.hp_opt.hp_opt_strategies.hp_optimization_loader_detached import HyperparameterOptimizationPipelineLoaderDetached
 
 import math
@@ -15,13 +15,13 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
     '''
 
     parameters_signature = {
-                         "hyperband_eta": InputSignature(default_value=2,
+                         "hyperband_eta": ParameterSignature(default_value=2,
                                                          description="The ratio at which we divide the trials in the sucessive halving brackets"
                                                          ),
 
-                         "hyperband_min_steps": InputSignature(default_value=0),
+                         "hyperband_min_steps": ParameterSignature(default_value=0),
 
-                         "initial_number_of_trials" : InputSignature(
+                         "initial_number_of_trials" : ParameterSignature(
                              mandatory=False,
                              description="Forces initial number of trials (of first sucessive halving bracket) to be this number"),
                                                 }
