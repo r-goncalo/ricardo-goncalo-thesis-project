@@ -66,4 +66,48 @@ class TorchModelInitializationStrategyOrthogonal(TorchModelInitializationStrateg
             elif isinstance(module, nn.Conv1d) or isinstance(module, nn.Conv2d) or isinstance(module, nn.Conv3d):
                 self._init_layer_orthogonal(module)
 
+    
+
+class TorchModelInitializationGaussian(TorchModelInitializationStrategy):
+
+
+    # INITIALIZATION --------------------------------------------------------------------------
+
+    parameters_signature = {
+        "mean" : InputSignature(default_value=0.0),
+        "std" : InputSignature(default_value=1.0)
+    }    
+
+    
+    def _proccess_input_internal(self):
+        
+        super()._proccess_input_internal()
+
+        self.mean = self.get_input_value("mean")
+        self.std = self.get_input_value("std")
+
+    
+    def _init_layer_gaussian(self, layer):
+
+        if hasattr(layer, "weight") and layer.weight is not None:
+            nn.init.normal_(layer.weight, mean=self.mean, std=self.std)
+
+        if hasattr(layer, "bias") and layer.bias is not None:
+            nn.init.constant_(layer.bias, 0.0)
+
+
+    def initialize_model(self, model : nn.Module):
+
+        super().initialize_model(model)
+
+        for module in model.modules():
+
+            # Only initialize supported parameterized layers
+            if isinstance(module, nn.Linear):
+                self._init_layer_gaussian(module)
+
+            elif isinstance(module, nn.Conv1d) or isinstance(module, nn.Conv2d) or isinstance(module, nn.Conv3d):
+                self._init_layer_gaussian(module)
+
+
 
