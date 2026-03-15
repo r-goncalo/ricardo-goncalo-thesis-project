@@ -524,7 +524,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     def set_value_with_initial(self, value_key):
 
-        self.values[key] = self.exposed_values[value_key]
+        self.values[value_key] = self.exposed_values[value_key]
 
     # INPUT PROCCESSING ---------------------------------------------      
     
