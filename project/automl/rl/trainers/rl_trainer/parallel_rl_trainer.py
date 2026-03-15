@@ -2,6 +2,7 @@
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
+from automl.core.input_management import ParameterSignature
 import torch
 
 class RLTrainerComponentParallel(RLTrainerComponent):
@@ -9,6 +10,8 @@ class RLTrainerComponentParallel(RLTrainerComponent):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
+
+        "use_average_reward" : ParameterSignature(default_value = True)
                                 
                        }
 
@@ -24,6 +27,8 @@ class RLTrainerComponentParallel(RLTrainerComponent):
         self.lg.writeLine(f"Setting up RL trainer Component Parallel")
         
         self.chosen_actions = {}
+        
+        self.use_average_reward = self.get_input_value("use_average_reward")
                                                                                      
 
     
@@ -82,7 +87,15 @@ class RLTrainerComponentParallel(RLTrainerComponent):
             self.values["total_steps"] = self.values["total_steps"] + 1
             self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
 
-            self.values["episode_score"] = self.values["episode_score"] + sum(rewards.values())
+            reward = rewards.values()
+
+            if self.use_average_reward:
+                reward = sum(reward) / len(reward)
+            
+            else:
+                reward = sum(reward)
+
+            self.values["episode_score"] = self.values["episode_score"] + reward
 
             if done or self._check_if_to_end_episode():
                 break
