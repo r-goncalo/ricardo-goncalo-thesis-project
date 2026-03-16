@@ -30,27 +30,29 @@ class RLParallelPlayer(RLPlayer):
 
         actions = {}
 
+        active_agents = self.env.get_active_agents()
+
         with torch.no_grad():
-            for agent_name, agent in self.agents.items():
+            for agent_name in active_agents:
+
+                agent = self.agents[agent_name]
 
                 act = agent.policy_predict_with_memory()
                 actions[agent_name] = act.squeeze(0)
 
         observations, rewards, terminations, truncations, infos = self.env.step(actions)
 
-        done = False
+        done = True
 
-        for agent_name in self.env.get_active_agents():
+        for agent_name in active_agents:
 
             agent_reward = rewards[agent_name]
 
-            total_reward += agent_reward
             self.values["agents_episode_score"][agent_name] += agent_reward
 
             self.agents[agent_name].update_state_memory(observations[agent.name])
 
-            if terminations[agent_name] or truncations[agent_name]:
-                done = True
+            done = done and (terminations[agent_name] or truncations[agent_name])
 
         return rewards, done
 
