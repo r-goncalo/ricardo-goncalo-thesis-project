@@ -129,7 +129,7 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
 
         active_trainer = self.agents_trainers[agent_name]
 
-        active_trainer._setup_training_session()
+        active_trainer.setup_training_session()
 
         # this is so this number is resumed in the case the training was interrupted mid execution
         self.values["step_before_curr_jesp_iteraition"] = self.values["total_steps"] if self.values["step_before_curr_jesp_iteraition"] < 0 else self.values["step_before_curr_jesp_iteraition"]

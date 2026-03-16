@@ -343,7 +343,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self.env.total_reset()
 
         for agent_in_training in self.agents_trainers.values():
-            agent_in_training._setup_training_session() 
+            agent_in_training.setup_training_session() 
 
 
         self.values["episodes_done_in_session"] = 0

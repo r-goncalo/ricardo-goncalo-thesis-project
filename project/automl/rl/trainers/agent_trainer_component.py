@@ -237,9 +237,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         
     @requires_input_proccess
-    def _setup_training_session(self):
+    def setup_training_session(self):
         
-        self.lg.writeLine("Setting up training session...")
+        self.lg.writeLine("Setting up training session...\n")
 
         self.values['is_training'] = True
 
