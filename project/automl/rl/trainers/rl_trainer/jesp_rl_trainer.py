@@ -251,8 +251,11 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
             for agent_name_index in range(self.values["current_agent_index"], len(self.agent_order)):
 
                 self.values["current_agent_index"] = agent_name_index
-
                 agent_name = self.agent_order[agent_name_index]
+
+                if agent_name not in self.env.get_active_agents():
+                    break
+
                 if self._check_if_to_end_training_session():
                     break
 

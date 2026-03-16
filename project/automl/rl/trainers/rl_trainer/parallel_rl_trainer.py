@@ -81,6 +81,9 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
             agent_names = self.env.get_active_agents()
 
+            if len(agent_names) == 0:
+                break
+
             actions = self.choose_actions_for_agents(agent_names, i_episode)
 
             observations, rewards, terminations, truncations, infos = self.env.step(actions)
