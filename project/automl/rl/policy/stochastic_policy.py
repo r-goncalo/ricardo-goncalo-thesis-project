@@ -181,9 +181,9 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
             self.lg.writeLine(f"Output shape has lower bound: {self.output_action_shape.high}")
 
         # gym-style Box bounds
-        self.min_action_value = self.output_action_shape.low
+        self.min_action_value = float(self.output_action_shape.low)
 
-        self.max_action_value = self.output_action_shape.high
+        self.max_action_value = float(self.output_action_shape.high)
 
 
     
