@@ -159,25 +159,40 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
     It passes through a tanh activation function
     '''
 
+    EPS = 1e-6
+
     def _compute_model_output_shape(self):
         
         super()._compute_model_output_shape()
 
+        self._get_bounds_from_shape()
+
+        self.action_range = self.max_action_value - self.min_action_value
+
+        self.lg.writeLine(f"Bound of actions for policies is [{self.min_action_value}, {self.max_action_value}] with a range of {self.action_range}")
+
+    
+    def _get_bounds_from_shape(self):
+
+        if hasattr(self.output_action_space, "low"):
+            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_space.low}")
+
+        if hasattr(self.output_action_space, "high"):
+            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_space.high}")
+
         # gym-style Box bounds
         self.min_action_value = torch.as_tensor(
-            self.output_action_space.low,
-            dtype=torch.float32
+            self.output_action_space.low
         )
 
         self.max_action_value = torch.as_tensor(
-            self.output_action_space.high,
-            dtype=torch.float32
+            self.output_action_space.high
         )
 
 
     
     def predict_from_distribution(self, distribution : torch.distributions):
-       self.min_action_value + self.max_action_value * torch.tanh(distribution.sample())
+       return self.min_action_value + (self.action_range) * 0.5 * (torch.tanh(distribution.sample()) + 1.0) 
 
 
     def log_probability_of_action(self, distribution, action):
