@@ -1,9 +1,16 @@
 from automl.rl.rl_player.rl_player import RLPlayer
+from automl.core.input_management import ParameterSignature
 import torch
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
 
 
 class RLParallelPlayer(RLPlayer):
+
+    parameters_signature = {
+
+        "use_average_reward" : ParameterSignature(default_value = True)
+                                
+                       }
 
     def _proccess_input_internal(self):
         """
@@ -16,6 +23,7 @@ class RLParallelPlayer(RLPlayer):
         if not isinstance(self.env, ParallelEnvironmentComponent):
             raise Exception(f"RLParallelPlayer requires ParallelEnvironmentComponent, got {type(self.env)}")
 
+        self.use_average_reward = self.get_input_value("use_average_reward")
 
 
     def _do_agent_step_parallel(self):
@@ -31,9 +39,8 @@ class RLParallelPlayer(RLPlayer):
         observations, rewards, terminations, truncations, infos = self.env.step(actions)
 
         done = False
-        total_reward = 0.0
 
-        for agent_name in self.agents.keys():
+        for agent_name in self.env.get_active_agents():
 
             agent_reward = rewards[agent_name]
 
@@ -45,7 +52,7 @@ class RLParallelPlayer(RLPlayer):
             if terminations[agent_name] or truncations[agent_name]:
                 done = True
 
-        return total_reward, done
+        return rewards, done
 
 
 
@@ -57,7 +64,15 @@ class RLParallelPlayer(RLPlayer):
 
         while True:
 
-            reward, done = self._do_agent_step_parallel()
+            rewards, done = self._do_agent_step_parallel()
+
+            rewards = rewards.values()
+
+            if self.use_average_reward:
+                reward = sum(rewards) / len(rewards)
+            
+            else:
+                reward = sum(rewards)
 
             self.values["episode_score"] += reward
             self.values["episode_steps"] += 1
