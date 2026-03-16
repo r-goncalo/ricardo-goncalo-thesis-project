@@ -29,10 +29,14 @@ class RLTrainerComponentParallel(RLTrainerComponent):
         self.chosen_actions = {}
         
         self.use_average_reward = self.get_input_value("use_average_reward")
+
+        self.lg.writeLine(f"Finished setting up RL trainer component parallel\n")
                                                                                      
 
     
     def choose_actions_for_agents(self, agents_names : list[str], i_episode):
+
+        self.chosen_actions.clear()
 
         for agent_name in agents_names:
 
@@ -73,7 +77,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
                         
         self.setup_single_episode(i_episode)
 
-        while True:
+        while True: # this runs a step of the episode
 
             agent_names = self.env.get_active_agents()
 

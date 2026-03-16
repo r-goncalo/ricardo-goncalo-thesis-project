@@ -76,6 +76,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self._setup_agents_trainer_events()
 
         self._optimizations_prediction()
+
+        self.lg.writeLine(f"Ended setup of RL trainer\n")
         
         
     def _initialize_limit_numbers(self):
@@ -419,7 +421,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             isover = True
             for agent_trainer in self.agents_trainers.values():
                 if not agent_trainer.is_over():
-                    self.lg.writeLine(f"Noticed at least one trainer ({agent_trainer.name}) that is not considered over. As such, RLTrainer will not be considered over")
+                    self.lg.writeLine(f"Noticed at least one trainer ({agent_trainer.name}) that is not considered over. As such, RLTrainer will not be considered over\n")
                     isover = False
                     break
 
