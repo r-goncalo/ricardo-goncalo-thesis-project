@@ -121,11 +121,6 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
         # Compute standard deviation
         std = float(torch.tensor(last_values, dtype=torch.float32).std().item())
 
-        self.lg.writeLine(
-            f"Last {self.n_values_to_use} "
-            f"{self.value_key} std = {std}"
-        )
-
         # Return True if below threshold
         return std < self.standard_deviation_treshold
     
@@ -209,10 +204,6 @@ class AgentTrainerSlopeConvergenceDetector(AgentTrainerTrainingEnder):
         y_tensor = torch.tensor(last_values, dtype=torch.float32)
 
         slope = self._compute_slope(y_tensor)
-
-        self.lg.writeLine(
-            f"Slope of last {self.n_values_to_use} {self.value_key} values = {slope}"
-        )
 
         return slope < self.slope_threshold
 

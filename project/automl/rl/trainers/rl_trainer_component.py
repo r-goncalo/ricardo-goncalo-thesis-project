@@ -412,18 +412,27 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         
         self.calculate_and_log_results()
 
+    def _should_be_over_due_to_agents_trainers_over(self):
+            
+        isover=True
+        for agent_trainer in self.agents_trainers.values():
+            if not agent_trainer.is_over():
+                self.lg.writeLine(f"Noticed at least one trainer ({agent_trainer.name}) that is not considered over. As such, RLTrainer will not be considered over\n")
+                isover = False
+                break
+
+        if isover:
+            self.lg.writeLine(f"Trainer noticed that all agents trainers are over, and so it will be considered over also")
+            
+        return isover
+
     def _is_over(self):
         
         isover = super()._is_over()
 
         # if a previous condition has not considered the training over
         if not isover:
-            isover = True
-            for agent_trainer in self.agents_trainers.values():
-                if not agent_trainer.is_over():
-                    self.lg.writeLine(f"Noticed at least one trainer ({agent_trainer.name}) that is not considered over. As such, RLTrainer will not be considered over\n")
-                    isover = False
-                    break
+            isover = self._should_be_over_due_to_agents_trainers_over()
 
         return isover
 

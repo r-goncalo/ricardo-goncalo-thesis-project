@@ -219,7 +219,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
 
         if self.limit_steps >= 1: # if we're using steps to stop training
 
-            if  self.values["steps_done_in_session"] >= self.limit_steps:
+            if self.values["steps_done_in_session"] >= self.limit_steps:
                 self.lg._writeLine(f"Total episodes done in this session, {self.values['steps_done_in_session']}, is greater than the limit for it, {self.limit_steps}")
                 return True                
                 
@@ -239,7 +239,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     @requires_input_proccess
     def _setup_training_session(self):
         
-        self.lg.writeLine("Setting up training session")
+        self.lg.writeLine("Setting up training session...")
 
         self.values['is_training'] = True
 
@@ -258,7 +258,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     def end_training(self):
 
         if self.values['is_training']:
-            self.lg.writeLine("Ending training session... (Note that the trainer can still be used)")
+            self.lg.writeLine("Ending training session... (Note that the trainer can still be used)\n")
 
             self.values['is_training'] = False
 

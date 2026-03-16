@@ -214,6 +214,9 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
 
     def _check_if_to_end_training_by_agent_behavior(self):
         return False # JESP takes control of ending the training due to agent behavior
+    
+    def _should_be_over_due_to_agents_trainers_over(self):
+        return False
 
     def _is_over(self):
         
@@ -223,6 +226,9 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
             if self.values["converged"]:
                 self.lg.writeLine(f"As the values converged, the training is considered as over")
                 isover = True
+
+            else:
+                self.lg.writeLine(f"JESP algorithm did not detect all trainers as having converged")
 
         return isover
 
@@ -241,6 +247,7 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
         self.lg.writeLine(f"Starting JESP run with initial values: {self.values}")
 
         while True:
+            
             if self.values["current_agent_index"] == 0: # if we are still in first index (in other cases, this may have been resumed)
                 self.values["changed_any_agent"] = False
             
@@ -272,7 +279,7 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
             if not self.values["changed_any_agent"]:
                 self.values["converged"] = True
                 self.lg.writeLine(
-                    f"JESP converged"
+                    f"JESP converged, as there were no detected changes to agents policies"
                 )
                 break
             
