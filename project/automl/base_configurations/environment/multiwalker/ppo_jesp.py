@@ -6,7 +6,7 @@ from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.rl.learners.ppo_learner import PPOLearner
 
-from automl.rl.policy.stochastic_policy import NormalStochasticPolicy
+from automl.rl.policy.stochastic_policy import ConstrainedNormalStochasticPolicy
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
@@ -49,7 +49,7 @@ def config_dict():
             "state_translator": (ToTorchTranslator, {}),
 
             "policy": (
-                NormalStochasticPolicy,
+                ConstrainedNormalStochasticPolicy,
                 {
 
                     "model": ('absolute',[

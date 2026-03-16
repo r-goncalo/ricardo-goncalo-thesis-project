@@ -256,6 +256,51 @@ def plot_scattered_values_for_all_params(optuna_study, highlight_trials=None):
 #   )
 
 
+
+def study_of_agent_trainer(agent_trainer_name : str, results_logger : ResultLogger,
+                           #x_axis_to_use='episode',
+                           x_axis_to_use='episode',
+                           y_axis_to_use='episode_reward',
+                           aggregate_number=10,
+                           prefix=''
+                            ):
+
+
+    #results_logger.plot_graph(x_axis='episode', y_axis=[('total_reward', name)], to_show=False)
+
+    results_logger.plot_confidence_interval(x_axis=x_axis_to_use, 
+                                            y_column=y_axis_to_use,
+                                            show_std=True, 
+                                            to_show=False, 
+                                            y_values_label=f"mov_avg_std ({aggregate_number})", 
+                                            aggregate_number=aggregate_number)
+
+    #results_logger.plot_linear_regression(x_axis='episode', y_axis='episode_reward', to_show=False)
+
+    #results_logger.plot_piecewise_linear_regression(x_axis='episode', y_axis='episode_reward', to_show=False, n_segments=10)
+
+    results_logger.plot_polynomial_regression(x_axis=x_axis_to_use, y_axis=y_axis_to_use, to_show=False, degrees=4)
+
+    results_logger.plot_current_graph(title=f"{prefix}{agent_trainer_name}", y_label=y_axis_to_use)
+
+
+def study_of_agent_trainers(path_where_agent_trainer_exist : str, prefix = ''):
+
+
+    for path_of_child in os.listdir(path_where_agent_trainer_exist):
+
+        if path_of_child.endswith("_trainer"):
+
+            trainer_name = os.path.basename(path_of_child)
+            results_logger = ResultLogger({
+                "create_new_directory" : False,
+                "base_directory" : os.path.join(path_where_agent_trainer_exist, path_of_child),
+                "artifact_relative_directory" : ''
+            })
+
+            study_of_agent_trainer(trainer_name, results_logger, prefix=prefix)
+
+
 def study_of_configuration(configuration_name : str, results_logger : ResultLogger,
                            #x_axis_to_use='episode',
                            x_axis_to_use='total_steps',

@@ -100,8 +100,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     def __init__(self, *args, **kwargs): #Initialization done only when the object is instantiated
         super().__init__(*args, **kwargs)
 
-        self.values["external_end_requests"] = {} # this is to be sure that same instances are not shared
-        
+        self.values["external_end_requests"] = {} # this is to be sure that same instances are not shared TODO: Acessories could change       
 
     def _proccess_input_internal(self):
         

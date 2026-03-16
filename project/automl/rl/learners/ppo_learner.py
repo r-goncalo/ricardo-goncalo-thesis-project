@@ -154,9 +154,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         model_output = self.policy.predict_model_output(states) #note we can call directly from the policy because we're using states as they were saved in the trajectory
         action_distribution = self.policy.distribution_from_model_output(model_output)
                         
-        log_probs = action_distribution.log_prob(actions)
-        if log_probs.dim() > 1:
-            log_probs = log_probs.sum(dim=-1)
+        log_probs = self.policy.log_probability_of_action(action_distribution, actions) # representing probabilities of taking previous actions with current policy
 
         entropy = action_distribution.entropy().mean()
         

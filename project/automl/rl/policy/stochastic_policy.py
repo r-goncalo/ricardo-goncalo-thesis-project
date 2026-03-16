@@ -148,3 +148,53 @@ class NormalStochasticPolicy(StochasticPolicy):
         std = torch.exp(log_std)
 
         return torch.distributions.Normal(mean, std)
+    
+
+
+class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
+    '''
+    A policy wich selects actions given on normal distributions for each output
+    This means that the shape of the model is mean and standard deviation for each action value it can compute
+
+    It passes through a tanh activation function
+    '''
+
+    def _compute_model_output_shape(self):
+        
+        super()._compute_model_output_shape()
+
+        # gym-style Box bounds
+        self.min_action_value = torch.as_tensor(
+            self.output_action_space.low,
+            dtype=torch.float32
+        )
+
+        self.max_action_value = torch.as_tensor(
+            self.output_action_space.high,
+            dtype=torch.float32
+        )
+
+
+    
+    def predict_from_distribution(self, distribution : torch.distributions):
+       self.min_action_value + self.max_action_value * torch.tanh(distribution.sample())
+
+
+    def log_probability_of_action(self, distribution, action):
+        low = self.min_action_value.to(action.device)
+        high = self.max_action_value.to(action.device)
+
+        # map action from [low, high] -> [-1, 1]
+        y = 2.0 * (action - low) / (high - low) - 1.0
+        y = torch.clamp(y, -1.0 + self.EPS, 1.0 - self.EPS)
+
+        # inverse tanh
+        raw_action = 0.5 * torch.log((1.0 + y) / (1.0 - y))
+
+        # log prob in raw Gaussian space
+        log_prob = distribution.log_prob(raw_action)
+
+        # jacobian correction
+        log_det_jacobian = torch.log((high - low) / 2.0) + torch.log(1.0 - y.pow(2) + self.EPS)
+
+        return (log_prob - log_det_jacobian).sum(dim=-1)

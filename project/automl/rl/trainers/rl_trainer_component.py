@@ -71,7 +71,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         self.setup_agents()
 
-        self.external_should_end_training_session = False
+        self.should_end_training_by_agents_behavior_flag = False # Tipically this should mean convergence
         
         self._setup_agents_trainer_events()
 
@@ -161,7 +161,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
         self.lg.writeLine(f"Trainer noticed that agent trainer {agent_trainer_name} has ended is training")
 
-        if not self.external_should_end_training_session:
+        if not self.should_end_training_by_agents_behavior_flag:
 
             should_end_training = True
             for agent_trainer in self.agents_trainers.values():
@@ -171,7 +171,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
             if should_end_training:
                 self.lg.writeLine(f"Noticed that none of the agents are now learning, ending training on next episode...")
-                self.external_should_end_training_session = True
+                self.should_end_training_by_agents_behavior_flag = True
 
         
 
@@ -290,13 +290,13 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         return False
     
 
-    def _check_if_to_end_training_by_other_means(self):
-        return self.external_should_end_training_session
+    def _check_if_to_end_training_by_agent_behavior(self):
+        return self.should_end_training_by_agents_behavior_flag
     
 
     def _check_if_to_end_training_session(self):
 
-        if self._check_if_to_end_training_by_episodes_done() or self._check_if_to_end_training_by_total_steps() or self._check_if_to_end_training_by_other_means():
+        if self._check_if_to_end_training_by_episodes_done() or self._check_if_to_end_training_by_total_steps() or self._check_if_to_end_training_by_agent_behavior():
             return True # we end the training
 
         return False

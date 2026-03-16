@@ -212,6 +212,9 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
 
         self.env.close()
 
+    def _check_if_to_end_training_by_agent_behavior(self):
+        return False # JESP takes control of ending the training due to agent behavior
+
     def _is_over(self):
         
         isover = super()._is_over()

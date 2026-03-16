@@ -4,9 +4,7 @@
 from automl.rl.agent.agent_components import AgentSchema
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
-
-# TODO: Use this in RL Pipeline
-
+             
 
 def initialize_agents_components(agents, env : AECEnvironmentComponent, agents_input={}, caller_component=None) -> dict[str, AgentSchema]:
         

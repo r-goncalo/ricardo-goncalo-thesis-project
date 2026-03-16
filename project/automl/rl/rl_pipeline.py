@@ -1,21 +1,19 @@
 import os
 import shutil
-import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import ParameterSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_proccess
 from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
-from automl.ml.optimizers.optimizer_components import AdamOptimizer
-from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStrategy
 from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
 from automl.utils.files_utils import open_or_create_folder
-from automl.basic_components.state_management import StatefulComponent, load_component_from_folder
+from automl.basic_components.state_management import StatefulComponent
 
+from automl.loggers.result_logger import ResultLogger
 import torch
 
 import gc
@@ -529,7 +527,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
     # RESULTS --------------------------------------
     
     @requires_input_proccess
-    def get_results_logger(self):
+    def get_results_logger(self) -> ResultLogger:
         return self.rl_trainer.get_results_logger()
     
     

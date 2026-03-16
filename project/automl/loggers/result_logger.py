@@ -48,7 +48,6 @@ class ResultLogger(LoggerSchema):
 
             self.dataframe = dataframe_on_folder
             self.columns = self.dataframe.columns
-            self._writeLine(f"INITIALIZING DATAFRAME OF {self.name}: Results dataframe with filename {self.results_filename} already existed with columns {self.columns}, using it...")
         
         except Exception as e:
                         
@@ -289,7 +288,11 @@ class ResultLogger(LoggerSchema):
 
             sub_by_x_axis = df[df[x_axis] == group_by_x_axis]
 
-            sub_by_x_axis = sub_by_x_axis.sort_values(by=y_axis, ascending=False)
+            sub_by_x_axis = sub_by_x_axis.sort_values(
+                by=y_axis,
+                key=lambda col: col.abs(),
+                ascending=False
+            )
 
             for index, row in sub_by_x_axis.iterrows():
 
