@@ -174,20 +174,16 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
     
     def _get_bounds_from_shape(self):
 
-        if hasattr(self.output_action_space, "low"):
-            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_space.low}")
+        if hasattr(self.output_action_shape, "low"):
+            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_shape.low}")
 
-        if hasattr(self.output_action_space, "high"):
-            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_space.high}")
+        if hasattr(self.output_action_shape, "high"):
+            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_shape.high}")
 
         # gym-style Box bounds
-        self.min_action_value = torch.as_tensor(
-            self.output_action_space.low
-        )
+        self.min_action_value = self.output_action_shape.low
 
-        self.max_action_value = torch.as_tensor(
-            self.output_action_space.high
-        )
+        self.max_action_value = self.output_action_shape.high
 
 
     
