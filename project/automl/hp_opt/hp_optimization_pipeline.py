@@ -414,8 +414,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             suggestion_to_make = {}
 
             for hp_suggestion in self.hyperparameters_range_list:
-
-                if hp_suggestion.name in hyperparameters_to_mantain:
+                
+                # if the hyperparameter is not one of the ones we want to mantain
+                if hp_suggestion.name not in hyperparameters_to_mantain:
                     break
 
                 initial_optuna_values : dict = hp_suggestion.try_get_suggested_optuna_values(self.config_dict)
