@@ -36,7 +36,6 @@ from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
 from automl.rl.learners.ppo_learner import PPOLearner
-from automl.rl.learners.convergence_aware_ppo_learner import ConvergenceAwarePPOLearner
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.basic_components.dynamic_value import DynamicLinearValueInRangeBasedOnComponent
 

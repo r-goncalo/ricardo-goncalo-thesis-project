@@ -83,13 +83,7 @@ class ConvergenceDetector(AcessoryComponent, ComponentWithLogging):
 
         avg_kl = sum(self.kl_divergence_memory) / self.kl_divergence_memory_size
 
-        self.lg.writeLine(f"Average KL divergence: {avg_kl}")
-
         if avg_kl < self.kl_divergence_treshold and avg_kl > -self.kl_divergence_treshold:
-            self.lg.writeLine(
-                f"KL divergence {avg_kl} below threshold "
-                f"{self.kl_divergence_treshold}. Convergence detected."
-            )
 
             # Notify trainer
             self.agent_trainer.request_end_from_external(self.name)
