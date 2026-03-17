@@ -127,11 +127,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     
     # RUNNING THE WORKERS ------------------------------------------------------
 
-    def sample_trial(self):
-
-        with self.optuna_usage_sem:
-            return super().sample_trial()
-
     def _run_available_worker(self, trial : optuna.Trial, component_index, n_steps, should_end, index_in_trainings_remaining):
 
         '''Waits until it can aquire a worker and then runs a job with it, freeing it in the end'''
@@ -818,9 +813,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         with self.optuna_usage_sem:
             return super().mark_trial_as_pruned(trial, value)
 
-    def _generate_trial(self):
+    def sample_trial(self):
         with self.optuna_usage_sem:
-            return super()._generate_trial()
+            return super().sample_trial()
 
 
     # RUNNING A TRIAL -----------------------------------------------------------------------

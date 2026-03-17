@@ -65,6 +65,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "direction" : ParameterSignature(default_value='maximize'),
                                                 
                         "hyperparameters_range_list" : ParameterSignature(mandatory=False),
+                        "hyperparameters_to_optimize" : ParameterSignature(mandatory=False, description="Hyperparameters names to actually try to optimize, the others have their values fixed"),
+                        
                         "n_trials" : ParameterSignature(),
                         
                         "steps" : ParameterSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
@@ -173,16 +175,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self._initialize_pruning_strategy()
         self._initialize_sampler()
 
-
-        self._initialize_study()
-
-        # SETUP AUX VALUES
-        
-        parameter_names = [hyperparameter_specification.name for hyperparameter_specification in self.hyperparameters_range_list]
-        
-        self.lg.writeLine(f"Hyperparameter names: {parameter_names}")
-        
-        self._setup_hp_results_logger(parameter_names)
+        self._initialize_study()        
+                
+        self._setup_hp_results_logger(self.hyparameter_names)
                 
         self._suggested_values_by_trials = {}  
 
@@ -216,7 +211,23 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
             if os.path.exists(hyperparameters_path):
                 self.lg.writeLine(f"Hyperparameters in path and input, using the ones in input...")
 
+        self.hyparameter_names = [hyperparameter_specification.name for hyperparameter_specification in self.hyperparameters_range_list]
+
+        self.lg.writeLine(f"Hyperparameter suggestions defined are: {self.hyparameter_names}")
+
+        self.hyperparameters_to_optimize_per_trial = self.get_input_value("hyperparameters_to_optimize")
         
+        if self.hyperparameters_to_optimize_per_trial is None:
+            self.hyperparameters_to_optimize_per_trial = []
+            self.lg.writeLine(f"No hyperparameters to optimize specific flow defined")
+
+        elif len(self.hyperparameters_to_optimize_per_trial) > 0:
+
+            if not isinstance(self.hyperparameters_to_optimize_per_trial[0], (list, tuple)):
+                self.hyperparameters_to_optimize_per_trial = [(self.n_trials, self.hyperparameters_to_optimize_per_trial)]
+
+
+
 
     def _setup_hp_results_logger(self, parameter_names):
         
@@ -385,34 +396,63 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     # SETUP TRIALS AND SUGGESTIONS -------------------------------------------------------------------------
 
-
-    def _queue_trial_with_suggestion(self, suggestion_dict):
+    def _queue_optuna_trial_with_suggestion(self, suggestion_dict):
 
         self.lg.writeLine(f"Queued trial with values: {suggestion_dict}")
 
         self.study.enqueue_trial(suggestion_dict)
 
 
-    def _queue_trial_with_initial_suggestion(self):
+    def _queue_trial_with_fixed_values_suggestion(self, hyperparameters_to_mantain=None, n_times=1):
 
-        self.lg.writeLine(f"Queueing trial with initial suggestion...")
+        hyperparameters_to_mantain = self.hyparameter_names if hyperparameters_to_mantain is None else hyperparameters_to_mantain
 
-        initial_suggestion = {}
+        self.lg.writeLine(f"Queueing {n_times} trial(s) with suggestion by mantaining the passed values for hyperparameters: {hyperparameters_to_mantain}")
 
-        for hp_suggestion in self.hyperparameters_range_list:
+        for _ in range(n_times):
 
-            initial_optuna_values : dict = hp_suggestion.try_get_suggested_optuna_values(self.config_dict)
+            suggestion_to_make = {}
 
-            if initial_optuna_values != None:
-                initial_suggestion = {**initial_suggestion, **initial_optuna_values}
+            for hp_suggestion in self.hyperparameters_range_list:
 
+                if hp_suggestion.name in hyperparameters_to_mantain:
+                    break
+
+                initial_optuna_values : dict = hp_suggestion.try_get_suggested_optuna_values(self.config_dict)
+
+                if initial_optuna_values != None:
+                    suggestion_to_make = {**suggestion_to_make, **initial_optuna_values}
+
+                else:
+                    self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
+
+            self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {suggestion_to_make.keys()}")
+
+            if suggestion_to_make != {}:
+                self._queue_optuna_trial_with_suggestion(suggestion_to_make)
+
+
+
+    def _do_hyperparameter_suggestion_for_trial(self, trial : optuna.Trial, base_component, hyperparameter_suggestion : HyperparameterSuggestion):
+
+            '''Uses an hyperparameter suggestion object to make an a suggestion for a component of a trial'''
+
+            # if the trial was created with a specification of the value
+            if hyperparameter_suggestion.already_has_suggestion_in_trial(trial):
+                suggested_value = trial.params[hyperparameter_suggestion.name]
+
+            # if we should use the hp_suggestion object to suggest a value to the trial
             else:
-                self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
+                suggested_value = hyperparameter_suggestion.make_suggestion(trial=trial)
+                self.lg.writeLine(f"For hyperparameter {hyperparameter_suggestion.name}, value {suggested_value} was sampled, using the sampler {self.sampler}")
+        
+            
+            #save suggestion value in our internal dict
+            self._suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
 
-        self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {initial_suggestion.keys()}")
-
-        if initial_suggestion != {}:
-            self._queue_trial_with_suggestion(initial_suggestion)
+            hyperparameter_suggestion.set_suggested_value(suggested_value, base_component) # set suggested value in component
+            
+            self.lg.writeLine(f"{hyperparameter_suggestion.name}: {suggested_value}")
 
 
 
@@ -429,23 +469,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         for hyperparameter_suggestion in self.hyperparameters_range_list:
 
-            # if the trial was created with a specification of the value
-            if hyperparameter_suggestion.already_has_suggestion_in_trial(trial):
-
-                suggested_value = trial.params[hyperparameter_suggestion.name]
-
-            # if we should use the hp_suggestion object to suggest a value to the trial
-            else:
-
-                suggested_value = hyperparameter_suggestion.make_suggestion(trial=trial)
-                self.lg.writeLine(f"For hyperparameter {hyperparameter_suggestion.name}, value {suggested_value} was sampled, using the sampler {self.sampler}")
-            
-            #save suggestion value in our internal dict
-            self._suggested_values_by_trials[trial.number][hyperparameter_suggestion.name] = suggested_value
-
-            hyperparameter_suggestion.set_suggested_value(suggested_value, base_component) # set suggested value in component
-            
-            self.lg.writeLine(f"{hyperparameter_suggestion.name}: {suggested_value}")
+            self._do_hyperparameter_suggestion_for_trial(trial, base_component, hyperparameter_suggestion)
             
 
 
@@ -630,13 +654,12 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     def _pre_proccess_component_before_objective(self, trial : optuna.Trial):
         pass
 
-    def _generate_trial(self) -> optuna.Trial:
-        return self.study.ask()
     
-    def sample_trial(self):
+    def sample_trial(self) -> optuna.Trial:
         self.lg.writeLine(f"Sampling trial...")
         trial = self.study.ask()
         self.lg.writeLine(f"Sampled trial {trial.number}")
+        
         return trial
 
     def _run_single_trial(self, trial=None):
@@ -900,8 +923,13 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"Created new study '{self.study_name}'")
 
                 if self.start_with_given_values:
-                    self.lg.writeLine("Starting the study with given values")
-                    self._queue_trial_with_initial_suggestion()
+                    self.lg.writeLine("Starting the study with initial given values")
+                    self._queue_trial_with_fixed_values_suggestion()
+
+                for n_values_to_queue, names_to_change in self.hyperparameters_to_optimize_per_trial:
+                    self._queue_trial_with_fixed_values_suggestion(n_times=n_values_to_queue,
+                                                hyperparameters_to_mantain=[name_to_mantain for name_to_mantain in self.hyparameter_names if name_to_mantain not in names_to_change]
+                                                )
 
         
         else:

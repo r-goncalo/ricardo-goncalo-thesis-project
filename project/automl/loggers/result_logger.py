@@ -694,6 +694,104 @@ class ResultLogger(LoggerSchema):
         plt.show()
 
     @requires_input_proccess
+    def plot_covariance_and_correlation(
+        self,
+        x_axis: str,
+        y_axis: str,
+        title: str = '',
+        save_path: str = None,
+        to_show: bool = True,
+        fixed_value_tuple=None,
+        ax=None,
+        color=None,
+        show_values_in_title: bool = True
+    ):
+        """
+        Plots a scatter plot between two dataframe columns and computes both covariance and correlation.
+
+        :param x_axis: Column name for the X-axis.
+        :param y_axis: Column name for the Y-axis.
+        :param title: Optional plot title.
+        :param save_path: Optional path to save the plot as an image.
+        :param to_show: Whether to display the plot.
+        :param fixed_value_tuple: Optional filters like [("column_name", value)].
+        :param ax: Optional matplotlib axis.
+        :param color: Optional scatter color.
+        :param show_values_in_title: Whether to append covariance and correlation to the title.
+        :return: (covariance, correlation)
+        """
+
+        if self.dataframe.empty:
+            raise ValueError("Dataframe is empty. Log results before plotting.")
+
+        if x_axis not in self.dataframe.columns:
+            raise KeyError(
+                f"Column '{x_axis}' not found in dataframe. "
+                f"Available columns: {self.dataframe.columns}"
+            )
+
+        if y_axis not in self.dataframe.columns:
+            raise KeyError(
+                f"Column '{y_axis}' not found in dataframe. "
+                f"Available columns: {self.dataframe.columns}"
+            )
+
+        if ax is None:
+            ax = plt.gca()
+
+        df = self.filter_dataframe(fixed_value_tuple)
+
+        if df.empty:
+            raise ValueError("No data available after applying filters.")
+
+        # Ensure numeric values
+        x_values = pd.to_numeric(df[x_axis], errors="coerce")
+        y_values = pd.to_numeric(df[y_axis], errors="coerce")
+
+        valid_mask = x_values.notna() & y_values.notna()
+        x_values = x_values[valid_mask]
+        y_values = y_values[valid_mask]
+
+        if len(x_values) < 2:
+            raise ValueError("At least two valid numeric rows are required.")
+
+        # ---- statistics ----
+        covariance = x_values.cov(y_values)
+        correlation = x_values.corr(y_values)
+
+        # ---- plot ----
+        ax.scatter(
+            x_values,
+            y_values,
+            color=color,
+            label=f"Cov = {covariance:.4f}, Corr = {correlation:.4f}"
+        )
+
+        # ---- title ----
+        final_title = title
+        if show_values_in_title:
+            stats_text = f"Cov = {covariance:.4f}, Corr = {correlation:.4f}"
+            final_title = f"{title} - {stats_text}" if title else stats_text
+
+        ax.set_xlabel(x_axis)
+        ax.set_ylabel(y_axis)
+
+        if final_title:
+            ax.set_title(final_title)
+
+        ax.legend()
+        ax.grid(True)
+
+        if save_path:
+            ax.figure.savefig(self.logDir + '\\' + save_path)
+
+        if to_show:
+            plt.show()
+
+        return covariance, correlation
+
+
+    @requires_input_proccess
     def list_of_unique_values(self, column):
 
         return self.dataframe[column].unique().tolist()
@@ -815,26 +913,5 @@ def aggregate_results_logger(results_logger_objects : list[ResultLogger], new_di
     resuls_logger.saveDataframe(datafrane, filename=new_results_filename)
     
     return resuls_logger
-
-
-        
-    
-    ## WANDB --------------------------------
-    #
-    #def initialize_wandb(self):
-    #    
-    #    self.writeLine("Initializing wandb...")
-    #    
-    #    self.wandb_run = wandb.init(project="rl_pipeline", entity="rl_pipeline", mode="offline", dir = self.logDir)
-    #    
-    #def log_to_wandb(self, toLog : dict):
-    #    
-    #    self.wandb_run.log(toLog)
-    #    
-    #def close_wandb(self):
-    #
-    #    self.writeLine("Closing wandb...")        
-    #    self.wandb_run.finish()    
-    
     
     

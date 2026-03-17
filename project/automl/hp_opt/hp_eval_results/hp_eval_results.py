@@ -157,15 +157,6 @@ def plot_scattered_values_for_all_params(optuna_study, highlight_trials=None):
     # Hyperparameter columns
     param_cols = [c for c in df.columns if c.startswith("params_")]
 
-    # Prepare highlighted trial data
-    highlighted_points = []
-    for tnum in highlight_trials:
-        try:
-            t = optuna_study.trials[tnum]
-            highlighted_points.append(t)
-        except:
-            print(f"Warning: trial {tnum} not found, skipping.")
-
     trial_numbers = df["number"].values
 
     # Normalize trial numbers to [0,1]
@@ -201,7 +192,7 @@ def plot_scattered_values_for_all_params(optuna_study, highlight_trials=None):
         # Collect all highlighted X,Y
         hl_x = []
         hl_y = []
-        for t in highlighted_points:
+        for t in highlight_trials:
             if base_name in t.params:
                 hl_x.append(t.params[base_name])
                 hl_y.append(t.value)
