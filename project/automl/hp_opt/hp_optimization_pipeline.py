@@ -329,7 +329,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.sampler  : OptunaSamplerComponent = self.get_input_value("sampler")
 
         self.lg.writeLine(
-                f"Using sampler of type {type(self.pruning_strategy)}"
+                f"Using sampler of type {type(self.sampler)}"
             )
             
     
