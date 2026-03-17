@@ -61,7 +61,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         but from the dictionary returned by reset() and step().
         This method simply accesses the last stored obs dict.
         """
-        return self._last_obs.get(agent, None)
+        return self._last_obs[agent]
 
 
     @requires_input_proccess
