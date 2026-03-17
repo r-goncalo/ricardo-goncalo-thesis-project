@@ -424,10 +424,10 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 if initial_optuna_values != None:
                     suggestion_to_make = {**suggestion_to_make, **initial_optuna_values}
 
-                else:
+                if initial_optuna_values is None or initial_optuna_values == {}:
                     self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
 
-            self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {suggestion_to_make.keys()}")
+            self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {suggestion_to_make.keys()}\ns")
 
             if suggestion_to_make != {}:
                 self._queue_optuna_trial_with_suggestion(suggestion_to_make)
