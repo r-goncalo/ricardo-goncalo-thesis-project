@@ -409,27 +409,27 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         self.lg.writeLine(f"Queueing {n_times} trial(s) with suggestion by mantaining the passed values for hyperparameters: {hyperparameters_to_mantain}")
 
-        for _ in range(n_times):
 
-            suggestion_to_make = {}
+        suggestion_to_make = {}
 
-            for hp_suggestion in self.hyperparameters_range_list:
+        for hp_suggestion in self.hyperparameters_range_list:
                 
-                # if the hyperparameter is not one of the ones we want to mantain
-                if hp_suggestion.name not in hyperparameters_to_mantain:
-                    break
+            # if the hyperparameter is not one of the ones we want to mantain
+            if hp_suggestion.name not in hyperparameters_to_mantain:
+                continue
 
-                initial_optuna_values : dict = hp_suggestion.try_get_suggested_optuna_values(self.config_dict)
+            initial_optuna_values : dict = hp_suggestion.try_get_suggested_optuna_values(self.config_dict)
 
-                if initial_optuna_values != None:
-                    suggestion_to_make = {**suggestion_to_make, **initial_optuna_values}
+            if initial_optuna_values != None:
+                suggestion_to_make = {**suggestion_to_make, **initial_optuna_values}
 
-                if initial_optuna_values is None or initial_optuna_values == {}:
-                    self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
+            if initial_optuna_values is None or initial_optuna_values == {}:
+                self.lg.writeLine(f"Couldn't initialize hyperparameter suggestion {hp_suggestion.name} with given value")
 
-            self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {suggestion_to_make.keys()}\ns")
+        self.lg.writeLine(f"Initial (optuna coded) values retrieved from configuration: {suggestion_to_make.keys()}\n")
 
-            if suggestion_to_make != {}:
+        if suggestion_to_make != {}:
+            for i in range(n_times):
                 self._queue_optuna_trial_with_suggestion(suggestion_to_make)
 
 
