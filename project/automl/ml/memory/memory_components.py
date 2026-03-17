@@ -74,6 +74,10 @@ class MemoryComponent(StatefulComponent):
         '''Returns ordered list of segmented memory with batch_size'''
         pass
 
+    @requires_input_proccess
+    def get_capacity(self):
+        return self.capacity
+
 
     @requires_input_proccess
     def __len__(self):

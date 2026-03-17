@@ -43,6 +43,10 @@ class MemorySampler(Component):
     def get_all_segmented(self, batch_size):
         '''Returns ordered list of segmented memory with batch_size'''
         return self.memory.get_all_segmented(batch_size)
+    
+    @requires_input_proccess
+    def get_capacity(self):
+        return self.memory.get_capacity()
 
 
     @requires_input_proccess

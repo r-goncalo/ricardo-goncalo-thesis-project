@@ -8,7 +8,6 @@ import torch.optim as optim
 import torch.nn as nn
 from torch.optim.lr_scheduler import LambdaLR
 
-
 from abc import abstractmethod
 
 class OptimizerSchema(Component):
@@ -96,7 +95,6 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
                        
                        
                        }    
-
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
@@ -130,7 +128,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
 
             self.lg.writeLine(f"LR will have linear decay, using a linear decay till 0 and a predicted final number of optimizations of {self.linear_decay_learning_rate_with_final_input_value_of}")
 
-            self.lr_scheduler = LambdaLR(self.torch_adam_opt, last_epoch=self.values["optimizations_done"], lr_lambda=lambda step: 1 - step / self.linear_decay_learning_rate_with_final_input_value_of)
+            self.lr_scheduler = LambdaLR(self.torch_adam_opt, last_epoch=self.values["optimizations_done"], lr_lambda=lambda step: max(0.0, 1 - step / self.linear_decay_learning_rate_with_final_input_value_of))
 
 
     def _initialize_grad_clip(self):

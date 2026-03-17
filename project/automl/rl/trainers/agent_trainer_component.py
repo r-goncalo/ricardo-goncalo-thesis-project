@@ -210,7 +210,36 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     @requires_input_proccess
     def make_optimization_prediction_for_agent_steps(self, total_steps):
         
-        return  ( total_steps / self.optimization_interval ) * self.times_to_learn
+        times_to_optimize_following_interval =  total_steps / self.optimization_interval
+        to_return = 0
+        
+        if self.learn_with_all_memory:
+
+            memory_capacity = self.memory.get_capacity()
+            memory_ocupied = self.optimization_interval
+            n_times_summed = 0
+
+            # for each time we'll optimize without full memory
+            while memory_ocupied < memory_capacity and n_times_summed < times_to_optimize_following_interval:
+
+                times_to_learn_with_memory = int(memory_ocupied / self.BATCH_SIZE)
+                to_return += times_to_learn_with_memory
+                n_times_summed += 1
+                memory_ocupied += self.optimization_interval
+
+            # number of times we still have not processed
+            number_of_times_still_to_learn = times_to_optimize_following_interval - n_times_summed
+
+            # we process the times the optimization happens with full memory
+            to_return += int(memory_capacity / self.BATCH_SIZE) * number_of_times_still_to_learn
+        
+        else:
+            to_return = times_to_optimize_following_interval
+
+
+        to_return = to_return * self.times_to_learn
+
+        return to_return
     
     
     # STOP CONDITIONS ------------------------
