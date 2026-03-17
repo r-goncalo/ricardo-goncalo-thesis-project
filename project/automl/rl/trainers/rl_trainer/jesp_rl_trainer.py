@@ -35,7 +35,7 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
         
         # these two is to mantain state in case algorithm is interrupted mid execution
         "current_agent_index" : 0, 
-        "changed_any_agent" : False,
+        "changed_any_agent" : False, # if any agent was changed in a pass
         "step_before_curr_jesp_iteraition" : -1
     }
 
@@ -212,6 +212,9 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
 
         self.env.close()
 
+    def _check_and_end_training_due_to_agents(self):
+        pass
+
     def _check_if_to_end_training_by_agent_behavior(self):
         return False # JESP takes control of ending the training due to agent behavior
     
@@ -259,9 +262,6 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
 
                 self.values["current_agent_index"] = agent_name_index
                 agent_name = self.agent_order[agent_name_index]
-
-                if agent_name not in self.env.get_active_agents():
-                    break
 
                 if self._check_if_to_end_training_session():
                     break

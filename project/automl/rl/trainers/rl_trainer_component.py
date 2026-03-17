@@ -158,10 +158,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
     def _setup_agents_trainer_events(self):
         AgentTrainer.STATIC_EVENTS["ended_agent_training"].subscribe(self._on_agent_trainer_train_ending)
 
-    
-    def _on_agent_trainer_train_ending(self, agent_trainer_name):
 
-        self.lg.writeLine(f"Trainer noticed that agent trainer {agent_trainer_name} has ended is training")
+    def _check_and_end_training_due_to_agents(self):
 
         if not self.should_end_training_by_agents_behavior_flag:
 
@@ -174,6 +172,12 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             if should_end_training:
                 self.lg.writeLine(f"Noticed that none of the agents are now learning, ending training on next episode...")
                 self.should_end_training_by_agents_behavior_flag = True
+    
+    def _on_agent_trainer_train_ending(self, agent_trainer_name):
+
+        self.lg.writeLine(f"Trainer noticed that agent trainer {agent_trainer_name} has ended is training")
+
+        self._check_and_end_training_due_to_agents()
 
         
 
