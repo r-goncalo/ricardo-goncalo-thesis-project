@@ -41,7 +41,7 @@ class PPOAdvantagesCalcSampler(MemorySampler):
 
         self.device = memory.device
 
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch = self.learner.interpret_trajectory(self.memory.get_all())
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch, actions_val_batch = self.learner.interpret_trajectory(self.memory.get_all())
 
         with torch.no_grad():
             values, next_values = self.learner.compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
