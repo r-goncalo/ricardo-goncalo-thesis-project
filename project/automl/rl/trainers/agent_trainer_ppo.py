@@ -3,6 +3,8 @@ from automl.rl.learners.q_learner import ComponentParameterSignature
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 
+import torch
+
 class AgentTrainerPPO(AgentTrainer):
     
     '''Describes a trainer specific for an agent, using a learner algorithm, memory and more'''
@@ -80,6 +82,9 @@ class AgentTrainerPPO(AgentTrainer):
         next_state_memory = self.agent.get_current_state_in_memory()
 
         critic_pred = self.learner.critic_pred(self.state_memory_temp)
+
+        action_val_to_store = self.last_action_val.squeeze(0) if torch.is_tensor(self.last_action_val) and self.last_action_val.dim() > 1 and self.last_action_val.shape[0] == 1 else self.last_action_val
+
 
         #we can push in this way because the pushed tensors are actually cloned into memory
         self.memory.push({"state" : self.state_memory_temp, 
