@@ -4,7 +4,7 @@ from automl.component import Component, ParameterSignature, requires_input_procc
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.advanced_input_utils import get_value_of_type_or_component
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.ml.memory.memory_utils import interpret_unit_values
+from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.ml.models.torch_model_utils import split_shared_params
 from automl.rl.learners.learner_component import LearnerSchema
@@ -145,7 +145,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
     
     # EXPOSED METHODS --------------------------------------------------------------------------
     
-    def _evaluate_actions(self, states, actions):
+    def _evaluate_actions(self, states, action_vals):
         """
         Evaluate given actions under the current policy.
         Computes log probabilities of actions and entropy of the policy distribution.
@@ -154,9 +154,13 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         model_output = self.policy.predict_model_output(states) #note we can call directly from the policy because we're using states as they were saved in the trajectory
         action_distribution = self.policy.distribution_from_model_output(model_output)
                         
-        log_probs = self.policy.log_probability_of_action(action_distribution, actions) # representing probabilities of taking previous actions with current policy
+        log_probs = self.policy.log_probability_of_action_val(action_distribution, action_vals) # representing probabilities of taking previous actions with current policy
 
-        entropy = action_distribution.entropy().mean()
+        entropy = action_distribution.entropy()
+        if entropy.dim() > 1:
+            entropy = entropy.sum(dim=-1)
+        
+        entropy = entropy.mean()        
         
         return model_output, log_probs, entropy
 
@@ -166,11 +170,13 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         
         state_batch, action_batch, next_state_batch, reward_batch, done_batch = super().interpret_trajectory(trajectory)
 
-        log_prob_batch = interpret_unit_values(trajectory["log_prob"], self.device)
+        log_prob_batch = interpret_unit_values(trajectory["log_prob"], self.device).detach()
 
-        critic_pred_batch = interpret_unit_values(trajectory["critic_pred"], self.device)
+        critic_pred_batch = interpret_unit_values(trajectory["critic_pred"], self.device).detach()
 
-        return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch
+        action_val_batch = interpret_values(trajectory["action_val"], self.device).detach()
+
+        return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch, action_val_batch
     
 
 
@@ -209,7 +215,9 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):
     
         # Compute ratio (pi_theta / pi_theta_old)
-        ratio = torch.exp(new_log_probs - log_prob_batch)
+        log_ratio = new_log_probs - log_prob_batch
+        log_ratio = torch.clamp(log_ratio, -20, 20)
+        ratio = torch.exp(log_ratio)
 
         # Compute surrogate loss
         surrogate1 = ratio * advantages
@@ -290,7 +298,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         
         self.number_of_times_optimized += 1
         
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch = self.interpret_trajectory(trajectory)
+        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch, action_val_batch = self.interpret_trajectory(trajectory)
 
         values = trajectory.get("values", None) 
         next_values = trajectory.get("next_values", None)  
@@ -305,7 +313,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
             values_error, non_normalized_advantages, advantages, returns = self.compute_error_and_advantage(discount_factor, reward_batch, next_values, values, done_batch)
 
         # Compute new log probabilities from the policy
-        action_logits, new_log_probs, entropy = self._evaluate_actions(state_batch, action_batch)
+        action_logits, new_log_probs, entropy = self._evaluate_actions(state_batch, action_val_batch)
 
         ratio, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, critic_pred_batch, values, returns)
 

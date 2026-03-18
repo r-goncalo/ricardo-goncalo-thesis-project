@@ -33,8 +33,17 @@ class StochasticPolicy(Policy):
         
         distribution = self.distribution_from_model_output(model_output) # probabilities computed from logits
         
-        return self.predict_from_distribution(distribution)
-        
+        action_val = self.sample_action_val_from_distribution(distribution)
+
+        return self.get_action_from_action_val(action_val)
+    
+    @requires_input_proccess
+    def get_action_val_shape(self):
+        return self.output_action_shape
+
+    @requires_input_proccess 
+    def get_action_from_action_val(self, action_val):
+        return action_val
     
     @requires_input_proccess
     def predict_model_output(self, state) -> torch.Tensor:
@@ -46,29 +55,29 @@ class StochasticPolicy(Policy):
         pass
     
     
-    def predict_from_distribution(self, distribution : torch.distributions):
+    def sample_action_val_from_distribution(self, distribution : torch.distributions):
         return distribution.sample()
     
-    def log_probability_of_action(self, distribution, action):
-        return distribution.log_prob(action).sum(dim=-1)
+    def log_probability_of_action_val(self, distribution, action_val):
+        return distribution.log_prob(action_val).sum(dim=-1)
     
     
-    def predict_from_model_output_with_log(self, model_output):
+    def predict_action_val_from_model_output_with_log(self, model_output):
                 
         dist = self.distribution_from_model_output(model_output)
         
-        action = self.predict_from_distribution(dist)
+        action_val = self.sample_action_val_from_distribution(dist)
                 
-        log_prob = self.log_probability_of_action(dist, action)
+        log_prob = self.log_probability_of_action_val(dist, action_val)
 
-        return action, log_prob    
+        return action_val, log_prob    
 
     
-    def predict_with_log(self, state):
+    def predict_action_val_with_log(self, state):
         
         model_output = self.predict_model_output(state)    
                 
-        return self.predict_from_model_output_with_log(model_output)
+        return self.predict_action_val_from_model_output_with_log(model_output)
     
 
 
@@ -95,7 +104,9 @@ class CategoricalStochasticPolicy(StochasticPolicy):
         '''
 
         return super().predict_model_output(state)
-    
+
+    def log_probability_of_action_val(self, distribution, action_val):
+        return distribution.log_prob(action_val)
     
     def probabilities_from_logits(self, logits) -> torch.Tensor:
 
@@ -190,28 +201,6 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
             self.output_action_shape.high,
             device=self.device
         )
-
-
     
-    def predict_from_distribution(self, distribution : torch.distributions):
-       return self.min_action_value + (self.action_range) * 0.5 * (torch.tanh(distribution.sample()) + 1.0) 
-
-
-    def log_probability_of_action(self, distribution, action):
-        low = self.min_action_value.to(action.device)
-        high = self.max_action_value.to(action.device)
-
-        # map action from [low, high] -> [-1, 1]
-        y = 2.0 * (action - low) / (high - low) - 1.0
-        y = torch.clamp(y, -1.0 + self.EPS, 1.0 - self.EPS)
-
-        # inverse tanh
-        raw_action = 0.5 * torch.log((1.0 + y) / (1.0 - y))
-
-        # log prob in raw Gaussian space
-        log_prob = distribution.log_prob(raw_action)
-
-        # jacobian correction
-        log_det_jacobian = torch.log((high - low) / 2.0) + torch.log(1.0 - y.pow(2) + self.EPS)
-
-        return (log_prob - log_det_jacobian).sum(dim=-1)
+    def get_action_from_action_val(self, action_val):
+        return self.min_action_value + (self.action_range) * 0.5 * (torch.tanh(action_val) + 1.0) 

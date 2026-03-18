@@ -86,28 +86,28 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
     
     
     
-    def predict_from_distribution(self, probs):
+    def sample_action_val_from_distribution(self, probs):
     
-        action = super().predict_from_distribution(probs)
+        action = super().sample_action_val_from_distribution(probs)
 
         self.lg.writeLine(f"Action from probabilities: {probs} -> {action}", file='predicted_values.txt')
         
         return action
 
     
-    def predict_from_model_output_with_log(self, probs):
+    def predict_action_val_from_model_output_with_log(self, probs):
 
-        action, log_prob = super().predict_from_model_output_with_log(probs)
+        action, log_prob = super().predict_action_val_from_model_output_with_log(probs)
 
         self.lg.writeLine(f"Action, log prob from probabilities: {probs} -> {action}, {log_prob}", file='predicted_values.txt')
                 
         return action, log_prob  
 
     
-    def predict_with_log(self, state):
+    def predict_action_val_with_log(self, state):
         
         logits = self.predict_model_output(state) # real numbers higher the higher probability        
         
         probs = self.distribution_from_model_output(logits) # probabilities computed from logits
         
-        return self.predict_from_model_output_with_log(probs)
+        return self.predict_action_val_from_model_output_with_log(probs)

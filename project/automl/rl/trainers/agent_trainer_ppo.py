@@ -35,6 +35,7 @@ class AgentTrainerPPO(AgentTrainer):
                                         ("done", 1),
                                         ("log_prob", 1), #log probability of chosing the stored action
                                         ("critic_pred", 1),
+                                        ("action_val", self.agent_policy.get_action_val_shape())
                                     ]
             
         self.memory.pass_input({
@@ -58,6 +59,8 @@ class AgentTrainerPPO(AgentTrainer):
 
         if not isinstance(self.agent_policy, StochasticPolicy):
             raise Exception("PPO trainer needs a stochastic policy")
+        
+        self.agent_policy : StochasticPolicy = self.agent_policy
         
 
         
@@ -85,26 +88,29 @@ class AgentTrainerPPO(AgentTrainer):
                           "reward" : reward, 
                           "log_prob" : self.last_log_prob, 
                           "done" : done,
-                          "critic_pred" : critic_pred.item()})
+                          "critic_pred" : critic_pred.item(),
+                          "action_val" : self.last_action_val})
                
         
     def select_action(self, state):
         
         '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
                 
-        action, log_prob = self.agent.call_policy_method(self.agent_policy.predict_with_log, state) 
+        action_val, log_prob = self.agent.call_policy_method(self.agent_policy.predict_action_val_with_log, state) 
         
+        self.last_action_val = action_val
         self.last_log_prob = log_prob
         
-        return action
+        return self.agent_policy.get_action_from_action_val(action_val)
     
     def select_action_with_memory(self):
 
-        action, log_prob = self.agent.call_policy_method_with_memory(self.agent_policy.predict_with_log)
+        action_val, log_prob = self.agent.call_policy_method_with_memory(self.agent_policy.predict_action_val_with_log)
         
         self.last_log_prob = log_prob
+        self.last_action_val = action_val
 
-        return action
+        return self.agent_policy.get_action_from_action_val(action_val)
         
 
     def optimizeAgent(self):
