@@ -94,7 +94,7 @@ class AgentTrainerPPO(AgentTrainer):
                           "log_prob" : self.last_log_prob, 
                           "done" : done,
                           "critic_pred" : critic_pred.item(),
-                          "action_val" : self.last_action_val})
+                          "action_val" : action_val_to_store})
                
         
     def select_action(self, state):
