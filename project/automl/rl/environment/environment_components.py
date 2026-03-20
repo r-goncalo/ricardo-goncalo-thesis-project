@@ -5,6 +5,17 @@ from automl.basic_components.sampler import Sampler
 from abc import abstractmethod
 
 
+def normalize_observation(raw_obs):
+        
+        if isinstance(raw_obs, dict):
+            if "observation" not in raw_obs:
+                raise ValueError("Observation dict must contain key 'observation'")
+            return raw_obs
+
+        return {
+            "observation": raw_obs
+        }
+
 class EnvironmentComponent(Component):
 
     '''Represents any environment'''

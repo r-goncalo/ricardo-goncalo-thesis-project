@@ -128,3 +128,4 @@ class Policy(PolicyInterface, ComponentWithLogging):
     def random_prediction(self):    
 
         return self.output_action_shape.sample()
+    

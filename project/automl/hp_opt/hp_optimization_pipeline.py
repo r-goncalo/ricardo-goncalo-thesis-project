@@ -72,8 +72,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                         "steps" : ParameterSignature(default_value=1, description="The number of times to run the component to evaluate, re-evaluating it at the end of each to know if it is pruned"),
                         
                         "pruner": ComponentParameterSignature(
-                            mandatory=False,
-                            default_component_definition=(OptunaPrunerWrapper, {})
+                            mandatory=False
                         ),
                         
                         "evaluator_component" : ComponentParameterSignature(

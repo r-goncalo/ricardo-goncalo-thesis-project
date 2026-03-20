@@ -48,6 +48,11 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
             
             from pettingzoo.butterfly import cooperative_pong_v5
             self.env : ParallelEnv = cooperative_pong_v5.env(render_mode=self.render_mode)
+
+        elif environment_name == "connect_four":
+
+            from pettingzoo.classic import connect_four_v3
+            self.env = connect_four_v3.env(render_mode=self.render_mode)
             
         else:
             raise Exception(f"{self.name}: No valid petting zoo environment specified")

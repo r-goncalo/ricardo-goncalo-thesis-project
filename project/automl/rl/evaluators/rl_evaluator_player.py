@@ -36,7 +36,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         "number_of_evaluations" : ParameterSignature(default_value=1),
         "environment" : ComponentParameterSignature(mandatory=False),
         "save_after_evaluation" : ParameterSignature(ignore_at_serialization=True, default_value=False),
-        "setup_seeds_of_player" : ParameterSignature(default_value=True)
+        "setup_seeds_of_player" : ParameterSignature(default_value=True),
+        "directory_to_store_evaluation_prefix" : ParameterSignature(default_value="evaluations"),
     }
     
     exposed_values = {
@@ -63,11 +64,17 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         self.setup_seeds_of_player = self.get_input_value("setup_seeds_of_player")
 
-        if self.setup_seeds_of_player:
+        if isinstance(self.setup_seeds_of_player, list):
+            pass
+
+        elif self.setup_seeds_of_player:
             self.seeds_for_player = [generate_seed() for _ in range(self.number_of_evaluations)]
+            self.input["seeds_for_player"] = self.seeds_for_player
 
         else:
             self.seeds_for_player = None
+        
+        self.directory_to_store_evaluation_prefix = self.get_input_value("directory_to_store_evaluation_prefix")
 
 
 
@@ -101,13 +108,14 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         else:
             env = component_to_evaluate.get_env()
 
+        component_to_evaluate.proccess_input_if_not_processed()
 
         agents = component_to_evaluate.agents
         device = component_to_evaluate.device
-        evaluations_directory = os.path.join(component_to_evaluate.get_artifact_directory(), "evaluations")
+        evaluations_directory = os.path.join(component_to_evaluate.get_artifact_directory(), self.directory_to_store_evaluation_prefix)
 
 
-        return self._evaluate_agents(agents, device, evaluations_directory, env)
+        return self._evaluate_agents(agents, device, evaluations_directory, env, component_to_evaluate)
         
         
     def _evaluate_from_tuple(self, tuple):
@@ -168,10 +176,10 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
 
         
-    def _evaluate_agents(self, agents, device, evaluations_directory, env=None):
+
+    def _evaluate_agents(self, agents, device, evaluations_directory, env=None, component_to_evaluate=None):
 
         '''Evaluate agents using the RL player and the base evaluator'''
-        
         
         results_loggers_of_new_plays = []
                 
@@ -180,7 +188,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
             seed_for_player = None if self.seeds_for_player is None else self.seeds_for_player[i]
 
-            rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env, seed_for_player) 
+            rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env, seed_for_player, component_to_evaluate) 
 
             results_loggers_of_new_plays.append(rl_player_of_run.get_results_logger())
 
@@ -197,16 +205,8 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
 
         return evaluation_to_return
     
+    def _initialize_player_to_run(self, agents : dict[str, AgentSchema], device, evaluations_directory, env, seed_for_player=None, component_to_evaluate : RLPipelineComponent = None):
 
-    def _run_play_to_evaluate(self, agents : dict[str, AgentSchema], device, evaluations_directory, env, seed_for_player=None):
-
-        '''
-            Plays a session with the RL player, returning it after
-            The objective is to then evaluate the results with the evaluator
-        '''
-
-        rl_player_will_be_generated = not isinstance(self.rl_player_definition, Component)
-                
         rl_player : RLPlayer = gen_component_from(self.rl_player_definition)
 
         rl_player_input = {
@@ -226,6 +226,21 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         
         if env is not None:
             rl_player.pass_input({"environment" : env})
+
+        return rl_player
+
+    
+
+    def _run_play_to_evaluate(self, agents : dict[str, AgentSchema], device, evaluations_directory, env, seed_for_player=None, component_to_evaluate=None):
+
+        '''
+            Plays a session with the RL player, returning it after
+            The objective is to then evaluate the results with the evaluator
+        '''
+
+        rl_player_will_be_generated = not isinstance(self.rl_player_definition, Component)
+                
+        rl_player : RLPlayer = self._initialize_player_to_run(agents, device, evaluations_directory, env, seed_for_player, component_to_evaluate)
 
         evaluation_logger = LoggerSchema(input={"create_new_directory" : False, "base_directory" : rl_player, "artifact_relative_directory" : '', })            
         

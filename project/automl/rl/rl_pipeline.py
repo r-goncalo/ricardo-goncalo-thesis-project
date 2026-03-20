@@ -45,7 +45,9 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                        "fraction_of_training_to_do_in_session" : ParameterSignature(mandatory=False, description="If when this is run it is supposed to do only a fraction of the training, this affects the stop condition"),
                        "generate_fraction_from_times_to_run" : ParameterSignature(default_value=False),
 
-                       "save_checkpoints" : ParameterSignature(default_value="best")
+                       "save_checkpoints" : ParameterSignature(default_value="best"),
+
+                       "evaluation_report_strategy" : ParameterSignature(mandatory=False)
                 
                        }
 
@@ -180,6 +182,15 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         self.input.pop("agents_input", None)
         self.input["agents"] = self.agents
 
+    
+    @requires_input_proccess
+    def get_agents(self):
+
+        '''
+        Returns the agents dictionary
+        '''
+
+        return {**self.agents}
 
                                                                                     
     def configure_exisent_agent_component(self, agent_name, agent : AgentSchema):
@@ -262,6 +273,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
     def _setup_checkpoints(self):
 
         self.save_checkpoints = self.get_input_value("save_checkpoints")
+        self.evaluation_report_strategy = self.get_input_value("evaluation_report_strategy")
 
         if self.save_checkpoints is not None and self.save_checkpoints != False:
 
@@ -275,6 +287,22 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
             else:
                 self.save_only_best_checkpoint = False
+
+        else:
+            self.save_only_best_checkpoint = None
+
+        if self.evaluation_report_strategy is None:
+            self.lg.writeLine(f"Did not pass a strategy to report evaluations")
+
+            if self.save_only_best_checkpoint is not None and self.save_only_best_checkpoint == True:
+                self.lg.writeLine(f"As we will be saving the best checkpoint, we choose to report only the best")
+
+                self.evaluation_report_strategy = 'best'
+            
+            else:
+                self.lg.writeLine(f"As we will be saving all checkpoints, we choose to report the last")
+
+                self.evaluation_report_strategy = 'last'
 
     
     def _create_checkpoint(self, checkpoint_path):
@@ -377,7 +405,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
     def _evaluate_this_component(self):
 
         if not self.save_checkpoints:
-            return super()._evaluate_this_component()
+            return super()._evaluate_this_component() # by default this will return the last evaluation
         
         else:
 
@@ -405,11 +433,16 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
             self.lg.writeLine(f"Current checkpoints are {checkpoints_and_evaluations}")
 
-            (max_path, max_evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
+            if self.evaluation_report_strategy == 'best':
 
-            self.lg.writeLine(f"Current best result is {max_evaluation_results} from path {max_path}, returning that one")
+                (max_path, max_evaluation_results) = self.get_best_evaluation_checkpoint_path_result()
 
-            return max_evaluation_results
+                self.lg.writeLine(f"Current best result is {max_evaluation_results} from path {max_path}, returning that one")
+
+                return max_evaluation_results
+            
+            else:
+                return evaluation_results
 
 
     def get_best_evaluation_checkpoint_path_result(self):

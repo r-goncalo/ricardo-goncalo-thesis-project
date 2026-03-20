@@ -1,13 +1,16 @@
 import copy
 from automl.rl.policy.policy import Policy
 from automl.ml.models.torch_model_components import TorchModelComponent
+from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 import torch
 
 from automl.component import ParameterSignature
 from automl.rl.trainers.rl_trainer.parallel_rl_trainer import RLTrainerComponentParallel
 
 
-class JESPParalelTrainer(RLTrainerComponentParallel):
+
+
+class JESPTrainer(RLTrainerComponent):
 
     """
     Exhaustive-JESP style trainer for parallel environments.
@@ -290,3 +293,9 @@ class JESPParalelTrainer(RLTrainerComponentParallel):
                 break
 
         self.end_training_session()
+
+
+class JESPParalelTrainer(JESPTrainer, RLTrainerComponentParallel):
+    '''
+    JESP for Parallel trainers
+    '''

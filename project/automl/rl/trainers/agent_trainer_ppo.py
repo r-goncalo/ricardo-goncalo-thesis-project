@@ -85,16 +85,17 @@ class AgentTrainerPPO(AgentTrainer):
 
         action_val_to_store = self.last_action_val.squeeze(0) if torch.is_tensor(self.last_action_val) and self.last_action_val.dim() > 1 and self.last_action_val.shape[0] == 1 else self.last_action_val
 
+        if self.values['is_training']: # PPO 
 
-        #we can push in this way because the pushed tensors are actually cloned into memory
-        self.memory.push({"state" : self.state_memory_temp, 
-                          "action" : action, 
-                          "next_state" : next_state_memory, 
-                          "reward" : reward, 
-                          "log_prob" : self.last_log_prob, 
-                          "done" : done,
-                          "critic_pred" : critic_pred.item(),
-                          "action_val" : action_val_to_store})
+            #we can push in this way because the pushed tensors are actually cloned into memory
+            self.memory.push({"state" : self.state_memory_temp, 
+                              "action" : action, 
+                              "next_state" : next_state_memory, 
+                              "reward" : reward, 
+                              "log_prob" : self.last_log_prob, 
+                              "done" : done,
+                              "critic_pred" : critic_pred.item(),
+                              "action_val" : action_val_to_store})
                
         
     def select_action(self, state):
