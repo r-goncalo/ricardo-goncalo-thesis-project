@@ -76,27 +76,22 @@ class AgentTrainerPPO(AgentTrainer):
          
 
 
-    def _observe_transiction_to(self, new_state, action, reward, done):
+    def _observe_transiction_to(self, prev_state, next_state, action, reward, done, truncated):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
                 
-        prev_state_in_agent = {**self.agent.get_current_state_in_memory()}
-
-        self.observation_memory_temp.copy_(prev_state_in_agent.pop("observation")) # prev_state_in_agent now only has rest of state metadata
-
-        self.agent.update_state_memory(new_state)
+        prev_state_in_agent = {**prev_state}
+        prev_state_in_agent.pop("observation")
         
-        next_state_memory = self.agent.get_current_state_in_memory()
-
         critic_pred = self.learner.critic_pred(self.observation_memory_temp)
 
         action_val_to_store = self.last_action_val.squeeze(0) if torch.is_tensor(self.last_action_val) and self.last_action_val.dim() > 1 and self.last_action_val.shape[0] == 1 else self.last_action_val
 
 
         #we can push in this way because the pushed tensors are actually cloned into memory
-        self.memory.push({"observation" : self.observation_memory_temp, 
+        self.memory.push({"observation" : prev_state["observation"], 
                               "action" : action, 
-                              "next_observation" : next_state_memory["observation"], 
+                              "next_observation" : next_state["observation"], 
                               "reward" : reward, 
                               "log_prob" : self.last_log_prob, 
                               "done" : done,

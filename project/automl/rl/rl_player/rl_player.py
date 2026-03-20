@@ -103,10 +103,9 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             
             reward, done, truncated = self._do_agent_step(agent_name)
             
-            
-            for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
-                if other_agent_name != agent_name:
-                    self.agents[other_agent_name].update_state_memory(self.env.observe(other_agent_name))
+            #for other_agent_name in self.agents.keys(): #make the other agents observe the transiction without remembering it
+            #    if other_agent_name != agent_name:
+            #        self.agents[other_agent_name].update_state_memory(self.env.observe(other_agent_name))
                             
             if done or truncated:
                 break
@@ -115,7 +114,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
     def _do_agent_step(self, agent_name):
         
         agent : AgentSchema = self.agents[agent_name]
-        
         
         observation = self.env.observe(agent_name)
         

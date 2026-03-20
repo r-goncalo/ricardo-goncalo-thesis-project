@@ -73,19 +73,13 @@ class AgentTrainerDQN(AgentTrainer):
             self.lg.writeLine(f"Exploration strategy values: \n{self.exploration_strategy.values}\n")
         
 
-    def _observe_transiction_to(self, new_state, action, reward, done):
+    def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
-        
-        self.observation_memory_temp.copy_(self.agent.get_current_state_in_memory()["observation"])
-        
-        self.agent.update_state_memory(new_state)
-        
-        next_state_memory = self.agent.get_current_state_in_memory()
                 
-        self.memory.push({"observation" : self.observation_memory_temp, 
+        self.memory.push({"observation" : prev_state["observation"], 
                           "action" : action, 
-                          "next_observation" : next_state_memory["observation"], 
+                          "next_observation" : new_state["observation"], 
                           "reward" : reward, 
                           "done" : done})
         

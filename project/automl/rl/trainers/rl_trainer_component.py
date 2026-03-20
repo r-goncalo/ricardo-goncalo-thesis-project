@@ -382,9 +382,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             
         reward, done, truncated = agent_in_training.do_training_step(i_episode, self.env)
                         
-        for other_agent_name in self.env.get_active_agents(): #make the other agents observe the transition without puting it in memory (as it is not theirs)
-            if other_agent_name != agent_name:
-                    self.agents_trainers[other_agent_name].observe_new_state(self.env)
+        #for other_agent_name in self.env.get_active_agents(): #make the other agents observe the transition without puting it in memory (as it is not theirs)
+        #    if other_agent_name != agent_name:
+        #            self.agents_trainers[other_agent_name].observe_new_state(self.env)
                     
         self.values["episode_steps"] = self.values["episode_steps"] + 1
         self.values["total_steps"] = self.values["total_steps"] + 1

@@ -314,6 +314,12 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         self.values["episode_steps"] = 0
         self.values["episode_score"] = 0
+
+        # this are optinal attributes that may be used to note a transition
+        self._pending_prev_state = None
+        self._pending_next_state = None
+        self._pending_action = None
+        self._has_pending_transition = False
         
         self.agent.reset_agent_in_environment(env.observe(self.agent.name))
 
@@ -340,29 +346,58 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     @requires_input_proccess
     def do_training_step(self, i_episode, env : AECEnvironmentComponent):
         
-            '''
-            Does a step, in which the agent acts and observers the transition
-            Note that any other agents will not notice this change without outside coordination
+        '''
+        Does a step, in which the agent acts and observers the transition
+        Note that any other agents will not notice this change without outside coordination
             
-            This method can be used when the agent is not training
-            '''
+        This method can be used when the agent is not training
+
+        Note this method is not used in Parallel players or trainers, only aec
+        '''
+
+        observation, reward, done, truncated, info = env.last() # in aec, we receive the results of the previous episode step
+        
+        self.observe_new_state(env, observation)
+
+        if self._has_pending_transition:
             
-                    
-            observation = env.observe(self.agent.name)
+            self.do_after_training_step(
+                i_episode=i_episode, 
+                action=self._pending_action,
+                prev_state=None, # will use the pending prev state
+                next_state= self.agent.get_current_state_in_memory(),
+                reward=reward, 
+                done=done, 
+                truncated=truncated) # this is regarding the previous step
             
-            with torch.no_grad():                
-                action = self.select_action(observation).squeeze(0) # decides the next action to take (can be random)
-                                                                                         
-            env.step(action) #makes the game proccess the action that was taken
-                
-            observation, reward, done, truncated, info = env.last()
-                        
-            self.do_after_training_step(i_episode, action, observation, reward, done, truncated)
-                
+            self._has_pending_transition = False
+            self._pending_prev_state = None
+            self._pending_next_state = None
+            self._pending_action = None
+
+            
+        if done or truncated:
+            env.step(None)
             return reward, done, truncated
+
+        with torch.no_grad():                
+            action = self.select_action_with_memory().squeeze(0) # decides the next action to take (can be random)
+
+        self._pending_action = action
+        self._has_pending_transition = True
+
+        self._pending_prev_state = {**self.agent.state_memory}
+        self._pending_prev_state["observation"] = self._pending_prev_state["observation"].detach().clone()
+
+        env.step(action)
+
+        # we don't use pending next state, as the state will be the one computed after the other agent acts
+                
+        return reward, done, truncated
              
-                            
-    def do_after_training_step(self, i_episode, action, observation, reward, done, truncated):
+             
+                                         
+    def do_after_training_step(self, i_episode=None, action=None, prev_state=None, next_state=None, reward=None, done=None, truncated=None):
 
         '''
         Does the normal computation after a training step
@@ -373,7 +408,12 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
 
         self.values["episode_score"] = self.values["episode_score"] + reward
                             
-        self._observe_transiction_to(observation, action, reward, done)
+        self.observe_transiction_to(prev_state=prev_state, 
+                                    new_state=next_state,
+                                    action=action,
+                                    reward=reward,
+                                    done=done,
+                                    truncated=truncated)
             
         self.values["episode_steps"] = self.values["episode_steps"] + 1
         self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step      ~
@@ -389,17 +429,59 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                 
         
 
-    def _observe_transiction_to(self, new_state, action, reward, done):
+    def observe_transiction_to(self, prev_state=None, new_state=None, action=None, reward=None, done=None, truncated=None):
         
-        '''Makes agent observe and remember a transiction from its (current) a state to another'''        
+        '''
+        Makes agent observe and remember a transiction from its (current) a state to another
+        This does not affect the agent short term memory, it targets the memory of transitions that will use the training
+        '''        
+
+        if reward is None or action is None or done is None or truncated is None:
+            raise NotImplementedError(f"Reward, action, done and truncated must always be passed to observe a transition")
+
+        if prev_state is None and new_state is None and self._pending_next_state is None and self._pending_prev_state is None:
+            raise Exception(f"Either prev state must be defined or new_state must be defined")
+
+        # REMEMBER THAT THE NEW STATE DOES NOT NEED METADATA
+        if new_state is not None: # if we received a new state
+            pass
+
+        elif self._pending_next_state is not None: # if we have a pending next state
+            new_state = self._pending_next_state
+
+        else:
+            new_state = self.agent.get_current_state_in_memory()
+
+        if prev_state is not None:
+            pass
+
+        elif self._pending_prev_state is not None:
+            prev_state = self._pending_prev_state
+
+        else:
+            prev_state = self.agent.get_current_state_in_memory()
         
+                        
+        return self._observe_transiction_to(prev_state, new_state, action, reward, done, truncated)
+    
+
+    def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
         raise NotImplementedError("This is not implemented in the base class")
+    
+    
 
         
         
-    def observe_new_state(self, env : AECEnvironmentComponent):
-        '''Makes the agent observe a new state, remembering it in case it needs that information in future computations'''
-        self.agent.update_state_memory(env.observe(self.agent.name))
+    def observe_new_state(self, env : AECEnvironmentComponent, new_state=None):
+        '''
+        Makes the agent observe a new state, remembering it in case it needs that information in future computations
+        This is not a stored transition in the memory of the trainer
+        '''
+
+        if new_state is None:
+            new_state = env.observe(self.agent.name)
+
+        self.agent.update_state_memory(new_state)
         
 
     def select_action(self, state):

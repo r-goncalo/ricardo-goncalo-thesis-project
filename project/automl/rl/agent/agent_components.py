@@ -196,7 +196,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
 
     @requires_input_proccess    
-    def Wupdate_state_memory(self, new_state): #update memory shared
+    def update_state_memory(self, new_state): #update memory shared
         '''
         Makes the agent remember a new state
         '''

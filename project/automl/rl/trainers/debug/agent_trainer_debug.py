@@ -79,16 +79,16 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
     
 
     
-        def _observe_transiction_to(self, new_state, action, reward, done):
+        def observe_transiction_to(self, new_state, action, reward, done):
 
             if not self.note_observed_transitions:
-                super()._observe_transiction_to(new_state, action, reward, done)
+                super().observe_transiction_to(new_state, action, reward, done)
 
             else:
 
                 old_state = self.agent.get_current_state_in_memory().clone()
 
-                super()._observe_transiction_to(new_state, action, reward, done)
+                super().observe_transiction_to(new_state, action, reward, done)
 
                 old_state_str = str(old_state)
                 if len(old_state_str) > 30:
