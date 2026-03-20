@@ -115,14 +115,14 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         
         agent : AgentSchema = self.agents[agent_name]
         
-        observation = self.env.observe(agent_name)
-        
-        with torch.no_grad():                
-            action = agent.policy_predict(observation) # decides the next action to take (can be random)
-                
-        self.env.step(action) #makes the game proccess the action that was taken
-                
         observation, reward, done, truncated, info = self.env.last()
+        agent.update_state_memory(observation)
+
+        if done or truncated:
+            self.env.step(None)
+        else:
+            action = agent.policy_predict_with_memory()
+            self.env.step(action)
                         
         self.values["episode_score"] = self.values["episode_score"] + reward
                       
@@ -163,7 +163,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             "episode_steps" : [self.values["episode_steps"]], 
             "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
             "environment" : [self.env.name],
-            **{f"{agent_name}_reward" : agent_reward for agent_name, agent_reward in self.values["agents_episode_score"].items()}
+            **{f"{agent_name}_reward" : [agent_reward] for agent_name, agent_reward in self.values["agents_episode_score"].items()}
             }
         
 
