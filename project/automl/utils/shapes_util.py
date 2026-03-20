@@ -1,6 +1,7 @@
 
 
 from collections.abc import Iterable
+from copy import deepcopy
 import numpy as np
 import gymnasium
 import torch
@@ -8,6 +9,56 @@ import torch
 import automl.utils.json_utils.shape_json_utils # this is just so the code runs and we're sure shapes are serialized / deserialized
 
 from math import prod
+
+
+# CLONING SHAPES --------------------------------------------------------
+
+def clone_shape_gym(space : gymnasium.spaces.Space):
+    '''
+    Deep-clones common Gymnasium spaces, including nested Dict/Tuple spaces.
+    Falls back to deepcopy for unknown/custom spaces.
+    '''
+
+    if isinstance(space, gymnasium.spaces.Box):
+        return gymnasium.spaces.Box(
+            low=np.array(space.low, copy=True),
+            high=np.array(space.high, copy=True),
+            shape=space.shape,
+            dtype=space.dtype
+        )
+
+    elif isinstance(space, gymnasium.spaces.Discrete):
+        return gymnasium.spaces.Discrete(space.n)
+
+    elif isinstance(space, gymnasium.spaces.MultiDiscrete):
+        return gymnasium.spaces.MultiDiscrete(np.array(space.nvec, copy=True))
+
+    elif isinstance(space, gymnasium.spaces.MultiBinary):
+        return gymnasium.spaces.MultiBinary(space.n)
+
+    elif isinstance(space, gymnasium.spaces.Tuple):
+        return gymnasium.spaces.Tuple(tuple(clone_shape_gym(s) for s in space.spaces))
+
+    elif isinstance(space, gymnasium.spaces.Dict):
+        return gymnasium.spaces.Dict({
+            key: clone_shape_gym(subspace)
+            for key, subspace in space.gymnasium.spaces.items()
+        })
+
+    else:
+        # Fallback for custom or uncommon spaces
+        return deepcopy(space)
+    
+def clone_shape(shape):
+
+    if isinstance(shape, gymnasium.spaces.Space):
+        return clone_shape_gym(shape)
+
+    elif isinstance(shape, dict):
+        return {shape_key : clone_shape(shape_value) for shape_key, shape_value in shape.items()}
+
+    else:
+        raise NotImplementedError()
 
 # INPUT LAYER SIZE --------------------------------------------------------------------------
 

@@ -185,9 +185,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         if self.memory_transformer is not None:
             self.lg.writeLine(f"Will use memory transformer: {self.memory_transformer.name}")
         
+
     def initialize_temp(self):
-        
-        self.state_memory_temp = self.agent.allocate_tensor_for_state()
+        self.observation_memory_temp = self.agent.allocate_tensor_for_state()
         
 
         
@@ -346,6 +346,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             
             This method can be used when the agent is not training
             '''
+            
                     
             observation = env.observe(self.agent.name)
             
@@ -444,6 +445,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         for _ in range(self.times_to_learn):
             self._optimize_policy_model() 
             self.values["optimizations_done"] += 1
+
+        if self.memory_transformer is not None:
+            self.memory_transformer.let_go()
         
         
     def _optimize_policy_model_with_batch(self, batch):
@@ -470,6 +474,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                 
         for b in batches:
             self._optimize_policy_model_with_batch(b)
+
 
     # EXTERNAL ACESSORIES PROCESSING ----------------------------------------------
 

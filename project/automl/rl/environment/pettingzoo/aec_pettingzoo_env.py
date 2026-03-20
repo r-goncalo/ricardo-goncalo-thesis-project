@@ -5,7 +5,10 @@ from automl.component import Component, ParameterSignature, requires_input_procc
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
+from automl.rl.environment.environment_components import normalize_observation
+from automl.utils.shapes_util import clone_shape
 import torch
+import gymnasium
 
 from pettingzoo import ParallelEnv
 
@@ -53,6 +56,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
 
             from pettingzoo.classic import connect_four_v3
             self.env = connect_four_v3.env(render_mode=self.render_mode)
+  
             
         else:
             raise Exception(f"{self.name}: No valid petting zoo environment specified")
@@ -60,7 +64,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     
         
     def observe(self, *args):
-        return self.env.observe(*args)
+        return normalize_observation(self.env.observe(*args))
     
     
     @requires_input_proccess
@@ -68,10 +72,37 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         '''returns the action space for the given agent'''
         return self.env.action_space(agent)
     
+
     @requires_input_proccess
     def get_agent_state_space(self, agent):
-        '''returns the state space for the environment'''
-        raise NotImplementedError()
+        '''
+        Returns the state space in the framework contract:
+        {
+            "observation": <space>,
+            ...metadata spaces...
+        }
+        '''
+
+        obs_space = self.env.observation_space(agent)
+
+        # PettingZoo classic envs like connect_four usually expose a Dict space
+        if isinstance(obs_space, gymnasium.spaces.Dict):
+            state_space = {}
+
+            for key, subspace in obs_space.spaces.items():
+                state_space[key] = clone_shape(subspace)
+
+            if "observation" not in state_space:
+                raise ValueError(
+                    f"{self.name}: observation space for agent '{agent}' must contain key 'observation'"
+                )
+
+            return state_space
+
+        # If env gives a plain space, normalize to framework format
+        return {
+            "observation": clone_shape(obs_space)
+        }
     
     
     @requires_input_proccess
@@ -88,7 +119,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         observation, reward, termination, truncation, info = self.env.last()
         
         #returns state, reward, done, info
-        return observation, reward, termination, truncation, info
+        return normalize_observation(observation), reward, termination, truncation, info
     
     def agent_iter(self):
         return self.env.agent_iter()
@@ -109,9 +140,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     def reset(self):
         observations, info = self.env.reset()
         self.reset_info = info
-        return observations
     
     def total_reset(self):
         observations, info = self.env.reset(seed=self.seed)
         self.reset_info = info
-        return observations

@@ -3,7 +3,7 @@ from automl.component import Component, requires_input_proccess
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.core.advanced_input_management import ComponentParameterSignature
-from project.automl.rl.evaluators.rl_single_agent_evaluator import RlSingleAgentEvaluator
+from automl.rl.evaluators.rl_single_agent_evaluator import RlSingleAgentEvaluator
 
 
 class RLAgentIterEvaluator(EvaluatorComponent):

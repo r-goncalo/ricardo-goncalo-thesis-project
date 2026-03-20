@@ -31,18 +31,18 @@ class AgentSchemaWithStateMemory(AgentSchema):
     def initialize_state_memory(self): #Note this overrides the super method
         
             
-        self.state_shape_no_memory = self.model_input_shape
+        self.model_input_shape_no_memory = self.processed_state_shape["observation"]
 
         self.state_memory_size = self.get_input_value("state_memory_size")
                 
         if self.state_memory_size <= 1:
             raise Exception("State memory size must be greater than 1 to use this agent schema")
         
-        self.model_input_shape = (self.state_memory_size, *self.state_shape_no_memory)
+        self.processed_state_shape["observation"] = (self.state_memory_size, *self.model_input_shape_no_memory)
 
         self.lg.writeLine(f"State memory is {self.state_memory_size}, this means the agent will remember the last {self.state_memory_size - 1} states besides the new one it is experiencing")
      
-        self.lg.writeLine(f"Input shape for policy is then transformed <{self.state_shape_no_memory}> -> <{self.model_input_shape}>")
+        self.lg.writeLine(f"Input shape for observation is then transformed <{self.model_input_shape_no_memory}> -> <{self.processed_state_shape['observation']}>")
 
         if torch.cuda.is_available():   
             self.lg.writeLine(f"Initialized state memory, Cuda memory allocated: {torch.cuda.memory_allocated()}, Cuda memory reserved: {torch.cuda.memory_reserved()}, Cuda memory available: {torch.cuda.mem_get_info()}")
@@ -69,18 +69,20 @@ class AgentSchemaWithStateMemory(AgentSchema):
         Note that this does not observe the transition
         '''
                 
-        possible_state_memory = self._get_state_memory_with_new(self.proccess_env_state(state))
-                
-        return self.policy.predict(possible_state_memory) #note that this may be a torch element or something
+        state = {**state}
+        new_obs = self.proccess_env_state(state["observation"])
+        state["observation"] = self._get_state_memory_with_new(new_obs)
+        return self.policy.predict(state)
     
     @requires_input_proccess
     def call_policy_method(self, policy_method, state):
         
         '''calls the method of the policy with this Agent's state management strategy'''
         
-        possible_state_memory = self._get_state_memory_with_new(self.proccess_env_state(state))
-                
-        return policy_method(possible_state_memory)
+        state = {**state}
+        new_obs = self.proccess_env_state(state["observation"])
+        state["observation"] = self._get_state_memory_with_new(new_obs)
+        return policy_method(state)
         
     
     # STATE MEMORY --------------------------------------------------------------------
@@ -89,13 +91,26 @@ class AgentSchemaWithStateMemory(AgentSchema):
     @requires_input_proccess
     def reset_agent_in_environment(self, initial_state : torch.Tensor): #setup memory shared accross agents
 
-        self.state_memory = self.proccess_env_state(initial_state).unsqueeze(0).expand(self.state_memory_size, *self.state_shape_no_memory).clone()            
-         
+        initial_state = {**initial_state}
+        obs = self.proccess_env_state(initial_state.pop("observation"))
+
+        self.state_memory["observation"] = (
+            obs.unsqueeze(0)
+               .expand(self.state_memory_size, *self.model_input_shape_no_memory)
+               .clone()
+        )
+
+        self.state_memory.update(initial_state)
          
     @requires_input_proccess    
     def update_state_memory(self, new_state): #update memory of agent
         '''Updates memory of agent with new state'''
-        self.state_memory.copy_(self._get_state_memory_with_new(self.proccess_env_state(new_state)))
+        
+        new_state = {**new_state}
+        new_obs = self.proccess_env_state(new_state.pop("observation"))
+
+        self.state_memory["observation"].copy_(self._get_state_memory_with_new(new_obs))
+        self.state_memory.update(new_state)
         
        
     def _get_state_memory_with_new(self, new_state):
@@ -108,7 +123,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
         with torch.no_grad():
 
             # shift previous memory left by one position
-            self.temp_cache_state_memory[:-1].copy_(self.state_memory[1:]) #note that this strategy does not work well with autograd, as this can be changed after it was used to compute a tensor
+            self.temp_cache_state_memory[:-1].copy_(self.state_memory["observation"][1:]) #note that this strategy does not work well with autograd, as this can be changed after it was used to compute a tensor
     
             # insert new state into the last position
             self.temp_cache_state_memory[-1].copy_(new_state)

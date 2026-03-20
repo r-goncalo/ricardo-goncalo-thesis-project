@@ -41,13 +41,13 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
     
     # EXPOSED METHODS --------------------------------------------------------------------------
 
-    def _apply_model_prediction_given_state_action_pairs(self, state_batch, action_batch):
+    def _apply_model_prediction_given_state_action_pairs(self, observation_batch, action_batch):
 
         '''Returns the values predicted by the current model and the values for the specific actions that were passed'''
         pass
     
 
-    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
 
         '''
         Returns the predicted values for the next state
@@ -68,11 +68,17 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super()._learn(trajectory, discount_factor)
 
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch = self.interpret_trajectory(trajectory)
-                    
-        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(state_batch, action_batch) 
+        interpreted_trajectory = self.interpret_trajectory(trajectory)
 
-        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(next_state_batch, done_batch, reward_batch, discount_factor)
+        observation_batch = interpreted_trajectory["observation_batch"]
+        action_batch = interpreted_trajectory["action_batch"]
+        next_observation_batch = interpreted_trajectory["next_observation_batch"]
+        reward_batch = interpreted_trajectory["reward_batch"]
+        done_batch = interpreted_trajectory["done_batch"]
+                    
+        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(observation_batch, action_batch) 
+
+        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(next_observation_batch, done_batch, reward_batch, discount_factor)
 
         correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
                         
@@ -177,17 +183,17 @@ class DeepQLearnerSchema(QLearnerSchema):
     
     # EXPOSED METHODS --------------------------------------------------------------------------
 
-    def _apply_model_prediction_given_state_action_pairs(self, state_batch, action_batch):
+    def _apply_model_prediction_given_state_action_pairs(self, observation_batch, action_batch):
 
         '''Returns the values predicted by the current model and the values for the specific actions that were passed'''
 
-        predicted_actions_values = self.model.predict(state_batch)
+        predicted_actions_values = self.model.predict(observation_batch)
         predicted_values_for_actions = predicted_actions_values.gather(1, action_batch) 
 
         return predicted_actions_values, predicted_values_for_actions
     
 
-    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
 
         '''
         Returns the predicted values for the next state
@@ -197,7 +203,7 @@ class DeepQLearnerSchema(QLearnerSchema):
         '''
 
         with torch.no_grad():
-            next_state_q_values = self.target_net.predict(next_state_batch) # it returns the maximum q-action values of the next action
+            next_state_q_values = self.target_net.predict(next_observation_batch) # it returns the maximum q-action values of the next action
             
             next_state_v_values = next_state_q_values.max(1).values
             next_state_v_values = next_state_v_values * (1 - done_batch)
@@ -237,15 +243,15 @@ class DeepQLearnerSchema(QLearnerSchema):
 class DoubleDeepQLearnerSchema(DeepQLearnerSchema):
 
 
-    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
 
 
         with torch.no_grad():
 
-            q_values_that_would_be_given_next = self.model.predict(next_state_batch)
+            q_values_that_would_be_given_next = self.model.predict(next_observation_batch)
             actions_that_would_be_chosen_next = q_values_that_would_be_given_next.argmax(1, keepdim=True)
 
-            next_state_q_values = self.target_net.predict(next_state_batch) # it returns the maximum q-action values of the next action
+            next_state_q_values = self.target_net.predict(next_observation_batch) # it returns the maximum q-action values of the next action
             
             next_state_v_values = next_state_q_values.gather(1, actions_that_would_be_chosen_next).squeeze(1)
             next_state_v_values = next_state_v_values * (1 - done_batch)

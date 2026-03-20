@@ -5,11 +5,13 @@ from automl.component import Component, ParameterSignature, requires_input_procc
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 
-from automl.rl.environment.environment_components import EnvironmentSampler
+from automl.rl.environment.environment_components import EnvironmentSampler, normalize_observation
 from automl.utils.shapes_util import torch_state_shape_from_space
 
 import gymnasium as gym
 import torch
+import gymnasium
+from automl.utils.shapes_util import clone_shape
 
 
 class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, StatefulComponent):
@@ -79,13 +81,17 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
     
     @requires_input_proccess
     def get_agent_state_space(self, agent):
-        '''returns the state space for the environment'''
-                
-        #internal_state_shape = torch_state_shape_from_space(self.env.observation_space)
-        #        
-        #return internal_state_shape
+        obs_space = self.env.observation_space
 
-        return self.env.observation_space
+        if isinstance(obs_space, gymnasium.spaces.Dict):
+            return {
+                key: clone_shape(subspace)
+                for key, subspace in obs_space.spaces.items()
+            }
+
+        return {
+            "observation": clone_shape(obs_space)
+        }
 
     
     def reset(self):
@@ -95,6 +101,8 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
 
         observation, info = self.env.reset()
         
+        observation = normalize_observation(observation)
+
         self.reset_info = info
         
         self.last_observation = observation
@@ -108,6 +116,7 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
 
         observation, info = self.env.reset(seed=self.seed)
         
+        observation = normalize_observation(observation)
         self.reset_info = info
         
         self.last_observation = observation
@@ -132,6 +141,8 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
             action = action.cpu().numpy()
 
         obs, reward, terminated, truncated, info = self.env.step(action)       
+
+        obs = normalize_observation(obs)
                 
         self.last_observation = obs
         self.last_reward = reward

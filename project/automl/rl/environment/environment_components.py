@@ -19,6 +19,9 @@ def normalize_observation(raw_obs):
 class EnvironmentComponent(Component):
 
     '''Represents any environment'''
+
+    def __init__(self, input = None):
+        super().__init__(input)
     
     
     @requires_input_proccess

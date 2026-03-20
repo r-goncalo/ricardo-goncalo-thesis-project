@@ -3,9 +3,13 @@ from automl.component import Component, ParameterSignature, requires_input_procc
 
 from automl.fundamentals.translator.translator import Translator
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
+from automl.rl.environment.environment_components import normalize_observation
 import torch
+from automl.utils.shapes_util import clone_shape
+
 
 from pettingzoo import ParallelEnv
+import gymnasium
 
 import numpy as np
 
@@ -23,6 +27,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
 
         self.render_mode = self.get_input_value("render_mode")
         self.device = self.get_input_value("device")
+
 
         self._setup_environment()
 
@@ -71,7 +76,24 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
 
     @requires_input_proccess
     def get_agent_state_space(self, agent):
-        return self.env.observation_space(agent)
+        obs_space = self.env.observation_space(agent)
+
+        if isinstance(obs_space, gymnasium.spaces.Dict):
+            return {
+                key: clone_shape(subspace)
+                for key, subspace in obs_space.spaces.items()
+            }
+
+        return {
+            "observation": clone_shape(obs_space)
+        }
+    
+
+    def _normalize_parallel_observations(self, observations: dict):
+        return {
+            agent_name: normalize_observation(agent_obs)
+            for agent_name, agent_obs in observations.items()
+        }
 
 
     @requires_input_proccess
@@ -91,7 +113,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
             info_dict[agent] = info
         """
         obs, info = self.env.reset()
-        self._last_obs = obs  # store so .observe(agent) can work
+        self._last_obs = self._normalize_parallel_observations(obs)  # store so .observe(agent) can work
         self.reset_info = info
         return obs
     
@@ -102,7 +124,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
             info_dict[agent] = info
         """
         obs, info = self.env.reset(seed=self.seed)
-        self._last_obs = obs  # store so .observe(agent) can work
+        self._last_obs = self._normalize_parallel_observations(obs)  # store so .observe(agent) can work
         self.reset_info = info
         return obs
     
@@ -111,13 +133,6 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
             if isinstance(action, torch.Tensor):
                 action = action.detach().cpu().numpy()
 
-            #action_space = self.env.action_space(agent)
-#
-            ## Prefer per-agent action space bounds
-            #if hasattr(action_space, "low") and hasattr(action_space, "high"):
-            #    low = action_space.low
-            #    high = action_space.high
-            #    action = np.clip(action, low, high)
 
             return action
 
@@ -144,7 +159,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
 
         next_obs, rewards, terminations, truncations, infos = self.env.step(actions)
 
-        self._last_obs = next_obs
+        self._last_obs = self._normalize_parallel_observations(next_obs)
         return next_obs, rewards, terminations, truncations, infos
 
 

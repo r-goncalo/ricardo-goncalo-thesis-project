@@ -29,15 +29,20 @@ class AgentTrainerPPO(AgentTrainer):
         
         super().initialize_memory()
                 
+        state_shape = {**self.agent.processed_state_shape}
+
+        observation_shape = state_shape.pop("observation")
+
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
-                                        ("state", self.agent.model_input_shape), 
+                                        ("observation", observation_shape), 
                                         ("action", self.agent_policy.get_policy_output_shape()),
-                                        ("next_state", self.agent.model_input_shape),
+                                        ("next_observation", observation_shape),
                                         ("reward", 1),
                                         ("done", 1),
                                         ("log_prob", 1), #log probability of chosing the stored action
                                         ("critic_pred", 1),
-                                        ("action_val", self.agent_policy.get_action_val_shape())
+                                        ("action_val", self.agent_policy.get_action_val_shape()),
+                                        *[(state_shape_key, state_shape_value) for state_shape_key, state_shape_value in state_shape.items()]
                                     ]
             
         self.memory.pass_input({
@@ -75,27 +80,30 @@ class AgentTrainerPPO(AgentTrainer):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
                 
-        self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
-        
+        prev_state_in_agent = {**self.agent.get_current_state_in_memory()}
+
+        self.observation_memory_temp.copy_(prev_state_in_agent.pop("observation")) # prev_state_in_agent now only has rest of state metadata
+
         self.agent.update_state_memory(new_state)
         
         next_state_memory = self.agent.get_current_state_in_memory()
 
-        critic_pred = self.learner.critic_pred(self.state_memory_temp)
+        critic_pred = self.learner.critic_pred(self.observation_memory_temp)
 
         action_val_to_store = self.last_action_val.squeeze(0) if torch.is_tensor(self.last_action_val) and self.last_action_val.dim() > 1 and self.last_action_val.shape[0] == 1 else self.last_action_val
 
-        if self.values['is_training']: # PPO 
 
-            #we can push in this way because the pushed tensors are actually cloned into memory
-            self.memory.push({"state" : self.state_memory_temp, 
+        #we can push in this way because the pushed tensors are actually cloned into memory
+        self.memory.push({"observation" : self.observation_memory_temp, 
                               "action" : action, 
-                              "next_state" : next_state_memory, 
+                              "next_observation" : next_state_memory["observation"], 
                               "reward" : reward, 
                               "log_prob" : self.last_log_prob, 
                               "done" : done,
                               "critic_pred" : critic_pred.item(),
-                              "action_val" : action_val_to_store})
+                              "action_val" : action_val_to_store,
+                              **prev_state_in_agent
+                              })
                
         
     def select_action(self, state):

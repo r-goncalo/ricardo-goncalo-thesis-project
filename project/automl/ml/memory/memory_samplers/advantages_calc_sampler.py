@@ -32,6 +32,7 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         
         self.discount_factor = self.get_input_value("discount_factor")
 
+
     def prepare(self, memory : MemoryComponent = None):
         '''Does the in place transformations'''
         
@@ -41,21 +42,30 @@ class PPOAdvantagesCalcSampler(MemorySampler):
 
         self.device = memory.device
 
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch, actions_val_batch = self.learner.interpret_trajectory(self.memory.get_all())
+        processed_memory =  self.learner.interpret_trajectory(self.memory.get_all())
 
         with torch.no_grad():
-            values, next_values = self.learner.compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
-            values_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, reward_batch, next_values, values, done_batch)
+            values, next_values = self.learner.compute_values_estimates(processed_memory)
+            
+            processed_memory["values"] = values
+            processed_memory["next_values"] = next_values
+            
+            values_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, processed_memory)
 
-        self.extra_memory = {
-            "values" : interpret_values(values, self.device),
-            "next_values" : interpret_values(next_values, self.device),
-            "advantages" : interpret_values(advantages, self.device),
-            "returns" : interpret_values(returns, self.device)
-        }
+            processed_memory["values_error"] = values_error
+            processed_memory["non_normalized_advantages"] = non_normalized_advantages
+            processed_memory["advantages"] = advantages
+            processed_memory["returns"] = returns
 
-        self.field_names = [*memory.field_names, *self.extra_memory.keys()]
-        self.transitions = {**self.memory.transitions, **self.extra_memory}
+
+        self.field_names = processed_memory.keys()
+        self.transitions = processed_memory
+
+    def let_go(self):
+        super().let_go()
+
+        self.field_names = None
+        self.transitions = None
 
     @requires_input_proccess
     def sample(self, batch_size):

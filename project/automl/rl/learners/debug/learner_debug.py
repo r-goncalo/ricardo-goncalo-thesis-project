@@ -48,7 +48,7 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
         if self.compare_old_and_new_model_predictions:
             self.__temporary_model.clone_other_model_into_this(self.__agent_model)
 
-            state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
+            observation_batch, action_batch, next_observation_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
 
         to_return = super()._learn(trajectory, discount_factor)
 
@@ -57,12 +57,12 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
         if self.compare_old_and_new_model_predictions:
 
             with torch.no_grad():
-                old_model_predictions = self.__temporary_model.predict(state_batch)
-                new_model_precitions = self.__agent_model.predict(state_batch)
+                old_model_predictions = self.__temporary_model.predict(observation_batch)
+                new_model_precitions = self.__agent_model.predict(observation_batch)
 
-            self.lg.writeLine(f"Used previous version of model and new version on state_batch with shape {state_batch.shape} to produce predicitons with shape {new_model_precitions.shape} and {old_model_predictions.shape}", file="batch_comparison.txt", use_time_stamp=False)
+            self.lg.writeLine(f"Used previous version of model and new version on observation_batch with shape {observation_batch.shape} to produce predicitons with shape {new_model_precitions.shape} and {old_model_predictions.shape}", file="batch_comparison.txt", use_time_stamp=False)
 
-            for i in range(len(state_batch)):
+            for i in range(len(observation_batch)):
 
                 action_val = action_batch[i].detach().cpu().numpy()
                 reward_val = reward_batch[i].detach().cpu().numpy()

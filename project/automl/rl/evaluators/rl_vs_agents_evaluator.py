@@ -6,6 +6,8 @@ from automl.rl.agent.agent_components import AgentSchema
 from automl.rl.policy.random_policy import RandomPolicy
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.rl_player.rl_player import RLPlayer
+from automl.core.input_management import ParameterSignature
+from automl.rl.policy.policy import Policy
 
 
 
@@ -44,18 +46,32 @@ class AgentVsAgents(RlSingleAgentEvaluator, EvaluatorWithPlayer):
     
 
 
-class AgentVsRandomAgents(AgentVsAgents):
+class AgentVsAgentsWithPolicy(AgentVsAgents):
 
     '''
     Evaluates the reward of the agent when the other agents are following a random policy
     '''
+
+    parameters_signature = {
+        "policy_type_for_others" : ParameterSignature(default_value=RandomPolicy),
+
+    }
+    
+
+    
+
+    def _proccess_input_internal(self):
+        
+        super()._proccess_input_internal()
+
+        self.policy_type_for_others : type[Policy] = self.get_input_value("policy_type_for_others")
 
 
     def _initialize_other_agent(self, rl_player : RLPlayer, agent_name, agent : AgentSchema, component_to_evaluate : RLPipelineComponent =None):
                 
         new_agent_input = {**agent.input}
 
-        new_agent_input["policy"] = RandomPolicy()
+        new_agent_input["policy"] = self.policy_type_for_others()
                 
         new_agent = rl_player.initialize_child_component(type(agent), new_agent_input)
 

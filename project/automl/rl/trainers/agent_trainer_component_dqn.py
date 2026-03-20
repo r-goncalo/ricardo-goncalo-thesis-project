@@ -53,9 +53,9 @@ class AgentTrainerDQN(AgentTrainer):
         
         
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
-                                        ("state", self.agent.model_input_shape), 
+                                        ("observation", self.agent.processed_state_shape["observation"]), 
                                         ("action", reduce_space_dimension(self.agent.get_policy().get_policy_output_shape()), torch.int64),
-                                        ("next_state", self.agent.model_input_shape),
+                                        ("next_observation", self.agent.processed_state_shape["observation"]),
                                         ("reward", 1),
                                         ("done", 1)
                                     ]
@@ -77,13 +77,17 @@ class AgentTrainerDQN(AgentTrainer):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
         
-        self.state_memory_temp.copy_(self.agent.get_current_state_in_memory())
+        self.observation_memory_temp.copy_(self.agent.get_current_state_in_memory()["observation"])
         
         self.agent.update_state_memory(new_state)
         
         next_state_memory = self.agent.get_current_state_in_memory()
                 
-        self.memory.push({"state" : self.state_memory_temp, "action" : action, "next_state" : next_state_memory, "reward" : reward, "done" : done})
+        self.memory.push({"observation" : self.observation_memory_temp, 
+                          "action" : action, 
+                          "next_observation" : next_state_memory["observation"], 
+                          "reward" : reward, 
+                          "done" : done})
         
 
         

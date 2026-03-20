@@ -4,6 +4,8 @@ from automl.component import ParameterSignature, requires_input_proccess
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.utils.shapes_util import double_final_size
+from automl.core.localizations import get_component_by_localization
+from automl.rl.environment.environment_components import EnvironmentComponent
 import torch
 
 import random
@@ -16,6 +18,14 @@ class StochasticPolicy(Policy):
     '''
     A policy wich selects actions based on distributions
     The model output is used to compute a distribution for the actions
+
+    A stochastic policy has 4 processing moments:
+        Computing the model output
+        Computing the model distribution
+        Computing a value which is directly tied to the action (essentially the action value without being normalized)
+        Computing the action value
+
+    The kwargs are for any extra data
     '''
         
     parameters_signature = {}   
@@ -31,44 +41,40 @@ class StochasticPolicy(Policy):
         
         model_output = self.predict_model_output(state) # real numbers higher the higher probability        
         
-        distribution = self.distribution_from_model_output(model_output) # probabilities computed from logits
+        distribution = self.distribution_from_model_output(model_output, state) # probabilities computed from logits
         
-        action_val = self.sample_action_val_from_distribution(distribution)
+        action_val = self.sample_action_val_from_distribution(distribution, state)
 
-        return self.get_action_from_action_val(action_val)
+        return self.get_action_from_action_val(action_val, state)
     
     @requires_input_proccess
-    def get_action_val_shape(self):
+    def get_action_val_shape(self, state):
         return self.output_action_shape
 
     @requires_input_proccess 
-    def get_action_from_action_val(self, action_val):
+    def get_action_from_action_val(self, action_val, state):
         return action_val
-    
-    @requires_input_proccess
-    def predict_model_output(self, state) -> torch.Tensor:
-        return self.model.predict(state)
     
     
     @abstractmethod
-    def distribution_from_model_output(self, model_output) -> torch.Tensor:
+    def distribution_from_model_output(self, model_output, state) -> torch.Tensor:
         pass
     
     
-    def sample_action_val_from_distribution(self, distribution : torch.distributions):
+    def sample_action_val_from_distribution(self, distribution : torch.distributions, state):
         return distribution.sample()
     
-    def log_probability_of_action_val(self, distribution, action_val):
+    def log_probability_of_action_val(self, distribution, action_val, state):
         return distribution.log_prob(action_val).sum(dim=-1)
     
     
-    def predict_action_val_from_model_output_with_log(self, model_output):
+    def predict_action_val_from_model_output_with_log(self, model_output, state):
                 
-        dist = self.distribution_from_model_output(model_output)
+        dist = self.distribution_from_model_output(model_output, state)
         
-        action_val = self.sample_action_val_from_distribution(dist)
+        action_val = self.sample_action_val_from_distribution(dist, state)
                 
-        log_prob = self.log_probability_of_action_val(dist, action_val)
+        log_prob = self.log_probability_of_action_val(dist, action_val, state)
 
         return action_val, log_prob    
 
@@ -77,7 +83,7 @@ class StochasticPolicy(Policy):
         
         model_output = self.predict_model_output(state)    
                 
-        return self.predict_action_val_from_model_output_with_log(model_output)
+        return self.predict_action_val_from_model_output_with_log(model_output, state)
     
 
 
@@ -97,28 +103,98 @@ class CategoricalStochasticPolicy(StochasticPolicy):
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
         
     
-    @requires_input_proccess
-    def predict_model_output(self, state) -> torch.Tensor:
-        '''
-        Predicts the logits for the actions
-        '''
 
-        return super().predict_model_output(state)
-
-    def log_probability_of_action_val(self, distribution, action_val):
+    def log_probability_of_action_val(self, distribution, action_val, state):
         return distribution.log_prob(action_val)
     
-    def probabilities_from_logits(self, logits) -> torch.Tensor:
+    def probabilities_from_logits(self, logits, state) -> torch.Tensor:
 
         probs = torch.softmax(logits, dim=-1)
         
         return probs
 
-    def distribution_from_model_output(self, model_output) -> torch.Tensor:
+    def distribution_from_model_output(self, model_output, state) -> torch.Tensor:
         
-        probabilities = self.probabilities_from_logits(model_output)
+        probabilities = self.probabilities_from_logits(model_output, state)
     
         return torch.distributions.Categorical(probs=probabilities)
+        
+
+class MaskedCategoricalStochasticPolicy(CategoricalStochasticPolicy):
+    '''
+    A categorical stochastic policy that supports action masking.
+
+    Expected state format:
+    {
+        "observation": <tensor-like model input>,
+        "action_mask": <tensor-like mask of legal actions, optional>
+    }
+
+    The mask should have the same final dimension as the action logits.
+    Valid entries are interpreted as:
+    - bool: True = legal, False = illegal
+    - numeric: > 0 = legal, <= 0 = illegal
+    '''
+    
+    parameters_signature = {}
+
+    INVALID_LOGIT = -1e9
+
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
+
+
+    def _get_action_mask_from_state(self, state):
+        if not isinstance(state, dict):
+            return None
+
+        action_mask = state.get("action_mask")
+
+        if action_mask is None:
+            return None
+
+        if not torch.is_tensor(action_mask):
+            action_mask = torch.as_tensor(action_mask, device=self.device)
+
+        return action_mask
+
+
+    def _normalize_action_mask(self, action_mask, logits):
+        '''
+        Converts action_mask to boolean mask on same device as logits.
+        '''
+
+        if action_mask is None:
+            return None
+
+        if not torch.is_tensor(action_mask):
+            action_mask = torch.as_tensor(action_mask, device=logits.device)
+
+        action_mask = action_mask.to(device=logits.device)
+
+        if action_mask.dtype != torch.bool:
+            action_mask = action_mask > 0
+
+        return action_mask
+
+    def _mask_logits(self, logits, action_mask):
+        '''
+        Applies invalid-action masking to logits.
+        '''
+
+        if action_mask is None:
+            return logits
+
+        action_mask = self._normalize_action_mask(action_mask, logits)
+
+        return logits.masked_fill(~action_mask, self.INVALID_LOGIT)
+
+    def probabilities_from_logits(self, logits, state) -> torch.Tensor:
+        masked_logits = self._mask_logits(logits, state["action_mask"])
+        return torch.softmax(masked_logits, dim=-1)
+
+
+
         
 
 class NormalStochasticPolicy(StochasticPolicy):
@@ -139,7 +215,7 @@ class NormalStochasticPolicy(StochasticPolicy):
         self.lg.writeLine(f"Normal policy model output shape is {self.model_output_shape}")
 
 
-    def distribution_from_model_output(self, model_output):
+    def distribution_from_model_output(self, model_output, state):
 
         '''
         Converts model output into a Normal distribution.
@@ -202,5 +278,5 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
             device=self.device
         )
     
-    def get_action_from_action_val(self, action_val):
+    def get_action_from_action_val(self, action_val, state):
         return self.min_action_value + (self.action_range) * 0.5 * (torch.tanh(action_val) + 1.0) 

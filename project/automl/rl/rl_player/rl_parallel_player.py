@@ -50,7 +50,7 @@ class RLParallelPlayer(RLPlayer):
 
             self.values["agents_episode_score"][agent_name] += agent_reward
 
-            self.agents[agent_name].update_state_memory(observations[agent.name])
+            self.agents[agent_name].update_state_memory(observations[agent_name])
 
             done = done and (terminations[agent_name] or truncations[agent_name])
 

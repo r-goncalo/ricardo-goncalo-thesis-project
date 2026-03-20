@@ -16,9 +16,10 @@ from automl.rl.trainers.rl_trainer.jesp_rl_trainer import JESPTrainer
 from automl.rl.learners.convergence_detectors.avg_out_convergence_detector import ConvergenceDetector
 from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector, AgentTrainerSlopeConvergenceDetector
 from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
-from automl.rl.policy.stochastic_policy import CategoricalStochasticPolicy
-from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsRandomAgents
+from automl.rl.policy.stochastic_policy import MaskedCategoricalStochasticPolicy
+from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy
 from automl.rl.rl_player.rl_player import RLPlayer
+from automl.rl.policy.random_policy import RandomPolicyMasked
 
 # TODO: SHARED OPTIMIZER AND PREDICTIONS
 
@@ -46,7 +47,7 @@ def config_dict():
             "state_translator": (ToTorchTranslator, {}),
 
             "policy": (
-                CategoricalStochasticPolicy,
+                MaskedCategoricalStochasticPolicy,
                 {
                     "model": (
                         ModelSequenceComponent,
@@ -228,8 +229,9 @@ def config_dict():
         ),
 
         "component_evaluator" : (
-            AgentVsRandomAgents,
+            AgentVsAgentsWithPolicy,
             {
+                "policy_type_for_others" : RandomPolicyMasked,
                 "number_of_episodes" : 50,
                 "rl_player_definition" : (RLPlayer, {}),
                 "base_evaluator" : (LastValuesAvgStdEvaluator, {"value_to_use" : "episode_reward"})

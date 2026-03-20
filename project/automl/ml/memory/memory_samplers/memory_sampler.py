@@ -48,6 +48,10 @@ class MemorySampler(Component):
     def get_capacity(self):
         return self.memory.get_capacity()
 
+    @requires_input_proccess
+    def let_go(self):
+        '''let go of any references to fields in memory'''
+        pass
 
     @requires_input_proccess
     def __len__(self):

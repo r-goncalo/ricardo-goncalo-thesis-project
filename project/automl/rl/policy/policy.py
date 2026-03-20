@@ -8,6 +8,7 @@ from automl.utils.class_util import get_class_from
 from automl.utils.shapes_util import reduce_space_dimension
 from automl.loggers.logger_component import ComponentWithLogging
 
+import torch
 
 class PolicyInterface(Component):
     
@@ -46,12 +47,13 @@ class Policy(PolicyInterface, ComponentWithLogging):
     }   
 
     exposed_values = {"model" : 0}
-    
+
     def _proccess_input_internal(self):
         
         super()._proccess_input_internal()
 
         self.lg.writeLine(f"Processing policy input...\n")
+
         
         self.input_state_shape = self.get_input_value("state_shape")
         self.output_action_shape = self.get_input_value("action_shape")
@@ -76,7 +78,7 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self._compute_model_output_shape()
 
         self.model.pass_input({
-            "input_shape" : self.input_state_shape, 
+            "input_shape" : self.input_state_shape["observation"], 
             "output_shape" : self.model_output_shape, 
             "device" : self.device
             }) 
@@ -85,6 +87,15 @@ class Policy(PolicyInterface, ComponentWithLogging):
     @requires_input_proccess
     def get_policy_output_shape(self):
         return self.output_action_shape
+    
+
+    @requires_input_proccess
+    def predict_model_output(self, state) -> torch.Tensor:
+        '''
+        Uses the model to process the state and compute its output
+        '''
+
+        return self.model.predict(state["observation"])
         
         
     def predict(self, state):

@@ -69,6 +69,11 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         if isinstance(self.policy, StochasticPolicy) is False:
             raise Exception("PPO Learner requires a Stochastic Policy, but got {}".format(get_class_from(self.policy)))
         
+        self.custom_data_beyond_obs = [key for key in self.policy.input_state_shape.keys() if key != "observation"]
+    
+        if len(self.custom_data_beyond_obs) > 0:
+            self.lg.writeLine(f"Noticed that policy also receives in its shape: {self.custom_data_beyond_obs}")
+
         self.model : TorchModelComponent = self.policy.model
         
         self.initialize_critic_model()
@@ -82,8 +87,8 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.number_of_times_optimized = 0
 
     @requires_input_proccess
-    def critic_pred(self, state):
-        return self.critic.predict(state)
+    def critic_pred(self, observation):
+        return self.critic.predict(observation)
 
     
     def initialize_critic_model(self):
@@ -97,7 +102,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         if critic_model_passed_input != None:
             self.critic.pass_input(critic_model_passed_input)
 
-        self.critic.pass_input({"input_shape" : self.agent.model_input_shape})
+        self.critic.pass_input({"input_shape" : self.agent.processed_state_shape["observation"]})
         self.critic.pass_input({"output_shape" : 1})
 
         self.critic.proccess_input_if_not_processed()
@@ -145,56 +150,78 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
     
     # EXPOSED METHODS --------------------------------------------------------------------------
     
-    def _evaluate_actions(self, states, action_vals):
+    def _evaluate_actions(self, interpreted_trajectory):
         """
         Evaluate given actions under the current policy.
         Computes log probabilities of actions and entropy of the policy distribution.
         """
+
+        observation_batch = interpreted_trajectory["observation_batch"]
+        action_vals_batch = interpreted_trajectory["action_val_batch"]
+
+        state_batch = {"observation" : observation_batch}
+
+        for custom_data_key in self.custom_data_beyond_obs:
+            state_batch[custom_data_key] = interpreted_trajectory[custom_data_key]
+
         
-        model_output = self.policy.predict_model_output(states) #note we can call directly from the policy because we're using states as they were saved in the trajectory
-        action_distribution = self.policy.distribution_from_model_output(model_output)
+        model_output = self.policy.predict_model_output(state_batch) #note we can call directly from the policy because we're using states as they were saved in the trajectory
+        action_distribution = self.policy.distribution_from_model_output(model_output, state_batch)
                         
-        log_probs = self.policy.log_probability_of_action_val(action_distribution, action_vals) # representing probabilities of taking previous actions with current policy
+        log_probs = self.policy.log_probability_of_action_val(action_distribution, action_vals_batch, state_batch) # representing probabilities of taking previous actions with current policy
 
         entropy = action_distribution.entropy()
         if entropy.dim() > 1:
             entropy = entropy.sum(dim=-1)
         
         entropy = entropy.mean()        
-        
-        return model_output, log_probs, entropy
 
+        interpreted_trajectory["model_output"] = model_output
+        interpreted_trajectory["new_log_probs"] = log_probs
+        interpreted_trajectory["entropy"] = entropy
+        
 
 
     def interpret_trajectory(self, trajectory):
         
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch = super().interpret_trajectory(trajectory)
+        interpreted_trajectory = super().interpret_trajectory(trajectory)
 
-        log_prob_batch = interpret_unit_values(trajectory["log_prob"], self.device).detach()
+        interpreted_trajectory["log_prob_batch"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
 
-        critic_pred_batch = interpret_unit_values(trajectory["critic_pred"], self.device).detach()
+        interpreted_trajectory["critic_pred_batch"] = interpret_unit_values(trajectory["critic_pred"], self.device).detach()
 
-        action_val_batch = interpret_values(trajectory["action_val"], self.device).detach()
+        interpreted_trajectory["action_val_batch"] = interpret_values(trajectory["action_val"], self.device).detach()
 
-        return state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch, action_val_batch
-    
+        for key in self.custom_data_beyond_obs:
+            interpreted_trajectory[key] = interpret_values(trajectory[key], self.device).detach()
+
+        return interpreted_trajectory    
 
 
-    def compute_values_estimates(self, state_batch, action_batch, next_state_batch, done_batch):
+    def compute_values_estimates(self, interpreted_trajectory):
 
         '''Computes values estimates using the critic'''
 
-        values = self.critic.predict(state_batch).squeeze(-1)
+        observation_batch = interpreted_trajectory["observation_batch"]
+        next_observation_batch = interpreted_trajectory["next_observation_batch"]
+        done_batch = interpreted_trajectory["done_batch"]
+
+        values = self.critic.predict(observation_batch).squeeze(-1)
 
         with torch.no_grad():
-            next_values = self.critic.predict(next_state_batch).squeeze(-1)
+            next_values = self.critic.predict(next_observation_batch).squeeze(-1)
 
         next_values = next_values * (1 - done_batch)
 
         return values, next_values
     
     
-    def compute_error_and_advantage(self, discount_factor, reward_batch, next_values, values, done_batch):
+    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory):
+
+        reward_batch = interpreted_trajectory["reward_batch"]
+        next_values = interpreted_trajectory["next_values"]
+        values = interpreted_trajectory["values"]
+        done_batch = interpreted_trajectory["done_batch"]
 
         # Compute advantages using Generalized Advantage Estimation (GAE)
         values_error = reward_batch + discount_factor * next_values - values 
@@ -254,7 +281,16 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         return value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss
 
 
-    def _compute_losses(self, new_log_probs, entropy, log_prob_batch, advantages, old_values, values, returns):
+    def _compute_losses(self, interpreted_trajectory):
+
+        new_log_probs = interpreted_trajectory["new_log_probs"]
+        entropy = interpreted_trajectory["entropy"]
+        log_prob_batch = interpreted_trajectory["log_prob_batch"]
+        advantages = interpreted_trajectory["advantages"]
+        old_values = interpreted_trajectory["old_values"]
+        values = interpreted_trajectory["values"]
+        returns = interpreted_trajectory["returns"]
+
 
         ratio, surrogate1, surrogate2, policy_loss_batch, mean_policy_loss, policy_loss = self._compute_policy_loss(new_log_probs, log_prob_batch, advantages, entropy)
 
@@ -298,28 +334,17 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         
         self.number_of_times_optimized += 1
         
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch, action_val_batch = self.interpret_trajectory(trajectory)
+        interpreted_trajectory = self.interpret_trajectory(trajectory)
 
-        values = trajectory.get("values", None) 
-        next_values = trajectory.get("next_values", None)  
+        # NOTE: PPO REQUIRES VALUES AND ADVANTAGES TO BE PRE COMPUTED
 
-        if values is None or next_values is None:      
-            values, next_values = self.compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
-        
-        advantages = trajectory.get("advantages", None) 
-        returns = trajectory.get("returns", None)
+        self._evaluate_actions(interpreted_trajectory)
 
-        if advantages is None or returns is None: 
-            values_error, non_normalized_advantages, advantages, returns = self.compute_error_and_advantage(discount_factor, reward_batch, next_values, values, done_batch)
-
-        # Compute new log probabilities from the policy
-        action_logits, new_log_probs, entropy = self._evaluate_actions(state_batch, action_val_batch)
-
-        ratio, policy_loss, value_loss, loss = self._compute_losses(new_log_probs, entropy, log_prob_batch, advantages, critic_pred_batch, values, returns)
+        ratio, policy_loss, value_loss, loss = self._compute_losses(interpreted_trajectory)
 
         self._optimize_using_loss(policy_loss, value_loss, loss)
         
 
-        return {"log_prob_batch" : log_prob_batch, "new_log_probs" : new_log_probs}
+        return {"log_prob_batch" : interpreted_trajectory["log_prob_batch"], "new_log_probs" : interpreted_trajectory["new_log_probs"]}
 
 

@@ -14,7 +14,7 @@ from automl.loggers.logger_component import ComponentWithLogging
 from automl.component import ParameterSignature, requires_input_proccess
 from automl.fundamentals.translator.translator import Translator
 
-from automl.utils.shapes_util import torch_zeros_for_space
+from automl.utils.shapes_util import clone_shape, torch_zeros_for_space
 
 
 def no_proccess_state_for_agent(state):
@@ -57,9 +57,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     
         self.state_shape = self.get_input_value("state_shape") #shape of the state as the environment sees it
                 
-        self.model_input_shape = self.state_shape #shape of the state as it is processed by the model of the policy
+        self.processed_state_shape = clone_shape(self.state_shape) #shape of the state after # CORRECT THIS TO CLONE THE STATE AND NOT COPY REFERENCE
         
-        self.model_output_shape = self.get_input_value("action_shape") #shape of the action
+        self.action_output_shape = self.get_input_value("action_shape") #shape of the action
 
         self.initialize_state_translator()
         self.initialize_state_memory()
@@ -82,10 +82,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
             self.lg.writeLine(f"Agent has state translator: {self.state_translator}")
             self.proccess_env_state = self.state_translator.translate_state
             
-            old_model_input_shape = self.model_input_shape
-            self.model_input_shape = self.state_translator.get_shape(self.model_input_shape)
+            self.processed_state_shape["observation"] = self.state_translator.get_shape(self.state_shape["observation"])
 
-            self.lg.writeLine(f"Model input shape was translated from {old_model_input_shape} to {self.model_input_shape}")
+            self.lg.writeLine(f"Model input shape was translated from {self.state_shape} to {self.processed_state_shape}")
 
 
         else:
@@ -96,21 +95,21 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     def initialize_state_memory(self):
         
         self.lg.writeLine(f"Initializing state memory, the agent will remember the last state for convenience in computations, but it will not be used by itself")
-        self.state_memory = None #simple pointer to a to define state, this method is more to be extended
+        self.state_memory = {} 
         
 
     
     def initialize_necessary_cache(self):
         
-        self.lg.writeLine(f"Agent is allocating memory for its computations, using two tensors with shape {self.model_input_shape}")
+        self.lg.writeLine(f"Agent is allocating memory for its computations, using two tensors with shape {self.processed_state_shape}")
         
-        self.state_memory = self.allocate_tensor_for_state() # makes a list of tensors for the state_memory, using them to store memory of the states
+        self.state_memory["observation"] = self.allocate_tensor_for_state() # makes a list of tensors for the state_memory, using them to store memory of the states
         
     
     
     def allocate_tensor_for_state(self):
         
-        return torch_zeros_for_space(self.model_input_shape, device=self.device)
+        return torch_zeros_for_space(self.processed_state_shape["observation"], device=self.device)
 
 
         
@@ -120,10 +119,10 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         self.policy : Policy = self.get_input_value("policy", look_in_value_with_key="policy", look_in_attribute_with_name="policy")
 
-        self.lg.writeLine(f"Will initialize policy with state input shape: {self.model_input_shape} and action output shape: {self.model_output_shape}")
+        self.lg.writeLine(f"Will initialize policy with state input shape: {self.processed_state_shape} and action output shape: {self.action_output_shape}")
          
-        self.policy.pass_input({"state_shape" : self.model_input_shape,
-                               "action_shape" : self.model_output_shape,})
+        self.policy.pass_input({"state_shape" : self.processed_state_shape,
+                               "action_shape" : self.action_output_shape,})
         
     
     
@@ -142,7 +141,10 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         '''makes a prediction based on the new state for a new action, using the current memory if need be'''
         
-        to_return = self.policy.predict(self.proccess_env_state(state))
+        state = {**state}
+        state["observation"] = self.proccess_env_state(state["observation"])
+        
+        to_return = self.policy.predict(state)
 
         return to_return
     
@@ -158,7 +160,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         
         '''calls the method of the policy with this Agent's state management strategy'''
         
-        return policy_method(self.proccess_env_state(state))
+        state = {**state}
+        state["observation"] = self.proccess_env_state(state["observation"])
+        return policy_method(state)
     
 
     @requires_input_proccess
@@ -187,15 +191,22 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         '''
         Resets an agent in the environment, mainly making it remember a state in memory
         '''
+
         self.update_state_memory(initial_state)
     
 
     @requires_input_proccess    
-    def update_state_memory(self, new_state): #update memory shared accross agents
+    def Wupdate_state_memory(self, new_state): #update memory shared
         '''
         Makes the agent remember a new state
         '''
-        self.state_memory.copy_(self.proccess_env_state(new_state))
+
+        new_state = {**new_state}
+        new_state_obs = new_state.pop("observation")
+
+        self.state_memory["observation"].copy_(self.proccess_env_state(new_state_obs))
+
+        self.state_memory.update(new_state)
         
 
     @requires_input_proccess

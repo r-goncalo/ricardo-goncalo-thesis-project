@@ -72,26 +72,28 @@ class LearnerSchema(Component):
 
     
     def interpret_trajectory(self, trajectory):
+
+        interpreted_trajectory = {}
         
-        state_batch = interpret_values(trajectory["state"], self.device)
+        interpreted_trajectory["observation_batch"] = interpret_values(trajectory["observation"], self.device)
 
-        action_batch = interpret_values(trajectory["action"], self.device)
+        interpreted_trajectory["action_batch"] = interpret_values(trajectory["action"], self.device)
 
-        next_state_batch = interpret_values(trajectory["next_state"], self.device)
+        interpreted_trajectory["next_observation_batch"] = interpret_values(trajectory["next_observation"], self.device)
             
-        reward_batch = interpret_unit_values(trajectory["reward"], self.device)
+        interpreted_trajectory["reward_batch"] = interpret_unit_values(trajectory["reward"], self.device)
 
-        done_batch = interpret_unit_values(trajectory["done"], self.device)
+        interpreted_trajectory["done_batch"]  = interpret_unit_values(trajectory["done"], self.device)
             
-        return state_batch, action_batch, next_state_batch, reward_batch, done_batch
+        return interpreted_trajectory
     
     
-    def _non_final_states_mask(self, next_state_batch):
+    def _non_final_states_mask(self, next_observation_batch):
         
         # Compute a mask of non-final states and concatenate the batch elements
         # (a final state would've been the one after which simulation ended)
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                              next_state_batch)), dtype=torch.bool)
+                                              next_observation_batch)), dtype=torch.bool)
 
         
         return non_final_mask

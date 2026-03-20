@@ -2,7 +2,7 @@
 
 from automl.rl.policy.policy import Policy
 from automl.component import requires_input_proccess
-
+import random
 
 class RandomPolicy(Policy):
 
@@ -35,3 +35,19 @@ class RandomPolicy(Policy):
     @requires_input_proccess
     def predict(self, state=None):
         return self.output_action_shape.sample()
+    
+
+
+
+class RandomPolicyMasked(RandomPolicy):
+
+    '''
+    A policy which has no need for internal model, as it will choose always a random action, and allows for masked actions
+    '''
+
+
+    @requires_input_proccess
+    def predict(self, state):
+        action_mask = state["action_mask"]
+        
+        return self.output_action_shape.sample(action_mask)

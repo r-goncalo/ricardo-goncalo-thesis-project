@@ -30,11 +30,11 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         self.lg.writeLine(f"Interval between computation writes will be {self.interval_beetwenn_computation_writes}")
 
 
-    def _apply_model_prediction_given_state_action_pairs(self, state_batch, action_batch):
+    def _apply_model_prediction_given_state_action_pairs(self, observation_batch, action_batch):
 
         '''Returns the values predicted by the current model and the values for the specific actions that were passed''' 
 
-        predicted_actions_values, predicted_values_for_actions = super()._apply_model_prediction_given_state_action_pairs(state_batch, action_batch)
+        predicted_actions_values, predicted_values_for_actions = super()._apply_model_prediction_given_state_action_pairs(observation_batch, action_batch)
 
         if self.__path_to_write is not None:
 
@@ -46,7 +46,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         return predicted_actions_values, predicted_values_for_actions
 
 
-    def _apply_value_prediction_to_next_state(self, next_state_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
 
         '''
         Returns the predicted values for the next state
@@ -55,7 +55,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
         '''
 
-        next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(next_state_batch, done_batch, reward_batch, discount_factor)
+        next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(next_observation_batch, done_batch, reward_batch, discount_factor)
 
         if self.__path_to_write is not None:
             self.lg.writeLine(f"\nComputed done, next_state_values computed by target and q value of action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
@@ -143,7 +143,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
 
             self.__temporary_target_model.clone_other_model_into_this(self.target_net)
 
-            state_batch, action_batch, next_state_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
+            observation_batch, action_batch, next_observation_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
 
         super()._learn(trajectory, discount_factor)
 
@@ -152,10 +152,10 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
             self.lg.writeLine("\naction, reward, done, old_target_predictions, new_target_precitions\n", file="target_batch_comparison.txt", use_time_stamp=False)
 
             with torch.no_grad():
-                old_model_predictions = self.__temporary_target_model.predict(state_batch)
-                new_model_precitions = self.target_net.predict(state_batch)
+                old_model_predictions = self.__temporary_target_model.predict(observation_batch)
+                new_model_precitions = self.target_net.predict(observation_batch)
 
-            for i in range(len(state_batch)):
+            for i in range(len(observation_batch)):
 
                 action_val = action_batch[i].detach().cpu().numpy()
                 reward_val = reward_batch[i].detach().cpu().numpy()

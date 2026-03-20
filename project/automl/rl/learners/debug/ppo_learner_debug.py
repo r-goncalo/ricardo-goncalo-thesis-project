@@ -70,8 +70,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             
 
     
-    def compute_values_estimates(self, state_batch, action_batch, next_state_batch, done_batch):
-        values, next_values = super().compute_values_estimates(state_batch, action_batch, next_state_batch, done_batch)
+    def compute_values_estimates(self, observation_batch, action_batch, next_observation_batch, done_batch):
+        values, next_values = super().compute_values_estimates(observation_batch, action_batch, next_observation_batch, done_batch)
 
         if self._should_log():
 
@@ -238,12 +238,12 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
     def _learn(self, trajectory, discount_factor):
 
 
-        state_batch, action_batch, next_state_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch = self.interpret_trajectory(trajectory)
+        observation_batch, action_batch, next_observation_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch = self.interpret_trajectory(trajectory)
 
         if self._should_log():
             
 
-            self.lg.writeLine(f"\nDoing learning with state batch {state_batch.shape}, action_batch {action_batch.shape}, next_state_batch {next_state_batch.shape}, reward_batch {reward_batch.shape}, done_batch {done_batch.shape}, log_prob_batch {log_prob_batch.shape}, critic_pred_batch {critic_pred_batch.shape}",
+            self.lg.writeLine(f"\nDoing learning with state batch {observation_batch.shape}, action_batch {action_batch.shape}, next_observation_batch {next_observation_batch.shape}, reward_batch {reward_batch.shape}, done_batch {done_batch.shape}, log_prob_batch {log_prob_batch.shape}, critic_pred_batch {critic_pred_batch.shape}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )
@@ -259,8 +259,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
             with torch.no_grad():
 
-                old_values = self.__old_critic_model.predict(state_batch).squeeze(-1)
-                new_values = self.critic.predict(state_batch).squeeze(-1)
+                old_values = self.__old_critic_model.predict(observation_batch).squeeze(-1)
+                new_values = self.critic.predict(observation_batch).squeeze(-1)
 
                 self.lg.writeLine(
                     "\naction, reward, done, old_model_predictions, new_model_predictions\n",
@@ -268,7 +268,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
                     use_time_stamp=False,
                 )
 
-                for i in range(len(state_batch)):
+                for i in range(len(observation_batch)):
 
                     action_val = action_batch[i].detach().cpu().numpy()
                     reward_val = reward_batch[i].detach().cpu().numpy()
