@@ -70,11 +70,11 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
 
         interpreted_trajectory = self.interpret_trajectory(trajectory)
 
-        observation_batch = interpreted_trajectory["observation_batch"]
-        action_batch = interpreted_trajectory["action_batch"]
-        next_observation_batch = interpreted_trajectory["next_observation_batch"]
-        reward_batch = interpreted_trajectory["reward_batch"]
-        done_batch = interpreted_trajectory["done_batch"]
+        observation_batch = interpreted_trajectory["observation"]
+        action_batch = interpreted_trajectory["action"]
+        next_observation_batch = interpreted_trajectory["next_observation"]
+        reward_batch = interpreted_trajectory["reward"]
+        done_batch = interpreted_trajectory["done"]
                     
         predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(observation_batch, action_batch) 
 

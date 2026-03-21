@@ -123,9 +123,21 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
     
     def agent_iter(self):
         return self.env.agent_iter()
+
+    def _process_action_of_agent(self, action):
+            
+            if isinstance(action, torch.Tensor):
+                action = action.detach().cpu()
+
+                if action.numel() == 1:
+                    return action.item()
+                
+                return action.numpy()
+
+            return action
     
-    def step(self, *args):
-        return self.env.step(*args)
+    def step(self, action):
+        return self.env.step(self._process_action_of_agent(action))
     
     def rewards(self):
         return self.env.rewards    
@@ -138,9 +150,7 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         self.env.close()
         
     def reset(self):
-        observations, info = self.env.reset()
-        self.reset_info = info
+        self.env.reset()
     
     def total_reset(self):
-        observations, info = self.env.reset(seed=self.seed)
-        self.reset_info = info
+        self.env.reset(seed=self.seed)

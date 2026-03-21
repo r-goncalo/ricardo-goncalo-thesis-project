@@ -75,7 +75,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
         if self.state_translator is not None:
 
-            self.state_translator.pass_input({"original_shape" : self.state_shape})
+            self.state_translator.pass_input({"original_shape" : self.state_shape["observation"]})
 
             self.state_translator.proccess_input_if_not_processed()
 

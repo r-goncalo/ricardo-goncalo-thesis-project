@@ -137,8 +137,6 @@ class ArtifactComponent(Component):
         
         self.base_directory = self.get_input_value("base_directory")
         
-
-        
         if self.base_directory == 0:
             self.base_directory = ''
 
@@ -160,9 +158,9 @@ class ArtifactComponent(Component):
             self.artifact_directory = open_or_create_folder(full_path, create_new=self.create_new_directory)
             
         except Exception as e:
-            
             raise Exception(f"Component {self.name} could not open or create folder with base directory \'{self.base_directory}\' and artifact relative directory \'{self.artifact_relative_directory}\', full directory {full_path} due to exception:\n{e}") from e
         
+        self.input["create_new_directory"] = False # if the component generated its directory, it won't need to create when it is loaded
                 
     def _force_generate_artifact_directory(self):
         self._generate_artifact_directory()

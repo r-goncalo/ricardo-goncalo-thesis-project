@@ -14,8 +14,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
     is_debug_schema = True
 
     parameters_signature = {
-        "interval_between_debug_writes": ParameterSignature(default_value=15),
-        "compare_old_and_new_critic_predictions_interval": ParameterSignature(default_value=15),
+        "interval_between_debug_writes": ParameterSignature(default_value=50),
+        "compare_old_and_new_critic_predictions_interval": ParameterSignature(default_value=-1),
     }
 
     def _proccess_input_internal(self):
@@ -70,10 +70,14 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             
 
     
-    def compute_values_estimates(self, observation_batch, action_batch, next_observation_batch, done_batch):
-        values, next_values = super().compute_values_estimates(observation_batch, action_batch, next_observation_batch, done_batch)
+    def compute_values_estimates(self, interpreted_trajectory):
+        values, next_values = super().compute_values_estimates(interpreted_trajectory)
 
         if self._should_log():
+
+            action_batch = interpreted_trajectory.get("action", None)
+            done_batch = interpreted_trajectory["done"]
+
 
             self.lg.writeLine(
                     "\nCritic for state, action, Critic for next state, done batch",
@@ -91,12 +95,17 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
         return values, next_values
     
-    def compute_error_and_advantage(self, discount_factor, reward_batch, next_values, values, done_batch):
+    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory):
         values_error, non_normalized_advantages, advantages, returns = super().compute_error_and_advantage(
-            discount_factor, reward_batch, next_values, values, done_batch
+            discount_factor, interpreted_trajectory
         )
 
         if self._should_log():
+
+            reward_batch = interpreted_trajectory["reward"]
+            next_values = interpreted_trajectory["values"]
+            values = interpreted_trajectory["old_values"]
+            done_batch = interpreted_trajectory["done"]
 
             self.lg.writeLine(f"\nValue error calculation: (reward + discount_factor * next_values - values)",
                 file=self.__debug_path,
@@ -164,10 +173,14 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
         return values_error, non_normalized_advantages, advantages, returns
     
-    def _evaluate_actions(self, states, actions):
-        model_output, new_log_probs, entropy = super()._evaluate_actions(states, actions)
+    def _evaluate_actions(self, interpreted_trajectory):
+        super()._evaluate_actions(interpreted_trajectory)
 
         if self._should_log():
+
+            model_output = interpreted_trajectory["model_output"]
+            actions = interpreted_trajectory["action"]
+            new_log_probs = interpreted_trajectory["new_log_probs"]
 
             self.lg.writeLine(
                 "\nEvaluation of actions:\nmodel_output selected by action -> log_probs of chosen actions",
@@ -183,8 +196,6 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
                     use_time_stamp=False,
                 )
 
-
-        return model_output, new_log_probs, entropy
     
 
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):
@@ -237,16 +248,23 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
     def _learn(self, trajectory, discount_factor):
 
+        if self._should_log():
+            self.lg.writeLine(f"Interpreting trajectory with keys: {trajectory.keys()}", file=self.__debug_path,
+                    use_time_stamp=False,)
 
-        observation_batch, action_batch, next_observation_batch, reward_batch, done_batch, log_prob_batch, critic_pred_batch = self.interpret_trajectory(trajectory)
+
+        interpreted_trajectory = self.interpret_trajectory(trajectory)
 
         if self._should_log():
             
 
-            self.lg.writeLine(f"\nDoing learning with state batch {observation_batch.shape}, action_batch {action_batch.shape}, next_observation_batch {next_observation_batch.shape}, reward_batch {reward_batch.shape}, done_batch {done_batch.shape}, log_prob_batch {log_prob_batch.shape}, critic_pred_batch {critic_pred_batch.shape}",
+            self.lg.writeLine(f"\nDoing learning with shapes:",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )
+
+            for k, v in interpreted_trajectory.items():
+                self.lg.writeLine(f"    {k}: {v.shape}", file=self.__debug_path, use_time_stamp=False)
 
         should_compare_old_and_new_critic = self.__compare_old_and_new_critic_predictions and self.__current_learning_step % self.compare_old_and_new_critic_predictions_interval == 0
 
@@ -259,8 +277,12 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
             with torch.no_grad():
 
-                old_values = self.__old_critic_model.predict(observation_batch).squeeze(-1)
-                new_values = self.critic.predict(observation_batch).squeeze(-1)
+                old_values = self.__old_critic_model.predict(interpreted_trajectory["observation"]).squeeze(-1)
+                new_values = self.critic.predict(interpreted_trajectory["observation"]).squeeze(-1)
+
+                reward_batch = interpreted_trajectory["reward"]
+                action_batch = interpreted_trajectory["action"]
+                done_batch = interpreted_trajectory["done"]
 
                 self.lg.writeLine(
                     "\naction, reward, done, old_model_predictions, new_model_predictions\n",
@@ -268,7 +290,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
                     use_time_stamp=False,
                 )
 
-                for i in range(len(observation_batch)):
+                for i in range(len(interpreted_trajectory["observation"])):
 
                     action_val = action_batch[i].detach().cpu().numpy()
                     reward_val = reward_batch[i].detach().cpu().numpy()

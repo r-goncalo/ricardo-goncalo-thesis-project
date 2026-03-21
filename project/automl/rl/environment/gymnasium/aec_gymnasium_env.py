@@ -71,7 +71,10 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
         
         
     def get_env_name(self):
-        return self.env.spec.id
+        try:
+            return self.env.spec.id
+        except:
+            return type(self.env)
 
 
     @requires_input_proccess

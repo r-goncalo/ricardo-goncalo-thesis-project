@@ -73,17 +73,17 @@ class LearnerSchema(Component):
     
     def interpret_trajectory(self, trajectory):
 
-        interpreted_trajectory = {}
+        interpreted_trajectory = {**trajectory}
         
-        interpreted_trajectory["observation_batch"] = interpret_values(trajectory["observation"], self.device)
+        interpreted_trajectory["observation"] = interpret_values(trajectory["observation"], self.device)
 
-        interpreted_trajectory["action_batch"] = interpret_values(trajectory["action"], self.device)
+        interpreted_trajectory["action"] = interpret_values(trajectory["action"], self.device)
 
-        interpreted_trajectory["next_observation_batch"] = interpret_values(trajectory["next_observation"], self.device)
+        interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device)
             
-        interpreted_trajectory["reward_batch"] = interpret_unit_values(trajectory["reward"], self.device)
+        interpreted_trajectory["reward"] = interpret_unit_values(trajectory["reward"], self.device)
 
-        interpreted_trajectory["done_batch"]  = interpret_unit_values(trajectory["done"], self.device)
+        interpreted_trajectory["done"]  = interpret_unit_values(trajectory["done"], self.device)
             
         return interpreted_trajectory
     

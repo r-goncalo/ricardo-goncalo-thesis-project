@@ -170,6 +170,8 @@ class JESPTrainer(RLTrainerComponent):
         else:
             self.lg.writeLine(f"Agent '{agent_name}' did not change its policy in this JESP turn")
 
+        self.lg.writeLine(f"Ended JESP best-response turn for agent '{agent_name}'\n")
+
         return changed
 
     # -------------------------------------------------------------------------

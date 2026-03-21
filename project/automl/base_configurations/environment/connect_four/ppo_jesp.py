@@ -20,6 +20,7 @@ from automl.rl.policy.stochastic_policy import MaskedCategoricalStochasticPolicy
 from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.policy.random_policy import RandomPolicyMasked
+from automl.rl.evaluators.rl_agent_iter_evaluator import RLAgentIterEvaluator
 
 # TODO: SHARED OPTIMIZER AND PREDICTIONS
 
@@ -66,7 +67,7 @@ def config_dict():
                                 })
 
                             ],
-                    "child_components" :         
+                            "child_components" :         
                             [
                                 (FullyConnectedModelSchema,
                                     {
@@ -83,7 +84,7 @@ def config_dict():
             
             "name": "RLTrainerComponent",
 
-            "limit_total_steps": 10_000,
+            "limit_total_steps": 100_000,
 
             "predict_optimizations_to_do": True,
 
@@ -99,7 +100,7 @@ def config_dict():
 
                 "discount_factor": 0.99,
 
-                "limit_steps" : 25_000,
+                "limit_steps" : 5_000,
 
                 "learn_with_all_memory" : True,
 
@@ -191,8 +192,8 @@ def config_dict():
                         ( ConvergenceDetector,
                             {
                                 "memory_size" : 25,
-                                "convergence_treshold" : 0.05, # if average difference between logs is less than this, is convergence, evaluated at learning time
-                                "old_values_new_values_keys" : ["log_prob_batch", "new_log_probs"]
+                                "convergence_treshold" : 0.025, # if average difference between logs is less than this, is convergence, evaluated at learning time
+                                "old_values_new_values_keys" : ["log_prob", "new_log_probs"]
                             }
                         )
                     ]
@@ -214,11 +215,6 @@ def config_dict():
                         "standard_deviation_treshold" : 0.5, # less than this is convergence
                         "n_values_to_use" : 50,
                         "value_key" : "episode_reward"
-                    }),
-                    (AgentTrainerSlopeConvergenceDetector, {
-                        "slope_threshold" : 0.1, # less than this is convergence
-                        "n_values_to_use" : 50,
-                        "value_key" : "episode_reward"
                     })
                 ]
 
@@ -229,13 +225,22 @@ def config_dict():
         ),
 
         "component_evaluator" : (
-            AgentVsAgentsWithPolicy,
-            {
-                "policy_type_for_others" : RandomPolicyMasked,
-                "number_of_episodes" : 50,
-                "rl_player_definition" : (RLPlayer, {}),
-                "base_evaluator" : (LastValuesAvgStdEvaluator, {"value_to_use" : "episode_reward"})
+            RLAgentIterEvaluator, {
+                "single_agent_evaluators" : [
+
+                (AgentVsAgentsWithPolicy,
+                            {
+                                "policy_type_for_others" : RandomPolicyMasked,
+                                "number_of_episodes" : 200,
+                                "rl_player_definition" : (RLPlayer, {}),
+                                "base_evaluator" : (LastValuesAvgStdEvaluator, {"value_to_use" : "episode_reward", "std_deviation_factor" : 100})
+                            }
+                ),
+
+                ]
+
             }
+            
         )
 
     },
@@ -252,7 +257,7 @@ def hyperparameter_optimization_input():
         "hyperparameters_range_list" : hyperparameter_suggestions(),
         "hyperparameters_to_optimize" : hyperparameters_to_optimize(),
         "n_trials" : 200,
-        "n_steps" : 4,
+        "n_steps" : 10,
         "pruner" : [OptunaPrunerWrapper, {"optuna_pruner" : "Percentile", "pruner_input" : {"percentile" : 90.0}}],
         "sampler" : [OptunaSamplerWrapper, {"optuna_sampler" : "TreeParzen", "sampler_input" : {"n_startup_trials" : 50}}]
     }
@@ -284,7 +289,7 @@ def hyperparameter_suggestions():
     policy_head = [*policy_model_input, "models", 1]
     policy_head_input = [*policy_head, 1]
 
-    shared_model = [*policy_input, "child_components"]
+    shared_model = [*policy_model_input, "child_components", 0]
     shared_model_input = [*shared_model, 1]
 
     critic_model_models = [*learner_input, "critic_model", 1, "models"]
@@ -312,7 +317,7 @@ def hyperparameter_suggestions():
 
         SingleHyperparameterSuggestion(
             name="episodes_for_agent_to_learn",
-            value_suggestion=("int", {"low": 2000, "high": 10000}),
+            value_suggestion=("int", {"low": 2000, "high": 5000}),
             hyperparameter_localizations=[
                 [*agents_trainer_input, "limit_steps"]
             ]

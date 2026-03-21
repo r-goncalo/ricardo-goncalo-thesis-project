@@ -68,11 +68,11 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
             pass
 
         elif self.setup_seeds_of_player:
-            self.seeds_for_player = [generate_seed() for _ in range(self.number_of_evaluations)]
-            self.input["seeds_for_player"] = self.seeds_for_player
+            self.setup_seeds_of_player = [generate_seed() for _ in range(self.number_of_evaluations)]
+            self.input["setup_seeds_of_player"] = self.setup_seeds_of_player
 
         else:
-            self.seeds_for_player = None
+            self.setup_seeds_of_player = None
         
         self.directory_to_store_evaluation_prefix = self.get_input_value("directory_to_store_evaluation_prefix")
 
@@ -186,7 +186,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         # compute new evaluations
         for i in range(self.number_of_evaluations): # evaluate plays and store their paths 
 
-            seed_for_player = None if self.seeds_for_player is None else self.seeds_for_player[i]
+            seed_for_player = None if self.setup_seeds_of_player is None else self.setup_seeds_of_player[i]
 
             rl_player_of_run : RLPlayer = self._run_play_to_evaluate(agents, device, evaluations_directory, env, seed_for_player, component_to_evaluate) 
 

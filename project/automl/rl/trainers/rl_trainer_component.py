@@ -144,7 +144,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
 
                     self.agents_trainers[key] = agent_trainer
 
-                agents_in_input[key] = agent_trainer #puts the agent trainer in input too
+                self.input["agents"][key] = agent_trainer #puts the agent trainer in input too
     
             elif isinstance(agent_in_input, AgentTrainer):
 
@@ -233,9 +233,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
                 
         return {
             "episode" : [self.values["episodes_done"]],
-            "episode_reward" : [self.values["episode_score"]],
+            "episode_reward" : [float(self.values["episode_score"])],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
+            "avg_reward" : [float(self.values["episode_score"] / self.values["episode_steps"]) if self.values["episode_steps"] > 0 else [0.0]],
             "total_steps" : [self.values["total_steps"]]
             }
     

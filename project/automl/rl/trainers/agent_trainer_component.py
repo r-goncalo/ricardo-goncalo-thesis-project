@@ -198,9 +198,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         return {
             "episode" : [self.values["episodes_done"]],
-            "episode_reward" : [self.values["episode_score"]],
+            "episode_reward" : [float(self.values["episode_score"])],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
+            "avg_reward" : [float(self.values["episode_score"]) / self.values["episode_steps"]] if self.values["episode_steps"] > 0 else [0.0],
             "is_training" : [self.values['is_training']]
             }
         

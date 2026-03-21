@@ -48,7 +48,7 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
         if self.compare_old_and_new_model_predictions:
             self.__temporary_model.clone_other_model_into_this(self.__agent_model)
 
-            observation_batch, action_batch, next_observation_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
+            interpreted_trajectory = self.interpret_trajectory(trajectory)
 
         to_return = super()._learn(trajectory, discount_factor)
 
@@ -56,13 +56,17 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
 
         if self.compare_old_and_new_model_predictions:
 
+            action_batch = interpreted_trajectory["action"]
+            reward_batch = interpreted_trajectory["reward"]
+            done_batch = interpreted_trajectory["done"]
+
             with torch.no_grad():
-                old_model_predictions = self.__temporary_model.predict(observation_batch)
-                new_model_precitions = self.__agent_model.predict(observation_batch)
+                old_model_predictions = self.__temporary_model.predict(interpreted_trajectory["observation"])
+                new_model_precitions = self.__agent_model.predict(interpreted_trajectory["observation"])
 
-            self.lg.writeLine(f"Used previous version of model and new version on observation_batch with shape {observation_batch.shape} to produce predicitons with shape {new_model_precitions.shape} and {old_model_predictions.shape}", file="batch_comparison.txt", use_time_stamp=False)
+            self.lg.writeLine(f"Used previous version of model and new version on observation_batch with shape {interpreted_trajectory['observation'].shape} to produce predicitons with shape {new_model_precitions.shape} and {old_model_predictions.shape}", file="batch_comparison.txt", use_time_stamp=False)
 
-            for i in range(len(observation_batch)):
+            for i in range(len(interpreted_trajectory["observation"])):
 
                 action_val = action_batch[i].detach().cpu().numpy()
                 reward_val = reward_batch[i].detach().cpu().numpy()

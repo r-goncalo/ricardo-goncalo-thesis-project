@@ -47,8 +47,8 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         with torch.no_grad():
             values, next_values = self.learner.compute_values_estimates(processed_memory)
             
-            processed_memory["values"] = values
-            processed_memory["next_values"] = next_values
+            processed_memory["old_values"] = values
+            processed_memory["values"] = next_values
             
             values_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, processed_memory)
 

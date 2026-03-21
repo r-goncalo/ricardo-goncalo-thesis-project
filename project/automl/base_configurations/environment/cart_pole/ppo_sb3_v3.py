@@ -142,7 +142,7 @@ def config_dict():
                             {
                                 "memory_size" : 50,
                                 "convergence_treshold" : 0.05, # if average difference between logs is less than this, is convergence, evaluated at learning time
-                                "old_values_new_values_keys" : ["log_prob_batch", "new_log_probs"]
+                                "old_values_new_values_keys" : ["log_prob", "new_log_probs"]
                             }
                         )
                     ]

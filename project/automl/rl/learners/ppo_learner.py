@@ -156,8 +156,8 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         Computes log probabilities of actions and entropy of the policy distribution.
         """
 
-        observation_batch = interpreted_trajectory["observation_batch"]
-        action_vals_batch = interpreted_trajectory["action_val_batch"]
+        observation_batch = interpreted_trajectory["observation"]
+        action_vals_batch = interpreted_trajectory["action_val"]
 
         state_batch = {"observation" : observation_batch}
 
@@ -186,11 +186,11 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         
         interpreted_trajectory = super().interpret_trajectory(trajectory)
 
-        interpreted_trajectory["log_prob_batch"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
+        interpreted_trajectory["log_prob"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
 
-        interpreted_trajectory["critic_pred_batch"] = interpret_unit_values(trajectory["critic_pred"], self.device).detach()
+        interpreted_trajectory["critic_pred"] = interpret_unit_values(trajectory["critic_pred"], self.device).detach()
 
-        interpreted_trajectory["action_val_batch"] = interpret_values(trajectory["action_val"], self.device).detach()
+        interpreted_trajectory["action_val"] = interpret_values(trajectory["action_val"], self.device).detach()
 
         for key in self.custom_data_beyond_obs:
             interpreted_trajectory[key] = interpret_values(trajectory[key], self.device).detach()
@@ -202,26 +202,26 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
         '''Computes values estimates using the critic'''
 
-        observation_batch = interpreted_trajectory["observation_batch"]
-        next_observation_batch = interpreted_trajectory["next_observation_batch"]
-        done_batch = interpreted_trajectory["done_batch"]
+        observation_batch = interpreted_trajectory["observation"]
+        next_observation_batch = interpreted_trajectory["next_observation"]
+        done_batch = interpreted_trajectory["done"]
 
-        values = self.critic.predict(observation_batch).squeeze(-1)
+        old_values = self.critic.predict(observation_batch).squeeze(-1)
 
         with torch.no_grad():
             next_values = self.critic.predict(next_observation_batch).squeeze(-1)
 
         next_values = next_values * (1 - done_batch)
 
-        return values, next_values
+        return old_values, next_values
     
     
     def compute_error_and_advantage(self, discount_factor, interpreted_trajectory):
 
-        reward_batch = interpreted_trajectory["reward_batch"]
-        next_values = interpreted_trajectory["next_values"]
-        values = interpreted_trajectory["values"]
-        done_batch = interpreted_trajectory["done_batch"]
+        reward_batch = interpreted_trajectory["reward"]
+        next_values = interpreted_trajectory["values"]
+        values = interpreted_trajectory["old_values"]
+        done_batch = interpreted_trajectory["done"]
 
         # Compute advantages using Generalized Advantage Estimation (GAE)
         values_error = reward_batch + discount_factor * next_values - values 
@@ -285,7 +285,8 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
         new_log_probs = interpreted_trajectory["new_log_probs"]
         entropy = interpreted_trajectory["entropy"]
-        log_prob_batch = interpreted_trajectory["log_prob_batch"]
+        log_prob_batch = interpreted_trajectory["log_prob"]
+        
         advantages = interpreted_trajectory["advantages"]
         old_values = interpreted_trajectory["old_values"]
         values = interpreted_trajectory["values"]
@@ -345,6 +346,6 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self._optimize_using_loss(policy_loss, value_loss, loss)
         
 
-        return {"log_prob_batch" : interpreted_trajectory["log_prob_batch"], "new_log_probs" : interpreted_trajectory["new_log_probs"]}
+        return {"log_prob" : interpreted_trajectory["log_prob"], "new_log_probs" : interpreted_trajectory["new_log_probs"]}
 
 

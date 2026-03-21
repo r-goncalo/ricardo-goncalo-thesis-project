@@ -118,6 +118,10 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
         # Get last N values
         last_values = df[self.value_key].tail(self.n_values_to_use).values
 
+        self.lg.writeLine(f"LAST VALUES TYPE: {type(last_values)}")
+        self.lg.writeLine(f"LAST VALUES DTYPE: {last_values.dtype}")
+        self.lg.writeLine(f"LAST VALUES ARE: {last_values}")
+
         # Compute standard deviation
         std = float(torch.tensor(last_values, dtype=torch.float32).std().item())
 

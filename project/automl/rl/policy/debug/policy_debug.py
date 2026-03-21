@@ -35,11 +35,18 @@ class PolicyDebug(Policy, ComponentDebug):
         Returns the action value for each of the passed states in a tensor
         '''
         
-        predicted_value = super().predict(state)
+        state_str = str(state)
 
-        self.lg.writeLine(f"Predicted value: {predicted_value}", file='predicted_values.txt')
+        if len(state_str) > 35:
+            state_str = state_str[:15] + " ... " + state_str[-15:]
+        
+        self.lg.writeLine(f"Making whole prediction from state: {state_str}", file='predicted_values.txt')
 
-        return predicted_value
+        to_return = super().predict(state)
+
+        self.lg.writeLine(f"predicted: {to_return}\n", file='predicted_values.txt')
+
+        return to_return
     
         
     def random_prediction(self):    
@@ -56,58 +63,67 @@ class QPolicyDebug(PolicyDebug, QPolicy):
 
     is_debug_schema = True
 
-    @requires_input_proccess
-    def predict(self, state):
-            
-        valuesForActions : torch.Tensor = self.model.predict(state) #a tensor ether in the form of [q values for each action] or [[q value for each action]]?
-        
-        #tensor of max values and tensor of indexes
-        _, max_indexes = valuesForActions.max(dim=1)
-
-        self.lg.writeLine(f"Predicted value: {valuesForActions} -> {max_indexes}", file='predicted_values.txt')
-                        
-        return max_indexes
     
 
 
 class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
 
     is_debug_schema = True
+    
+
+    def distribution_from_model_output(self, model_output, state) -> torch.Tensor:
+
+        to_return = super().distribution_from_model_output(model_output, state)
+
+        self.lg.writeLine(f"    model_output {model_output} -> distribution {to_return}", file='predicted_values.txt')
+
+        return to_return
 
     
-    def predict_model_output(self, state) -> torch.Tensor:
+    
+    def sample_action_val_from_distribution(self, distribution : torch.distributions, state):
 
-        probabilitiesForActionsLogits = super().predict_model_output(state)
-        
-        self.lg.writeLine(f"Probabilities for action logits: {probabilitiesForActionsLogits}", file='predicted_values.txt')
+        to_return = super().sample_action_val_from_distribution(distribution, state)
 
+        self.lg.writeLine(f"    distribution {distribution} -> action_val {to_return}", file='predicted_values.txt')
+
+        return to_return
+
+    
+    def log_probability_of_action_val(self, distribution, action_val, state):
+
+        to_return = super().log_probability_of_action_val(distribution, action_val, state)
+
+        self.lg.writeLine(f"    distribution {distribution} + action_val {action_val} -> log_prob {to_return}", file='predicted_values.txt')
+
+        return to_return
+
+    
+    @requires_input_proccess
+    def predict_action_val_from_model_output_with_log(self, model_output, state):
                 
-        return probabilitiesForActionsLogits
-    
-    
-    
-    def sample_action_val_from_distribution(self, probs):
-    
-        action = super().sample_action_val_from_distribution(probs)
+        self.lg.writeLine(f"Predicting action_val and log_prob from model_output:", file='predicted_values.txt')
 
-        self.lg.writeLine(f"Action from probabilities: {probs} -> {action}", file='predicted_values.txt')
-        
-        return action
+        to_return = super().predict_action_val_from_model_output_with_log(model_output, state)
 
+        self.lg.writeLine(f"", file='predicted_values.txt')
+
+        return to_return
     
-    def predict_action_val_from_model_output_with_log(self, probs):
-
-        action, log_prob = super().predict_action_val_from_model_output_with_log(probs)
-
-        self.lg.writeLine(f"Action, log prob from probabilities: {probs} -> {action}, {log_prob}", file='predicted_values.txt')
-                
-        return action, log_prob  
-
-    
+    @requires_input_proccess
     def predict_action_val_with_log(self, state):
+                            
+        self.lg.writeLine(f"Predicting action_val and log_prob:", file='predicted_values.txt')
+
+        to_return = super().predict_action_val_with_log(state)
+
+        self.lg.writeLine(f"", file='predicted_values.txt')
+
+        return to_return
+    
+    @requires_input_proccess
+    def get_action_from_action_val(self, action_val):
         
-        logits = self.predict_model_output(state) # real numbers higher the higher probability        
-        
-        probs = self.distribution_from_model_output(logits) # probabilities computed from logits
-        
-        return self.predict_action_val_from_model_output_with_log(probs)
+        to_return = super().get_action_from_action_val(action_val)
+        self.lg.writeLine(f"action_val {action_val} -> action {to_return}", file='predicted_values.txt')
+        return to_return

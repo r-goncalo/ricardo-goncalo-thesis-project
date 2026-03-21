@@ -25,7 +25,7 @@ class ConvergenceDetector(AcessoryComponent, ComponentWithLogging):
                         
                         "convergence_treshold" : ParameterSignature(default_value=0.001),
                         
-                        "old_values_new_values_keys" : ParameterSignature(default_value=["log_prob_batch", "new_log_probs"])
+                        "old_values_new_values_keys" : ParameterSignature(default_value=["log_prob", "new_log_probs"])
 
                         }    
     
@@ -101,6 +101,6 @@ class ConvergenceDetector(AcessoryComponent, ComponentWithLogging):
         old_values = values.get(self.old_values_key)
 
         if new_values is None or old_values is None:
-            raise Exception(f"Could not compute")
+            raise Exception(f"Could not compute, wanted both <{self.old_values_key}> and <{self.new_values_key}>, values had keys: {values.keys()}")
     
         self._update_convergence_and_check(new_values, old_values)

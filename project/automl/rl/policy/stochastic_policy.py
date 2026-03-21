@@ -45,15 +45,57 @@ class StochasticPolicy(Policy):
         
         action_val = self.sample_action_val_from_distribution(distribution, state)
 
-        return self.get_action_from_action_val(action_val, state)
+        return self.get_action_from_action_val(action_val)
+
+
     
     @requires_input_proccess
-    def get_action_val_shape(self, state):
+    def get_action_val_shape(self):
         return self.output_action_shape
 
+
+
     @requires_input_proccess 
-    def get_action_from_action_val(self, action_val, state):
+    def get_action_from_action_val(self, action_val):
         return action_val
+
+    def prepare_action_val_for_distribution(self, action_val, distribution, state):
+        """
+        Normalize action_val into the shape/dtype expected by the distribution.
+
+        Base implementation is generic:
+        - move to the distribution device when possible
+        - preserve shape by default
+
+        Subclasses should override when a distribution requires a specific
+        action encoding (e.g. categorical indices as int64).
+        """
+        if not torch.is_tensor(action_val):
+            device = None
+            if hasattr(distribution, "probs") and distribution.probs is not None:
+                device = distribution.probs.device
+            elif hasattr(distribution, "loc") and distribution.loc is not None:
+                device = distribution.loc.device
+            action_val = torch.as_tensor(action_val, device=device)
+        else:
+            if hasattr(distribution, "probs") and distribution.probs is not None:
+                action_val = action_val.to(distribution.probs.device)
+            elif hasattr(distribution, "loc") and distribution.loc is not None:
+                action_val = action_val.to(distribution.loc.device)
+
+        return action_val
+    
+    def reduce_log_prob(self, log_prob: torch.Tensor) -> torch.Tensor:
+        """
+        Reduce per-event log probs into one log prob per batch item.
+
+        For scalar-action distributions, log_prob is usually already [B].
+        For multidimensional independent actions, log_prob is often [B, A]
+        and should be summed across the last dimension.
+        """
+        if log_prob.dim() > 1:
+            return log_prob.sum(dim=-1)
+        return log_prob
     
     
     @abstractmethod
@@ -65,8 +107,9 @@ class StochasticPolicy(Policy):
         return distribution.sample()
     
     def log_probability_of_action_val(self, distribution, action_val, state):
-        return distribution.log_prob(action_val).sum(dim=-1)
-    
+        action_val = self.prepare_action_val_for_distribution(action_val, distribution, state)
+        log_prob = distribution.log_prob(action_val)
+        return self.reduce_log_prob(log_prob)    
     
     def predict_action_val_from_model_output_with_log(self, model_output, state):
                 
@@ -101,18 +144,41 @@ class CategoricalStochasticPolicy(StochasticPolicy):
         
         
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
-        
-    
-
-    def log_probability_of_action_val(self, distribution, action_val, state):
-        return distribution.log_prob(action_val)
     
     def probabilities_from_logits(self, logits, state) -> torch.Tensor:
 
         probs = torch.softmax(logits, dim=-1)
         
         return probs
+    
+    def prepare_action_val_for_distribution(self, action_val, distribution, state):
+        """
+        Categorical expects integer class indices.
 
+        Supported input shapes:
+        - scalar
+        - [B]
+        - [B, 1]  -> squeezed to [B]
+
+        This keeps the learner generic while making categorical policies robust
+        to stored action tensors that come in as column vectors.
+        """
+        action_val = super().prepare_action_val_for_distribution(action_val, distribution, state)
+
+        if action_val.dtype != torch.long:
+            action_val = action_val.long()
+
+        if action_val.dim() > 0 and action_val.shape[-1] == 1:
+            action_val = action_val.squeeze(-1)
+
+        if action_val.dim() > 1:
+            raise ValueError(f"Categorical action_val must be scalar, [B], or [B,1], got shape {tuple(action_val.shape)}")
+
+        return action_val
+    
+    def reduce_log_prob(self, log_prob: torch.Tensor) -> torch.Tensor:
+        return log_prob # in categorical, the log_prob is assumed to already receive a single value
+ 
     def distribution_from_model_output(self, model_output, state) -> torch.Tensor:
         
         probabilities = self.probabilities_from_logits(model_output, state)
@@ -265,7 +331,7 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
             self.lg.writeLine(f"Output shape has lower bound: {self.output_action_shape.low}")
 
         if hasattr(self.output_action_shape, "high"):
-            self.lg.writeLine(f"Output shape has lower bound: {self.output_action_shape.high}")
+            self.lg.writeLine(f"Output shape has upper bound: {self.output_action_shape.high}")
 
         # gym-style Box bounds
         self.min_action_value = torch.as_tensor(
@@ -278,5 +344,5 @@ class ConstrainedNormalStochasticPolicy(NormalStochasticPolicy):
             device=self.device
         )
     
-    def get_action_from_action_val(self, action_val, state):
+    def get_action_from_action_val(self, action_val):
         return self.min_action_value + (self.action_range) * 0.5 * (torch.tanh(action_val) + 1.0) 

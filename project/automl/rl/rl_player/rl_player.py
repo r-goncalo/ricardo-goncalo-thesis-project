@@ -25,7 +25,8 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                        "agents" : ParameterSignature(),
                        "agents_input" : ParameterSignature(default_value={}, ignore_at_serialization=True),
                        "num_episodes" : ParameterSignature(default_value=1),
-                       "store_env_at_end" : ParameterSignature(default_value=False)
+                       "store_env_at_end" : ParameterSignature(default_value=False),
+                       "device" : ParameterSignature(default_value="cpu")
 
                        
                        }
@@ -159,9 +160,9 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
                 
         return {
             "episode" : [self.values["episodes_done"]],
-            "episode_reward" : [self.values["episode_score"]],
+            "episode_reward" : [float(self.values["episode_score"])],
             "episode_steps" : [self.values["episode_steps"]], 
-            "avg_reward" : [self.values["episode_score"] / self.values["episode_steps"]],
+            "avg_reward" : [float(self.values["episode_score"]) / self.values["episode_steps"]] if self.values["episode_steps"] > 0 else [0.0],
             "environment" : [self.env.name],
             **{f"{agent_name}_reward" : [agent_reward] for agent_name, agent_reward in self.values["agents_episode_score"].items()}
             }

@@ -17,6 +17,9 @@ def open_or_create_folder(dir, folder_name='', create_new=True):
     
     full_path = os.path.join(dir, folder_name)        
 
+    dir = os.path.dirname(full_path)
+    folder_name = os.path.basename(full_path)
+
     try:
         folders_in_dir = os.listdir(dir) #is the dir already created? if not, we create it
         
@@ -56,6 +59,9 @@ def new_path_if_exists(specific_path, dir = ''):
 
     full_path = os.path.join(dir, specific_path)
 
+    dir = os.path.dirname(full_path)
+    specific_path = os.path.basename(full_path)
+    
 
     if os.path.exists(full_path): #file with that name already existed
 

@@ -15,7 +15,8 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
 
         parameters_signature = {
              "verify_model_difference_after_optimize" : ParameterSignature(default_value=True),
-             "note_observed_transitions" : ParameterSignature(default_value=False)
+             "note_observed_transitions" : ParameterSignature(default_value=True),
+             "note_chosen_actions" : ParameterSignature(default_value=False)
         }
 
         def _proccess_input_internal(self):
@@ -39,8 +40,11 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
             
             self.lg.writeLine(f"total_step, episode, episode_step: reward, done\n", file="training_steps.txt", use_time_stamp=False)
     
-            self.learner.pass_input({"logger_object" : self.lg})
-    
+            self.note_chosen_actions = self.get_input_value("note_chosen_actions")
+
+            if self.note_chosen_actions:
+                self.lg.writeLine(f"state -> action\n", file="chosen_actions.txt", use_time_stamp=False)
+
     
         def do_training_step(self, i_episode, env):
         
@@ -51,9 +55,9 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
             return reward, done, truncated
         
         
-        def do_after_training_step(self, i_episode, action, observation, reward, done, truncated):
+        def do_after_training_step(self, i_episode=None, action=None, prev_state=None, next_state=None, reward=None, done=None, truncated=None):
              
-            super().do_after_training_step(i_episode, action, observation, reward, done, truncated)
+            super().do_after_training_step(i_episode, action, prev_state, next_state, reward, done, truncated)
 
             self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt")
 
@@ -79,24 +83,53 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
     
 
     
-        def observe_transiction_to(self, new_state, action, reward, done):
+        def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
 
             if not self.note_observed_transitions:
-                super().observe_transiction_to(new_state, action, reward, done)
+                super()._observe_transiction_to(prev_state, new_state, action, reward, done, truncated)
 
             else:
 
-                old_state = self.agent.get_current_state_in_memory().clone()
 
-                super().observe_transiction_to(new_state, action, reward, done)
+                _old_state_obs = prev_state["observation"].clone()
+                _new_state_obs = new_state["observation"].clone()
 
-                old_state_str = str(old_state)
+                super()._observe_transiction_to(prev_state, new_state, action, reward, done, truncated)
+
+
+                old_state_str = str(_old_state_obs)
                 if len(old_state_str) > 30:
                     old_state_str = f"{old_state_str[10:]}...{old_state_str[:10]}"   
 
-                new_state_str = str(new_state)
+                new_state_str = str(_new_state_obs)
                 if len(new_state_str) > 30:
                     new_state_str = f"{new_state_str[10:]}...{new_state_str[:10]}"   
 
                 self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {old_state_str} + {action} -> {new_state_str}, {reward}, {done}", file="observed_transitions.txt")
     
+
+        def select_action(self, state):
+
+            '''uses the exploration strategy defined, with the state, the agent and training information, to choose an action'''
+
+            action = super().select_action(state)
+
+
+            if self.note_chosen_actions:
+                old_state_str = str(state)
+                if len(old_state_str) > 30:
+                    old_state_str = f"{old_state_str[10:]}...{old_state_str[:10]}"
+
+                self.lg.writeLine(f"{old_state_str} -> {action}", file="chosen_actions.txt")
+
+            return action
+
+
+        def select_action_with_memory(self):
+        
+            action = super().select_action_with_memory()
+
+            if self.note_chosen_actions:
+                self.lg.writeLine(f"in_memory -> {action}", file="chosen_actions.txt")
+
+            return action

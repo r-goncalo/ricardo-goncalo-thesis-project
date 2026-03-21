@@ -431,7 +431,9 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
             
             checkpoints_and_evaluations : list[tuple[str, float]] = self.values.get("checkpoints_and_evaluations")
 
-            self.lg.writeLine(f"Current checkpoints are {checkpoints_and_evaluations}")
+            self.lg.writeLine(f"Current checkpoints are: {checkpoints_and_evaluations}")
+            for (path, eval_results) in self.values.get("checkpoints_and_evaluations"):
+                self.lg.writeLine(f"                    {path} -> {eval_results}")
 
             if self.evaluation_report_strategy == 'best':
 

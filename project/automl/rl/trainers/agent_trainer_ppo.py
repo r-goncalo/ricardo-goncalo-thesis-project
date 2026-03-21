@@ -82,6 +82,10 @@ class AgentTrainerPPO(AgentTrainer):
                 
         prev_state_in_agent = {**prev_state}
         prev_state_in_agent.pop("observation")
+
+        for k, v in prev_state_in_agent.items():
+            if not isinstance(v, torch.Tensor):
+                prev_state_in_agent[k] = torch.tensor(v, dtype=torch.float32, device=self.device)
         
         critic_pred = self.learner.critic_pred(self.observation_memory_temp)
 
