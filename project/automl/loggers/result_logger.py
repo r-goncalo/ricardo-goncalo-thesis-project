@@ -272,6 +272,16 @@ class ResultLogger(LoggerSchema):
             ax = plt.gca()
 
         (color_defining_column, color_dict) = colors_for_value
+
+        if color_dict is not None:
+            for value, color in color_dict.items():
+                ax.bar(
+                    0,
+                    0,
+                    color=color,
+                    alpha=alpha,
+                    label=str(value)
+                )
         
 
         df = self.filter_dataframe(fixed_value_tuple)

@@ -107,10 +107,11 @@ class AgentVsAgentsWithPreviousPolicy(AgentVsAgents):
 
         if len(checkpoints) == 0:
             self.prev_rl_pipeline : RLPipelineComponent = None
-        
-        (last_checkpoint_path, _) = checkpoints[-1]
 
-        self.prev_rl_pipeline : RLPipelineComponent = gen_component_from(last_checkpoint_path)
+        else:  
+            (last_checkpoint_path, _) = checkpoints[-1]
+
+            self.prev_rl_pipeline : RLPipelineComponent = gen_component_from(last_checkpoint_path)
 
 
 

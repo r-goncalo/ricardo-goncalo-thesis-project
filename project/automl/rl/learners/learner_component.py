@@ -70,7 +70,7 @@ class LearnerSchema(Component):
             acessory.pos_fun(values)
 
 
-    
+    @requires_input_proccess
     def interpret_trajectory(self, trajectory):
 
         interpreted_trajectory = {**trajectory}

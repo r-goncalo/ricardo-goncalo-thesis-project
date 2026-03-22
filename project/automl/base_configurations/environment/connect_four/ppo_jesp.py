@@ -17,7 +17,7 @@ from automl.rl.learners.convergence_detectors.avg_out_convergence_detector impor
 from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector, AgentTrainerSlopeConvergenceDetector
 from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
 from automl.rl.policy.stochastic_policy import MaskedCategoricalStochasticPolicy
-from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy
+from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy, AgentVsAgentsWithPreviousPolicy
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.policy.random_policy import RandomPolicyMasked
 from automl.rl.evaluators.rl_agent_iter_evaluator import RLAgentIterEvaluator
@@ -100,7 +100,7 @@ def config_dict():
 
                 "discount_factor": 0.99,
 
-                "limit_steps" : 5_000,
+                "limit_steps" : 2500,
 
                 "learn_with_all_memory" : True,
 
@@ -170,7 +170,7 @@ def config_dict():
                                     {
                                         "input_for_fun_key": "optimizations_done",
                                         "initial_value": 0.5,
-                                        "final_value": 0,
+                                        "final_value": 0.1,
                                         "input_component": ('relative', [("__get_by_name__", {"name_of_component": "AdamOptimizerComponent"})]),
 
                                         "input_for_fun_max_value":
@@ -187,16 +187,6 @@ def config_dict():
                             }
 
                         ),
-
-                    "learning_acessories" : [
-                        ( ConvergenceDetector,
-                            {
-                                "memory_size" : 25,
-                                "convergence_treshold" : 0.025, # if average difference between logs is less than this, is convergence, evaluated at learning time
-                                "old_values_new_values_keys" : ["log_prob", "new_log_probs"]
-                            }
-                        )
-                    ]
                     }
                 ),
 
@@ -213,6 +203,7 @@ def config_dict():
                 "agent_trainer_acessories" : [
                     (AgentTrainerConvergenceDetector, {
                         "standard_deviation_treshold" : 0.5, # less than this is convergence
+                        "min_avg_value" : 0.5,
                         "n_values_to_use" : 50,
                         "value_key" : "episode_reward"
                     })
@@ -224,6 +215,8 @@ def config_dict():
 
         ),
 
+        "evaluation_report_strategy" : "last",
+
         "component_evaluator" : (
             RLAgentIterEvaluator, {
                 "single_agent_evaluators" : [
@@ -231,11 +224,20 @@ def config_dict():
                 (AgentVsAgentsWithPolicy,
                             {
                                 "policy_type_for_others" : RandomPolicyMasked,
-                                "number_of_episodes" : 200,
+                                "number_of_episodes" : 25,
                                 "rl_player_definition" : (RLPlayer, {}),
-                                "base_evaluator" : (LastValuesAvgStdEvaluator, {"value_to_use" : "episode_reward", "std_deviation_factor" : 100})
+                                "base_evaluator" : (LastValuesAvgStdEvaluator, {"std_deviation_factor" : 100})
                             }
                 ),
+
+                (AgentVsAgentsWithPreviousPolicy,
+                            {
+                                "fall_back_policy_type_for_others" : RandomPolicyMasked,
+                                "number_of_episodes" : 25,
+                                "rl_player_definition" : (RLPlayer, {}),
+                                "base_evaluator" : (LastValuesAvgStdEvaluator, {"std_deviation_factor" : 100})
+                            }
+                 )
 
                 ]
 
@@ -249,6 +251,10 @@ def config_dict():
 
 def hyperparameter_optimization_input():
 
+    '''
+    The recomended input for an hyperparameter optimization
+    '''
+
     from automl.hp_opt.pruners.pruner import OptunaPrunerWrapper
     from automl.hp_opt.samplers.sampler import OptunaSamplerWrapper
 
@@ -258,14 +264,19 @@ def hyperparameter_optimization_input():
         "hyperparameters_to_optimize" : hyperparameters_to_optimize(),
         "n_trials" : 200,
         "n_steps" : 10,
+        "use_best_component_strategy_with_index" : 5,
+        "do_initial_evaluation" : True,
         "pruner" : [OptunaPrunerWrapper, {"optuna_pruner" : "Percentile", "pruner_input" : {"percentile" : 90.0}}],
         "sampler" : [OptunaSamplerWrapper, {"optuna_sampler" : "TreeParzen", "sampler_input" : {"n_startup_trials" : 50}}]
     }
 
 def hyperparameters_to_optimize():
+    '''
+    The recomended order of hyperparameters to focus on trying to optimize, with the others using the recomended values
+    '''
     
     return [
-        [10, ["learn_with_all_memory", "times_to_learn", "episodes_for_agent_to_learn", "optimization_interval", "batch_size"]],
+        [10, ["learn_with_all_memory", "times_to_learn", "steps_for_agent_trainer_exec", "optimization_interval", "batch_size"]],
         [10, ["learning_rate", "clip_epsilon", "value_loss_coef", "lambda_gae", "entropy_coef_strat", "clip_grad_strat"]],
         [10, ["policy_head_layers", "critic_head_layers", "shared_layers"]]
     ]
@@ -273,6 +284,10 @@ def hyperparameters_to_optimize():
 
 
 def hyperparameter_suggestions():
+
+    '''
+    The recomended hyperparameter suggestions
+    '''
 
     from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
     from automl.hp_opt.hp_suggestion.disjoint_hp_suggestion import DisjointHyperparameterSuggestion
@@ -309,15 +324,15 @@ def hyperparameter_suggestions():
         # PPO EPOCHS
         SingleHyperparameterSuggestion(
             name="times_to_learn",
-            value_suggestion=("int", {"low": 4, "high": 20}),
+            value_suggestion=("int", {"low": 2, "high": 20}),
             hyperparameter_localizations=[
                 [*agents_trainer_input, "times_to_learn"]
             ]
         ),
 
         SingleHyperparameterSuggestion(
-            name="episodes_for_agent_to_learn",
-            value_suggestion=("int", {"low": 2000, "high": 5000}),
+            name="steps_for_agent_trainer_exec",
+            value_suggestion=("int", {"low": 2048, "high": 4096, "step" : 128}),
             hyperparameter_localizations=[
                 [*agents_trainer_input, "limit_steps"]
             ]
@@ -326,7 +341,7 @@ def hyperparameter_suggestions():
         # PPO ROLLOUT SIZE
         SingleHyperparameterSuggestion(
             name="optimization_interval",
-            value_suggestion=("int", {"low": 128, "high": 1024}),
+            value_suggestion=("int", {"low": 256, "high": 1024, "step" : 64}),
             hyperparameter_localizations=[
                 ["input","rl_trainer",1,"agents_trainers_input","optimization_interval"],
                 ["input","rl_trainer",1,"agents_trainers_input","memory",1,"capacity"],

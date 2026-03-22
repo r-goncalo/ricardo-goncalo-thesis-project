@@ -74,6 +74,8 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
     parameters_signature = {
                                                        
                         "standard_deviation_treshold" : ParameterSignature(default_value=10),
+
+                        "min_avg_value" : ParameterSignature(mandatory=False),
                         
                         "value_key" : ParameterSignature(default_value="episode_reward"),
 
@@ -90,6 +92,7 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
 
         self.value_key = self.get_input_value("value_key")
         self.n_values_to_use = self.get_input_value("n_values_to_use")
+        self.min_avg_value = self.get_input_value("min_avg_value")
 
         self.lg.writeLine(f"Convergence will be noted with standard deviation, using an average of {self.n_values_to_use} values, that must be bellow {self.standard_deviation_treshold}")
 
@@ -117,16 +120,16 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
 
         # Get last N values
         last_values = df[self.value_key].tail(self.n_values_to_use).values
+        last_values = torch.tensor(last_values, dtype=torch.float32)
 
-        self.lg.writeLine(f"LAST VALUES TYPE: {type(last_values)}")
-        self.lg.writeLine(f"LAST VALUES DTYPE: {last_values.dtype}")
-        self.lg.writeLine(f"LAST VALUES ARE: {last_values}")
+        std = float(last_values.std().item())
+        to_return = std < self.standard_deviation_treshold
 
-        # Compute standard deviation
-        std = float(torch.tensor(last_values, dtype=torch.float32).std().item())
+        if self.min_avg_value is not None:
+            avg = float(last_values.mean().item())
+            to_return = to_return and avg >= self.min_avg_value
 
-        # Return True if below threshold
-        return std < self.standard_deviation_treshold
+        return to_return
     
 
 

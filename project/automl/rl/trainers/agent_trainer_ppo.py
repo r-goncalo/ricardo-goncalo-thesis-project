@@ -40,7 +40,6 @@ class AgentTrainerPPO(AgentTrainer):
                                         ("reward", 1),
                                         ("done", 1),
                                         ("log_prob", 1), #log probability of chosing the stored action
-                                        ("critic_pred", 1),
                                         ("action_val", self.agent_policy.get_action_val_shape()),
                                         *[(state_shape_key, state_shape_value) for state_shape_key, state_shape_value in state_shape.items()]
                                     ]
@@ -87,8 +86,6 @@ class AgentTrainerPPO(AgentTrainer):
             if not isinstance(v, torch.Tensor):
                 prev_state_in_agent[k] = torch.tensor(v, dtype=torch.float32, device=self.device)
         
-        critic_pred = self.learner.critic_pred(self.observation_memory_temp)
-
         action_val_to_store = self.last_action_val.squeeze(0) if torch.is_tensor(self.last_action_val) and self.last_action_val.dim() > 1 and self.last_action_val.shape[0] == 1 else self.last_action_val
 
 
@@ -99,7 +96,6 @@ class AgentTrainerPPO(AgentTrainer):
                               "reward" : reward, 
                               "log_prob" : self.last_log_prob, 
                               "done" : done,
-                              "critic_pred" : critic_pred.item(),
                               "action_val" : action_val_to_store,
                               **prev_state_in_agent
                               })

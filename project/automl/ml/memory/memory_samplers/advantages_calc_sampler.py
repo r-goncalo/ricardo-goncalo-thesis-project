@@ -45,14 +45,18 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         processed_memory =  self.learner.interpret_trajectory(self.memory.get_all())
 
         with torch.no_grad():
-            values, next_values = self.learner.compute_values_estimates(processed_memory)
+            observation_critic_values, next_obs_critic_values = self.learner.compute_values_estimates(processed_memory)
             
-            processed_memory["old_values"] = values
-            processed_memory["values"] = next_values
-            
-            values_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, processed_memory)
-
-            processed_memory["values_error"] = values_error
+            processed_memory["observation_old_critic_values"] = observation_critic_values
+            processed_memory["next_obs_old_critic_values"] = next_obs_critic_values
+                
+            # we compute the advantages using the whole memory
+            critic_obs_pred_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, 
+                                                                                                                             processed_memory,
+                                                                                                                             observation_critic_values,
+                                                                                                                             next_obs_critic_values)
+    
+            processed_memory["critic_obs_pred_error"] = critic_obs_pred_error
             processed_memory["non_normalized_advantages"] = non_normalized_advantages
             processed_memory["advantages"] = advantages
             processed_memory["returns"] = returns

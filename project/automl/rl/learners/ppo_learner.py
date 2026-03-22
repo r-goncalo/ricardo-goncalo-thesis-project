@@ -188,8 +188,6 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
         interpreted_trajectory["log_prob"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
 
-        interpreted_trajectory["critic_pred"] = interpret_unit_values(trajectory["critic_pred"], self.device).detach()
-
         interpreted_trajectory["action_val"] = interpret_values(trajectory["action_val"], self.device).detach()
 
         for key in self.custom_data_beyond_obs:
@@ -200,44 +198,47 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
     def compute_values_estimates(self, interpreted_trajectory):
 
-        '''Computes values estimates using the critic'''
+        '''
+        Computes values estimates using the critic
+        Note that this may differ from the critic values computed from the critic before learning starts, as learning may be called multiple times
+        '''
 
         observation_batch = interpreted_trajectory["observation"]
         next_observation_batch = interpreted_trajectory["next_observation"]
         done_batch = interpreted_trajectory["done"]
 
-        old_values = self.critic.predict(observation_batch).squeeze(-1)
+        observation_critic_values = self.critic.predict(observation_batch).squeeze(-1)
 
         with torch.no_grad():
-            next_values = self.critic.predict(next_observation_batch).squeeze(-1)
+            next_obs_critic_values = self.critic.predict(next_observation_batch).squeeze(-1)
 
-        next_values = next_values * (1 - done_batch)
+        next_obs_critic_values = next_obs_critic_values * (1 - done_batch)
 
-        return old_values, next_values
+        return observation_critic_values, next_obs_critic_values
     
     
-    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory):
+    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
 
         reward_batch = interpreted_trajectory["reward"]
-        next_values = interpreted_trajectory["values"]
-        values = interpreted_trajectory["old_values"]
+        next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
+        observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
 
         # Compute advantages using Generalized Advantage Estimation (GAE)
-        values_error = reward_batch + discount_factor * next_values - values 
-        non_normalized_advantages = torch.zeros_like(values_error, device=self.device)
+        critic_obs_pred_error = reward_batch + discount_factor * next_obs_critic_values - observation_critic_values 
+        non_normalized_advantages = torch.zeros_like(critic_obs_pred_error, device=self.device)
         
         # GAE computation in reverse, note this assumes seq data
         running_advantage = 0
-        for t in reversed(range(len(values_error))):
-            running_advantage = values_error[t] + discount_factor * self.lambda_gae * running_advantage  * (1 - done_batch[t])
+        for t in reversed(range(len(critic_obs_pred_error))):
+            running_advantage = critic_obs_pred_error[t] + discount_factor * self.lambda_gae * running_advantage  * (1 - done_batch[t])
             non_normalized_advantages[t] = running_advantage
 
-        returns = non_normalized_advantages + values.detach()
+        returns = non_normalized_advantages + observation_critic_values.detach()
 
         advantages = (non_normalized_advantages - non_normalized_advantages.mean()) / (non_normalized_advantages.std() + 1e-8)
 
-        return values_error, non_normalized_advantages, advantages, returns
+        return critic_obs_pred_error, non_normalized_advantages, advantages, returns
     
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):
     
@@ -257,26 +258,30 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         return ratio, surrogate1, surrogate2, policy_loss_batch, mean_policy_loss, policy_loss
 
 
-    def _compute_critic_loss(self, values, returns, old_values):
+    def _compute_critic_loss(self, interpreted_trajectory):
 
-        value_loss_unclipped = (values - returns).pow(2)
+        '''
+        Computes the loss for the critic clipped, 
+        '''
 
-        values_clipped = old_values + torch.clamp(
-            values - old_values,
+        observation_critic_values = interpreted_trajectory["observation_critic_values"]
+        returns = interpreted_trajectory["returns"]
+        obs_old_critic_values =interpreted_trajectory["observation_old_critic_values"]
+
+        value_loss_unclipped = (observation_critic_values - returns).pow(2)
+    
+        values_clipped = obs_old_critic_values + torch.clamp(
+            observation_critic_values - obs_old_critic_values,
             -self.clip_epsilon,
             self.clip_epsilon
         )
-
+    
         value_loss_clipped = (values_clipped - returns).pow(2)
-
-        value_loss_batch = torch.max(
-            value_loss_unclipped,
-            value_loss_clipped
-        )
-
+    
+        value_loss_batch = torch.max(value_loss_unclipped, value_loss_clipped)
+    
         value_loss_mean = value_loss_batch.mean()
-
-        value_loss = value_loss_mean * self.value_loss_coef 
+        value_loss = value_loss_mean * self.value_loss_coef
 
         return value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss
 
@@ -288,14 +293,16 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         log_prob_batch = interpreted_trajectory["log_prob"]
         
         advantages = interpreted_trajectory["advantages"]
-        old_values = interpreted_trajectory["old_values"]
-        values = interpreted_trajectory["values"]
-        returns = interpreted_trajectory["returns"]
 
+        # we compute the critic values, not that we're storing the gradient graph
+        observation_critic_values, next_obs_critic_values = self.compute_values_estimates(interpreted_trajectory)
+
+        interpreted_trajectory["observation_critic_values"] = observation_critic_values
+        interpreted_trajectory["next_obs_critic_values"] = next_obs_critic_values
 
         ratio, surrogate1, surrogate2, policy_loss_batch, mean_policy_loss, policy_loss = self._compute_policy_loss(new_log_probs, log_prob_batch, advantages, entropy)
 
-        value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss = self._compute_critic_loss(values, returns, old_values)
+        value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss = self._compute_critic_loss(interpreted_trajectory)
 
         # Total loss
         if self.critic_optimizer is None:
