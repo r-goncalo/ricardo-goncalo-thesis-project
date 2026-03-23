@@ -32,7 +32,7 @@ class QPolicy(Policy):
         return max_indexes
     
 
-class MaskedQPolicy(Policy):
+class MaskedQPolicy(QPolicy):
     
     parameters_signature = {}
 

@@ -109,7 +109,10 @@ class RLTrainerComponentParallel(RLTrainerComponent):
     
 
         for agent_in_training in self.agents_trainers.values():
-            agent_in_training.end_episode() 
+            agent_in_training.end_episode(
+                env=self.env,
+                i_episode=i_episode
+            ) 
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1
         self.values["episodes_done_in_session"] = self.values["episodes_done_in_session"] + 1

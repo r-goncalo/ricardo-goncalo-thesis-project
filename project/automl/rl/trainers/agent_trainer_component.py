@@ -327,7 +327,19 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             
         
     @requires_input_proccess
-    def end_episode(self):
+    def end_episode(self, i_episode=None, env: AECEnvironmentComponent=None):
+
+        if env is not None and self._has_pending_transition:
+            observation, reward, done, truncated, info = env.last()
+            self.observe_new_state(env, observation)
+
+            self._flush_pending_transition(
+                i_episode=i_episode,
+                env=env,
+                reward=reward,
+                done=done,
+                truncated=truncated,
+            )
         
         self.values["episodes_done"] = self.values["episodes_done"] + 1
         self.calculate_and_log_results()
@@ -341,7 +353,36 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     
     # LEARNING AND INTERACTING WITH THE ENVIRONMENT -------------------------------
                 
-            
+    def _clear_pending_transition(self):
+
+        self._has_pending_transition = False
+        self._pending_prev_state = None
+        self._pending_next_state = None
+        self._pending_action = None
+
+    @requires_input_proccess
+    def _flush_pending_transition(self, i_episode, env: AECEnvironmentComponent, reward, done, truncated):
+        """
+        Finalizes the pending transition for the last action taken by this agent.
+        Use this when the agent gets another turn normally, or when the episode ends
+        before that next turn happens.
+        """
+        if not self._has_pending_transition:
+            return
+
+        next_state = self.agent.get_current_state_in_memory()
+
+        self.do_after_training_step(
+            i_episode=i_episode,
+            action=self._pending_action,
+            prev_state=None,   # do_after_training_step / observe_transition already uses pending prev_state path
+            next_state=next_state,
+            reward=reward,
+            done=done,
+            truncated=truncated,
+        )
+
+        self._clear_pending_transition()
         
     @requires_input_proccess
     def do_training_step(self, i_episode, env : AECEnvironmentComponent):
@@ -360,22 +401,16 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self.observe_new_state(env, observation)
 
         if self._has_pending_transition:
-            
-            self.do_after_training_step(
-                i_episode=i_episode, 
-                action=self._pending_action,
-                prev_state=None, # will use the pending prev state
-                next_state= self.agent.get_current_state_in_memory(),
-                reward=reward, 
-                done=done, 
-                truncated=truncated) # this is regarding the previous step
-            
-            self._has_pending_transition = False
-            self._pending_prev_state = None
-            self._pending_next_state = None
-            self._pending_action = None
 
-            
+            self._flush_pending_transition(
+                i_episode,
+                env,
+                reward,
+                done,
+                truncated
+            )
+
+
         if done or truncated:
             env.step(None)
             return reward, done, truncated

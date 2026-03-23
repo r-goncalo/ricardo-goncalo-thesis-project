@@ -81,9 +81,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
         self.env.reset()
         
-        self.lg.writeLine("Starting episode " + str(self.values["episodes_done"] + 1) + " with agents: " + str(self.agents.keys()))
-        
-        self.lg.writeLine(f"The environment is named {self.env.name} of type {type(self.env)}")
                 
         for agent in self.agents.values():
             agent.reset_agent_in_environment(self.env.observe(agent.name))
@@ -92,9 +89,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
 
     def _end_episode(self):
         self.values["episodes_done"] = self.values["episodes_done"] + 1
-        
-        self.lg.writeLine(f"Finished episode {self.values['episodes_done']} with results: {self.values}")
-        
+                
         self.calculate_and_log_results()
 
 
@@ -108,8 +103,6 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
             #    if other_agent_name != agent_name:
             #        self.agents[other_agent_name].update_state_memory(self.env.observe(other_agent_name))
                             
-            if done or truncated:
-                break
 
             
     def _do_agent_step(self, agent_name):

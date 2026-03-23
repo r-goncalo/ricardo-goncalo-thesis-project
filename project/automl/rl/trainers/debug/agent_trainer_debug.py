@@ -59,7 +59,7 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
              
             super().do_after_training_step(i_episode, action, prev_state, next_state, reward, done, truncated)
 
-            self.lg.writeLine(f"{self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt")
+            self.lg.writeLine(f"After training step: {self.values['total_steps']}, {self.values['episodes_done']}, {self.values['episode_steps']}: {reward}, {done}", file="training_steps.txt")
 
         def optimizeAgent(self):
             

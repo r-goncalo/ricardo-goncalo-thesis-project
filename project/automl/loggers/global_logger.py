@@ -1,7 +1,7 @@
 
 
 import sys
-
+import os
 
 _global_logger = None
 DEFAULT_TO_PRINT_GLOBAL = False
@@ -13,7 +13,8 @@ def print_general_information():
         import torch
 
         globalWriteLine(f"Global logger activation done, activated in {_global_logger.get_artifact_directory()}", toPrint=DEFAULT_TO_PRINT_GLOBAL)
-        
+        globalWriteLine(f"Process pid is {os.getpid()}, parent pid {os.getppid()}")
+
         try:
             globalWriteLine(f"Python version is {sys.version_info[0]}, {sys.version_info[1]}")
 

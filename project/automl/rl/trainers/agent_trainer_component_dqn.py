@@ -92,9 +92,11 @@ class AgentTrainerDQN(AgentTrainer):
         next_state_in_agent = {**new_state}
         next_state_in_agent.pop("observation")
 
+        processed_next_state_in_agent = {}
+
         for k, v in next_state_in_agent.items():
             if not isinstance(v, torch.Tensor):
-                next_state_in_agent[f"next_{k}"] = torch.tensor(v, dtype=torch.float32, device=self.device)
+                processed_next_state_in_agent[f"next_{k}"] = torch.tensor(v, dtype=torch.float32, device=self.device)
 
                 
         self.memory.push({"observation" : prev_state["observation"], 
@@ -103,7 +105,7 @@ class AgentTrainerDQN(AgentTrainer):
                           "reward" : reward, 
                           "done" : done,
                           **prev_state_in_agent,
-                          **next_state_in_agent})
+                          **processed_next_state_in_agent})
         
 
         
