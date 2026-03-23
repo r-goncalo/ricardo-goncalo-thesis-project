@@ -48,7 +48,7 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         pass
     
 
-    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
 
         '''
         Returns the predicted values for the next state
@@ -183,7 +183,7 @@ class DeepQLearnerSchema(QLearnerSchema):
                 is_deep_clone=True)
             
             self.target_policy.define_component_as_child(self.target_net)
-            self.target_policy.values.pop("model", None)
+            self.target_policy.values["model"] = 0
             self.target_policy.input.pop("model", None)
 
             self.target_policy.pass_input({"model" : self.target_net})

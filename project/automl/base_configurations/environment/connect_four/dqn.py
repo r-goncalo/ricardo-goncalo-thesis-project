@@ -134,6 +134,8 @@ def config_dict():
 
                         ),
 
+                    }
+                ),
                 "exploration_strategy" : (EpsilonGreedyStepDecayStrategy,
                                                                   {
                                             "epsilon_end" : 0.04,
@@ -141,10 +143,8 @@ def config_dict():
                                             "epsilon_decay" :  0.95,
                                             "n_steps_for_decay" : 2000
                                                                   }
-                                          )
-                    }
-                ),
-
+                                          ),
+                    
                 "memory": (
 
                     TorchMemoryComponent,

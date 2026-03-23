@@ -30,23 +30,25 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         self.lg.writeLine(f"Interval between computation writes will be {self.interval_beetwenn_computation_writes}")
 
 
-    def _apply_model_prediction_given_state_action_pairs(self, observation_batch, action_batch):
+    def _apply_model_prediction_given_state_action_pairs(self, interpreted_trajectory):
 
         '''Returns the values predicted by the current model and the values for the specific actions that were passed''' 
 
-        predicted_actions_values, predicted_values_for_actions = super()._apply_model_prediction_given_state_action_pairs(observation_batch, action_batch)
+        predicted_actions_values, predicted_values_for_actions = super()._apply_model_prediction_given_state_action_pairs(interpreted_trajectory)
+
+        action_batch = interpreted_trajectory["action"]
 
         if self.__path_to_write is not None:
 
             self.lg.writeLine(f"\nComputed predicted_actions_values and value for action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
 
-            for i in range(self.batch_size):
+            for i in range(len(action_batch)):
                 self.lg.writeLine(f"{i}: {predicted_actions_values[i]} [ {action_batch[i]} ] -> {predicted_values_for_actions[i]}", file=self.__path_to_write, use_time_stamp=False)
     
         return predicted_actions_values, predicted_values_for_actions
 
 
-    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
 
         '''
         Returns the predicted values for the next state
@@ -55,7 +57,9 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
         '''
 
-        next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(next_observation_batch, done_batch, reward_batch, discount_factor)
+        done_batch = interpreted_trajectory["done"]
+
+        next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(interpreted_trajectory, discount_factor)
 
         if self.__path_to_write is not None:
             self.lg.writeLine(f"\nComputed done, next_state_values computed by target and q value of action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
@@ -77,7 +81,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
             self.lg.writeLine(f"\nNext action values after multiplying by discount factor {discount_factor} and adding reward:\n", file=self.__path_to_write, use_time_stamp=False)
 
-            for i in range(self.batch_size):
+            for i in range(len(old_action_values)):
                 self.lg.writeLine(f"{i}: {correct_q_values_for_chosen_action[i]} = {old_action_values[i]} * {discount_factor} + {reward_batch[i]}", file=self.__path_to_write, use_time_stamp=False)
 
         return correct_q_values_for_chosen_action
@@ -88,7 +92,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
             self.lg.writeLine(f"\nOptimizing using error of original predicted action values and target done on future state:\n", file=self.__path_to_write, use_time_stamp=False)
 
-            for i in range(self.batch_size):
+            for i in range(len(predicted_values)):
                 self.lg.writeLine(f"{i}: {predicted_values[i]} vs {correct_values[i]}", file=self.__path_to_write, use_time_stamp=False)
 
         super()._optimize_with_predicted_model_values_and_correct_values(predicted_values, correct_values)
@@ -117,8 +121,8 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
     is_debug_schema = True
 
     parameters_signature = {
-        "compare_old_and_new_target_predictions" : ParameterSignature(default_value=True),
-        "compare_old_and_new_target_model_params" : ParameterSignature(default_value=True),
+        "compare_old_and_new_target_predictions" : ParameterSignature(default_value=False),
+        "compare_old_and_new_target_model_params" : ParameterSignature(default_value=False),
     }
 
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
