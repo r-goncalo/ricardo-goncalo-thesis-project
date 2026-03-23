@@ -755,15 +755,14 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
                 if isinstance(exception, optuna.TrialPruned):
                     self.values["trials_done_in_this_execution"] += 1
-                    with self.optuna_usage_sem:
-                        self.study.tell(trial=trial, state=optuna.trial.TrialState.PRUNED)
-                    self.lg.writeLine(f"Trial {trial.number} was pruned")
+                    self.mark_trial_as_pruned(trial)
 
                 elif isinstance(exception, StopExperiment):
                     executor.shutdown(wait=True, cancel_futures=True) # we wait for current trials to end but cancel those that have not started
                     exceptions_to_raise.append(exception)
                     self.lg.writeLine(f"Trial {trial.number} over due to signal to stop the experiment")
-                
+                    executor.shutdown(wait=True, cancel_futures=True)
+                    
                 else:
                     with self.optuna_usage_sem:
                         self.study.tell(trial=trial, state=optuna.trial.TrialState.FAIL)

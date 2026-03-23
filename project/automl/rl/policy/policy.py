@@ -35,6 +35,11 @@ class Policy(PolicyInterface, ComponentWithLogging):
         
     '''
     It abstracts the usage of a model for the agent in determining its actions
+
+    A  policy has 3 processing moments:
+        Computing the model output
+        Computing a value which is directly tied to the action (essentially the action value without being normalized)
+        Computing the action value passed to the environment
     '''
         
     parameters_signature = {
@@ -53,7 +58,6 @@ class Policy(PolicyInterface, ComponentWithLogging):
         super()._proccess_input_internal()
 
         self.lg.writeLine(f"Processing policy input...\n")
-
         
         self.input_state_shape = self.get_input_value("state_shape")
         self.output_action_shape = self.get_input_value("action_shape")
@@ -82,31 +86,7 @@ class Policy(PolicyInterface, ComponentWithLogging):
             "output_shape" : self.model_output_shape, 
             "device" : self.device
             }) 
-
-    
-    @requires_input_proccess
-    def get_policy_output_shape(self):
-        return self.output_action_shape
-    
-
-    @requires_input_proccess
-    def predict_model_output(self, state) -> torch.Tensor:
-        '''
-        Uses the model to process the state and compute its output
-        '''
-
-        return self.model.predict(state["observation"])
         
-        
-    def predict(self, state):
-        
-        '''
-        Uses the state and the policy's model to predict an action
-        Returns the action value for each of the passed states in a tensor
-        '''
-        
-        pass
-
     def _initialize_model(self):
 
         self.lg.writeLine(f"Initializing policy model...")
@@ -133,10 +113,61 @@ class Policy(PolicyInterface, ComponentWithLogging):
 
         self.lg.writeLine(f"Ended policy model setup")
         self.values["model"] = self.model
+
+
+
+    
+    @requires_input_proccess
+    def get_policy_output_shape(self):
+        return self.output_action_shape
+    
+
+    @requires_input_proccess
+    def predict_model_output(self, state):
+        '''
+        Uses the model to process the state and compute its output
+        '''
+
+        return self.model.predict(state["observation"])
+    
+    
+    @requires_input_proccess
+    def get_action_val_shape(self):
+        return self.output_action_shape
+
+
+    @requires_input_proccess 
+    def get_action_from_action_val(self, action_val):
+        return action_val
+    
+
+    @requires_input_proccess
+    def get_action_val_from_model_output(self, model_output, state):
+        return model_output
+
+
+    @requires_input_proccess
+    def predict(self, state):
+        
+        '''
+        Uses the state and the policy's model to predict an action
+        Returns the action value for each of the passed states in a tensor
+        '''
+        
+        model_output = self.predict_model_output(state)     
+        
+        action_val = self.get_action_val_from_model_output(model_output, state)
+
+        return self.get_action_from_action_val(action_val)
+
+
+
+
+
         
     
     @requires_input_proccess
-    def random_prediction(self):    
+    def random_prediction(self, state):    
 
         return self.output_action_shape.sample()
     

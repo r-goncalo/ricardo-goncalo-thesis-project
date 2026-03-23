@@ -10,6 +10,7 @@ from automl.core.input_management import ParameterSignature
 from automl.rl.policy.policy import Policy
 from automl.utils.class_util import get_class_from
 from automl.utils.json_utils.json_component_utils import gen_component_from
+from automl.component import requires_input_proccess
 
 
 
@@ -26,6 +27,10 @@ class AgentVsAgents(RlSingleAgentEvaluator, EvaluatorWithPlayer):
 
         self.base_evaluator.pass_input({"value_to_use" : f"{self.agent_name}_reward"})
     
+    @requires_input_proccess
+    def get_metrics_strings(self) -> list[str]:
+
+        return self.base_evaluator.get_metrics_strings()
 
     def _initialize_other_agent(self, rl_player : RLPlayer, agent_name : str, agent : AgentSchema, component_to_evaluate : RLPipelineComponent =None):
         pass
@@ -132,9 +137,9 @@ class AgentVsAgentsWithPreviousPolicy(AgentVsAgents):
 
     def _initialize_other_agent(self, rl_player : RLPlayer, agent_name, agent : AgentSchema, component_to_evaluate : RLPipelineComponent =None):
                 
-        prev_agent = self._get_previous_agent(agent_name)
+        new_agent = self._get_previous_agent(agent_name)
 
-        if prev_agent is None:
+        if new_agent is None:
 
             new_agent_input = {**agent.input}
             
@@ -144,5 +149,6 @@ class AgentVsAgentsWithPreviousPolicy(AgentVsAgents):
                 
             new_agent = rl_player.initialize_child_component(type(agent), new_agent_input)
 
+        
 
         return new_agent

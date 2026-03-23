@@ -49,9 +49,9 @@ class PolicyDebug(Policy, ComponentDebug):
         return to_return
     
         
-    def random_prediction(self):    
+    def random_prediction(self, state):    
 
-        random_predicted_value = super().random_prediction()
+        random_predicted_value = super().random_prediction(state)
 
         self.lg.writeLine(f"Randomly predicted value: {random_predicted_value}", file='random_predicted_values.txt')
 

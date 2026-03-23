@@ -12,12 +12,11 @@ from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
 from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 
-from automl.rl.trainers.rl_trainer.jesp_rl_trainer import JESPTrainer
-from automl.rl.learners.convergence_detectors.avg_out_convergence_detector import ConvergenceDetector
-from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector, AgentTrainerSlopeConvergenceDetector
+from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
+from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector
 from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
 from automl.rl.policy.stochastic_policy import MaskedCategoricalStochasticPolicy
-from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy, AgentVsAgentsWithPreviousPolicy
+from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.policy.random_policy import RandomPolicyMasked
 from automl.rl.evaluators.rl_agent_iter_evaluator import RLAgentIterEvaluator
@@ -80,7 +79,7 @@ def config_dict():
             )
         },
 
-        "rl_trainer": ( JESPTrainer, {
+        "rl_trainer": ( RLTrainerComponent, {
             
             "name": "RLTrainerComponent",
 
@@ -99,8 +98,6 @@ def config_dict():
                 "batch_size": 128,
 
                 "discount_factor": 0.99,
-
-                "limit_steps" : 2500,
 
                 "learn_with_all_memory" : True,
 
@@ -228,16 +225,7 @@ def config_dict():
                                 "rl_player_definition" : (RLPlayer, {}),
                                 "base_evaluator" : (LastValuesAvgStdEvaluator, {"std_deviation_factor" : 100})
                             }
-                ),
-
-                #(AgentVsAgentsWithPreviousPolicy,
-                #            {
-                #                "fall_back_policy_type_for_others" : RandomPolicyMasked,
-                #                "number_of_episodes" : 25,
-                #                "rl_player_definition" : (RLPlayer, {}),
-                #                "base_evaluator" : (LastValuesAvgStdEvaluator, {"std_deviation_factor" : 100})
-                #            }
-                # )
+                )
 
                 ]
 
@@ -327,14 +315,6 @@ def hyperparameter_suggestions():
             value_suggestion=("int", {"low": 2, "high": 20}),
             hyperparameter_localizations=[
                 [*agents_trainer_input, "times_to_learn"]
-            ]
-        ),
-
-        SingleHyperparameterSuggestion(
-            name="steps_for_agent_trainer_exec",
-            value_suggestion=("int", {"low": 2048, "high": 4096, "step" : 128}),
-            hyperparameter_localizations=[
-                [*agents_trainer_input, "limit_steps"]
             ]
         ),
 

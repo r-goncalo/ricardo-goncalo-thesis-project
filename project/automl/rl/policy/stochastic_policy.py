@@ -34,30 +34,16 @@ class StochasticPolicy(Policy):
         super()._proccess_input_internal()
         
         
-    # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
         
-        
-    def predict(self, state):
-        
-        model_output = self.predict_model_output(state) # real numbers higher the higher probability        
-        
-        distribution = self.distribution_from_model_output(model_output, state) # probabilities computed from logits
-        
-        action_val = self.sample_action_val_from_distribution(distribution, state)
-
-        return self.get_action_from_action_val(action_val)
-
-
     
     @requires_input_proccess
-    def get_action_val_shape(self):
-        return self.output_action_shape
+    def get_action_val_from_model_output(self, model_output, state):
+
+        distribution = self.distribution_from_model_output(model_output, state)
+        
+        return self.sample_action_val_from_distribution(distribution, state)
 
 
-
-    @requires_input_proccess 
-    def get_action_from_action_val(self, action_val):
-        return action_val
 
     def prepare_action_val_for_distribution(self, action_val, distribution, state):
         """
@@ -208,21 +194,6 @@ class MaskedCategoricalStochasticPolicy(CategoricalStochasticPolicy):
 
     def _proccess_input_internal(self):
         super()._proccess_input_internal()
-
-
-    def _get_action_mask_from_state(self, state):
-        if not isinstance(state, dict):
-            return None
-
-        action_mask = state.get("action_mask")
-
-        if action_mask is None:
-            return None
-
-        if not torch.is_tensor(action_mask):
-            action_mask = torch.as_tensor(action_mask, device=self.device)
-
-        return action_mask
 
 
     def _normalize_action_mask(self, action_mask, logits):

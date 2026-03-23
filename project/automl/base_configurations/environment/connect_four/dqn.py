@@ -1,28 +1,24 @@
 from automl.basic_components.dynamic_value import DynamicLinearValueInRangeBasedOnComponent
 from automl.ml.memory.torch_memory_component import TorchMemoryComponent
-from automl.ml.models.joint_model import ModelSequenceComponent
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.ml.models.neural_model import FullyConnectedModelSchema
-from automl.rl.learners.ppo_learner import PPOLearner
 
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
-from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPO
 
 from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
 from automl.rl.evaluators.rl_std_avg_evaluator import LastValuesAvgStdEvaluator
 
-from automl.rl.trainers.rl_trainer.jesp_rl_trainer import JESPTrainer
-from automl.rl.learners.convergence_detectors.avg_out_convergence_detector import ConvergenceDetector
-from automl.rl.trainers.agent_trainer.agent_trainer_acessories import AgentTrainerConvergenceDetector, AgentTrainerSlopeConvergenceDetector
+from automl.rl.trainers.rl_trainer_component import RLTrainerComponent
 from automl.rl.environment.pettingzoo.aec_pettingzoo_env import AECPettingZooEnvironmentWrapper
-from automl.rl.policy.stochastic_policy import MaskedCategoricalStochasticPolicy
-from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy, AgentVsAgentsWithPreviousPolicy
+from automl.rl.evaluators.rl_vs_agents_evaluator import AgentVsAgentsWithPolicy
 from automl.rl.rl_player.rl_player import RLPlayer
 from automl.rl.policy.random_policy import RandomPolicyMasked
 from automl.rl.evaluators.rl_agent_iter_evaluator import RLAgentIterEvaluator
-
-# TODO: SHARED OPTIMIZER AND PREDICTIONS
+from automl.rl.policy.qpolicy import MaskedQPolicy
+from automl.rl.trainers.agent_trainer_component_dqn import AgentTrainerDQN
+from automl.rl.learners.q_learner import DeepQLearnerSchema, DoubleDeepQLearnerSchema
+from automl.rl.exploration.epsilong_greedy import EpsilonGreedyStepDecayStrategy
 
 def config_dict():
 
@@ -48,39 +44,19 @@ def config_dict():
             "state_translator": (ToTorchTranslator, {}),
 
             "policy": (
-                MaskedCategoricalStochasticPolicy,
+                MaskedQPolicy,
                 {
-                    "model": (
-                        ModelSequenceComponent,
-                        {
-                            "name": "policy_model",
-                            "models": [
-
-                                    ('relative',[
-                                        ("__get_by_name__", {"name_of_component": "shared_model"})
-                                    ]),
-
+                    "model": 
                                 (FullyConnectedModelSchema,
                                 {
-                                    "name": "policy_head",
+                                    "name": "policy_layers",
                                     "layers": [128, 64]
                                 })
-
-                            ],
-                            "child_components" :         
-                            [
-                                (FullyConnectedModelSchema,
-                                    {
-                                        "name" : "shared_model",
-                                         "layers": [256, 256]
-                                    })]
-                        }
-                    )
                 }
             )
         },
 
-        "rl_trainer": ( JESPTrainer, {
+        "rl_trainer": ( RLTrainerComponent, {
             
             "name": "RLTrainerComponent",
 
@@ -88,7 +64,7 @@ def config_dict():
 
             "predict_optimizations_to_do": True,
 
-            "default_trainer_class": AgentTrainerPPO,
+            "default_trainer_class": AgentTrainerDQN,
 
             "agents_trainers_input": {
 
@@ -100,48 +76,18 @@ def config_dict():
 
                 "discount_factor": 0.99,
 
-                "limit_steps" : 2500,
+                "learn_with_all_memory" : False,
 
-                "learn_with_all_memory" : True,
+                "learning_start_step_delay" : 2000,
 
                 "learner": (
 
-                    PPOLearner,
+                    DeepQLearnerSchema,
 
                     {
+                        "target_update_rate" : 0.05,
 
-                        "lambda_gae": 0.95,
-
-                        "clip_epsilon": 0.2,
-
-                        "entropy_coef": 0.01,
-
-                        "value_loss_coef": 0.5,
-
-                        "critic_model": (
-
-                            ModelSequenceComponent,
-
-                            {
-
-                                "name": "critic_model",
-
-                                "models": [
-
-                                    ('relative',[
-                                        ("__get_by_name__", {"name_of_component": "shared_model"})
-                                    ]),
-
-                                    (FullyConnectedModelSchema,
-                                    {
-                                        "name": "critic_head",
-                                        "layers": [128, 64]
-                                    })
-
-                                ]
-
-                            }
-                        ),
+                        "target_update_learn_interval" : 1,
 
                         "optimizer": (
 
@@ -180,13 +126,22 @@ def config_dict():
                                                 ("__get_exposed_value__", {
                                                     "value_localization": ["optimizations_to_do"]
                                                 })
-                                    ]
+                                            ]
                                         )
                                     }
                                 )
                             }
 
                         ),
+
+                "exploration_strategy" : (EpsilonGreedyStepDecayStrategy,
+                                                                  {
+                                            "epsilon_end" : 0.04,
+                                            "epsilon_start" : 1.0,
+                                            "epsilon_decay" :  0.95,
+                                            "n_steps_for_decay" : 2000
+                                                                  }
+                                          )
                     }
                 ),
 
@@ -195,19 +150,10 @@ def config_dict():
                     TorchMemoryComponent,
 
                     {
-                        "capacity": 512
+                        "capacity": 5000
                     }
 
                 ),
-
-                "agent_trainer_acessories" : [
-                    (AgentTrainerConvergenceDetector, {
-                        "standard_deviation_treshold" : 0.5, # less than this is convergence
-                        "min_avg_value" : 0.5,
-                        "n_values_to_use" : 50,
-                        "value_key" : "episode_reward"
-                    })
-                ]
 
             }
 
@@ -228,16 +174,7 @@ def config_dict():
                                 "rl_player_definition" : (RLPlayer, {}),
                                 "base_evaluator" : (LastValuesAvgStdEvaluator, {"std_deviation_factor" : 100})
                             }
-                ),
-
-                #(AgentVsAgentsWithPreviousPolicy,
-                #            {
-                #                "fall_back_policy_type_for_others" : RandomPolicyMasked,
-                #                "number_of_episodes" : 25,
-                #                "rl_player_definition" : (RLPlayer, {}),
-                #                "base_evaluator" : (LastValuesAvgStdEvaluator, {"std_deviation_factor" : 100})
-                #            }
-                # )
+                )
 
                 ]
 
@@ -276,9 +213,9 @@ def hyperparameters_to_optimize():
     '''
     
     return [
-        [10, ["learn_with_all_memory", "times_to_learn", "steps_for_agent_trainer_exec", "optimization_interval", "batch_size"]],
-        [10, ["learning_rate", "clip_epsilon", "value_loss_coef", "lambda_gae", "entropy_coef_strat", "clip_grad_strat"]],
-        [10, ["policy_head_layers", "critic_head_layers", "shared_layers"]]
+        [10, ["times_to_learn", "optimization_interval", "capacity", "batch_size", "learning_start_step_delay", "n_steps_for_eps_greedy_decay"]],
+        [10, ["learning_rate", "clip_grad_strat","target_update_rate", "target_update_learn_interval", "dqn_strategy"]],
+        [10, ["policy_layers"]]
     ]
 
 
@@ -301,27 +238,27 @@ def hyperparameter_suggestions():
     policy_input = [*agents_input, "policy", 1]
     
     policy_model_input = [*policy_input, "model", 1]
-    policy_head = [*policy_model_input, "models", 1]
-    policy_head_input = [*policy_head, 1]
-
-    shared_model = [*policy_model_input, "child_components", 0]
-    shared_model_input = [*shared_model, 1]
-
-    critic_model_models = [*learner_input, "critic_model", 1, "models"]
-    critic_head_input = [*critic_model_models, 1, 1]
 
 
     return [
 
         SingleHyperparameterSuggestion(
-            name="learn_with_all_memory",
-            value_suggestion=("cat", {"choices": [True, False]}),
+            name="n_steps_for_eps_greedy_decay",
+            value_suggestion=("int", {"low": 500, "high": 4000}),
             hyperparameter_localizations=[
-                [*agents_trainer_input, "learn_with_all_memory"]
+                [*agents_trainer_input, "exploration_strategy", 1, "n_steps_for_decay"]
+            ]
+
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="dqn_strategy",
+            value_suggestion=("cat", {"choices": [DeepQLearnerSchema, DoubleDeepQLearnerSchema]}),
+            hyperparameter_localizations=[
+                [*agents_trainer_input, "learner", 0]
             ]
         ),
 
-        # PPO EPOCHS
         SingleHyperparameterSuggestion(
             name="times_to_learn",
             value_suggestion=("int", {"low": 2, "high": 20}),
@@ -330,30 +267,52 @@ def hyperparameter_suggestions():
             ]
         ),
 
+
         SingleHyperparameterSuggestion(
-            name="steps_for_agent_trainer_exec",
-            value_suggestion=("int", {"low": 2048, "high": 4096, "step" : 128}),
+            name="optimization_interval",
+            value_suggestion=("int", {"low": 256, "high": 4096, "step" : 64}),
             hyperparameter_localizations=[
-                [*agents_trainer_input, "limit_steps"]
+                ["input","rl_trainer",1,"agents_trainers_input","optimization_interval"],
             ]
         ),
 
-        # PPO ROLLOUT SIZE
         SingleHyperparameterSuggestion(
-            name="optimization_interval",
-            value_suggestion=("int", {"low": 256, "high": 1024, "step" : 64}),
+            name="capacity",
+            value_suggestion=("int", {"low": 5000, "high": 10000}),
             hyperparameter_localizations=[
-                ["input","rl_trainer",1,"agents_trainers_input","optimization_interval"],
                 ["input","rl_trainer",1,"agents_trainers_input","memory",1,"capacity"],
             ]
         ),
 
-        # PPO MINIBATCH SIZE
         SingleHyperparameterSuggestion(
             name="batch_size",
-            value_suggestion=("cat", {"choices": [64,128]}),
+            value_suggestion=("cat", {"choices": [64,128, 256]}),
             hyperparameter_localizations=[
                 ["input","rl_trainer",1,"agents_trainers_input","batch_size"]
+            ]
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="learning_start_step_delay",
+            value_suggestion=("int", {"low": 2000, "high" : 5000}),
+            hyperparameter_localizations=[
+                [*agents_trainer_input,"learning_start_step_delay"]
+            ]
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="target_update_rate",
+            value_suggestion=("float", {"low" : 0.025, "high" : 0.99}),
+            hyperparameter_localizations=[
+                [*learner_input, "target_update_rate"]
+            ]
+        ),
+
+        SingleHyperparameterSuggestion(
+            name="target_update_learn_interval",
+            value_suggestion=("int", {"low" : 1, "high" : 20}),
+            hyperparameter_localizations=[
+                [*learner_input, "target_update_learn_interval"]
             ]
         ),
 
@@ -363,76 +322,6 @@ def hyperparameter_suggestions():
             value_suggestion=("float", {"low":1e-5,"high":3e-3,"log":True}),
             hyperparameter_localizations=[
                 ["input","rl_trainer",1,"agents_trainers_input","learner",1,"optimizer",1,"learning_rate"]
-            ]
-        ),
-
-        # PPO CLIP
-        SingleHyperparameterSuggestion(
-            name="clip_epsilon",
-            value_suggestion=("float", {"low":0.1,"high":0.3}),
-            hyperparameter_localizations=[
-                ["input","rl_trainer",1,"agents_trainers_input","learner",1,"clip_epsilon"]
-            ]
-        ),
-
-        # VALUE LOSS WEIGHT
-        SingleHyperparameterSuggestion(
-            name="value_loss_coef",
-            value_suggestion=("float", {"low":0.3,"high":0.7}),
-            hyperparameter_localizations=[
-                ["input","rl_trainer",1,"agents_trainers_input","learner",1,"value_loss_coef"]
-            ]
-        ),
-
-        # GAE
-        SingleHyperparameterSuggestion(
-            name="lambda_gae",
-            value_suggestion=("float", {"low":0.9,"high":0.98}),
-            hyperparameter_localizations=[
-                ["input","rl_trainer",1,"agents_trainers_input","learner",1,"lambda_gae"]
-            ]
-        ),
-
-        # ENTROPY COEFFICIENT
-        DisjointHyperparameterSuggestion(
-            name="entropy_coef_strat",
-            hyperparameter_localizations=[
-                ["input","rl_trainer",1,"agents_trainers_input","learner",1,"entropy_coef"]
-            ],
-            allow_none=False,
-            disjoint_hyperparameter_suggestions=[
-
-                SingleHyperparameterSuggestion(
-                    name="value",
-                    value_suggestion=("float", {"low":0.0,"high":0.05})
-                ),
-
-                ComplexHpSuggestion(
-                    "dynamic_struc",
-                    structure_to_add=[
-                        str(DynamicLinearValueInRangeBasedOnComponent),
-                        {
-                            "input_for_fun_key": "optimizations_done",
-                            "initial_value":0.02,
-                            "final_value":0,
-                            "input_component":('relative',[
-                                ("__get_by_name__",{"name_of_component":"AdamOptimizerComponent"})
-                            ]),
-                            "input_for_fun_max_value":
-                            ('relative',[
-                                        ("__get_by_type__", {"type": AgentTrainer}),
-                                        ("__get_exposed_value__", {
-                                            "value_localization": ["optimizations_to_do"]
-                                        })
-                                    ])
-                        }
-                    ],
-                    actual_hyperparameter_suggestion=SingleHyperparameterSuggestion(
-                        name="value",
-                        value_suggestion=("float",{"low":0.01,"high":0.05}),
-                        hyperparameter_localizations=[[1,"initial_value"]]
-                    )
-                )
             ]
         ),
 
@@ -481,49 +370,17 @@ def hyperparameter_suggestions():
 
         # ACTOR HEAD
         VariableListHyperparameterSuggestion(
-            name="policy_head_layers",
+            name="policy_layers",
             min_len=1,
-            max_len=2,
+            max_len=4,
             hyperparameter_localizations=[
                 [
-                    *policy_head_input, "layers"
+                    *policy_model_input, "layers"
                 ]
             ],
             hyperparameter_suggestion_for_list=
                 SingleHyperparameterSuggestion(
                     value_suggestion=("cat",{"choices":[32,64,128,256]})
-                )
-        ),
-
-        # CRITIC HEAD
-        VariableListHyperparameterSuggestion(
-            name="critic_head_layers",
-            min_len=1,
-            max_len=2,
-            hyperparameter_localizations=[
-                [
-                    *critic_head_input, "layers"
-                ]
-            ],
-            hyperparameter_suggestion_for_list=
-                SingleHyperparameterSuggestion(
-                    value_suggestion=("cat",{"choices":[32,64,128,256]})
-                )
-        ),
-
-        # SHARED NETWORK
-        VariableListHyperparameterSuggestion(
-            name="shared_layers",
-            min_len=1,
-            max_len=2,
-            hyperparameter_localizations=[
-                [
-                    *shared_model_input, "layers"
-                ]
-            ],
-            hyperparameter_suggestion_for_list=
-                SingleHyperparameterSuggestion(
-                    value_suggestion=("cat",{"choices":[64,128,256,512]})
                 )
         )
 

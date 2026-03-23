@@ -54,7 +54,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
     exposed_values = {}
     
     
-    results_columns = ["episodes_done"] # this means a result_logger will exist with the column "episodes_done"
+    results_columns = ["times_ran"] # this means a result_logger will exist with the column "episodes_done"
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
@@ -108,6 +108,8 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         '''Setups custom logic for '''
         
         if self.component_evaluator is not None:
+
+            self.lg.writeLine(f"Evaluator exists, getting its metrics...")
                 
             evaluation_columns = self.component_evaluator.get_metrics_strings()
 
@@ -520,7 +522,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
             evaluation_results = self.evaluate_this_component() # evaluates the resulting model and saves the results
 
             self.log_results({
-            "episodes_done" : self.rl_trainer.values["episodes_done"],
+            "times_ran" : self.values["times_ran"] ,
                           **evaluation_results})
             
         else:

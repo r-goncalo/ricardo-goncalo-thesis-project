@@ -50,14 +50,19 @@ class AgentTrainerDQN(AgentTrainer):
     def initialize_memory(self):
         
         super().initialize_memory()
-        
+
+        state_shape = {**self.agent.processed_state_shape}
+
+        observation_shape = state_shape.pop("observation")
         
         self.memory_fields_shapes = [   *self.memory_fields_shapes, 
-                                        ("observation", self.agent.processed_state_shape["observation"]), 
-                                        ("action", reduce_space_dimension(self.agent.get_policy().get_policy_output_shape()), torch.int64),
-                                        ("next_observation", self.agent.processed_state_shape["observation"]),
+                                        ("observation", observation_shape), 
+                                        ("action", self.agent.get_policy().get_policy_output_shape(), torch.int64),
+                                        ("next_observation", observation_shape),
                                         ("reward", 1),
-                                        ("done", 1)
+                                        ("done", 1),
+                                        *[(state_shape_key, state_shape_value) for state_shape_key, state_shape_value in state_shape.items()],
+                                        *[(f"next_{state_shape_key}", state_shape_value) for state_shape_key, state_shape_value in state_shape.items()]
                                     ]
             
         self.memory.pass_input({
@@ -76,12 +81,29 @@ class AgentTrainerDQN(AgentTrainer):
     def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
+
+        prev_state_in_agent = {**prev_state}
+        prev_state_in_agent.pop("observation")
+
+        for k, v in prev_state_in_agent.items():
+            if not isinstance(v, torch.Tensor):
+                prev_state_in_agent[k] = torch.tensor(v, dtype=torch.float32, device=self.device)
+        
+        next_state_in_agent = {**new_state}
+        next_state_in_agent.pop("observation")
+
+        for k, v in next_state_in_agent.items():
+            if not isinstance(v, torch.Tensor):
+                next_state_in_agent[f"next_{k}"] = torch.tensor(v, dtype=torch.float32, device=self.device)
+
                 
         self.memory.push({"observation" : prev_state["observation"], 
                           "action" : action, 
                           "next_observation" : new_state["observation"], 
                           "reward" : reward, 
-                          "done" : done})
+                          "done" : done,
+                          **prev_state_in_agent,
+                          **next_state_in_agent})
         
 
         

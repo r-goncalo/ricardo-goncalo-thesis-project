@@ -13,7 +13,7 @@ class RlSingleAgentEvaluator(RLPipelineEvaluator):
     '''
     
     parameters_signature = {
-        "agent_name" : ParameterSignature(),
+        "agent_name" : ParameterSignature(mandatory=False),
     }
     
 

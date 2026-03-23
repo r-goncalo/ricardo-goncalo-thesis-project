@@ -20,7 +20,7 @@ MountainCar-v0:
   target_update_interval: 600
   train_freq: 16 # trains at an interval of 16 episodes
   gradient_steps: 8 # each time it trains, it does 8 episode steps
-  exploration_fraction: 0.2
+  epsilon_decay: 0.2
   exploration_final_eps: 0.07
   policy_kwargs: "dict(net_arch=[256, 256])"
 
@@ -101,7 +101,7 @@ def config_dict():
                                                                   {
                                             "epsilon_end" : 0.07,
                                             "epsilon_start" : 1.0,
-                                            "exploration_fraction" : 0.2
+                                            "epsilon_decay" : 0.2
                                                                   }
                                           )
                 

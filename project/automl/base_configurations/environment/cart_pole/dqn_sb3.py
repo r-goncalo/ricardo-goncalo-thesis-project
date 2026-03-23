@@ -21,7 +21,7 @@ CartPole-v1:
   target_update_interval: 10
   train_freq: 256
   gradient_steps: 128
-  exploration_fraction: 0.16
+  epsilon_decay: 0.16
   exploration_final_eps: 0.04
   policy_kwargs: "dict(net_arch=[256, 256])"
 
@@ -103,7 +103,7 @@ def config_dict():
                                                                   {
                                             "epsilon_end" : 0.04,
                                             "epsilon_start" : 1.0,
-                                            "exploration_fraction" :  0.16
+                                            "epsilon_decay" :  0.16
                                                                   }
                                           )
                 

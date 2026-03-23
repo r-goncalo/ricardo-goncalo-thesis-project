@@ -222,14 +222,24 @@ def get_next_component_by_tuple_operation(component, tuple_operation : tuple):
     operation_parameters = tuple_operation[1]
 
     if operation_str == '__get_by_name__':
-        return relative_look_for_component(component, 
+        to_return = relative_look_for_component(component, 
                                 lambda x: component_has_correct_name(operation_parameters["name_of_component"],x)
                                 )
+        
+        if to_return is None:
+            raise Exception(f"Could not find component with name {operation_parameters['name_of_component']} from {component.name}")
+        
+        return to_return
     
     elif operation_str == '__get_by_type__':
         type_to_look = get_class_from(operation_parameters["type"])
-        return relative_look_for_component(component, 
+        to_return = relative_look_for_component(component, 
                                 lambda x: component_has_correct_type(type_to_look, x))
+        
+        if to_return is None:
+            raise Exception(f"Could not find component with type {operation_parameters['type']} from {component.name}")
+        
+        return to_return
     
     elif operation_str == '__get_exposed_value__':
 
@@ -311,8 +321,6 @@ def get_component_by_localization_list(component, localization : list):
 def get_component_by_localization(component, localization):
 
     localization_type, localization_list = interpret_localization(localization)
-
-    globalWriteLine(f"Getting by localization with component {component.name} and localization {localization}")
 
     try:
 

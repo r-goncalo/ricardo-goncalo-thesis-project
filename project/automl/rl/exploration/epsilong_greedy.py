@@ -43,23 +43,22 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
 
         sample = random.random()
 
-        return sample > eps_threshold
+        return sample < eps_threshold
 
     
     def select_action(self, agent : AgentSchema,  state):
                 
         super().select_action(agent, state)
         
-        #in the case we use our policy net to predict our next action    
         if self.should_select_random_action():
+
+            self.values["n_random"] = self.values["n_random"] + 1
+            return agent.policy_random_predict(state) 
             
+
+        else:
             self.values["n_greedy"] = self.values["n_greedy"] + 1
             return  agent.policy_predict(state)
-        
-        #in the case we choose a random action
-        else:
-            self.values["n_random"] = self.values["n_random"] + 1
-            return agent.policy_random_predict() 
         
     
     def select_action_with_memory(self, agent : AgentSchema):
@@ -69,14 +68,12 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
         #in the case we use our policy net to predict our next action    
         if self.should_select_random_action():
             
+            self.values["n_random"] = self.values["n_random"] + 1
+            return agent.policy_random_predict(agent.get_current_state_in_memory())      
+        else:
+   
             self.values["n_greedy"] = self.values["n_greedy"] + 1
             return  agent.policy_predict_with_memory()
-        
-        #in the case we choose a random action
-        else:
-            self.values["n_random"] = self.values["n_random"] + 1
-            return agent.policy_random_predict()         
-        
 
 
 class EpsilonGreedyLinearStrategy(EpsilonGreedyStrategy):
@@ -98,6 +95,63 @@ class EpsilonGreedyLinearStrategy(EpsilonGreedyStrategy):
 
         sample = random.random()
 
-        return sample > eps_threshold
+        return sample < eps_threshold
     
-        
+
+
+class EpsilonGreedyStepDecayStrategy(EpsilonGreedyStrategy):
+    '''
+    Epsilon-greedy strategy where epsilon is multiplied by epsilon_decay
+    every n_steps_for_decay environment steps.
+
+    Example:
+        epsilon_start = 1.0
+        epsilon_decay = 0.9
+        n_steps_for_decay = 1000
+
+    Then:
+        steps 0-999     -> epsilon = 1.0
+        steps 1000-1999 -> epsilon = 0.9
+        steps 2000-2999 -> epsilon = 0.81
+        ...
+
+    epsilon is always clipped below by epsilon_end.
+    '''
+
+    parameters_signature = {
+        "n_steps_for_decay": ParameterSignature(
+            default_value=1000,
+            custom_dict={
+                "hyperparameter_suggestion": ("int", {"low": 100, "high": 10000, "step": 100})
+            }
+        )
+    }
+
+    def _proccess_input_internal(self):
+        super()._proccess_input_internal()
+
+        self.n_steps_for_decay = self.get_input_value("n_steps_for_decay")
+
+        if self.n_steps_for_decay <= 0:
+            raise ValueError(f"n_steps_for_decay must be > 0, got {self.n_steps_for_decay}")
+
+        if not (0 < self.EPS_DECAY <= 1):
+            raise ValueError(
+                f"For step decay, epsilon_decay should be in (0, 1], got {self.EPS_DECAY}"
+            )
+
+    def get_current_epsilon(self):
+        total_steps = self.training_context["total_steps"]
+
+        n_decays_applied = total_steps // self.n_steps_for_decay
+
+        current_epsilon = self.EPS_START * (self.EPS_DECAY ** n_decays_applied)
+
+        return max(self.EPS_END, current_epsilon)
+
+    def should_select_random_action(self):
+        eps_threshold = self.get_current_epsilon()
+
+        sample = random.random()
+
+        return sample < eps_threshold

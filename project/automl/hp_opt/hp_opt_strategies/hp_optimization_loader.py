@@ -455,7 +455,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
         except Exception as e:
 
                 if not isinstance(e, optuna.TrialPruned):
-                    self.lg.writeLine(f"Error in trial {trial.number} at step {step}: {e}")
+                    self.lg.writeLine(f"Error in trial {trial.number} in component (index) {component_index} at step {step}: {e}")
 
                 raise e
         

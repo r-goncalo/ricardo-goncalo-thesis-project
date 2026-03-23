@@ -174,11 +174,11 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                     
     
     @requires_input_proccess
-    def policy_random_predict(self):
+    def policy_random_predict(self, state):
         '''
         Uses the policies's random prediction strategy to return an action
         '''
-        to_return =  self.policy.random_prediction()
+        to_return =  self.policy.random_prediction(state)
 
         return to_return
           

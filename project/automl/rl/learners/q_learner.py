@@ -7,6 +7,7 @@ from automl.ml.models.model_components import ModelComponent
 from automl.ml.optimizers.optimizer_components import OptimizerSchema, AdamOptimizer
 from automl.rl.learners.learner_component import LearnerSchema
 
+from automl.rl.policy.qpolicy import QPolicy
 import torch
 
 from automl.rl.policy.policy import Policy
@@ -41,7 +42,7 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
     
     # EXPOSED METHODS --------------------------------------------------------------------------
 
-    def _apply_model_prediction_given_state_action_pairs(self, observation_batch, action_batch):
+    def _apply_model_prediction_given_state_action_pairs(self, interpreted_trajectory):
 
         '''Returns the values predicted by the current model and the values for the specific actions that were passed'''
         pass
@@ -76,9 +77,9 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         reward_batch = interpreted_trajectory["reward"]
         done_batch = interpreted_trajectory["done"]
                     
-        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(observation_batch, action_batch) 
+        predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(interpreted_trajectory) 
 
-        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(next_observation_batch, done_batch, reward_batch, discount_factor)
+        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(interpreted_trajectory, discount_factor)
 
         correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
                         
@@ -101,7 +102,7 @@ class DeepQLearnerSchema(QLearnerSchema):
                                
                         "target_update_rate" : ParameterSignature(
                             default_value=0.05,
-                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.5, "high": 1.0 }]}
+                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.05, "high": 0.9 }]}
                             ),
 
                         "target_update_learn_interval" : ParameterSignature(default_value=1, description="How many optimization times before we update the target model",
@@ -116,12 +117,12 @@ class DeepQLearnerSchema(QLearnerSchema):
                             )
                             ),
                         
-                        "target_network" : ParameterSignature(mandatory=False, possible_types=[ModelComponent], description="The target network if it already exists, a clone of the network of the policy")
+                        "target_policy" : ParameterSignature(mandatory=False, possible_types=[QPolicy], description="The target network if it already exists, a clone of the network of the policy")
 
                         }    
     
     exposed_values = {
-        "target_network" : 0
+        "target_policy" : 0
     }
     
     def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
@@ -135,6 +136,8 @@ class DeepQLearnerSchema(QLearnerSchema):
         self.target_update_learn_interval = self.get_input_value("target_update_learn_interval")
         
         self.policy : Policy = self.agent.get_policy()
+
+        self.custom_data_beyond_obs = [key for key in self.policy.input_state_shape.keys() if key != "observation"]
         
         self.model = self.policy.model
         
@@ -147,31 +150,45 @@ class DeepQLearnerSchema(QLearnerSchema):
 
     def initialize_target_network(self):
         
-        if self.values["target_network"] != 0:
+        if self.values["target_policy"] != 0:
                         
             self.lg.writeLine("Target network found already in exposed values, using that...")
-            self.target_net : ModelComponent = self.values["target_network"]
+            self.target_policy : QPolicy = self.values["target_policy"]
 
-        elif "target_network" in self.input.keys():
+        elif "target_policy" in self.input.keys():
             
             self.lg.writeLine("There was already a target network defined in the input")
-            self.target_net : ModelComponent  = self.get_input_value("target_network")
-            self.values["target_network"] = self.target_net
+            self.target_policy : QPolicy  = self.get_input_value("target_policy")
+            self.values["target_policy"] = self.target_policy
             
         else:
             self.lg.writeLine("No target network previously defined, creating a new one...")
+
+            self.target_policy = self.policy.clone(
+                save_in_parent=False,
+                input_for_clone=
+                    {"name" : "target_policy", 
+                    "base_directory" : self,
+                    "create_new_directory" : False}, 
+                is_deep_clone=True)
+            
+            self.define_component_as_child(self.target_policy)
             
             self.target_net : ModelComponent = self.model.clone(
                 save_in_parent=False,
                 input_for_clone=
                     {"name" : "target_network", 
-                    "base_directory" : self,
-                    "create_new_directory" : True}, 
-                is_deep_clone=True) #the target network has the same initial parameters as the policy being trained
+                    "base_directory" : self.target_policy,
+                    "create_new_directory" : False}, 
+                is_deep_clone=True)
             
-            self.define_component_as_child(self.target_net)
+            self.target_policy.define_component_as_child(self.target_net)
+            self.target_policy.values.pop("model", None)
+            self.target_policy.input.pop("model", None)
+
+            self.target_policy.pass_input({"model" : self.target_net})
             
-            self.values["target_network"] = self.target_net
+            self.values["target_policy"] = self.target_policy
 
         
         
@@ -180,20 +197,45 @@ class DeepQLearnerSchema(QLearnerSchema):
         self.optimizer : OptimizerSchema = self.get_input_value("optimizer")        
         self.optimizer.pass_input({"model" : self.model})
 
+    def _state_batch_from_interpreted_trajectory(self, interpreted_trajectory):
+
+        state_batch = {
+            "observation" : interpreted_trajectory["observation"]
+        }
+
+        for key in self.custom_data_beyond_obs:
+            state_batch[key] = interpreted_trajectory[key]
+
+        return state_batch
+    
+    def _next_state_batch_from_interpreted_trajectory(self, interpreted_trajectory):
+
+        next_state_batch = {
+            "observation" : interpreted_trajectory["next_observation"]
+        }
+
+        for key in self.custom_data_beyond_obs:
+            next_state_batch[key] = interpreted_trajectory[f"next_{key}"]
+
+        return next_state_batch
     
     # EXPOSED METHODS --------------------------------------------------------------------------
 
-    def _apply_model_prediction_given_state_action_pairs(self, observation_batch, action_batch):
+    def _apply_model_prediction_given_state_action_pairs(self, interpreted_trajectory):
 
         '''Returns the values predicted by the current model and the values for the specific actions that were passed'''
 
-        predicted_actions_values = self.model.predict(observation_batch)
+        action_batch = interpreted_trajectory["action"]
+
+        state_batch = self._state_batch_from_interpreted_trajectory(interpreted_trajectory)
+
+        predicted_actions_values = self.policy.predict_model_output(state_batch)
         predicted_values_for_actions = predicted_actions_values.gather(1, action_batch) 
 
         return predicted_actions_values, predicted_values_for_actions
     
 
-    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
 
         '''
         Returns the predicted values for the next state
@@ -202,8 +244,12 @@ class DeepQLearnerSchema(QLearnerSchema):
 
         '''
 
+        done_batch = interpreted_trajectory["done"]
+
+        next_state_batch = self._next_state_batch_from_interpreted_trajectory(interpreted_trajectory)
+
         with torch.no_grad():
-            next_state_q_values = self.target_net.predict(next_observation_batch) # it returns the maximum q-action values of the next action
+            next_state_q_values = self.target_policy.predict_model_output(next_state_batch) # it returns the maximum q-action values of the next action
             
             next_state_v_values = next_state_q_values.max(1).values
             next_state_v_values = next_state_v_values * (1 - done_batch)
@@ -243,15 +289,18 @@ class DeepQLearnerSchema(QLearnerSchema):
 class DoubleDeepQLearnerSchema(DeepQLearnerSchema):
 
 
-    def _apply_value_prediction_to_next_state(self, next_observation_batch, done_batch, reward_batch, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
 
+        next_state_batch = self._next_state_batch_from_interpreted_trajectory(interpreted_trajectory)
+
+        done_batch = interpreted_trajectory["done"]
 
         with torch.no_grad():
 
-            q_values_that_would_be_given_next = self.model.predict(next_observation_batch)
+            q_values_that_would_be_given_next = self.policy.predict_model_output(next_state_batch)
             actions_that_would_be_chosen_next = q_values_that_would_be_given_next.argmax(1, keepdim=True)
 
-            next_state_q_values = self.target_net.predict(next_observation_batch) # it returns the maximum q-action values of the next action
+            next_state_q_values = self.target_policy.predict_model_output(next_state_batch) # it returns the maximum q-action values of the next action
             
             next_state_v_values = next_state_q_values.gather(1, actions_that_would_be_chosen_next).squeeze(1)
             next_state_v_values = next_state_v_values * (1 - done_batch)
