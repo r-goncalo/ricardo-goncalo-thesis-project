@@ -410,7 +410,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             first_worker.thread_logger.writeLine(f"Last step for {trial.number} was {last_step_trial_run}, and this execution with {self.n_steps} steps will end at step {step_to_end_this_execution}")
 
             if step_to_end_this_execution < self.use_best_component_strategy_with_index:
-                self.lg.writeLine(f"As the it is bellow the range to choose the best component (step {self.use_best_component_strategy_with_index}), will use normal run strategy")
+                first_worker.thread_logger.writeLine(f"As the it is bellow the range to choose the best component (step {self.use_best_component_strategy_with_index}), will use normal run strategy")
 
                 return self._generate_futures_for_single_trial_with_normal_strategy(
                 trial,
