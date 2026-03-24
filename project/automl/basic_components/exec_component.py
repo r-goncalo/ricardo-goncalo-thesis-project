@@ -121,14 +121,14 @@ class ExecComponent(Component):
 
         if self._stop_earlier_signal_received():
             if raise_exception:
-                raise StopExperiment()
+                raise StopExperiment("Stopped signal received")
             else:
                 return True
         
         elif self._check_if_should_stop_execution_earlier():
             self.stop_execution_earlier()
             if raise_exception:
-                raise StopExperiment()
+                raise StopExperiment("Stopped signal received")
             else:
                 return True
         

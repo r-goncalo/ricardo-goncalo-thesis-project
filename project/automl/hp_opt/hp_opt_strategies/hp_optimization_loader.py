@@ -633,7 +633,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     
 
         
-    def on_general_exception_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial, component_index=None):
+    def on_general_exception_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial, component_index=None, reraise_exception=True):
 
         '''Deals with a general exception with no specified strategy and re-raises it'''
 
@@ -651,7 +651,8 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         common_exception_handling(self.lg, exception, error_report_path)
 
-        raise exception
+        if reraise_exception:
+            raise exception
     
 
 

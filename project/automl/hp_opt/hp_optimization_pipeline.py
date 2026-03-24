@@ -669,11 +669,19 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         if trial is None:
             trial = self.sample_trial()
 
+        self.lg.writeLine(f"RUNNING SINGLE TRIAL {trial.number}")
+
         try:
             value = self.objective(trial)
+
+            self.lg.writeLine(f"ENDING SINGLE TRIAL {trial.number}")
+
             return trial, value, None
 
         except Exception as e:
+            
+            self.lg.writeLine(f"EXCEPTION SINGLE TRIAL {trial.number}: {e}")
+
             return trial, None, e
     
     def _run_optimization(self, trial: optuna.Trial):
@@ -822,18 +830,24 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     def mark_trial_as_complete(self, trial, value):
                     
-                    self.lg.writeLine(f"Trial {trial.number} marked as completed with value: {value}")
-                    self.values["trials_done_in_this_execution"] += 1
+        self.lg.writeLine(f"Trial {trial.number} marked as completed with value: {value}")
+        self.values["trials_done_in_this_execution"] += 1
                     
-                    self.study.tell(trial, value)
+        self.study.tell(trial, value)
 
     def mark_trial_as_pruned(self, trial, value=None):
                     
-                    self.lg.writeLine(f"Trial {trial.number} marked as pruned {f'with value: {value}' if value is not None else ''}")
-                    self.values["trials_done_in_this_execution"] += 1
+        self.lg.writeLine(f"Trial {trial.number} marked as pruned {f'with value: {value}' if value is not None else ''}")
+        self.values["trials_done_in_this_execution"] += 1
                     
-                    self.study.tell(trial=trial, state= optuna.trial.TrialState.PRUNED)
+        self.study.tell(trial=trial, state= optuna.trial.TrialState.PRUNED)
 
+    def mark_trial_as_failed(self, trial, value=None):
+
+        self.lg.writeLine(f"Trial {trial.number} marked as failed {f'with value: {value}' if value is not None else ''}")
+        self.values["trials_done_in_this_execution"] += 1
+                    
+        self.study.tell(trial=trial, state= optuna.trial.TrialState.FAIL)
 
         
     
@@ -1033,7 +1047,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
 
         
-    def on_general_exception_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial):
+    def on_general_exception_trial(self, exception : Exception, component_to_test_path, trial : optuna.Trial, reraise_exception=False):
 
         self.lg.writeLine(f"ERROR IN TRIAL {trial.number}")
 
@@ -1047,7 +1061,8 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
         common_exception_handling(self.lg, exception, error_report_path)
 
-        raise exception
+        if reraise_exception:
+            raise exception
 
 
     # EXTRA LOGGING ---------------------------------------------
