@@ -21,45 +21,6 @@ MINIMUM_SLEEP = 1
 SLEEP_INCR_RATE = 2
 MAX_SLEEP = 60
 
-class RLOCKDEBUG:
-    """Wrapper around threading.RLock that logs acquires/releases."""
-
-    def __init__(self, name="RLOCKDEBUG"):
-        self._lock = threading.RLock()
-        self.name = name
-
-    def _thread_label(self):
-        t = threading.current_thread()
-        return f"{t.name} (ident={t.ident})"
-
-    def acquire(self, blocking=True, timeout=-1):
-        globalWriteLine(
-            f"[{self.name}] THREAD {self._thread_label()} TRYING TO ACQUIRE "
-            f"(blocking={blocking}, timeout={timeout})", file="lock.txt"
-        )
-        acquired = self._lock.acquire(blocking, timeout)
-        if acquired:
-            globalWriteLine(f"[{self.name}] THREAD {self._thread_label()} ACQUIRED", file="lock.txt")
-        else:
-            globalWriteLine(f"[{self.name}] THREAD {self._thread_label()} FAILED TO ACQUIRE", file="lock.txt")
-        return acquired
-
-    def release(self):
-        globalWriteLine(f"[{self.name}] THREAD {self._thread_label()} LET GO", file="lock.txt")
-        self._lock.release()
-
-    def __enter__(self):
-        self.acquire()
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        self.release()
-        return False
-
-    def __getattr__(self, item):
-        # Forward any other attribute/method accesses to the wrapped RLock.
-        return getattr(self._lock, item)
-
 class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizationLoader):
     
     '''
@@ -91,18 +52,18 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.lg.writeLine(f"For {self.trainings_per_configuration} trainings per configuration, with {self.trainings_at_a_time} trainings being done at a time, the minimum number of hyperparameter configurations being tested at a time should be {self.beneficted_trainings}")
 
         # semaphore to use the evaluator
-        self.evaluator_sem = RLOCKDEBUG(name="evaluator_lock")  
+        self.evaluator_sem = threading.RLock()  
 
         # a list of [trial_number, sem, configurations_not_attributed_to_worker], to use in prioritizing runn
-        self.trainings_remaining_per_thread_sem = RLOCKDEBUG(name="trainings_remaining_lock")    
+        self.trainings_remaining_per_thread_sem = threading.RLock()    
         self.trainings_remaining_per_thread = [None] * self.trainings_at_a_time
 
-        self.optuna_usage_sem = RLOCKDEBUG(name="optuna_usage_lock")  
+        self.optuna_usage_sem = threading.RLock()  
 
 
         self._setup_workers()
 
-        self.results_logger_sem = RLOCKDEBUG(name="results_logger_lock")  
+        self.results_logger_sem = threading.RLock()  
 
         self.lg.writeLine(f"Finished processing input related to multiple component, detached execution")
 
@@ -543,13 +504,15 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     futures[i] = executor.submit(*futures[i])
 
             # wait for all jobs
-            for future in as_completed(futures):
-                exc = None
-                try:
-                    result = future.result()
-                except CancelledError:
-                    self.lg.writeLine("CANCELLED IN RUN TRIALS")
+            for future in futures:
+
+                if future.cancelled():
                     continue
+
+                exc = None
+
+                try:
+                    future.result()
                 
                 except Exception as e:
                     exc = e
@@ -558,38 +521,24 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
                     should_end[0] = True
 
-                    self.lg.writeLine(f"SHUTDING DOWN FUTURE TRIAL {trial.number} DUE TO EXCEPTION {exc}")
-
                     # by interrupting, exception or prunning, this is always the shutdown strategy
-                    executor.shutdown(wait=False, cancel_futures=True)
-
-                    self.lg.writeLine(f"SHUTDING DOWN FUTURE TRIAL {trial.number}")
+                    self._cancel_futures(futures)
 
                     exceptions_to_raise.append(exc)
 
                 elif should_end[0]:
 
-                    self.lg.writeLine(f"SHUTDING FUTURE DOWN TRIAL {trial.number} DUE TO SHOULD END STOP SIGNAL")
-
-                    executor.shutdown(wait=False, cancel_futures=True)
-
-                    self.lg.writeLine(f"ENDED SHUTDING FUTURE DOWN TRIAL {trial.number}")
-
-            self.lg.writeLine(f"REACHING END OF TRIAL {trial.number}...")
+                    self._cancel_futures(futures)
 
             if len(exceptions_to_raise) == 0: # if there were no errors
                 executor.shutdown(wait=False)
-
-            self.lg.writeLine(f"REACHED END OF TRIAL {trial.number}")
 
             self._raise_exception_in_execution(exceptions_to_raise)
 
 
 
     def _run_concurrent_experiments_for_single_trial(self, trial: optuna.Trial, index_in_trainings_remaining, run_till_step=False):
-    
-        self.lg.writeLine(F"RUNNING CONCURRENT EXPERIMTNS FOR TRIAL {trial.number}")
-    
+        
         # we only advance when we manage to get a non busy worker
         first_worker = self._aquire_available_worker()
 
@@ -616,16 +565,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         list_of_futures = self._generate_futures_for_single_trial(trial, index_in_trainings_remaining, first_worker,
                                                           run_first_worker_fun, run_other_workers_fun, should_end)
 
-        self.lg.writeLine(f"GENERATED {len(list_of_futures)} future list for trial {trial.number}")
-
         for futures in list_of_futures:
-            self.lg.writeLine(f"RUNNING future list for trial {trial.number}")
             executor = ThreadPoolExecutor(max_workers=self.trainings_at_a_time)
             self._execute_futures_of_single_trial(trial, futures, executor, should_end)
-            self.lg.writeLine(f"ENDED RUNNING future list for trial {trial.number}")
-
-
-        self.lg.writeLine(F"ENDED CONCURRENT EXPERIMTNS FOR TRIAL {trial.number}")
 
 
     def _acquire_index_in_trainings_remaining(self, trial: optuna.Trial):
@@ -633,7 +575,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         index_in_trainings_remaining = self._get_next_available_index_trainings() # we get an index to represent this trial (in theory, there should always be one available)
         
         with self.trainings_remaining_per_thread_sem:
-            self.trainings_remaining_per_thread[index_in_trainings_remaining] = [trial.number, RLOCKDEBUG(f"trial {trial.number} lock"), self.trainings_per_configuration]
+            self.trainings_remaining_per_thread[index_in_trainings_remaining] = [trial.number, threading.RLock(), self.trainings_per_configuration]
 
         return index_in_trainings_remaining
     
@@ -652,7 +594,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         self.lg.writeLine(f"RUN OPTIMIZATION STARTING FOR TRIAL {trial.number}")
 
         if self.check_if_should_stop_execution_earlier(raise_exception=False):
-            self.lg.writeLine(f"RUN INTERRUPTED FOR TRIAL {trial.number}")
             self.check_if_should_stop_execution_earlier()
     
         if trial_run_function is None:
@@ -664,13 +605,10 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
         index_in_trainings_remaining = self._acquire_index_in_trainings_remaining(trial)
 
         try:
-            self.lg.writeLine(f"RUNNING FUNCTION {trial_run_function.__name__} for trial {trial.number}")
             trial_run_function(trial, index_in_trainings_remaining, **trial_run_funs_params)
             self._let_go_of_index_in_trainings_remaining(trial, index_in_trainings_remaining)
 
         except Exception as e:
-
-            self.lg.writeLine(f"CAUGHT EXCEPTION IN RUNNING TRIAL {trial.number}: {e}")
 
             with self.trainings_remaining_per_thread_sem:
                 self.trainings_remaining_per_thread[index_in_trainings_remaining] = None
@@ -780,27 +718,14 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             old_n_steps = self.n_steps
             self.n_steps = steps_to_run
 
-            
-
         futures = self._generate_futures_for_trials(executor, trials, running_method)
 
         exceptions_to_raise = [] # we delay the raising of an exception as to allow results to be properly dealt with
 
-        for future in futures:
+        for future in futures: # as_completed was not working properly with cancelled futures
 
             if future.cancelled(): 
-                pass
-
-            self.lg.writeLine(f"HERE BEGINING OF FUTURE IN RUN TRIALS")
-
-            for i, fut in enumerate(futures):
-                state = (
-                    "cancelled" if fut.cancelled()
-                    else "done" if fut.done()
-                    else "running" if fut.running()
-                    else "pending"
-                )
-                self.lg.writeLine(f"STATE OF FUTURES, {i}, {state}")
+                continue
 
             try:
                 trial, value, exception = future.result()
@@ -816,13 +741,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
                 elif isinstance(exception, StopExperiment):
 
-                    self.lg.writeLine(f"REACHED STOP EXPERIMENT NOTICE IN RUN TRIALS FOR TRIAL {trial.number}")
                     exceptions_to_raise.append(exception)
                     self.lg.writeLine(f"Trial {trial.number} over due to signal to stop the experiment")
-                    self.lg.writeLine(F"SHUTDOWN IN TRIAL {trial.number}")
                     self._cancel_futures(futures)
-                    self.lg.writeLine(f"ENDED SHUTDOWN IN TRIAL {trial.number}")
-                    self.lg.writeLine(f"REACHED AFTER STOP EXPERIMENT NOTICE IN RUN TRIALS FOR TRIAL {trial.number}")
                     
                 else:
                     self.lg.writeLine(f"REACHED EXCEPTION NOTICE IN RUN TRIALS FOR TRIAL {trial.number}")
@@ -835,9 +756,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     if not self.continue_after_error:
                         self.lg.writeLine(f"There was an error in trial {trial.number}, as <continue_after_error> is set to false, will cancel other trials, error was: {exception}")
                         self.stop_execution_earlier()
-                        self.lg.writeLine(F"SHUTDOWN IN TRIAL {trial.number}")
-                        executor.shutdown(wait=False, cancel_futures=True)
-                        self.lg.writeLine(f"ENDED SHUTDOWN IN TRIAL {trial.number}")
+                        self._cancel_futures(futures)
                         exceptions_to_raise.append(exception)
 
                     else:
@@ -851,11 +770,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                 if mark_trials_as_completed:
                     self.mark_trial_as_complete(trial, value)
 
-            self.lg.writeLine(F"FINISHED PROCESSING FUTURE OF TRIAL {trial.number}")
-
             results.append((trial, value))
-
-        self.lg.writeLine(f"REACHED END OF RUN TRIALS")
 
         if len(exceptions_to_raise) == 0:
             executor.shutdown(wait=True)

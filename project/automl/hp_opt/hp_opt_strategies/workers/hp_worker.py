@@ -35,9 +35,7 @@ class HyperparameterOptimizationWorkerIndexed():
 
         self._is_busy = False
 
-        from automl.hp_opt.hp_opt_strategies.hp_optimization_loader_detached import RLOCKDEBUG
-
-        self._is_busy_sem = RLOCKDEBUG(f"worker_{self.thread_index}")
+        self._is_busy_sem = threading.RLock()
 
         self.only_report_with_enough_runs = only_report_with_enough_runs
 
