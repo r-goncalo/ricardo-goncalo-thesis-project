@@ -5,7 +5,7 @@ import random
 
 
 from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 class MemoryComponent(StatefulComponent):
     
@@ -15,9 +15,9 @@ class MemoryComponent(StatefulComponent):
                     }
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.capacity = self.get_input_value("capacity")
         
@@ -41,15 +41,15 @@ class MemoryComponent(StatefulComponent):
                           
 
     #save a transition
-    @requires_input_proccess
+    @requires_input_process
     def push(self, transition):
         raise NotImplementedError()
 
-    @requires_input_proccess
+    @requires_input_process
     def sample(self, batch_size):
         raise NotImplementedError()
     
-    @requires_input_proccess
+    @requires_input_process
     def sample_all_with_batches(self, batch_size):
         '''
         Samples all memory divided by batches of the specified size, without repeating information
@@ -59,31 +59,31 @@ class MemoryComponent(StatefulComponent):
         raise NotImplementedError()
     
     
-    @requires_input_proccess
+    @requires_input_process
     def clear(self):
         raise NotImplementedError()
         
-    @requires_input_proccess
+    @requires_input_process
     def get_all(self):
         '''Returns the total memory'''
         pass
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_all_segmented(self, batch_size):
         '''Returns ordered list of segmented memory with batch_size'''
         pass
 
-    @requires_input_proccess
+    @requires_input_process
     def get_capacity(self):
         return self.capacity
 
 
-    @requires_input_proccess
+    @requires_input_process
     def __len__(self):
         raise NotImplementedError()
     
-    @requires_input_proccess
+    @requires_input_process
     def is_full(self):
         return len(self) == self.capacity
     

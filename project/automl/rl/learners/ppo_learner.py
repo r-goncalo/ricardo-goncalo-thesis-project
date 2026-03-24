@@ -1,5 +1,5 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.advanced_input_utils import get_value_of_type_or_component
@@ -58,9 +58,9 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
                         }    
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         self.device = self.get_input_value("device")
                         
@@ -86,7 +86,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         
         self.number_of_times_optimized = 0
 
-    @requires_input_proccess
+    @requires_input_process
     def critic_pred(self, observation):
         return self.critic.predict(observation)
 
@@ -105,7 +105,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.critic.pass_input({"input_shape" : self.agent.processed_state_shape["observation"]})
         self.critic.pass_input({"output_shape" : 1})
 
-        self.critic.proccess_input_if_not_processed()
+        self.critic.process_input_if_not_processed()
 
 
     def _split_actor_critic_params(self):

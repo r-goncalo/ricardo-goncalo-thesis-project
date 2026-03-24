@@ -1,6 +1,6 @@
 from datetime import datetime
 import pickle
-from automl.component import ParameterSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_process
 
 from automl.utils.files_utils import  saveDataframe
 
@@ -83,9 +83,9 @@ class LoggerSchema(ArtifactComponent):
     
     # INITIALIZATION --------------------------------------------------------
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
             
         self.necessary_logger_level = DEBUG_LEVEL.from_value(self.get_input_value("necessary_logger_level"))  
         
@@ -109,7 +109,7 @@ class LoggerSchema(ArtifactComponent):
 
     # LOGGING -----------------------------------------------------------------------------        
 
-    @requires_input_proccess
+    @requires_input_process
     def writeLine(self, string : str = "", file=None, level=DEBUG_LEVEL.INFO, toPrint=None, use_time_stamp=None, str_before='', ident_level=0):
     
         '''
@@ -119,7 +119,7 @@ class LoggerSchema(ArtifactComponent):
         return self._writeLine(string, file, level, toPrint, use_time_stamp, str_before, ident_level)
 
 
-    @requires_input_proccess
+    @requires_input_process
     def change_logger_level(self, new_level : DEBUG_LEVEL):
 
         self.necessary_logger_level = new_level
@@ -220,14 +220,14 @@ class LoggerSchema(ArtifactComponent):
         except:
             os.makedirs(dir)
             
-    @requires_input_proccess
+    @requires_input_process
     def openFile(self, fileRelativePath): #reads and returns a file
         fd = open(os.path.join(self.get_artifact_directory(), fileRelativePath), 'rb')
         toReturn = pickle.load(fd)
         fd.close()
         return toReturn
     
-    @requires_input_proccess
+    @requires_input_process
     def createProfile(self, name : str = '', object_with_name = None):            
         
         '''Creates a new logger object with the only difference of this one being the used name'''
@@ -286,7 +286,7 @@ class LoggerSchema(ArtifactComponent):
             self.text_buffer_counts[filename] = 0
 
 
-    @requires_input_proccess
+    @requires_input_process
     def flush_text(self):
 
         if self.write_to_file_when_text_lines_over != None:
@@ -386,9 +386,9 @@ class ComponentWithLogging(ArtifactComponent):
 
         self._lg = None
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
             
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self._lg : LoggerSchema = self.get_input_value("logger_object") if not self.has_logger_object_defined() else self._lg 
         
@@ -433,7 +433,7 @@ class ComponentWithLogging(ArtifactComponent):
     
 
 
-    @requires_input_proccess
+    @requires_input_process
     def write_configuration_to_relative_file(self, filename : str, level : DEBUG_LEVEL = DEBUG_LEVEL.INFO, save_exposed_values=False, ignore_defaults=True, respect_ignore_order=False):
 
         self_json_str = json_string_of_component(self, save_exposed_values=save_exposed_values, ignore_defaults=ignore_defaults, respect_ignore_order=respect_ignore_order)

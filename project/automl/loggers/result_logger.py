@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.loggers.logger_component import LoggerSchema
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
@@ -29,9 +29,9 @@ class ResultLogger(LoggerSchema):
 
     # INITIALIZATION --------------------------------------------------------
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.results_filename = self.get_input_value("results_filename")
         
@@ -67,7 +67,7 @@ class ResultLogger(LoggerSchema):
     # USAGE -------------------------------------------------------------------
  
  
-    @requires_input_proccess           
+    @requires_input_process           
     def log_results(self, results : Dict[str, list]):
                 
         for key, value in results.items(): # TODO: WE SHOULD JUST MAKE results = [results] and it would work
@@ -83,7 +83,7 @@ class ResultLogger(LoggerSchema):
               
         
     
-    @requires_input_proccess    
+    @requires_input_process    
     def save_dataframe(self):
         self._save_dataframe()
                 
@@ -94,50 +94,50 @@ class ResultLogger(LoggerSchema):
         self.saveDataframe(self.dataframe, filename=self.results_filename)
         
     
-    @requires_input_proccess
+    @requires_input_process
     def get_results_columns(self):
         return self.columns
         
 
    # RETURN RESULTS ------------------------------------------------------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def get_number_of_rows(self):
         
         return len(self.dataframe)
         
-    @requires_input_proccess
+    @requires_input_process
     def get_last_results(self):
                         
         return self.dataframe.tail(1).to_dict(orient="records")[0]
     
-    @requires_input_proccess
+    @requires_input_process
     def get_n_last_results(self, n_results):
         
         return self.dataframe.tail(n_results).to_dict(orient="records")[0]
     
-    @requires_input_proccess
+    @requires_input_process
     def get_avg_n_last_results(self, n_results, column):
         
         return self.dataframe[column].tail(n_results).mean()
     
     
-    @requires_input_proccess
+    @requires_input_process
     def get_std_n_last_results(self, n_results, column):
         
         return self.dataframe[column].tail(n_results).std()
     
-    @requires_input_proccess
+    @requires_input_process
     def get_avg_and_std_n_last_results(self, n_results, column):
         
         return self.get_avg_n_last_results(n_results, column), self.get_std_n_last_results(n_results, column)
     
-    @requires_input_proccess
+    @requires_input_process
     def get_sorted_dataframe(self, column, ascending):
         
         return self.dataframe.sort_values(by=column, ascending=ascending)
     
-    @requires_input_proccess
+    @requires_input_process
     def get_n_last_ordered_results(self, n, column, ascending = True):
         
         '''Returns the best n results'''
@@ -146,7 +146,7 @@ class ResultLogger(LoggerSchema):
         
         return ordered_dataframe.tail(n).to_records()
     
-    @requires_input_proccess
+    @requires_input_process
     def get_dataframe(self) -> pandas.DataFrame:
         return self.dataframe
 
@@ -205,7 +205,7 @@ class ResultLogger(LoggerSchema):
 
         return df
 
-    @requires_input_proccess
+    @requires_input_process
     def plot_bar_graph(self, x_axis : str, y_axis : str, title : str = '', save_path: str = None, to_show=True, y_label='', lim_y=True, fixed_value_tuple=None, color = None, group_by=None):
         
         """
@@ -328,7 +328,7 @@ class ResultLogger(LoggerSchema):
 
         return ax
 
-    @requires_input_proccess
+    @requires_input_process
     def plot_graph(self, x_axis : str, y_axis : list, title : str = '', save_path: str = None, to_show=True, y_label=''):
         """
         Plots a graph using the dataframe stored in ResultLogger.
@@ -375,7 +375,7 @@ class ResultLogger(LoggerSchema):
         if to_show:
             plt.show()
             
-    @requires_input_proccess
+    @requires_input_process
     def plot_confidence_interval(self, x_axis : str, y_column : str, y_values_label : str = 'mean', show_std=True, alpha=0.3, 
                                  aggregate_number = None, title : str = '', save_path: str = None, to_show=True, 
                                  y_label='', x_slice_range=None, ax=None, color=None):
@@ -469,7 +469,7 @@ class ResultLogger(LoggerSchema):
     
 
 
-    @requires_input_proccess
+    @requires_input_process
     def plot_linear_regression(self, x_axis: str, y_axis: str, title: str = '', save_path: str = None, to_show=True, y_label='', ax=None, fixed_value_tuple=None, color=None, group_by=None):
 
        if self.dataframe.empty:
@@ -609,7 +609,7 @@ class ResultLogger(LoggerSchema):
         if to_show:
             plt.show()
 
-    @requires_input_proccess
+    @requires_input_process
     def plot_piecewise_linear_regression(self, x_axis: str, y_axis: list, n_segments: int,
                                      title: str = '', save_path: str = None, to_show=True, y_label='', plot_with_segment_names=False):
         """
@@ -703,7 +703,7 @@ class ResultLogger(LoggerSchema):
 
         plt.show()
 
-    @requires_input_proccess
+    @requires_input_process
     def plot_covariance_and_correlation(
         self,
         x_axis: str,
@@ -801,7 +801,7 @@ class ResultLogger(LoggerSchema):
         return covariance, correlation
 
 
-    @requires_input_proccess
+    @requires_input_process
     def list_of_unique_values(self, column):
 
         return self.dataframe[column].unique().tolist()

@@ -1,5 +1,5 @@
 from automl.basic_components.artifact_management import generate_target_directory
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.core.advanced_input_management import ComponentListParameterSignature
 from automl.ml.models.torch_model_components import TorchModelComponent
 import torch
@@ -30,9 +30,9 @@ class ModelSequenceComponent(TorchModelComponent):
 
     }    
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
 
     def _setup_values(self):
@@ -78,7 +78,7 @@ class ModelSequenceComponent(TorchModelComponent):
                 current_model = self.models[model_index]
                 next_model = self.models[model_index + 1]
 
-                current_model.proccess_input_if_not_processed()
+                current_model.process_input_if_not_processed()
 
                 current_model_output_shape = current_model.get_model_output_shape()
 
@@ -86,12 +86,12 @@ class ModelSequenceComponent(TorchModelComponent):
 
                 self.lg.writeLine(f"Connecting models: {current_model.name} -> {current_model_output_shape} -> {next_model.name}")
 
-            next_model.proccess_input_if_not_processed() # proccess last model
+            next_model.process_input_if_not_processed() # process last model
 
             self.lg.writeLine(f"Connecting models: {next_model.name} -> {next_model.get_model_output_shape()}")
         
         else: # initialize the only model available
-            self.models[0].proccess_input_if_not_processed()
+            self.models[0].process_input_if_not_processed()
 
 
     def _initialize_model(self):

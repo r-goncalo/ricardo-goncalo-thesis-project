@@ -13,8 +13,8 @@ class Transformer(Component):
 
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
 
     def transform_data(self, data : dict):

@@ -32,9 +32,9 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
     # INITIALIZATION -----------------------------------------------------------------------------
 
 
-    def _proccess_input_internal(self): # this is the best method to have initialization done right after
+    def _process_input_internal(self): # this is the best method to have initialization done right after
                 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.eta = self.get_input_value("hyperband_eta")
         self.min_steps = self.get_input_value("hyperband_min_steps")

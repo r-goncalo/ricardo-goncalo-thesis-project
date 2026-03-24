@@ -30,9 +30,9 @@ class SeededComponent(Component):
             self.pass_input({"do_full_setup_of_seed" : to_do_full_setup_of_seed})
 
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         
         self_do_full_setup_of_seed = self.get_input_value("do_full_setup_of_seed")

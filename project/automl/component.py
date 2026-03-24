@@ -8,14 +8,14 @@ from automl.utils.class_util import get_class_from
 from automl.loggers.global_logger import globalWriteLine
 from automl.schema import Schema
 
-# Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_proccessed
+# Reserved attributes: input, values, parameters_signature, exposed_values, output, _input_was_processed
 
 def on_name_pass(self):
     self.name = self.input["name"] #sets the name of the component to the input name
     self._was_custom_name_set = True
 
 def on_child_components_passed(self):
-    self._proccess_passed_child_components()
+    self._process_passed_child_components()
 
 INPUT_LOGGER_FILE='input_stuff.txt'
 
@@ -65,13 +65,13 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         self.output = {} #output, if any, will be a dictionary
         
-        self.__input_was_proccessed = False #to track if the instance has had its input proccessing before any operations that needed it
+        self.__input_was_processed = False #to track if the instance has had its input processing before any operations that needed it
         self.__input_is_being_processed = False
 
         self.__notes = [] #notes are a list of strings
 
         if input != None:
-            self.pass_input(input) #passes the input but note that it does not proccess it
+            self.pass_input(input) #passes the input but note that it does not process it
 
 
     
@@ -85,13 +85,13 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     
     def pass_input(self, input: dict): # pass input to this component, may need verification of input
         '''Pass input to this component
-           It is supposed to be called only before proccess_input and, if not, it mean proccess_input may be called a multitude of times
+           It is supposed to be called only before process_input and, if not, it mean process_input may be called a multitude of times
            '''
         
         if not isinstance(input, dict):
             raise Exception(f"In component {self.name} of type {type(self)}: Passed input is not of type dict")
            
-        self.__input_was_proccessed = False #when we pass new input, it means that we need to proccess it again
+        self.__input_was_processed = False #when we pass new input, it means that we need to process it again
         
         for passed_key in input.keys():
             
@@ -159,7 +159,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         '''Removes input value from component'''
            
-        self.__some_updated_input() #when we pass new input, it means that we need to proccess it again
+        self.__some_updated_input() #when we pass new input, it means that we need to process it again
         
         parameter_signature = self.get_parameter_signature(key)
         
@@ -172,7 +172,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         
     def __some_updated_input(self): # some input was changed
-        self.__input_was_proccessed = False
+        self.__input_was_processed = False
                 
     def __verified_pass_input(self, key, value):
         
@@ -302,10 +302,10 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             return self.get_input_value(self, key)
 
 
-    # PROCCESS INPUT ---------------------------------------------------------------------------------------
+    # process INPUT ---------------------------------------------------------------------------------------
 
 
-    def _proccess_input_internal(self): #verify the input to this component
+    def _process_input_internal(self): #verify the input to this component
         '''
         Verify validity of input and add default values, following initializing the attributes
         This can and should be extended by child Schemas
@@ -321,10 +321,10 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
             
             self.__verify_input(passed_keys, type(self).organized_parameters_signatures[priority])     
 
-        self._proccess_passed_child_components()
+        self._process_passed_child_components()
 
 
-    def _proccess_passed_child_components(self):
+    def _process_passed_child_components(self):
 
         passed_child_components = self.get_input_value("child_components")
 
@@ -339,34 +339,34 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         self.input.pop("child_components", None)
 
         
-    def proccess_input(self):
+    def process_input(self):
         '''
         This method is called by external parties
-        Instead of extending it, extend proccess_input_internal
+        Instead of extending it, extend process_input_internal
         '''
-        self._proccess_input_internal()
-        self.__input_was_proccessed = True
+        self._process_input_internal()
+        self.__input_was_processed = True
         self.__input_is_being_processed = False
-        self._post_proccess_input()
+        self._post_process_input()
         
     
-    def _post_proccess_input(self):
-        '''Called after the input was proccessed, to do any post processing necessary'''
+    def _post_process_input(self):
+        '''Called after the input was processed, to do any post processing necessary'''
         pass
 
     
     def input_was_processed(self):
-        return self.__input_was_proccessed and not self.__input_is_being_processed
+        return self.__input_was_processed and not self.__input_is_being_processed
     
         
-    def proccess_input_if_not_processed(self): 
+    def process_input_if_not_processed(self): 
            
-        if not self.__input_was_proccessed:
+        if not self.__input_was_processed:
             
             if self.__input_is_being_processed:
-                raise Exception(f"In component {self.name}, of type {type(self)}, when cheking for the inputs: Input is already being processed, there is probably a recursive call to proccess_input")
+                raise Exception(f"In component {self.name}, of type {type(self)}, when cheking for the inputs: Input is already being processed, there is probably a recursive call to process_input")
             
-            self.proccess_input()
+            self.process_input()
 
 
     # OUTPUT ---------------------------------------------------------------------
@@ -472,7 +472,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         return {**self.output}
     
     def _clone(self, input_for_clone, is_deep_clone):
-        '''Returns an instance with the values but non of the after proccess'''
+        '''Returns an instance with the values but non of the after process'''
 
         input_to_clone = {**self._input_to_clone(), **input_for_clone}
         values_to_clone = self._values_to_clone()
@@ -487,7 +487,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         return to_return
     
     def _after_clone(self, original, is_deep_clone):
-        '''What to do after cloning the instance, this can have some input proccessing for example'''
+        '''What to do after cloning the instance, this can have some input processing for example'''
 
     def clone(self, save_in_parent=True, input_for_clone=None, is_deep_clone=True):
         
@@ -496,7 +496,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         Note that the clone will not have the same parent component
         '''
 
-        #self.proccess_input_if_not_processed()
+        #self.process_input_if_not_processed()
 
         input_for_clone = {} if input_for_clone is None else input_for_clone    
 
@@ -526,7 +526,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
         self.values[value_key] = self.exposed_values[value_key]
 
-    # INPUT PROCCESSING ---------------------------------------------      
+    # INPUT processING ---------------------------------------------      
     
     
     
@@ -695,15 +695,15 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
 
 # VALIDITY VERIFICATION (static methods for validating input) -----------------------------          
 
-def requires_input_proccess(func : FunctionType):
+def requires_input_process(func : FunctionType):
     '''
-    An annotation that makes the input be proccessed, if it was not already, when a function is called
+    An annotation that makes the input be processed, if it was not already, when a function is called
     
     Note that if a method has its super method with this annotation, adding it will be redundant
     '''
         
     def process_input_if_not_processed_wrapper(self : Component, *args, **kwargs):
-        self.proccess_input_if_not_processed()
+        self.process_input_if_not_processed()
         return func(self, *args, **kwargs)
     
     return process_input_if_not_processed_wrapper

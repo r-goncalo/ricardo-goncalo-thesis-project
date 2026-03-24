@@ -1,6 +1,6 @@
 
 from automl.basic_components.exec_component import ParameterSignature
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
 from automl.ml.memory.memory_components import MemoryComponent
 from automl.ml.memory.memory_samplers.memory_sampler import MemorySampler
@@ -22,8 +22,8 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         "discount_factor" : ParameterSignature()
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.learner : PPOLearner = self.get_input_value("learner")
 
@@ -71,7 +71,7 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         self.field_names = None
         self.transitions = None
 
-    @requires_input_proccess
+    @requires_input_process
     def sample(self, batch_size):
 
         '''Returns <batch_size> random elements from the saved transitions'''
@@ -88,7 +88,7 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         
         return batch_data
     
-    @requires_input_proccess
+    @requires_input_process
     def sample_all_with_batches(self, batch_size) -> list:
         '''
         Samples all memory divided by a list of batches of the specified size, without repeating information
@@ -117,7 +117,7 @@ class PPOAdvantagesCalcSampler(MemorySampler):
 
         return batches
     
-    @requires_input_proccess
+    @requires_input_process
     def get_all(self):
         '''Returns the total memory'''
 

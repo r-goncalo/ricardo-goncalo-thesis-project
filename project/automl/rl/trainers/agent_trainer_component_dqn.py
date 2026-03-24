@@ -1,4 +1,4 @@
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature
 
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
@@ -24,9 +24,9 @@ class AgentTrainerDQN(AgentTrainer):
 
     # INITIALIZATION ---------------------------------------------
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.initialize_exploration_strategy()
         
@@ -70,7 +70,7 @@ class AgentTrainerDQN(AgentTrainer):
                                 })
         
 
-    @requires_input_proccess
+    @requires_input_process
     def end_training(self):        
         super().end_training()
         

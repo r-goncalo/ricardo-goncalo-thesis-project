@@ -1,7 +1,7 @@
 
 
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 
@@ -10,7 +10,7 @@ from automl.hp_opt.optuna.custom_pruners import MixturePruner
 
 class OptunaPrunerComponent(ComponentWithLogging):
 
-    @requires_input_proccess
+    @requires_input_process
     def get_optuna_pruner(self) -> optuna.pruners.BasePruner:
         """Returns an optuna pruner instance"""
         return self
@@ -23,9 +23,9 @@ class OptunaPrunerWrapper(OptunaPrunerComponent, SeededComponent):
         "pruner_input": ParameterSignature(mandatory=False)
     }
 
-    def proccess_input(self):
+    def process_input(self):
 
-        super().proccess_input()
+        super().process_input()
 
         self._initialize_pruner()
 
@@ -87,7 +87,7 @@ class OptunaPrunerWrapper(OptunaPrunerComponent, SeededComponent):
         else:
             raise NotImplementedError(f"Invalid pruner '{pruner_str}'")
 
-    @requires_input_proccess
+    @requires_input_process
     def get_optuna_pruner(self) -> optuna.pruners.BasePruner:
 
         return self.optuna_pruner

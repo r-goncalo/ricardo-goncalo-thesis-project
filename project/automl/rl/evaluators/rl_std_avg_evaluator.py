@@ -1,5 +1,5 @@
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.loggers.result_logger import ResultLogger
@@ -23,9 +23,9 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     }
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.n_results_to_use = self.get_input_value("n_results_to_use")
         self.std_deviation_factor = self.get_input_value("std_deviation_factor")
@@ -37,7 +37,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
     def get_metrics_strings(self) -> list[str]:
         return [*super().get_metrics_strings(), "result", "avg", "std"]
     
-    @requires_input_proccess
+    @requires_input_process
     def _evaluate(self, component_to_evaluate : RLPipelineComponent | ResultLogger):
         
         if isinstance(component_to_evaluate, ResultLogger):
@@ -48,7 +48,7 @@ class LastValuesAvgStdEvaluator(RLPipelineEvaluator):
         return self._evaluate_from_results(results_logger)
     
 
-    @requires_input_proccess
+    @requires_input_process
     def _evaluate_from_results(self, results_logger : ResultLogger): # TODO: check if more evaluators should have this
         
         results_logger.save_dataframe()

@@ -9,8 +9,8 @@ class ValueEvaluator(EvaluatorComponent):
         "value_to_use" : ParameterSignature(description="The exposed value to use")
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.value_to_use = self.get_input_value("value_to_use")
 

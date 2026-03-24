@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 from typing import Iterable
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.maths import nearest_highest_multiple, nearest_multiple
@@ -15,7 +15,7 @@ import os
 import torch
 from pathlib import Path
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.shapes_util import discrete_output_layer_size_of_space
@@ -32,8 +32,8 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
     }
     
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.device = self.get_input_value("device")
         self.max_in_memory = self.get_input_value("max_in_memory")
@@ -117,7 +117,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         self.created_files = 0
         
 
-    @requires_input_proccess
+    @requires_input_process
     def push(self, transition):
         
         idx = self.position
@@ -170,7 +170,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         
     
 
-    @requires_input_proccess
+    @requires_input_process
     def sample(self, batch_size):
         if len(self) < batch_size:
             raise ValueError("Not enough transitions to sample.")
@@ -227,7 +227,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
         
         return data, size
 
-    @requires_input_proccess
+    @requires_input_process
     def sample_transposed(self, batch_size):
         batch = self.sample(batch_size)
         return self.Transition(*batch)
@@ -255,7 +255,7 @@ class TorchDiskMemoryComponent(MemoryComponent, ComponentWithLogging):
             
          
 
-    @requires_input_proccess
+    @requires_input_process
     def clear(self):
         
         '''Logicaly cleans the memory, without doing any deletion operation'''

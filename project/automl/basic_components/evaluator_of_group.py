@@ -2,7 +2,7 @@
 
 from automl.basic_components.component_group import RunnableComponentGroup
 from automl.basic_components.evaluator_component import EvaluatorComponent
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.input_management import ParameterSignature
 from automl.loggers.result_logger import ResultLogger
@@ -25,9 +25,9 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
         "base_evaluator" : ComponentParameterSignature(mandatory=False)
     }
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.std_deviation_factor = self.get_input_value("std_deviation_factor")
 
@@ -39,7 +39,7 @@ class EvaluatorComponentOfGroup(EvaluatorComponent):
 
     # EVALUATION -------------------------------------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def _evaluate(self, component_to_evaluate : RunnableComponentGroup) -> dict:
         '''
         Evaluates a component group

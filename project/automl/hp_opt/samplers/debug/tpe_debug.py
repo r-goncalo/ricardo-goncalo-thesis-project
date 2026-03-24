@@ -6,8 +6,8 @@ class OptunaSamplerWrapperDebug(OptunaSamplerWrapper):
 
     is_debug_schema = True
 
-    def proccess_input(self):
-        super().proccess_input()
+    def process_input(self):
+        super().process_input()
 
     def _patch_sampler(self):
 

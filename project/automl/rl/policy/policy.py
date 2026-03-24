@@ -1,4 +1,4 @@
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.ml.models.model_components import ModelComponent
@@ -53,9 +53,9 @@ class Policy(PolicyInterface, ComponentWithLogging):
 
     exposed_values = {"model" : 0}
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Processing policy input...\n")
         
@@ -117,12 +117,12 @@ class Policy(PolicyInterface, ComponentWithLogging):
 
 
     
-    @requires_input_proccess
+    @requires_input_process
     def get_policy_output_shape(self):
         return self.output_action_shape
     
 
-    @requires_input_proccess
+    @requires_input_process
     def predict_model_output(self, state):
         '''
         Uses the model to process the state and compute its output
@@ -131,22 +131,22 @@ class Policy(PolicyInterface, ComponentWithLogging):
         return self.model.predict(state["observation"])
     
     
-    @requires_input_proccess
+    @requires_input_process
     def get_action_val_shape(self):
         return self.output_action_shape
 
 
-    @requires_input_proccess 
+    @requires_input_process 
     def get_action_from_action_val(self, action_val):
         return action_val
     
 
-    @requires_input_proccess
+    @requires_input_process
     def get_action_val_from_model_output(self, model_output, state):
         return model_output
 
 
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
         
         '''
@@ -166,7 +166,7 @@ class Policy(PolicyInterface, ComponentWithLogging):
 
         
     
-    @requires_input_proccess
+    @requires_input_process
     def random_prediction(self, state):    
 
         return self.output_action_shape.sample()

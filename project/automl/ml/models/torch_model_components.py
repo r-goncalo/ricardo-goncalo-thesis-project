@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from automl.hp_opt.hp_suggestion.single_hp_suggestion import SingleHyperparameterSuggestion
 
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.ml.models.model_components import ModelComponent
 
 from automl.core.advanced_input_management import ComponentParameterSignature
@@ -31,9 +31,9 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         "model" : None
     }
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Processing model input...\n")
 
@@ -201,23 +201,23 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         
     # EXPOSED METHODS --------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_params(self):
         '''returns a list of model parameters'''
         return list(self.model.parameters())
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_state_dict(self):
         '''returns a list of model parameters'''
         return self.model.state_dict()
     
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
         super().predict(state)
         return self.model(state)
 
     
-    @requires_input_proccess            
+    @requires_input_process            
     def update_model_with_target(self, target_model, target_model_weight):
         
         '''
@@ -270,11 +270,11 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
         self.clone_other_model_into_this(original)
 
     
-    @requires_input_proccess
+    @requires_input_process
     def clone_other_model_into_this(self, other_model):
 
         other_model : TorchModelComponent = other_model
-        other_model.proccess_input_if_not_processed()
+        other_model.process_input_if_not_processed()
         self.model.load_state_dict(other_model.model.state_dict())
     
     # STATE MANAGEMENT -----------------------------------------------------
@@ -301,10 +301,10 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
                 
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_model_input_shape(self):
         return self.model.get_input_shape()
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_output_shape(self):
         return self.model.get_output_shape()

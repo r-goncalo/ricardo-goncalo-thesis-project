@@ -2,7 +2,7 @@ from automl.loggers.component_with_results import save_all_dataframes_of_compone
 from automl.basic_components.state_management import save_state
 from automl.utils.smart_enum import SmartEnum
 from automl.loggers.logger_component import flush_text_of_all_loggers_and_children
-from ..component import ParameterSignature, Component, requires_input_proccess
+from ..component import ParameterSignature, Component, requires_input_process
 
 
 from typing import final
@@ -41,8 +41,8 @@ class ExecComponent(Component):
 
         self.values["values_in_execution"] = []
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self._times_to_run = self.get_input_value("times_to_run")
         
@@ -80,15 +80,24 @@ class ExecComponent(Component):
         self._received_signal_to_stop = False
         self._current_execution = self.values["times_ran"] + 1
         
+
     def _pos_algorithm(self): # a component may extend this for certain behaviours
         
         self.values["times_ran"] = self._current_execution
+
+        self.values["running_state"] = State.IDLE
         
-        if self._is_over():
-            self.values["running_state"] = State.OVER
-            
-        else:
-            self.values["running_state"] = State.IDLE
+        self._test_to_see_if_algorithm_is_over()
+
+
+    def _test_to_see_if_algorithm_is_over(self):
+
+        '''Forces a test to see if the algorithm should be considered over'''
+
+        if not State.equals_value(State.OVER, self.values["running_state"]):
+            if self._is_over():
+                self.values["running_state"] = State.OVER
+
        
 
     def _stop_earlier_signal_received(self):
@@ -186,7 +195,7 @@ class ExecComponent(Component):
 
     # RUNNABLE METHOD --------------------------------
 
-    @requires_input_proccess
+    @requires_input_process
     @final
     def start_algorithm(self):
 
@@ -204,7 +213,7 @@ class ExecComponent(Component):
             self._on_exception_running()
             self._on_algorithm_end()
 
-    @requires_input_proccess
+    @requires_input_process
     @final
     def end_algorithm(self):
 
@@ -227,7 +236,7 @@ class ExecComponent(Component):
     
     
     
-    @requires_input_proccess
+    @requires_input_process
     @final
     def run_all(self):
         
@@ -242,7 +251,7 @@ class ExecComponent(Component):
                 
             return self.get_output()
     
-    @requires_input_proccess
+    @requires_input_process
     @final
     def run(self): #the universal execution flow for all components
         

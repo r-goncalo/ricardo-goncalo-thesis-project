@@ -17,9 +17,9 @@ class AgentTrainerPPO(AgentTrainer):
                        }
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
 
     # INITIALIZATION ---------------------------------------------

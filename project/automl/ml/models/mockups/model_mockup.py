@@ -1,6 +1,6 @@
 
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.ml.models.model_components import ModelComponent
 from automl.utils.shapes_util import discrete_input_layer_size_of_space, discrete_output_layer_size_of_space
@@ -15,8 +15,8 @@ class MockupRandomModel(ModelComponent):
         "device": ParameterSignature(get_from_parent=True, ignore_at_serialization=True)
     }    
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.input_size = discrete_input_layer_size_of_space(self.input_shape)
         self.output_size: int = discrete_output_layer_size_of_space(self.output_shape)
@@ -24,7 +24,7 @@ class MockupRandomModel(ModelComponent):
         
         
     
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
         
         total_elements = state.numel()
@@ -36,18 +36,18 @@ class MockupRandomModel(ModelComponent):
         
         return torch.empty(batch_size, self.output_size, device=self.device)
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_params(self):
         '''returns a list of model parameters'''
         return []
     
     
-    @requires_input_proccess            
+    @requires_input_process            
     def update_model_with_target(self, target_model, target_model_weight):
         pass
     
     # UTIL -----------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def clone(self):
         return self

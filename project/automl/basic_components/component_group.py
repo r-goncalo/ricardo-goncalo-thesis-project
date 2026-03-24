@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import time
 from automl.basic_components.artifact_management import ArtifactComponent
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
@@ -52,13 +52,13 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
         self.components_loaders_in_group = []
 
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.components_loaders_in_group : list[StatefulComponentLoader] = self.get_input_value("components_loaders_in_group")
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_component(self, index) -> Component_in_group_type:
         
         '''Returns the component at the given index'''
@@ -67,17 +67,17 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
             
         return component_loader.get_component()
     
-    @requires_input_proccess
+    @requires_input_process
     def get_loader(self, index) -> StatefulComponentLoader:
          
         return self.components_loaders_in_group[index]
     
-    @requires_input_proccess
+    @requires_input_process
     def unload_all_components(self):
          for loader in self.components_loaders_in_group:
               loader.unload_if_loaded()
     
-    @requires_input_proccess
+    @requires_input_process
     def unload_all_components_with_retries(self, number_of_times_to_try_unload=3, time_secs_to_wait=30, lg=None):
          
         exceptions = []
@@ -115,7 +115,7 @@ class RunnableComponentGroup(SeededComponent, StatefulComponent, ComponentWithLo
     
     # RUNNING COMPONENTS -------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def detach_run_all_components(self, number_of_threads = None, global_logger_level = None):
 
         if number_of_threads is None:

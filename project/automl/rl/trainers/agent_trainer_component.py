@@ -1,5 +1,5 @@
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
 from automl.loggers.component_with_results import ComponentWithResults
@@ -102,9 +102,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
 
         self.values["external_end_requests"] = {} # this is to be sure that same instances are not shared TODO: Acessories could change       
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.optimization_interval = self.get_input_value("optimization_interval")
         self.device = self.get_input_value("device")
@@ -158,7 +158,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     def initialize_agent(self):
     
         self.agent : AgentSchema = self.get_input_value("agent", look_in_attribute_with_name="agent")
-        self.agent.proccess_input_if_not_processed()
+        self.agent.process_input_if_not_processed()
 
         self.agent_policy : Policy = self.agent.policy
         
@@ -193,7 +193,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
     # RESULTS LOGGING --------------------------------------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def calculate_results(self):
         
         return {
@@ -207,7 +207,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
 
     # PREDICTING OPTIMIZATIONS ------------------------------------------------
 
-    @requires_input_proccess
+    @requires_input_process
     def make_optimization_prediction_for_agent_steps(self, total_steps):
         
         times_to_optimize_following_interval =  total_steps / self.optimization_interval
@@ -265,7 +265,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         return self.values['is_training']
         
         
-    @requires_input_proccess
+    @requires_input_process
     def setup_training_session(self):
         
         self.lg.writeLine("Setting up training session...\n")
@@ -283,7 +283,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         
                 
-    @requires_input_proccess
+    @requires_input_process
     def end_training(self):
 
         if self.values['is_training']:
@@ -309,7 +309,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         return isover
         
     
-    @requires_input_proccess
+    @requires_input_process
     def setup_episode(self, env : AECEnvironmentComponent):
         
         self.values["episode_steps"] = 0
@@ -326,7 +326,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
             
         
-    @requires_input_proccess
+    @requires_input_process
     def end_episode(self, i_episode=None, env: AECEnvironmentComponent=None):
 
         if env is not None and self._has_pending_transition:
@@ -360,7 +360,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self._pending_next_state = None
         self._pending_action = None
 
-    @requires_input_proccess
+    @requires_input_process
     def _flush_pending_transition(self, i_episode, env: AECEnvironmentComponent, reward, done, truncated):
         """
         Finalizes the pending transition for the last action taken by this agent.
@@ -384,7 +384,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
 
         self._clear_pending_transition()
         
-    @requires_input_proccess
+    @requires_input_process
     def do_training_step(self, i_episode, env : AECEnvironmentComponent):
         
         '''

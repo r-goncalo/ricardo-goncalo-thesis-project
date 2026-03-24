@@ -1,7 +1,7 @@
 import itertools
 from automl.basic_components.seeded_component import SeededComponent
 from automl.basic_components.state_management import StatefulComponent
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 
@@ -25,8 +25,8 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
         
         
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.last_observation = None
         self.last_reward = 0
@@ -77,12 +77,12 @@ class AECGymnasiumEnvironmentWrapper(AECEnvironmentComponent, SeededComponent, S
             return type(self.env)
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_agent_action_space(self, agent):
         '''returns the action space for the given agent'''
         return self.env.action_space
     
-    @requires_input_proccess
+    @requires_input_process
     def get_agent_state_space(self, agent):
         obs_space = self.env.observation_space
 
@@ -191,6 +191,6 @@ class GymnasiumEnvironmentWrapperSampler(EnvironmentSampler):
     parameters_signature = {
     }
 
-    @requires_input_proccess
+    @requires_input_process
     def sample(self) -> AECEnvironmentComponent:
         return AECGymnasiumEnvironmentWrapper(self.environment_input)

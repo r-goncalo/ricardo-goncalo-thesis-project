@@ -1,5 +1,5 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
@@ -30,9 +30,9 @@ class ConvergenceDetector(AcessoryComponent, ComponentWithLogging):
                         }    
     
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         self.kl_divergence_memory_size = self.get_input_value("memory_size")
 
@@ -93,7 +93,7 @@ class ConvergenceDetector(AcessoryComponent, ComponentWithLogging):
         return False
     
 
-    @requires_input_proccess
+    @requires_input_process
     def pos_fun(self, values : dict):
         '''To be called after a functionality is executed'''
 

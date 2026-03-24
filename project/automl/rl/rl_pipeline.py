@@ -3,7 +3,7 @@ import shutil
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
@@ -28,7 +28,7 @@ from automl.core.exceptions import common_exception_handling
 class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluator, SeededComponent, ComponentWithLogging, ComponentWithResults):
     
     '''
-    This component represents a whole RL training proccess, from the setup of the agents and the environment, to training, to the evaluation of results
+    This component represents a whole RL training process, from the setup of the agents and the environment, to training, to the evaluation of results
     '''
 
     parameters_signature = {
@@ -47,7 +47,9 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
                        "save_checkpoints" : ParameterSignature(default_value=True),
 
-                       "evaluation_report_strategy" : ParameterSignature(default_value="best")
+                       "evaluation_report_strategy" : ParameterSignature(default_value="best"),
+
+                       "stop_at_evaluation" : ParameterSignature(mandatory=False)
                 
                        }
 
@@ -58,9 +60,9 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
                 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Processing RL pipeline with values {self.values}\n")
                 
@@ -94,7 +96,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
                 
         self.env.pass_input({"device" : self.device})
         
-        self.env.proccess_input_if_not_processed()
+        self.env.process_input_if_not_processed()
         
         self.lg.writeLine(f"Setting up RL pipeline with environment: {self.env.get_env_name()}")
 
@@ -116,6 +118,11 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
             self.lg.writeLine(f"Evaluator gives metrics: {evaluation_columns}")
         
             self.add_to_columns_of_results_logger(evaluation_columns)
+
+        self.stop_at_evaluation = self.get_input_value("stop_at_evaluation")
+
+        if self.stop_at_evaluation is not None:
+            self.lg.writeLine(f"The rl pipeline will be considered over when it gets an evaluation of {self.stop_at_evaluation}")
     
         
     def configure_device(self, str_device_str):
@@ -164,8 +171,6 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         
         self.rl_trainer.pass_input(rl_trainer_input)
 
-        self.input.pop("rl_trainer_input", None)
-
             
     def initialize_agents_components(self):
         
@@ -187,7 +192,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         self.input["agents"] = self.agents
 
     
-    @requires_input_proccess
+    @requires_input_process
     def get_agents(self):
 
         '''
@@ -457,7 +462,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
         return max_result
         
-    # TRAINING_PROCCESS ----------------------
+    # TRAINING_process ----------------------
     
     def _deal_with_exception(self, exception : Exception):
         
@@ -471,7 +476,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         common_exception_handling(self.lg, exception, 'error_report.txt')
     
         
-    @requires_input_proccess
+    @requires_input_process
     def train(self):        
         '''Executes the training part of the algorithm with a specified number of episodes < than the number specified'''
         
@@ -482,7 +487,7 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         
         self.rl_trainer.run()
 
-        self.lg.writeLine(f"Finished training proccess\n")
+        self.lg.writeLine(f"Finished training process\n")
         
 
     def _is_over(self):
@@ -490,13 +495,22 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
 
         if not isover:
             is_rl_trainer_over = self.rl_trainer.is_over()
+
             if is_rl_trainer_over:
                 self.lg.writeLine(f"As rl trainer defined its running state as over, the rl pipeline will also be considered over")
                 isover = is_rl_trainer_over
+
+            if not isover and self.stop_at_evaluation is not None:
+                
+                last_result = self.get_last_evaluation()
+
+                if last_result is not None and last_result["result"] >= self.stop_at_evaluation:
+                    self.lg.writeLine(f"RL pipeline noticed that its last evaluation results ({last_result}) is higher than the value defined to stop it ({self.stop_at_evaluation})")
+                    isover = True
         
         return isover
 
-    @requires_input_proccess
+    @requires_input_process
     def _algorithm(self):
         
         '''
@@ -511,6 +525,17 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
         
     
 
+    def pass_evaluation(self, evaluation_results):
+        '''
+        Passes an evaluation of this component to it for internal processing, such as verifying if the algorithm is over
+        '''
+
+        self.log_results({
+        "times_ran" : self.values["times_ran"] ,
+                          **evaluation_results})
+            
+        self._test_to_see_if_algorithm_is_over()
+        
     
     def _pos_algorithm(self):
         super()._pos_algorithm()
@@ -521,29 +546,27 @@ class RLPipelineComponent(ExecComponent, StatefulComponent, ComponentWithEvaluat
             
             evaluation_results = self.evaluate_this_component() # evaluates the resulting model and saves the results
 
-            self.log_results({
-            "times_ran" : self.values["times_ran"] ,
-                          **evaluation_results})
-            
+            self.pass_evaluation(evaluation_results)
+
         else:
             self.log_results({
-                "episodes_done" : self.rl_trainer.values["episodes_done"],
+                "times_ran" : self.values["times_ran"],
             })
         
     
-    @requires_input_proccess
+    @requires_input_process
     def get_env(self):
         return self.env
         
     # RESULTS --------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def get_results_logger(self) -> ResultLogger:
         return self.rl_trainer.get_results_logger()
     
     
     
-    #@requires_input_proccess    
+    #@requires_input_process    
     #def get_last_Results(self):
     #    
     #    return self.rl_trainer.get_last_results()

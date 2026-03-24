@@ -15,14 +15,14 @@ class ComponentDebug(ComponentWithLogging):
                        }
 
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
 
         globalWriteLine(f"{self.name}: Processing input:\n", file="__input_debug.txt")
 
         for key, value in self.input.items():
             self.__print_in_global_with_ident(key, value)
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         globalWriteLine(f"{self.name}: Finished processing input\n", file="__input_debug.txt")
 

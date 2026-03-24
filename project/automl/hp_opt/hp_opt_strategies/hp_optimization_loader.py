@@ -39,9 +39,9 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     # INITIALIZATION -----------------------------------------------------------------------------
 
 
-    def _proccess_input_internal(self): # this is the best method to have initialization done right after
+    def _process_input_internal(self): # this is the best method to have initialization done right after
                 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Starting processing input related to multiple components per trial in disk...")
                 
@@ -372,7 +372,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
     
     def _try_run_single_component_in_group(self, trial : optuna.Trial, component_index, component_loader : StatefulComponentLoader):
         
-        '''Runs a single component, using a detached strategy (creates a separate proccess for it)'''
+        '''Runs a single component, using a detached strategy (creates a separate process for it)'''
 
         self.check_if_should_stop_execution_earlier(trial)
 
@@ -691,7 +691,7 @@ class HyperparameterOptimizationLoader(HyperparameterOptimizationPipeline):
 
         super()._on_earlier_interruption()
 
-        self.lg.writeLine(f"Hyperparamter optimization proccess was interrupted")
+        self.lg.writeLine(f"Hyperparamter optimization process was interrupted")
         
         stop_path = os.path.join(self.get_artifact_directory(), "__stop")
 

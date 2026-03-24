@@ -1,4 +1,4 @@
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 
 class ModelComponent(Component):
@@ -8,8 +8,8 @@ class ModelComponent(Component):
         "output_shape": ParameterSignature(mandatory=False, description="Used for models which can still change their output shape"), #output shape can have a default value
     }    
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self._setup_values()
         
@@ -25,25 +25,25 @@ class ModelComponent(Component):
     def predict(self, state):
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_params(self):
         '''returns a list of model parameters'''
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     def random_prediction(self):
         pass
     
     
-    @requires_input_proccess            
+    @requires_input_process            
     def update_model_with_target(self, target_model, target_model_weight):
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_input_shape(self):
         return self.input_shape
     
-    @requires_input_proccess
+    @requires_input_process
     def get_model_output_shape(self):
         return self.output_shape
         

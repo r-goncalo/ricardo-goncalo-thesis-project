@@ -18,7 +18,7 @@ class TestComponentLambdaVerificator(unittest.TestCase):
         simple_extended_component = TestComponentLambdaVerificator._ComponentLambdaVerificator(input={"number" : TestComponentLambdaVerificator._ComponentLambdaVerificator.N_MUST_BE_GREATER_THAN - 1})
         
         try:
-            simple_extended_component.proccess_input()
+            simple_extended_component.process_input()
             assert False
         
         except:
@@ -29,7 +29,7 @@ class TestComponentLambdaVerificator(unittest.TestCase):
         simple_extended_component = TestComponentLambdaVerificator._ComponentLambdaVerificator(input={"number" : TestComponentLambdaVerificator._ComponentLambdaVerificator.N_MUST_BE_GREATER_THAN + 1})
         
         try:
-            simple_extended_component.proccess_input()
+            simple_extended_component.process_input()
             assert True
         
         except:

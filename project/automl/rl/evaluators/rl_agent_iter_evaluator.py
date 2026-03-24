@@ -1,5 +1,5 @@
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.basic_components.evaluator_component import EvaluatorComponent
 from automl.rl.rl_pipeline import RLPipelineComponent
 from automl.core.advanced_input_management import ComponentListParameterSignature
@@ -21,13 +21,13 @@ class RLAgentIterEvaluator(RLPipelineEvaluator):
     }
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.single_agent_evaluators : list[RlSingleAgentEvaluator] = self.get_input_value("single_agent_evaluators")
         
-    @requires_input_proccess
+    @requires_input_process
     def get_metrics_strings(self) -> list[str]:
 
         environment : EnvironmentComponent = get_component_by_localization(self, ["relative", 

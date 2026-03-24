@@ -10,7 +10,7 @@ class TestExecComponent(unittest.TestCase):
         
         exec_component = ExecComponent()
         
-        exec_component.proccess_input()
+        exec_component.process_input()
         
         output = exec_component.run()
                 
@@ -41,7 +41,7 @@ class TestWhileComponent(unittest.TestCase):
                 "post_execution" : post_execution
             })
         
-        while_component.proccess_input()
+        while_component.process_input()
         
         while_component.run()
                 
@@ -56,7 +56,7 @@ class TestWhileComponent(unittest.TestCase):
                 "post_execution" : post_execution
             })
         
-        while_component.proccess_input()
+        while_component.process_input()
         
         output = while_component.run()
                 
@@ -75,7 +75,7 @@ class TestWhileComponent(unittest.TestCase):
                     "post_execution" : post_execution
                 })
             
-            while_component.proccess_input()
+            while_component.process_input()
         
             output = while_component.run()
             
@@ -99,7 +99,7 @@ class TestDoNTimesComponent(unittest.TestCase):
                 "post_execution" : post_execution
             })
         
-        do_n_times_component.proccess_input()
+        do_n_times_component.process_input()
         
         output = do_n_times_component.run()
         
@@ -119,7 +119,7 @@ class TestDoNTimesComponent(unittest.TestCase):
             }
         )
         
-        do_n_times_component.proccess_input()
+        do_n_times_component.process_input()
         
         output = do_n_times_component.run()
         

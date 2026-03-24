@@ -1,6 +1,6 @@
 
 
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.rl.agent.agent_components import AgentSchema
 from automl.utils.shapes_util import torch_shape_from_space
@@ -23,9 +23,9 @@ class AgentSchemaWithStateMemory(AgentSchema):
                     }
 
         
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
             
 
     def initialize_state_memory(self): #Note this overrides the super method
@@ -61,7 +61,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
     
     # EXPOSED TRAINING METHODS -----------------------------------------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def policy_predict(self, state):
         
         '''
@@ -70,17 +70,17 @@ class AgentSchemaWithStateMemory(AgentSchema):
         '''
                 
         state = {**state}
-        new_obs = self.proccess_env_state(state["observation"])
+        new_obs = self.process_env_state(state["observation"])
         state["observation"] = self._get_state_memory_with_new(new_obs)
         return self.policy.predict(state)
     
-    @requires_input_proccess
+    @requires_input_process
     def call_policy_method(self, policy_method, state):
         
         '''calls the method of the policy with this Agent's state management strategy'''
         
         state = {**state}
-        new_obs = self.proccess_env_state(state["observation"])
+        new_obs = self.process_env_state(state["observation"])
         state["observation"] = self._get_state_memory_with_new(new_obs)
         return policy_method(state)
         
@@ -88,11 +88,11 @@ class AgentSchemaWithStateMemory(AgentSchema):
     # STATE MEMORY --------------------------------------------------------------------
             
     
-    @requires_input_proccess
+    @requires_input_process
     def reset_agent_in_environment(self, initial_state : torch.Tensor): #setup memory shared accross agents
 
         initial_state = {**initial_state}
-        obs = self.proccess_env_state(initial_state.pop("observation"))
+        obs = self.process_env_state(initial_state.pop("observation"))
 
         self.state_memory["observation"] = (
             obs.unsqueeze(0)
@@ -102,12 +102,12 @@ class AgentSchemaWithStateMemory(AgentSchema):
 
         self.state_memory.update(initial_state)
          
-    @requires_input_proccess    
+    @requires_input_process    
     def update_state_memory(self, new_state): #update memory of agent
         '''Updates memory of agent with new state'''
         
         new_state = {**new_state}
-        new_obs = self.proccess_env_state(new_state.pop("observation"))
+        new_obs = self.process_env_state(new_state.pop("observation"))
 
         self.state_memory["observation"].copy_(self._get_state_memory_with_new(new_obs))
         self.state_memory.update(new_state)

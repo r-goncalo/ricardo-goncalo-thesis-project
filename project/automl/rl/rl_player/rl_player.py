@@ -1,7 +1,7 @@
 import os
 import traceback
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
@@ -40,9 +40,9 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
     
     results_columns = ["episode", "episode_reward", "episode_steps", "avg_reward", "environment"]
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.env : AECEnvironmentComponent = self.get_input_value("environment")
         self.num_episodes = self.get_input_value("num_episodes")
@@ -129,7 +129,7 @@ class RLPlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Statef
         return reward, done, truncated
     
     
-    @requires_input_proccess
+    @requires_input_process
     def play(self):
         
         for ep in range(self.num_episodes):

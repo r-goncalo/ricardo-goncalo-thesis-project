@@ -12,11 +12,11 @@ class RLParallelPlayer(RLPlayer):
                                 
                        }
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         """
         Extend RLPlayer's input processing, but ensure environment is ParallelEnvironmentComponent.
         """
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.env : ParallelEnvironmentComponent = self.env
 

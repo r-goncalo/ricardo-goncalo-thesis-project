@@ -17,9 +17,9 @@ class SimpleHyperparameterOptimizationPipeline(HyperparameterOptimizationPipelin
     # INITIALIZATION -----------------------------------------------------------------------------
 
 
-    def _proccess_input_internal(self): # this is the best method to have initialization done right after
+    def _process_input_internal(self): # this is the best method to have initialization done right after
                 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         self.component_being_optimized : Component_to_opt_type = None
                 

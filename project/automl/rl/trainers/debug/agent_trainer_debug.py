@@ -19,15 +19,15 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
              "note_chosen_actions" : ParameterSignature(default_value=False)
         }
 
-        def _proccess_input_internal(self):
+        def _process_input_internal(self):
 
-            super()._proccess_input_internal()
+            super()._process_input_internal()
 
             self.verify_model_difference_after_optimize = self.get_input_value("verify_model_difference_after_optimize")
     
             if self.verify_model_difference_after_optimize:
                 self.model : TorchModelComponent = self.agent_policy.model
-                self.model.proccess_input_if_not_processed()
+                self.model.process_input_if_not_processed()
 
                 self.lg.writeLine(f"Creating temporary model to note difference in optimizations...")
 

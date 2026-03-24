@@ -1,4 +1,4 @@
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature, LookableParameterSignature
 from automl.ml.models.model_components import ModelComponent
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
@@ -21,8 +21,8 @@ class OptimizerSchema(Component):
     }
     
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.model : ModelComponent = self.get_input_value("model")
         self.params = self.get_input_value("params")
@@ -96,9 +96,9 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
                        
                        }    
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Starting to process optimizer input")
 
@@ -145,7 +145,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
 
     # EXPOSED METHODS --------------------------------------------------------------------------
     
-    @requires_input_proccess
+    @requires_input_process
     def optimize_model(self, predicted, correct) -> None:
                     
         # Compute Huber loss TODO : The loss should not be hard calculated like this
@@ -155,7 +155,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         self.optimize_with_loss(loss)
 
 
-    @requires_input_proccess
+    @requires_input_process
     def optimize_with_loss(self, loss):
 
         self.clear_optimizer_gradients()
@@ -166,7 +166,7 @@ class AdamOptimizer(OptimizerSchema, ComponentWithLogging):
         self.optimize_with_backward_pass_done()
 
 
-    @requires_input_proccess
+    @requires_input_process
     def clear_optimizer_gradients(self):
         self.torch_adam_opt.zero_grad() #clears previous accumulated gradients in the optimizer
 
@@ -200,15 +200,15 @@ class SimpleSGDOptimizer(OptimizerSchema):
         "learning_rate": ParameterSignature(default_value=0.01)
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.lr = self.get_input_value("learning_rate")
 
         # Define SGD optimizer
         self.sgd_optimizer = optim.SGD(self.params, lr=self.lr)
 
-    @requires_input_proccess
+    @requires_input_process
     def optimize_model(self, predicted, correct) -> None:
         super().optimize_model(predicted, correct)
 

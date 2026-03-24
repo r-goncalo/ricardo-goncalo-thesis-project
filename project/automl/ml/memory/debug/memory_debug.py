@@ -1,7 +1,7 @@
 from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.loggers.logger_component import DEBUG_LEVEL, ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 
 
 class MemoryDebug(MemoryComponent, ComponentDebug):
@@ -9,9 +9,9 @@ class MemoryDebug(MemoryComponent, ComponentDebug):
     is_debug_schema = True
 
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Field names are: {self.field_names}")
     
@@ -42,7 +42,7 @@ class MemoryDebug(MemoryComponent, ComponentDebug):
 
 
 
-    @requires_input_proccess
+    @requires_input_process
     def sample(self, batch_size):
 
         batch = super().sample(batch_size)
@@ -67,7 +67,7 @@ class MemoryDebug(MemoryComponent, ComponentDebug):
 
         return batch
 
-    @requires_input_proccess
+    @requires_input_process
     def clear(self):
         
         self.lg.writeLine(f"\nBefore cleaning ({len(self)}) transitions, noting their values...\n", file="on_clear_transitions.txt", use_time_stamp=False)

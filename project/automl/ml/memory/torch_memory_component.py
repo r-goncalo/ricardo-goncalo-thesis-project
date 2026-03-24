@@ -2,14 +2,14 @@
 
 import os
 
-from automl.component import  requires_input_proccess
+from automl.component import  requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.utils.shapes_util import torch_shape_from_space
 import torch
 from automl.ml.memory.memory_components import MemoryComponent
 
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 from automl.ml.memory.memory_components import MemoryComponent
@@ -29,8 +29,8 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         self.total_size = 0
 
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.device = self.get_input_value("device")
 
@@ -81,7 +81,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
             
         
 
-    @requires_input_proccess
+    @requires_input_process
     def push(self, transition):
 
         '''Pushes a transition into the saved transitions, possibly substituting another'''
@@ -99,7 +99,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         
     
 
-    @requires_input_proccess
+    @requires_input_process
     def sample(self, batch_size):
 
         '''Returns <batch_size> random elements from the saved transitions'''
@@ -117,7 +117,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         return batch_data
     
     
-    @requires_input_proccess
+    @requires_input_process
     def sample_all_with_batches(self, batch_size) -> list:
         '''
         Samples all memory divided by a list of batches of the specified size, without repeating information
@@ -147,7 +147,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         return batches
     
 
-    @requires_input_proccess
+    @requires_input_process
     def get_all(self):
         '''Returns the total memory'''
 
@@ -159,7 +159,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         return batch_data
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_all_segmented(self, batch_size):
         '''Returns ordered list of segmented memory with batch_size'''
         pass
@@ -183,7 +183,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
             
          
 
-    @requires_input_proccess
+    @requires_input_process
     def clear(self):
         
         '''Logicaly cleans the memory, without doing any deletion operation'''

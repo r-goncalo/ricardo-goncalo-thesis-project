@@ -1,6 +1,6 @@
 
 import copy
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 from automl.external_support.sb3.sb3_utils import load_policy_network_from_architecture, load_sb3_net
 from automl.ml.models.model_components import ModelComponent
@@ -19,8 +19,8 @@ class SB3WrapperTorch(TorchModelComponent):
     }    
     
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.sb3_model = self.get_input_value("sb3_model")
     
@@ -78,7 +78,7 @@ class SB3WrapperTorch(TorchModelComponent):
         self.lg.writeLine(f"Success in sb3 model using saved architecture and weights")
         
             
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
         
         if state.ndim == 1:

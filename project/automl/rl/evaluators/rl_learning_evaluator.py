@@ -1,5 +1,5 @@
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.result_logger import ResultLogger
 from automl.rl.evaluators.rl_component_evaluator import RLPipelineEvaluator
@@ -22,9 +22,9 @@ class RLLearningEvaluatorSlope(RLPipelineEvaluator):
     }
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.number_of_episodes_percentage = self.get_input_value("number_of_episodes_percentage")
 
@@ -65,7 +65,7 @@ class RLLearningEvaluatorSlope(RLPipelineEvaluator):
     def get_metrics_strings(self) -> list[str]:
         return [*super().get_metrics_strings(), "result"]
     
-    @requires_input_proccess
+    @requires_input_process
     def _evaluate(self, component_to_evaluate : RLPipelineComponent):
         super()._evaluate(component_to_evaluate)
 

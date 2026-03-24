@@ -1,6 +1,6 @@
 
 from typing import Union
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.basic_components.artifact_management import ArtifactComponent
 from automl.core.input_management import ParameterSignature
 from automl.loggers.result_logger import ResultLogger, get_results_logger_from_file
@@ -89,9 +89,9 @@ class ComponentWithResults(ArtifactComponent):
     
 
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
             
-        super()._proccess_input_internal()
+        super()._process_input_internal()
     
         self.results_logger_input = self.get_input_value("results_logger_input")
         self.pass_input_to_results_logger(self.results_logger_input)
@@ -127,13 +127,13 @@ class ComponentWithResults(ArtifactComponent):
             results_logger.pass_input({"results_columns": [*results_logger.input["results_columns"], *new_columns]})
         
 
-    @requires_input_proccess
+    @requires_input_process
     def get_results_columns(self, key=DEFAULT_RESULTS_LOGGER_KEY):
         return self.__results_loggers[key].get_results_columns()
     
     
     
-    @requires_input_proccess
+    @requires_input_process
     def log_results(self, results, key=DEFAULT_RESULTS_LOGGER_KEY):
         '''
             Used internally to log the results of a component with results
@@ -143,7 +143,7 @@ class ComponentWithResults(ArtifactComponent):
         
         
     
-    @requires_input_proccess 
+    @requires_input_process 
     def calculate_results(self) -> dict:
         '''
             Used internally to calculate the results of a component with results
@@ -159,12 +159,12 @@ class ComponentWithResults(ArtifactComponent):
         
         self.log_results(self.calculate_results(), key)
     
-    @requires_input_proccess
+    @requires_input_process
     def get_last_results(self, key=DEFAULT_RESULTS_LOGGER_KEY):
         
         return self.__results_loggers[key].get_last_results()
     
-    @requires_input_proccess
+    @requires_input_process
     def get_results_logger(self, key=DEFAULT_RESULTS_LOGGER_KEY) -> ResultLogger:
         
         return self.__results_loggers[key]

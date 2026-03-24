@@ -1,7 +1,7 @@
 
 
 from automl.rl.environment.environment_components import EnvironmentComponent, EnvironmentSampler, sampled_environment_fun
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 
 from abc import abstractmethod
 
@@ -11,30 +11,30 @@ class AECEnvironmentComponent(EnvironmentComponent):
     
 
         
-    @requires_input_proccess   
+    @requires_input_process   
     def observe(self, agent_name : str):
         '''Returns the observation for the given agent'''
         pass
         
-    @requires_input_proccess   
+    @requires_input_process   
     @abstractmethod
     def last(self,):
         '''Gets last transitions / observations done'''
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod   
     def agent_iter(self):
         '''Returns an iterator for the active agents'''
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod    
     def step(self, action):
         '''Makes a step in the environment for the currently active agent and the given action'''
         pass
         
-    @requires_input_proccess    
+    @requires_input_process    
     @abstractmethod
     def rewards(self):
         raise NotImplementedError()    
@@ -61,8 +61,8 @@ class AECEnvironmentSampler(EnvironmentSampler, AECEnvironmentComponent):
         
         self.sampled_environment = None
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.environment_input = self.get_input_value("environment_input")
                 

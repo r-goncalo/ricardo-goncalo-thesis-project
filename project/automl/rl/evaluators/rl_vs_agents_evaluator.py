@@ -10,7 +10,7 @@ from automl.core.input_management import ParameterSignature
 from automl.rl.policy.policy import Policy
 from automl.utils.class_util import get_class_from
 from automl.utils.json_utils.json_component_utils import gen_component_from
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 
 
 
@@ -21,13 +21,13 @@ class AgentVsAgents(RlSingleAgentEvaluator, EvaluatorWithPlayer):
     Evaluates a single agent vs other agents
     '''
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.base_evaluator.pass_input({"value_to_use" : f"{self.agent_name}_reward"})
     
-    @requires_input_proccess
+    @requires_input_process
     def get_metrics_strings(self) -> list[str]:
 
         return self.base_evaluator.get_metrics_strings()
@@ -67,9 +67,9 @@ class AgentVsAgentsWithPolicy(AgentVsAgents):
 
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.policy_type_for_others : type[Policy] = get_class_from(self.get_input_value("policy_type_for_others"))
 
@@ -99,9 +99,9 @@ class AgentVsAgentsWithPreviousPolicy(AgentVsAgents):
     
 
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.fall_back_policy_type_for_others : type[Policy] = get_class_from(self.get_input_value("fall_back_policy_type_for_others"))
 

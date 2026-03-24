@@ -1,7 +1,7 @@
 import math
 from typing import Dict
 from automl.basic_components.EventfulComponent import EventfulComponent
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 from automl.core.advanced_input_management import ComponentDictParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults
 from automl.rl.agent.agent_components import AgentSchema
@@ -51,9 +51,9 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
      
     results_columns = ["episode", "episode_steps", "avg_reward", "episode_reward", "total_steps"]
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Setting up RL trainer with initial values: {self.values}")
         
@@ -309,7 +309,7 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         
 
 
-    @requires_input_proccess
+    @requires_input_process
     def run_episodes(self):
         
         '''

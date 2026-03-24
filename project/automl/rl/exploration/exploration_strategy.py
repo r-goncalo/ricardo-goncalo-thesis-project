@@ -1,4 +1,4 @@
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 import torch
 import numpy as nn
 
@@ -15,7 +15,7 @@ class ExplorationStrategySchema(Component):
 
     
     @abstractmethod
-    @requires_input_proccess
+    @requires_input_process
     def select_action(self, agent : AgentSchema, state):
         
         '''
@@ -32,7 +32,7 @@ class ExplorationStrategySchema(Component):
     
 
     @abstractmethod
-    @requires_input_proccess
+    @requires_input_process
     def select_action_with_memory(self, agent : AgentSchema):
         pass
     

@@ -24,9 +24,9 @@ class EpsilonGreedyStrategy(ExplorationStrategySchema):
     
     exposed_values = {"n_random" : 0, "n_greedy" : 0}
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.EPS_END = self.get_input_value("epsilon_end")                
         self.EPS_START = self.get_input_value("epsilon_start")
@@ -82,9 +82,9 @@ class EpsilonGreedyLinearStrategy(EpsilonGreedyStrategy):
 
     parameters_signature = { }
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
     
     # EXPOSED METHOD --------------------------------------------------------------------------
@@ -127,8 +127,8 @@ class EpsilonGreedyStepDecayStrategy(EpsilonGreedyStrategy):
         )
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.n_steps_for_decay = self.get_input_value("n_steps_for_decay")
 

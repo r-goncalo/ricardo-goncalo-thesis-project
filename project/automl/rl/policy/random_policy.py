@@ -1,7 +1,7 @@
 
 
 from automl.rl.policy.policy import Policy
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 import random
 
 class RandomPolicy(Policy):
@@ -12,8 +12,8 @@ class RandomPolicy(Policy):
 
     parameters_signature = {}
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
     def _initialize_model(self):
         '''
@@ -32,7 +32,7 @@ class RandomPolicy(Policy):
         self._compute_model_output_shape()
         self.lg.writeLine("RandomPolicy has no model to setup.")
 
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state=None):
         return self.output_action_shape.sample()
     
@@ -46,7 +46,7 @@ class RandomPolicyMasked(RandomPolicy):
     '''
 
 
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
         action_mask = state["action_mask"]
         

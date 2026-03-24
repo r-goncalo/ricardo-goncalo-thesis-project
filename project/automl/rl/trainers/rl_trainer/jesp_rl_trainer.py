@@ -42,9 +42,9 @@ class JESPTrainer(RLTrainerComponent):
         "step_before_curr_jesp_iteraition" : -1
     }
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.policy_change_tolerance = self.get_input_value("policy_change_tolerance")
         self.max_steps_per_jesp_maximization = self.get_input_value("max_steps_per_jesp_maximization")

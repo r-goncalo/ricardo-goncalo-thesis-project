@@ -39,9 +39,9 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
     # INITIALIZATION -----------------------------------------------------------------------------
 
 
-    def _proccess_input_internal(self): # this is the best method to have initialization done right after
+    def _process_input_internal(self): # this is the best method to have initialization done right after
                 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         self.trainings_at_a_time = self.get_input_value("trainings_at_a_time") # training processes that can be done at a time
 
@@ -558,7 +558,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
                     executor.shutdown(wait=True, cancel_futures=True)
 
                     if isinstance(exc, StopExperiment):
-                        # we should cancel futures, but let the currently working threads stop gracefully their proccesses
+                        # we should cancel futures, but let the currently working threads stop gracefully their processes
                         executor.shutdown(wait=True, cancel_futures=True)
 
                     else: # as it is either a pruned experiment or a fail, there is not need to continue other experiments

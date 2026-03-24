@@ -1,7 +1,7 @@
 
 
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
 import optuna
@@ -11,7 +11,7 @@ class OptunaSamplerComponent(ComponentWithLogging):
     def __int__(self):
         pass
 
-    @requires_input_proccess
+    @requires_input_process
     def get_optuna_sampler(self) ->  optuna.samplers.BaseSampler:
         '''Returns a sampler optuna can use, the one that is meant to be passed to the study'''
         return self
@@ -24,9 +24,9 @@ class OptunaSamplerWrapper(OptunaSamplerComponent, SeededComponent):
         "sampler_input" : ParameterSignature(mandatory=False)
     }
 
-    def proccess_input(self):
+    def process_input(self):
 
-        super().proccess_input()
+        super().process_input()
 
         self._initialize_sampler()
 
@@ -73,7 +73,7 @@ class OptunaSamplerWrapper(OptunaSamplerComponent, SeededComponent):
             raise NotImplementedError(f"Non valid string for sampler '{sampler_str}'") 
         
         
-    @requires_input_proccess
+    @requires_input_process
     def get_optuna_sampler(self) -> optuna.samplers.BaseSampler:
         '''Returns a sampler optuna can use'''
         return self.optuna_sampler

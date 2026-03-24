@@ -11,13 +11,13 @@ from automl.loggers.logger_component import ComponentWithLogging
 
 # ACTUAL AGENT COMPONENT ---------------------------
 
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 from automl.fundamentals.translator.translator import Translator
 
 from automl.utils.shapes_util import clone_shape, torch_zeros_for_space
 
 
-def no_proccess_state_for_agent(state):
+def no_process_state_for_agent(state):
     return state
 
 
@@ -47,9 +47,9 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                        
                     }
         
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Processing agent input with values {self.values}\n")
         
@@ -77,10 +77,10 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
             self.state_translator.pass_input({"original_shape" : self.state_shape["observation"]})
 
-            self.state_translator.proccess_input_if_not_processed()
+            self.state_translator.process_input_if_not_processed()
 
             self.lg.writeLine(f"Agent has state translator: {self.state_translator}")
-            self.proccess_env_state = self.state_translator.translate_state
+            self.process_env_state = self.state_translator.translate_state
             
             self.processed_state_shape["observation"] = self.state_translator.get_shape(self.state_shape["observation"])
 
@@ -89,7 +89,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
 
         else:
             self.lg.writeLine(f"Agent has no state translator")
-            self.proccess_env_state = no_proccess_state_for_agent
+            self.process_env_state = no_process_state_for_agent
         
 
     def initialize_state_memory(self):
@@ -136,36 +136,36 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         '''
         return self.policy
     
-    @requires_input_proccess
+    @requires_input_process
     def policy_predict(self, state):
         
         '''makes a prediction based on the new state for a new action, using the current memory if need be'''
         
         state = {**state}
-        state["observation"] = self.proccess_env_state(state["observation"])
+        state["observation"] = self.process_env_state(state["observation"])
         
         to_return = self.policy.predict(state)
 
         return to_return
     
-    @requires_input_proccess
+    @requires_input_process
     def policy_predict_with_memory(self):
         
         '''makes a prediction for a new action, using the current memory'''
         
         return self.policy.predict(self.state_memory)
     
-    @requires_input_proccess
+    @requires_input_process
     def call_policy_method(self, policy_method, state):
         
         '''calls the method of the policy with this Agent's state management strategy'''
         
         state = {**state}
-        state["observation"] = self.proccess_env_state(state["observation"])
+        state["observation"] = self.process_env_state(state["observation"])
         return policy_method(state)
     
 
-    @requires_input_proccess
+    @requires_input_process
     def call_policy_method_with_memory(self, policy_method):
         
         '''calls the method of the policy with this Agent's state management strategy'''
@@ -173,7 +173,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         return policy_method(self.state_memory)
                     
     
-    @requires_input_proccess
+    @requires_input_process
     def policy_random_predict(self, state):
         '''
         Uses the policies's random prediction strategy to return an action
@@ -186,7 +186,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
     # STATE MEMORY --------------------------------------------------------------------
             
     
-    @requires_input_proccess
+    @requires_input_process
     def reset_agent_in_environment(self, initial_state): # resets anything the agent has saved regarding the environment
         '''
         Resets an agent in the environment, mainly making it remember a state in memory
@@ -195,7 +195,7 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         self.update_state_memory(initial_state)
     
 
-    @requires_input_proccess    
+    @requires_input_process    
     def update_state_memory(self, new_state): #update memory shared
         '''
         Makes the agent remember a new state
@@ -204,12 +204,12 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
         new_state = {**new_state}
         new_state_obs = new_state.pop("observation")
 
-        self.state_memory["observation"].copy_(self.proccess_env_state(new_state_obs))
+        self.state_memory["observation"].copy_(self.process_env_state(new_state_obs))
 
         self.state_memory.update(new_state)
         
 
-    @requires_input_proccess
+    @requires_input_process
     def get_current_state_in_memory(self):
         
         '''

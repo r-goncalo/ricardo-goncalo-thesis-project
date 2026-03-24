@@ -48,9 +48,9 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
     }
     
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.base_evaluator : RLPipelineEvaluator = self.get_input_value("base_evaluator")
 
@@ -108,7 +108,7 @@ class EvaluatorWithPlayer(RLPipelineEvaluator):
         else:
             env = component_to_evaluate.get_env()
 
-        component_to_evaluate.proccess_input_if_not_processed()
+        component_to_evaluate.process_input_if_not_processed()
 
         agents = component_to_evaluate.agents
         device = component_to_evaluate.device

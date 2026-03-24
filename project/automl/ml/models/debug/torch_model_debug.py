@@ -5,7 +5,7 @@ from automl.loggers.logger_component import ComponentWithLogging
 import torch
 import torch.nn as nn
 
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.ml.models.model_components import ModelComponent
 
 from automl.ml.models.torch_model_components import TorchModelComponent
@@ -25,14 +25,14 @@ class TorchModelComponentDebug(TorchModelComponent, ComponentDebug):
     exposed_values = {
     }
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         
 
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
         self.lg.writeLine(f"Predicting value for state with shape {state.shape}...", file="model_predictions.txt")
         to_return = super().predict(state)

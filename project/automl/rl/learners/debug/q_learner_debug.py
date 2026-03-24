@@ -2,7 +2,7 @@
 
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.rl.learners.q_learner import DeepQLearnerSchema, QLearnerSchema
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.ml.models.torch_model_utils import model_parameter_distance
@@ -19,8 +19,8 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         "interval_beetwenn_computation_writes" : ParameterSignature(default_value=10)
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.lg.open_or_create_relative_folder("learning")
 
@@ -125,9 +125,9 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
         "compare_old_and_new_target_model_params" : ParameterSignature(default_value=False),
     }
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.compare_old_and_new_target_predictions = self.get_input_value("compare_old_and_new_target_predictions")  
         self.compare_old_and_new_target_model_params = self.get_input_value("compare_old_and_new_target_model_params")        
@@ -169,7 +169,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
 
                 self.lg.writeLine(f"{i}: {action_val}, {reward_val}, {done_val}, {old_model_prediction_val}, {new_model_precitions_val}", file="target_batch_comparison.txt", use_time_stamp=False)
 
-    @requires_input_proccess            
+    @requires_input_process            
     def update_target_model(self):
 
         if self.compare_old_and_new_target_model_params:

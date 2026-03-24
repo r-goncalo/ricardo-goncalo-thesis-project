@@ -16,8 +16,8 @@ class AlternatingRandomSampler(OptunaSamplerComponent):
         "other_sampler" : ComponentParameterSignature(default_component_definition=(OptunaSamplerWrapper, {}))
     }
 
-    def proccess_input(self):
-        super().proccess_input()
+    def process_input(self):
+        super().process_input()
 
         self.other_sampler : OptunaSamplerComponent = self.get_input_value("other_sampler") 
         self.other_sampler_optuna : BaseSampler = self.other_sampler.get_optuna_sampler()

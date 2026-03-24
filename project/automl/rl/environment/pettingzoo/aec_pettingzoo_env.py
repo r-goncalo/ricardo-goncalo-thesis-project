@@ -1,7 +1,7 @@
 
 
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.rl.environment.aec_environment import AECEnvironmentComponent
 
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
@@ -26,9 +26,9 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
 
     
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
     
     def _setup_environment(self):
@@ -67,13 +67,13 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         return normalize_observation(self.env.observe(*args))
     
     
-    @requires_input_proccess
+    @requires_input_process
     def get_agent_action_space(self, agent):
         '''returns the action space for the given agent'''
         return self.env.action_space(agent)
     
 
-    @requires_input_proccess
+    @requires_input_process
     def get_agent_state_space(self, agent):
         '''
         Returns the state space in the framework contract:
@@ -105,11 +105,11 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         }
     
     
-    @requires_input_proccess
+    @requires_input_process
     def agents(self):
         return self.env.possible_agents
     
-    @requires_input_proccess    
+    @requires_input_process    
     def get_active_agents(self):
         '''Returns all the active agents'''
         return self.env.agents

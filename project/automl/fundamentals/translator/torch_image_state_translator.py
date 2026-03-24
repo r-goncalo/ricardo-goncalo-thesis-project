@@ -10,9 +10,9 @@ class ImageReverter(Translator):
     parameters_signature = {
         }    
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
     def _setup_shape_cache(self):
 
@@ -63,9 +63,9 @@ class ImageSingleChannel(Translator):
     parameters_signature = {
         }    
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
 
     def translate_state(self, state : torch.Tensor):
@@ -132,8 +132,8 @@ class ImageReverterToSingleChannel(Translator):
         }    
     
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
 
     def _setup_shape_cache(self):

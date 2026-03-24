@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import time
 from typing import final
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.utils.json_utils.json_component_utils import  gen_component_from
 from automl.utils.files_utils import write_text_to_file, read_text_from_file
 from automl.basic_components.artifact_management import ArtifactComponent, find_artifact_component_first_parent_directory

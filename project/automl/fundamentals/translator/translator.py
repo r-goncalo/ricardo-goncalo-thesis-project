@@ -20,8 +20,8 @@ class Translator(Component):
 
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.in_place_translation = self.get_input_value("in_place_translation")
 
@@ -71,9 +71,9 @@ class TranslatorSequence(Translator):
         "translators_sequence" : ComponentListParameterSignature()
     }
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.translators_sequence : list[Translator] = self.get_input_value("translators_sequence")
 
@@ -82,7 +82,7 @@ class TranslatorSequence(Translator):
         self._setup_sequence_state_cache()
 
         for translator in self.translators_sequence:
-            translator.proccess_input_if_not_processed()
+            translator.process_input_if_not_processed()
 
     
     def _setup_translators_in_sequence_input(self):
@@ -101,7 +101,7 @@ class TranslatorSequence(Translator):
 
 
 
-    def _setup_shape_cache(self): # we overwrite this method to do nothing as we want to have control over how the cache is proccessed
+    def _setup_shape_cache(self): # we overwrite this method to do nothing as we want to have control over how the cache is processed
         pass
 
     
@@ -114,7 +114,7 @@ class TranslatorSequence(Translator):
             for translator in self.translators_sequence:
 
                 translator.pass_input({"original_shape" : current_shape})
-                translator.proccess_input_if_not_processed()
+                translator.process_input_if_not_processed()
                 current_shape = translator.get_shape()
 
             self.new_shape = current_shape

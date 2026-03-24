@@ -2,7 +2,7 @@ from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.rl.policy.policy import Policy
 from automl.rl.policy.qpolicy import QPolicy
 from automl.rl.policy.stochastic_policy import StochasticPolicy
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 import torch
 
 class PolicyDebug(Policy, ComponentDebug):
@@ -18,9 +18,9 @@ class PolicyDebug(Policy, ComponentDebug):
     }   
 
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Processing policy debug input...\n")
         self.lg.writeLine(f"Finished policy debug input...\n")
@@ -99,7 +99,7 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
         return to_return
 
     
-    @requires_input_proccess
+    @requires_input_process
     def predict_action_val_from_model_output_with_log(self, model_output, state):
                 
         self.lg.writeLine(f"Predicting action_val and log_prob from model_output:", file='predicted_values.txt')
@@ -110,7 +110,7 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
 
         return to_return
     
-    @requires_input_proccess
+    @requires_input_process
     def predict_action_val_with_log(self, state):
                             
         self.lg.writeLine(f"Predicting action_val and log_prob:", file='predicted_values.txt')
@@ -121,7 +121,7 @@ class StochasticPolicyDebug(PolicyDebug, StochasticPolicy):
 
         return to_return
     
-    @requires_input_proccess
+    @requires_input_process
     def get_action_from_action_val(self, action_val):
         
         to_return = super().get_action_from_action_val(action_val)

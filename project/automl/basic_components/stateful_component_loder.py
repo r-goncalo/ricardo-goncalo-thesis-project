@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import time
 from typing import final
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.utils.json_utils.json_component_utils import  gen_component_from
 from automl.utils.files_utils import write_text_to_file, read_text_from_file
 from automl.basic_components.artifact_management import ArtifactComponent, find_artifact_component_first_parent_directory
@@ -53,9 +53,9 @@ class StatefulComponentLoader(StatefulComponent):
         self.input["create_new_directory"] = False        
 
         
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()    
+        super()._process_input_internal()    
         
         if hasattr(self, 'component_to_save_load'):
         
@@ -68,12 +68,12 @@ class StatefulComponentLoader(StatefulComponent):
         super()._save_state_internal()
         self.save_component()
 
-    @requires_input_proccess
+    @requires_input_process
     def save_component(self):
         '''Saves component to its folder'''
         save_state(self.component_to_save_load, save_definition=True)
 
-    @requires_input_proccess
+    @requires_input_process
     def unload_if_loaded(self):
         if hasattr(self, 'component_to_save_load'):
             self.unload_component() 
@@ -112,7 +112,7 @@ class StatefulComponentLoader(StatefulComponent):
 
         raise Exception("\n".join(debug_lines))
     
-    @requires_input_proccess
+    @requires_input_process
     def unload_component(self):
 
         '''Unloads component, note that it does not implicitly save it first'''
@@ -167,14 +167,14 @@ class StatefulComponentLoader(StatefulComponent):
             raise exception
             
         
-    @requires_input_proccess
+    @requires_input_process
     def save_and_onload_component(self):
         
         self.save_component()
         self.unload_component()
 
         
-    @requires_input_proccess
+    @requires_input_process
     def get_component(self) -> ArtifactComponent:
         '''Gets the component, if not loaded yet, it is loaded'''
         
@@ -186,11 +186,11 @@ class StatefulComponentLoader(StatefulComponent):
     def get_loaded_component_state(self):
         return State.clone(self.component_to_save_load.values["running_state"])
     
-    @requires_input_proccess
+    @requires_input_process
     def detach_run_component(self, to_wait = False, global_logger_level = None):
         '''
         If the component is loaded, saves it and unloads it
-        It then uses the load_and_run_component command to start a subproccess to run the component
+        It then uses the load_and_run_component command to start a subprocess to run the component
         '''
         artifact_dir = self.get_artifact_directory()
 
@@ -210,7 +210,7 @@ class StatefulComponentLoader(StatefulComponent):
         if global_logger_level is not None:
             cmd = [*cmd, "--global_logger_level", global_logger_level]
 
-        popen_proccess = subprocess.Popen(
+        popen_process = subprocess.Popen(
             cmd,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -218,11 +218,11 @@ class StatefulComponentLoader(StatefulComponent):
         )
 
         if to_wait:
-            return_code = popen_proccess.wait()
+            return_code = popen_process.wait()
 
-        return popen_proccess
+        return popen_process
     
-    @requires_input_proccess
+    @requires_input_process
     def load_component(self):
         '''
         Loads the component from the artifact directory and returns it

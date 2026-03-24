@@ -18,8 +18,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         "compare_old_and_new_critic_predictions_interval": ParameterSignature(default_value=-1),
     }
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.interval_between_debug_writes = self.get_input_value("interval_between_debug_writes")
 

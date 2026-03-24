@@ -81,9 +81,9 @@ class FullyConnectedModelSchema(TorchModelComponent):
         "activation_function" : ParameterSignature(default_value="relu")
     }    
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
 
     def _setup_values(self):

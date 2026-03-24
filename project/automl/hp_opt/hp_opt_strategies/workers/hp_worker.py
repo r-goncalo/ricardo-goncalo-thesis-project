@@ -21,7 +21,7 @@ class HyperparameterOptimizationWorkerIndexed():
         
         self.parent_hp_pipeline : HyperparameterOptimizationLoader = parent_hp_pipeline
 
-        self.parent_hp_pipeline.lg.proccess_input_if_not_processed()
+        self.parent_hp_pipeline.lg.process_input_if_not_processed()
         self.thread_logger = self.parent_hp_pipeline.lg.clone(input_for_clone={"name" : f"{thread_index}", 
                                                                                "base_directory" : self.parent_hp_pipeline,
                                                                                "artifact_relative_directory" : "thread_loggers",
@@ -65,7 +65,7 @@ class HyperparameterOptimizationWorkerIndexed():
             self.parent_hp_pipeline.check_if_should_stop_execution_earlier()
 
         except StopExperiment as e:
-            self.thread_logger.writeLine(f"Worker noticed a signal to prematurely stop the proccess on trial {trial.number}, ending it...")
+            self.thread_logger.writeLine(f"Worker noticed a signal to prematurely stop the process on trial {trial.number}, ending it...")
             raise e
 
 

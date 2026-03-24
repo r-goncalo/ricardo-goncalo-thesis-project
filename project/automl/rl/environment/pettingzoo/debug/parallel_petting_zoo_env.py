@@ -8,8 +8,8 @@ class PettingZooEnvironmentWrapperParallelDebug(PettingZooEnvironmentWrapperPara
 
     is_debug_schema = True
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
 
     def get_agent_action_space(self, agent):

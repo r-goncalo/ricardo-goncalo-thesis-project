@@ -1,6 +1,6 @@
 import os
 from typing import Union
-from automl.component import ParameterSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_process
 from automl.basic_components.exec_component import ExecComponent, State
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.basic_components.evaluator_component import ComponentWithEvaluator, EvaluatorComponent
@@ -142,9 +142,9 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
     # INITIALIZATION -----------------------------------------------------------------------------
 
 
-    def _proccess_input_internal(self): # this is the best method to have initialization done right after
+    def _process_input_internal(self): # this is the best method to have initialization done right after
                 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.writeLine(f"Processing input for HP optimization...")
                 
@@ -651,7 +651,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 raise e
 
 
-    def _pre_proccess_component_before_objective(self, trial : optuna.Trial):
+    def _pre_process_component_before_objective(self, trial : optuna.Trial):
         pass
 
     
@@ -705,7 +705,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         
         '''Responsible for running the optimization trial and evaluating the component to test'''
 
-        self._pre_proccess_component_before_objective(trial)
+        self._pre_process_component_before_objective(trial)
 
         return self._run_optimization(trial)
     
@@ -850,7 +850,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                     
     # STUDY SETUP ------------------------------------------------------------------------------
 
-    @requires_input_proccess
+    @requires_input_process
     def get_study(self):
         return self.study
     
@@ -956,7 +956,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
                 self.lg.writeLine(f"Error getting best parameters: {e}")
                     
                     
-    @requires_input_proccess
+    @requires_input_process
     def _algorithm(self): 
 
         self.lg.writeLine() 

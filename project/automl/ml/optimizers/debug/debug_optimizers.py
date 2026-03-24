@@ -1,7 +1,7 @@
 from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.ml.optimizers.optimizer_components import AdamOptimizer
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 
 
 class AdamOptimizerDebug(AdamOptimizer, ComponentDebug):
@@ -17,9 +17,9 @@ class AdamOptimizerDebug(AdamOptimizer, ComponentDebug):
     }
     
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.lg.open_or_create_relative_folder("clips")
 

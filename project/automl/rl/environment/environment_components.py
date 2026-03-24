@@ -1,5 +1,5 @@
 from types import FunctionType
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 from automl.core.advanced_input_management import ComponentListParameterSignature
 from automl.basic_components.sampler import Sampler
 from abc import abstractmethod
@@ -24,50 +24,50 @@ class EnvironmentComponent(Component):
         super().__init__(input)
     
     
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod
     def close(self):
         '''Closes an environment, telling it its execution is not being used'''
         pass
 
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod
     def get_env_name(self):
         '''Gets the internal name of an environment'''
         pass
 
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod    
     def reset(self):
         '''A soft reset of the environment, only to guarantee it is in its initial state'''
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod    
     def total_reset(self):
         '''Resets all, including RNG state'''
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod
     def agents(self):
         '''Returns all possible agents to exist on an environment'''
         pass    
 
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod    
     def get_active_agents(self):
         '''Returns all the active agents'''
         pass
 
 
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod
     def get_agent_action_space(self, agent):
         '''returns the action space for the given agent'''
         pass
     
-    @requires_input_proccess
+    @requires_input_process
     @abstractmethod
     def get_agent_state_space(self, agent):
         '''returns the state space for the environment'''
@@ -114,8 +114,8 @@ class EnvironmentSampler(Sampler, EnvironmentComponent):
         
         self.sampled_environment = None
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.environment_input = self.get_input_value("environment_input")
                 
@@ -152,8 +152,8 @@ class EnvironmentCycler(EnvironmentSampler):
         
         self.sampled_environment = None
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.environments : EnvironmentComponent = self.get_input_value("environments") 
         self.generate_name = self.get_input_value("generate_name")
@@ -168,7 +168,7 @@ class EnvironmentCycler(EnvironmentSampler):
 
 
     
-    @requires_input_proccess
+    @requires_input_process
     def sample(self) -> EnvironmentComponent:
 
         to_return = self.environments[self.next_index]

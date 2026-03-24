@@ -23,11 +23,11 @@ class MemoryDebuggerComponent(ComponentDebug):
     
     }
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
         prev_rss, prev_vms = process_memory()
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         pos_rss, pos_vms = process_memory()
 

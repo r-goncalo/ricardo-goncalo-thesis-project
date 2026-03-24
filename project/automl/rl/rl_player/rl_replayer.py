@@ -2,7 +2,7 @@ import os
 import traceback
 from automl.basic_components.evaluator_component import ComponentWithEvaluator
 from automl.basic_components.exec_component import ExecComponent
-from automl.component import ParameterSignature, Component, requires_input_proccess
+from automl.component import ParameterSignature, Component, requires_input_process
 from automl.core.advanced_component_creation import get_sub_class_with_correct_parameter_signature
 from automl.core.advanced_input_management import ComponentDictParameterSignature, ComponentParameterSignature, ComponentListParameterSignature
 from automl.loggers.component_with_results import ComponentWithResults
@@ -41,9 +41,9 @@ class RLRePlayer(ExecComponent, ComponentWithLogging, ComponentWithResults, Stat
 
     # INITIALIZATION -----------------------------------------------------------------------------
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.setup_environment()
         self.setup_memories_of_agents()

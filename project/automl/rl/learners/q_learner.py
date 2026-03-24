@@ -1,5 +1,5 @@
 
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.loggers.logger_component import ComponentWithLogging
@@ -27,9 +27,9 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
     
 
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         
         
@@ -125,9 +125,9 @@ class DeepQLearnerSchema(QLearnerSchema):
         "target_policy" : 0
     }
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         self.device = self.get_input_value("device")
         
@@ -279,7 +279,7 @@ class DeepQLearnerSchema(QLearnerSchema):
 
         
         
-    @requires_input_proccess            
+    @requires_input_process            
     def update_target_model(self):
         
         self.target_net.update_model_with_target(self.model, self.TAU)

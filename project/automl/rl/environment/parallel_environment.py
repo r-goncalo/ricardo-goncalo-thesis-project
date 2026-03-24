@@ -1,6 +1,6 @@
 
 from automl.rl.environment.environment_components import EnvironmentComponent
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 
 from abc import abstractmethod
 

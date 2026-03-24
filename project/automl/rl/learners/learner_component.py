@@ -1,4 +1,4 @@
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 
 from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
@@ -22,9 +22,9 @@ class LearnerSchema(Component):
 
     }
         
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.agent : AgentSchema = self.get_input_value("agent")
 
@@ -47,7 +47,7 @@ class LearnerSchema(Component):
     def _learn(self, trajectory, discount_factor):
         pass
         
-    @requires_input_proccess
+    @requires_input_process
     def learn(self, trajectory, discount_factor) -> None:
         
         '''
@@ -70,7 +70,7 @@ class LearnerSchema(Component):
             acessory.pos_fun(values)
 
 
-    @requires_input_proccess
+    @requires_input_process
     def interpret_trajectory(self, trajectory):
 
         interpreted_trajectory = {**trajectory}

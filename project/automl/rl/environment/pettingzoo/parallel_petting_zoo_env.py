@@ -1,5 +1,5 @@
 from automl.basic_components.seeded_component import SeededComponent
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 from automl.fundamentals.translator.translator import Translator
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
@@ -22,8 +22,8 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
     }
 
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.render_mode = self.get_input_value("render_mode")
         self.device = self.get_input_value("device")
@@ -69,12 +69,12 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         return self._last_obs[agent]
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_agent_action_space(self, agent):
         return self.env.action_space(agent)
 
 
-    @requires_input_proccess
+    @requires_input_process
     def get_agent_state_space(self, agent):
         obs_space = self.env.observation_space(agent)
 
@@ -96,12 +96,12 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         }
 
 
-    @requires_input_proccess
+    @requires_input_process
     def agents(self):
         return self.env.possible_agents
         
     
-    @requires_input_proccess    
+    @requires_input_process    
     def get_active_agents(self):
         '''Returns all the active agents'''
         return self.env.agents
@@ -173,6 +173,6 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
     def close(self):
         self.env.close()
 
-    @requires_input_proccess
+    @requires_input_process
     def get_env_name(self):
         return self.env_name

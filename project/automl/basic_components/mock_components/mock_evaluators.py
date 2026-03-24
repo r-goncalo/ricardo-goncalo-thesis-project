@@ -1,7 +1,7 @@
 
 
 from automl.basic_components.evaluator_component import EvaluatorComponent
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 import random
 
 class RandomMockEvaluator(EvaluatorComponent):
@@ -10,7 +10,7 @@ class RandomMockEvaluator(EvaluatorComponent):
     def get_metrics_strings(self) -> list[str]:
         return [*super().get_metrics_strings(), "result"]
     
-    @requires_input_proccess
+    @requires_input_process
     def _evaluate(self, component_to_evaluate : Component):
 
         result = random.random()

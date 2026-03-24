@@ -16,7 +16,7 @@ class TestToTorchTranslator(unittest.TestCase):
         translator = ToTorchTranslator(input={
             "original_shape": state.shape
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out = translator.translate_state(state)
 
@@ -36,7 +36,7 @@ class TestImageReverter(unittest.TestCase):
         translator = ImageReverter(input={
             "original_shape": self.state.shape
         })
-        translator.proccess_input()
+        translator.process_input()
 
         self.assertEqual(translator.get_shape(), torch.Size([3, 4, 5]))
 
@@ -44,7 +44,7 @@ class TestImageReverter(unittest.TestCase):
         translator = ImageReverter(input={
             "buffered_operations": False
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out = translator.translate_state(self.state)
 
@@ -56,7 +56,7 @@ class TestImageReverter(unittest.TestCase):
             "original_shape": self.state.shape,
             "buffered_operations": True
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out1 = translator.translate_state(self.state)
         out2 = translator.translate_state(self.state)
@@ -73,7 +73,7 @@ class TestImageSingleChannel(unittest.TestCase):
         translator = ImageSingleChannel(input={
             "original_shape": state.shape
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out = translator.translate_state(state)
 
@@ -84,7 +84,7 @@ class TestImageSingleChannel(unittest.TestCase):
         translator = ImageSingleChannel(input={
             "original_shape": (3, 4, 5)
         })
-        translator.proccess_input()
+        translator.process_input()
 
         self.assertEqual(translator.get_shape(), torch.Size([4, 5]))
 
@@ -97,7 +97,7 @@ class TestImageNormalizer(unittest.TestCase):
         translator = ImageNormalizer(input={
             "in_place_translation": False
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out = translator.translate_state(state)
 
@@ -110,7 +110,7 @@ class TestImageNormalizer(unittest.TestCase):
         translator = ImageNormalizer(input={
             "in_place_translation": True
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out = translator.translate_state(state)
 
@@ -126,7 +126,7 @@ class TestImageReverterToSingleChannel(unittest.TestCase):
         translator = ImageReverterToSingleChannel(input={
             "original_shape": self.state.shape
         })
-        translator.proccess_input()
+        translator.process_input()
 
         self.assertEqual(translator.get_shape(), torch.Size([4, 5]))
 
@@ -134,7 +134,7 @@ class TestImageReverterToSingleChannel(unittest.TestCase):
         translator = ImageReverterToSingleChannel(input={
             "buffered_operations": False
         })
-        translator.proccess_input()
+        translator.process_input()
 
         out = translator.translate_state(self.state)
 
@@ -152,7 +152,7 @@ class TestTranslatorSequence(unittest.TestCase):
             ]
         })
 
-        seq.proccess_input()
+        seq.process_input()
 
         self.assertEqual(seq.get_shape(), torch.Size([4, 5]))
 
@@ -166,7 +166,7 @@ class TestTranslatorSequence(unittest.TestCase):
             ]
         })
 
-        seq.proccess_input()
+        seq.process_input()
 
         out = seq.translate_state(state)
 
@@ -181,7 +181,7 @@ class TestTranslatorSequence(unittest.TestCase):
             ]
         })
 
-        seq.proccess_input()
+        seq.process_input()
 
         self.assertTrue(seq.translators_sequence[0].in_place_translation)
 

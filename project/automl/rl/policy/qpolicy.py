@@ -1,4 +1,4 @@
-from automl.component import  ParameterSignature, requires_input_proccess
+from automl.component import  ParameterSignature, requires_input_process
 
 
 import torch
@@ -18,12 +18,12 @@ class QPolicy(Policy):
         
     }   
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()       
+        super()._process_input_internal()       
 
         
-    @requires_input_proccess
+    @requires_input_process
     def get_action_val_from_model_output(self,  q_values, state):
 
         #tensor of max values and tensor of indexes
@@ -38,8 +38,8 @@ class MaskedQPolicy(QPolicy):
 
     INVALID_Q_VALUE = -1e9
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
     def _normalize_action_mask(self, action_mask, q_values):
         '''
@@ -77,7 +77,7 @@ class MaskedQPolicy(QPolicy):
 
         return masked_q_values  
 
-    @requires_input_proccess
+    @requires_input_process
     def random_prediction(self, state):
         action_mask = state["action_mask"]
         return self.output_action_shape.sample(action_mask)

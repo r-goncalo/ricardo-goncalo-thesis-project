@@ -1,6 +1,6 @@
 
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.utils.json_utils.json_component_utils import gen_component_from
 from automl.basic_components.exec_component import ExecComponent
@@ -29,15 +29,15 @@ class EvaluatorComponent(ExecComponent):
         if self.values["last_evaluation"] == 0:
             self.values["last_evaluation"] = {}
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
 
     # EVALUATION -------------------------------------------------------------------------------
 
     
-    @requires_input_proccess # needs to be extended
+    @requires_input_process # needs to be extended
     def get_metrics_strings(self) -> list[str]:
         '''
         Gets the keys for the evaluation this evaluator
@@ -45,7 +45,7 @@ class EvaluatorComponent(ExecComponent):
         '''
         return []
     
-    @requires_input_proccess
+    @requires_input_process
     def evaluate(self, component_to_evaluate : Component) -> dict:
         '''
         Returns a dictionary with the results of the evaluation
@@ -98,13 +98,18 @@ class ComponentWithEvaluator(Component):
         
         self.last_evaluation = {}
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         self.component_evaluator : EvaluatorComponent = self.get_input_value("component_evaluator", look_in_attribute_with_name="component_evaluator")        
     
-    @requires_input_proccess
+    def pass_evaluation(self, evaluation):
+        '''
+        Passes an evaluation of this component to it for internal processing, such as verifying if the algorithm is over
+        '''
+
+    @requires_input_process
     def evaluate_this_component(self) -> dict:
         
         '''
@@ -121,12 +126,9 @@ class ComponentWithEvaluator(Component):
     def _evaluate_this_component(self) -> dict:
         return self.component_evaluator.evaluate(self)
 
-    @requires_input_proccess
+    @requires_input_process
     def get_last_evaluation(self):
         
-        if self.component_evaluator is None:
-            raise Exception("This component does not have an evaluator")
-        
-        to_return = self.values.get("last_evaluation")
+        to_return = self.values.get("last_evaluation", None)
         
         return to_return

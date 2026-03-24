@@ -51,7 +51,7 @@ class ComponentParameterSignature(ParameterSignature):
 
 
     @classmethod
-    def proccess_value_in_input(cls, component_with_input, key, value, input_if_generated=None):
+    def process_value_in_input(cls, component_with_input, key, value, input_if_generated=None):
 
         '''
         Processes the value in the input to a component
@@ -78,7 +78,7 @@ class ComponentParameterSignature(ParameterSignature):
         
         try:
         
-            return ComponentParameterSignature.proccess_value_in_input(component_with_input, key, value, input_if_generated)
+            return ComponentParameterSignature.process_value_in_input(component_with_input, key, value, input_if_generated)
         
         except Exception as e:
 

@@ -15,9 +15,9 @@ class RLTrainerComponentParallel(RLTrainerComponent):
                                 
                        }
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         if not isinstance(self.env, ParallelEnvironmentComponent):
             raise Exception(f"Parallel RL training requires parallel component")
@@ -51,7 +51,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
     
 
 
-    def proccess_env_step_for_agents(self, i_episode, agents_names : list[str], actions, observations, rewards, terminations, truncations):
+    def process_env_step_for_agents(self, i_episode, agents_names : list[str], actions, observations, rewards, terminations, truncations):
 
         done = True
 
@@ -88,7 +88,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
             observations, rewards, terminations, truncations, infos = self.env.step(actions)
 
-            done = self.proccess_env_step_for_agents(i_episode, agent_names, actions, observations, rewards, terminations, truncations)
+            done = self.process_env_step_for_agents(i_episode, agent_names, actions, observations, rewards, terminations, truncations)
 
             self.values["episode_steps"] = self.values["episode_steps"] + 1
             self.values["total_steps"] = self.values["total_steps"] + 1

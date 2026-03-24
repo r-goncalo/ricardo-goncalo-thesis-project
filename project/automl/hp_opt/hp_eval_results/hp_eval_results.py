@@ -27,7 +27,7 @@ def get_hp_opt_results_logger(experiment_path, results_filename=RESULTS_FILENAME
                                         "create_new_directory" : False
                                       })
 
-    hyperparameter_optimization_results.proccess_input_if_not_processed()
+    hyperparameter_optimization_results.process_input_if_not_processed()
 
     return hyperparameter_optimization_results
 
@@ -406,7 +406,7 @@ def get_results_of_configuration_in_path(configuration_path,
 
                                   })
 
-        results_logger_of_config.proccess_input()
+        results_logger_of_config.process_input()
 
         return results_logger_of_config
 

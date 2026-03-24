@@ -3,7 +3,7 @@
 from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.rl.learners.learner_component import LearnerSchema
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.rl.learners.q_learner import DeepQLearnerSchema, QLearnerSchema
 from automl.ml.models.torch_model_components import TorchModelComponent
 from automl.ml.models.torch_model_utils import model_parameter_distance
@@ -18,9 +18,9 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
         "compare_old_and_new_model_predictions" : ParameterSignature(default_value=True)
     }
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.__agent_model = self.agent.policy.model
 

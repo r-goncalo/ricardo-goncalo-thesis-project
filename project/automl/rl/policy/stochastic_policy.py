@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from automl.component import ParameterSignature, requires_input_proccess
+from automl.component import ParameterSignature, requires_input_process
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.utils.shapes_util import double_final_size
@@ -30,13 +30,13 @@ class StochasticPolicy(Policy):
         
     parameters_signature = {}   
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         
         
     
-    @requires_input_proccess
+    @requires_input_process
     def get_action_val_from_model_output(self, model_output, state):
 
         distribution = self.distribution_from_model_output(model_output, state)
@@ -124,9 +124,9 @@ class CategoricalStochasticPolicy(StochasticPolicy):
     parameters_signature = {
     }   
     
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         
     # EXPOSED METHODS --------------------------------------------------------------------------------------------------------
@@ -192,8 +192,8 @@ class MaskedCategoricalStochasticPolicy(CategoricalStochasticPolicy):
 
     INVALID_LOGIT = -1e9
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
 
     def _normalize_action_mask(self, action_mask, logits):

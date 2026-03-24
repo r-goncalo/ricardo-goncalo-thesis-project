@@ -1,5 +1,5 @@
 
-from automl.component import Component, requires_input_proccess
+from automl.component import Component, requires_input_process
 from automl.core.input_management import ParameterSignature
 from automl.core.advanced_input_management import ComponentParameterSignature, LookableParameterSignature
 
@@ -30,7 +30,7 @@ class DynamicValue(Component):
         '''A method meant to be implemented, calculates with current state'''
         raise NotImplementedError()
 
-    @requires_input_proccess
+    @requires_input_process
     def value(self) -> any:
         '''A method that can be reimplemented with regards to changing state after calculating value'''
         return self._calc_value()
@@ -43,8 +43,8 @@ class DynamicValueBasedOnIter(DynamicValue):
     Implements value(), which generates a value that is variable
     '''
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self.values["iteration"] = 0
 
@@ -69,8 +69,8 @@ class DynamicValueBasedOnComponent(DynamicValue):
     Implements value(), which generates a value given on the context of the passed component
     '''
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
     
     parameters_signature = {
@@ -79,8 +79,8 @@ class DynamicValueBasedOnComponent(DynamicValue):
 
     }    
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self._input_component : Component = self.get_input_value("input_component")
 
@@ -102,8 +102,8 @@ class DynamicLinearValueInRange(DynamicValue):
 
     }    
 
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
 
         self._initial_value = self.get_input_value("initial_value")
         self._final_value = self.get_input_value("final_value")
@@ -124,9 +124,9 @@ class DynamicLinearValueInRangeBasedOnComponent(DynamicLinearValueInRange, Dynam
 
     }    
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self._input_for_fun_key = self.get_input_value("input_for_fun_key")
 
@@ -142,7 +142,7 @@ class DynamicLinearValueInRangeBasedOnComponent(DynamicLinearValueInRange, Dynam
             globalWriteLine(f"Created Dynamic Linear Value with projection for function:\n    {input_string} -> {output_string}")
             globalWriteLine(f"Using function: {self._initial_value} + {self._slope_of_fun} * X ")
 
-    @requires_input_proccess
+    @requires_input_process
     def _calc_value(self):
         
         value_to_return = self._initial_value + self._slope_of_fun * self._input_component.values[self._input_for_fun_key]
@@ -161,9 +161,9 @@ class DynamicLinearValueInRangeBasedOnIter(DynamicLinearValueInRange, DynamicVal
 
     }    
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
 
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
 
         self._slope_of_fun = (self._final_value - self._initial_value) / (self._input_for_fun_max_value)

@@ -1,6 +1,6 @@
 from automl.loggers.debug.component_with_logging_debug import ComponentDebug
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
-from automl.component import requires_input_proccess
+from automl.component import requires_input_process
 from automl.loggers.logger_component import ComponentWithLogging
 import torch
 

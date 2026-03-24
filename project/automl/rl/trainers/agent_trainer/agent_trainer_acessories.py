@@ -1,5 +1,5 @@
 from automl.basic_components.dynamic_value import get_value_or_dynamic_value
-from automl.component import Component, ParameterSignature, requires_input_proccess
+from automl.component import Component, ParameterSignature, requires_input_process
 
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
@@ -25,9 +25,9 @@ class AgentTrainerTrainingEnder(AcessoryComponent, ComponentWithLogging):
                         }    
     
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
                 
         self.affected_component : AgentTrainer = self.affected_component
 
@@ -44,7 +44,7 @@ class AgentTrainerTrainingEnder(AcessoryComponent, ComponentWithLogging):
     def check_if_should_end(self, values):
         return False
 
-    @requires_input_proccess
+    @requires_input_process
     def as_fun(self, values : dict = None):
         '''To be called after a functionality is executed'''
 
@@ -84,9 +84,9 @@ class AgentTrainerConvergenceDetector(AgentTrainerTrainingEnder):
                         }    
     
     
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
         self.standard_deviation_treshold = self.get_input_value("standard_deviation_treshold")
 
@@ -156,9 +156,9 @@ class AgentTrainerSlopeConvergenceDetector(AgentTrainerTrainingEnder):
 
     # INITIALIZATION ----------------------------------------------------------------------
 
-    def _proccess_input_internal(self):
+    def _process_input_internal(self):
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
 
 
         self.slope_threshold = self.get_input_value("slope_threshold")

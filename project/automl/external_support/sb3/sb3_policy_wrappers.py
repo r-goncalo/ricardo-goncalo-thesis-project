@@ -1,6 +1,6 @@
 
 
-from automl.component import  ParameterSignature, requires_input_proccess
+from automl.component import  ParameterSignature, requires_input_process
 
 
 
@@ -14,8 +14,8 @@ class SB3Wrapper(PolicyInterface):
         "sb3_model" : ParameterSignature(default_value="dqn-MountainCar-v0")
     }    
     
-    def _proccess_input_internal(self):
-        super()._proccess_input_internal()
+    def _process_input_internal(self):
+        super()._process_input_internal()
         
         self.sb3_model = self.get_input_value("sb3_model")
         
@@ -23,7 +23,7 @@ class SB3Wrapper(PolicyInterface):
             self.sb3_model = load_sb3_dqn_model(self.sb3_model)
     
     
-    @requires_input_proccess
+    @requires_input_process
     def predict(self, state):
     
         action, hidden_state = self.sb3_model.predict(state, deterministic=True) #deterministic = True uses policy, deterministic = False simulates training behavior
@@ -34,7 +34,7 @@ class SB3Wrapper(PolicyInterface):
     
     
         
-    @requires_input_proccess
+    @requires_input_process
     def random_prediction(self, state):
         action, hidden_state =  self.sb3_model.predict(state, deterministic=False)
         return action

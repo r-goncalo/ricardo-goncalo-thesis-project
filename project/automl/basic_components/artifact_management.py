@@ -260,9 +260,9 @@ class ArtifactComponent(Component):
         os.makedirs(new_folder_path, exist_ok=True)
 
 
-    def _proccess_input_internal(self): #this is the best method to have initialization done right after
+    def _process_input_internal(self): #this is the best method to have initialization done right after
         
-        super()._proccess_input_internal()
+        super()._process_input_internal()
         
         # self.get_artifact_directory()
 
