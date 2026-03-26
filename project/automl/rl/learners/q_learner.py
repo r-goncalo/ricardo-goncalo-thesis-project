@@ -139,7 +139,7 @@ class DeepQLearnerSchema(QLearnerSchema):
 
         self.custom_data_beyond_obs = [key for key in self.policy.input_state_shape.keys() if key != "observation"]
         
-        self.model = self.policy.model
+        self.model = self.policy.get_model()
         
         self.number_optimizations_done = 0
         
@@ -154,12 +154,14 @@ class DeepQLearnerSchema(QLearnerSchema):
                         
             self.lg.writeLine("Target network found already in exposed values, using that...")
             self.target_policy : QPolicy = self.values["target_policy"]
+            self.target_net = self.target_policy.get_model()
 
         elif "target_policy" in self.input.keys():
             
             self.lg.writeLine("There was already a target network defined in the input")
             self.target_policy : QPolicy  = self.get_input_value("target_policy")
             self.values["target_policy"] = self.target_policy
+            self.target_net = self.target_policy.get_model()
             
         else:
             self.lg.writeLine("No target network previously defined, creating a new one...")

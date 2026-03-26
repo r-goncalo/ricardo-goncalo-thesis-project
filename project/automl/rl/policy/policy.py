@@ -115,7 +115,9 @@ class Policy(PolicyInterface, ComponentWithLogging):
         self.values["model"] = self.model
 
 
-
+    @requires_input_process
+    def get_model(self):
+        return self.model
     
     @requires_input_process
     def get_policy_output_shape(self):
