@@ -290,10 +290,7 @@ class TorchModelComponent(ModelComponent, StatefulComponent, ComponentWithLoggin
 
         if hasattr(self, "model"):
             self._save_model()
-            
-        else:
-            globalWriteLine(f"{self.name}: WARNING: Saving state of Torch model state without ever reaching the point of initializing its model")
-    
+                
     
     def _load_state_internal(self) -> None:
         
