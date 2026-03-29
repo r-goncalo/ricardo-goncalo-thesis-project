@@ -15,10 +15,10 @@ def compute_values_estimates(critic_model : TorchModelComponent,
     Note that this may differ from the critic values computed from the critic before learning starts, as learning may be called multiple times
     '''
 
-    observation_critic_values = critic_model.predict(observation_batch).squeeze(-1)
+    observation_critic_values = critic_model.predict(observation_batch)
 
     with torch.no_grad():
-        next_obs_critic_values = critic_model.predict(next_observation_batch).squeeze(-1)
+        next_obs_critic_values = critic_model.predict(next_observation_batch)
 
     next_obs_critic_values = next_obs_critic_values * (1 - done_batch)
 
@@ -32,22 +32,17 @@ def compute_critic_loss(observation_critic_values, returns, obs_old_critic_value
     Computes the loss for the critic clipped 
     '''
 
-    observation_critic_values = observation_critic_values.view(-1)
-    returns = returns.view(-1)
-    obs_old_critic_values = obs_old_critic_values.view(-1)
-
     value_loss_unclipped = (observation_critic_values - returns).pow(2)
-    
+
     values_clipped = obs_old_critic_values + torch.clamp(
         observation_critic_values - obs_old_critic_values,
         -clip_epsilon,
         clip_epsilon
     )
-    
+
     value_loss_clipped = (values_clipped - returns).pow(2)
-    
     value_loss_batch = torch.max(value_loss_unclipped, value_loss_clipped)
-    
+
     value_loss_mean = value_loss_batch.mean()
     value_loss = value_loss_mean * value_loss_coef
 
@@ -106,10 +101,14 @@ def compute_gae_and_returns(
         returns
     """
 
-    reward_batch = reward_batch.view(-1)
-    observation_critic_values = observation_critic_values.view(-1)
-    next_obs_critic_values = next_obs_critic_values.view(-1)
-    done_batch = done_batch.view(-1)
+    if reward_batch.dim() == 1:
+        reward_batch = reward_batch.unsqueeze(-1)
+    if observation_critic_values.dim() == 1:
+        observation_critic_values = observation_critic_values.unsqueeze(-1)
+    if next_obs_critic_values.dim() == 1:
+        next_obs_critic_values = next_obs_critic_values.unsqueeze(-1)
+    if done_batch.dim() == 1:
+        done_batch = done_batch.unsqueeze(-1)
 
     critic_obs_pred_error = (
         reward_batch
@@ -122,7 +121,11 @@ def compute_gae_and_returns(
         device=critic_obs_pred_error.device
     )
 
-    running_advantage = 0
+    running_advantage = torch.zeros_like(
+        critic_obs_pred_error[0],
+        device=critic_obs_pred_error.device
+    )
+
     for t in reversed(range(len(critic_obs_pred_error))):
         running_advantage = (
             critic_obs_pred_error[t]
@@ -132,10 +135,9 @@ def compute_gae_and_returns(
 
     returns = non_normalized_advantages + observation_critic_values.detach()
 
-    advantages = (
-            (non_normalized_advantages - non_normalized_advantages.mean()) /
-            (non_normalized_advantages.std() + eps)
-    )
+    adv_mean = non_normalized_advantages.mean(dim=0, keepdim=True)
+    adv_std = non_normalized_advantages.std(dim=0, keepdim=True)
+    advantages = (non_normalized_advantages - adv_mean) / (adv_std + eps)
 
     return critic_obs_pred_error, non_normalized_advantages, advantages, returns
 

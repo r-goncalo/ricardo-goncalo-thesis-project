@@ -28,8 +28,6 @@ class RLTrainerMAPPODebug(RLTrainerMAPPO, ComponentDebug):
         self,
         prev_whole_state,
         next_whole_state,
-        reward,
-        done,
         observations,
         rewards,
         actions,
@@ -41,7 +39,7 @@ class RLTrainerMAPPODebug(RLTrainerMAPPO, ComponentDebug):
             next_obs = next_whole_state.get("observation", None)
 
             self.lg.writeLine(
-                f"{self.values['episodes_done']}, {self.values['episode_steps']}: {generate_str_fixed_chars(prev_obs, 50)} -> {generate_str_fixed_chars(next_obs, 50)}, {done} with {reward} reward\n",
+                f"{self.values['episodes_done']}, {self.values['episode_steps']}: {generate_str_fixed_chars(prev_obs, 50)} -> {generate_str_fixed_chars(next_obs, 50)}, {dones} with {rewards} reward\n",
                 file="mappo_shared_transitions.txt",
                 use_time_stamp=False,
             )
@@ -56,8 +54,6 @@ class RLTrainerMAPPODebug(RLTrainerMAPPO, ComponentDebug):
         return super()._push_shared_transition(
             prev_whole_state,
             next_whole_state,
-            reward,
-            done,
             observations,
             rewards,
             actions,

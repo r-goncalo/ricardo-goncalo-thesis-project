@@ -301,7 +301,12 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         if critic_model_passed_input is not None:
             self.critic.pass_input(critic_model_passed_input)
 
-        self.critic.pass_input({"output_shape": 1})
+        critic_output_shape = self.critic.get_input_value("output_shape")
+        if critic_output_shape is None:
+            self.critic.pass_input({"output_shape": 1})
+        
+        else:
+            self.lg.writeLine(f"Critic model already has output shape defined: {critic_output_shape}")
 
         self.critic.process_input_if_not_processed()
 
@@ -320,9 +325,9 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
 
         interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device).detach()
             
-        interpreted_trajectory["reward"] = interpret_unit_values(trajectory["reward"], self.device).detach()
+        interpreted_trajectory["reward"] = interpret_values(trajectory["reward"], self.device).detach()
 
-        interpreted_trajectory["done"]  = interpret_unit_values(trajectory["done"], self.device).detach()
+        interpreted_trajectory["done"] = interpret_values(trajectory["done"], self.device).detach()
 
 
         if "observation_old_critic_value" in trajectory:
@@ -368,6 +373,9 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         next_observation_batch = interpreted_trajectory["next_observation"]
         done_batch = interpreted_trajectory["done"]
 
+        if "alive_agents" in interpreted_trajectory.keys():
+            # mask
+
         return ppo.compute_values_estimates(
             self.critic,
             observation_batch,
@@ -384,6 +392,9 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         returns = interpreted_trajectory["returns"]
         obs_old_critic_values = interpreted_trajectory["observation_old_critic_value"]
 
+        if "alive_agents" in interpreted_trajectory.keys():
+            # mask
+
         return ppo.compute_critic_loss(
             observation_critic_values,
             returns,
@@ -391,6 +402,7 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
             self.clip_epsilon,
             self.value_loss_coef
         )
+    
     @requires_input_process
     def compute_error_and_advantage(self, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
 
@@ -398,6 +410,10 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
+
+        if "alive_agents" in interpreted_trajectory.keys():
+            # mask
+
 
         return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
     
