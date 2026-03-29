@@ -72,7 +72,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
                 
         state = {**state}
         new_obs = self.process_env_state(state["observation"])
-        state["observation"] = self._get_state_memory_with_new(new_obs)
+        state["observation"] = self.get_internal_agent_state_with_new(new_obs)
         return self.policy.predict(state)
     
     @requires_input_process
@@ -82,7 +82,7 @@ class AgentSchemaWithStateMemory(AgentSchema):
         
         state = {**state}
         new_obs = self.process_env_state(state["observation"])
-        state["observation"] = self._get_state_memory_with_new(new_obs)
+        state["observation"] = self.get_internal_agent_state_with_new(new_obs)
         return policy_method(state)
         
     
@@ -110,11 +110,11 @@ class AgentSchemaWithStateMemory(AgentSchema):
         new_state = {**new_state}
         new_obs = self.process_env_state(new_state.pop("observation"))
 
-        self.state_memory["observation"].copy_(self._get_state_memory_with_new(new_obs))
+        self.state_memory["observation"].copy_(self.get_internal_agent_state_with_new(new_obs))
         self.state_memory.update(new_state)
         
        
-    def _get_state_memory_with_new(self, new_state):
+    def get_internal_agent_state_with_new(self, new_state):
         '''
         Returns a new state memory tensor with the new_state added,
         shifting the previous states to the left.

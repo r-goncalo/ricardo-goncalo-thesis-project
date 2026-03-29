@@ -95,9 +95,9 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
         return values, next_values
     
-    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory):
+    def compute_error_and_advantage(self, interpreted_trajectory):
         critic_obs_pred_error, non_normalized_advantages, advantages, returns = super().compute_error_and_advantage(
-            discount_factor, interpreted_trajectory
+            interpreted_trajectory
         )
 
         if self._should_log():
@@ -115,7 +115,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             for i in range(len(values)):
                 
                 self.lg.writeLine(
-                    f"{i}: {critic_obs_pred_error[i]} = {reward_batch[i]} + {discount_factor} * {next_values[i]} - {values[i]}",
+                    f"{i}: {critic_obs_pred_error[i]} = {reward_batch[i]} + {self.discount_factor} * {next_values[i]} - {values[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )
@@ -130,7 +130,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             for i in reversed(range(len(non_normalized_advantages))):
                 
                 self.lg.writeLine(
-                    f"{i}: {non_normalized_advantages[i]} = {critic_obs_pred_error[i]} + {discount_factor} * {self.lambda_gae} * {prev_advantage} * (1 - {done_batch[i]}) -> {advantages[i]}",
+                    f"{i}: {non_normalized_advantages[i]} = {critic_obs_pred_error[i]} + {self.discount_factor} * {self.lambda_gae} * {prev_advantage} * (1 - {done_batch[i]}) -> {advantages[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )

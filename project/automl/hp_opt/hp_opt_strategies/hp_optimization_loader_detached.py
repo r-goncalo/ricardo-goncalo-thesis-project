@@ -591,8 +591,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
         '''Runs the optimization function for a trial (essentially the objective)'''
 
-        self.lg.writeLine(f"RUN OPTIMIZATION STARTING FOR TRIAL {trial.number}")
-
         if self.check_if_should_stop_execution_earlier(raise_exception=False):
             self.check_if_should_stop_execution_earlier()
     
@@ -615,11 +613,7 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
 
             raise e
         
-        self.lg.writeLine(f"RUN ENDING FOR TRIAL {trial.number}")
-
         to_return = self._compute_result_for_trial_run(trial)
-
-        self.lg.writeLine(f"RUN REPORTING FOR TRIAL {trial.number}")
 
         return to_return
         

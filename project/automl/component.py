@@ -67,6 +67,7 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
         
         self.__input_was_processed = False #to track if the instance has had its input processing before any operations that needed it
         self.__input_is_being_processed = False
+        self.__did_essential_input_processing = False
 
         self.__notes = [] #notes are a list of strings
 

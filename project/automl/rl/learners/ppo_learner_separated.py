@@ -35,7 +35,7 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
     '''
 
     parameters_signature = {
-        "device": ParameterSignature(ignore_at_serialization=True),
+        "device": ParameterSignature(ignore_at_serialization=True, get_from_parent=True),
 
         "optimizer": ComponentParameterSignature(
             default_component_definition=(
@@ -58,6 +58,7 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
         "lambda_gae" : ParameterSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
                                      custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
 
+        "discount_factor" : ParameterSignature(get_from_parent=True)
     }
 
     def _process_input_internal(self):
@@ -91,6 +92,8 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
         self.clip_epsilon = self.get_input_value("clip_epsilon")
         self.entropy_coef = get_value_of_type_or_component(self, "entropy_coef", float)
         self.lambda_gae = self.get_input_value("lambda_gae")
+        self.discount_factor = self.get_input_value("discount_factor")
+        
 
         self.number_of_times_optimized = 0
 
@@ -110,10 +113,6 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
 
         interpreted_trajectory["action_val"] = interpret_values(
             trajectory["action_val"], self.device
-        ).detach()
-
-        interpreted_trajectory["advantages"] = interpret_unit_values(
-            trajectory["advantages"], self.device
         ).detach()
 
         for key in self.custom_data_beyond_obs:
@@ -157,14 +156,15 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
             self.entropy_coef
         )
     
-    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
+    @requires_input_process
+    def compute_error_and_advantage(self, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
 
         reward_batch = interpreted_trajectory["reward"]
         next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
 
-        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, discount_factor, self.lambda_gae)
+        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
     
 
 
@@ -232,7 +232,7 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
     '''
 
     parameters_signature = {
-        "device": ParameterSignature(ignore_at_serialization=True),
+        "device": ParameterSignature(ignore_at_serialization=True, get_from_parent=True),
 
         "critic_model": ComponentParameterSignature(
             default_component_definition=(
@@ -268,6 +268,8 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         "lambda_gae" : ParameterSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
                                      custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
 
+        "discount_factor" : ParameterSignature(get_from_parent=True),
+
     }
 
     def _process_input_internal(self):
@@ -281,6 +283,7 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         self.clip_epsilon = self.get_input_value("clip_epsilon")
         self.value_loss_coef = self.get_input_value("value_loss_coef")
         self.lambda_gae = self.get_input_value("lambda_gae")
+        self.discount_factor = self.get_input_value("discount_factor")
 
         self.number_of_times_optimized = 0
 
@@ -310,15 +313,47 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
             self.critic_optimizer.pass_input({"name": "CriticOptimizer"})
 
     def interpret_trajectory(self, trajectory):
-        interpreted_trajectory = super().interpret_trajectory(trajectory)
 
-        interpreted_trajectory["returns"] = interpret_unit_values(
-            trajectory["returns"], self.device
-        ).detach()
+        interpreted_trajectory = {**trajectory}
+        
+        interpreted_trajectory["observation"] = interpret_values(trajectory["observation"], self.device).detach()
 
-        interpreted_trajectory["observation_old_critic_value"] = interpret_unit_values(
-            trajectory["observation_old_critic_value"], self.device
-        ).detach()
+        interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device).detach()
+            
+        interpreted_trajectory["reward"] = interpret_unit_values(trajectory["reward"], self.device).detach()
+
+        interpreted_trajectory["done"]  = interpret_unit_values(trajectory["done"], self.device).detach()
+
+
+        if "observation_old_critic_value" in trajectory:
+            interpreted_trajectory["observation_old_critic_value"] = interpret_unit_values(
+                trajectory["observation_old_critic_value"], self.device
+            ).detach()
+
+        if "next_obs_old_critic_value" in trajectory:
+            interpreted_trajectory["next_obs_old_critic_value"] = interpret_unit_values(
+                trajectory["next_obs_old_critic_value"], self.device
+            ).detach()
+
+        if "returns" in trajectory:
+            interpreted_trajectory["returns"] = interpret_unit_values(
+                trajectory["returns"], self.device
+            ).detach()
+
+        if "advantages" in trajectory:
+            interpreted_trajectory["advantages"] = interpret_unit_values(
+                trajectory["advantages"], self.device
+            ).detach()
+
+        if "critic_obs_pred_error" in trajectory:
+            interpreted_trajectory["critic_obs_pred_error"] = interpret_unit_values(
+                trajectory["critic_obs_pred_error"], self.device
+            ).detach()
+
+        if "non_normalized_advantages" in trajectory:
+            interpreted_trajectory["non_normalized_advantages"] = interpret_unit_values(
+                trajectory["non_normalized_advantages"], self.device
+            ).detach()
 
         return interpreted_trajectory
 
@@ -356,15 +391,15 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
             self.clip_epsilon,
             self.value_loss_coef
         )
-    
-    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
+    @requires_input_process
+    def compute_error_and_advantage(self, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
 
         reward_batch = interpreted_trajectory["reward"]
         next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
 
-        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, discount_factor, self.lambda_gae)
+        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
     
 
     def _compute_losses(self, interpreted_trajectory):

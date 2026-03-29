@@ -219,7 +219,10 @@ class AgentSchema(ComponentWithLogging, StatefulComponent):
                 
         return self.state_memory
              
-         
-        
+
+    @requires_input_process 
+    def get_internal_agent_state_with_new(self, new_state):
+        '''Gets the agent's internal state taking into account a new state received by the environment'''
+        return new_state
         
 

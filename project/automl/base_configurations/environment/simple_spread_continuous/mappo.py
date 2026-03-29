@@ -34,7 +34,8 @@ def config_dict():
         "environment": (
             PettingZooEnvironmentWrapperParallel,
             {
-                "environment": "multiwalker"
+                "environment": "simple_spread",
+                "environment_input" : {"continuous_actions" : True}
             }
         ),
 
@@ -291,8 +292,8 @@ def hyperparameter_optimization_input():
         "hyperparameters_range_list" : hyperparameter_suggestions(),
         "hyperparameters_to_optimize" : hyperparameters_to_optimize(),
         "n_trials" : 200,
-        "n_steps" : 40,
-        "eta" : 2,
+        "steps" : 40,
+        "hyperband_eta" : 2,
         "use_best_component_strategy_with_index" : 5,
         "do_initial_evaluation" : True,
         "pruner" : [OptunaPrunerWrapper, {"optuna_pruner" : "Percentile", "pruner_input" : {"percentile" : 90.0, "n_warmup_steps" : 5}}],
@@ -306,7 +307,7 @@ def hyperparameters_to_optimize():
     
     return [
         [15, ["optimization_interval", "batch_size", "times_to_learn", "times_to_learn_critic"]],
-        [15, ["learning_rate", "critic_learning_rate", "clip_epsilon", "clip_epsilon_critic", "lambda_gae", "critic_lambda_gae", "value_loss_coef"]],
+        [15, ["learning_rate", "critic_learning_rate", "clip_epsilon", "clip_epsilon_critic", "lambda_gae", "critic_lambda_gae", "value_loss_coef", "discount_factor"]],
         [15, ["entropy_coef_strat", "clip_grad_strat", "clip_grad_strat_critic"]],
         [15, ["policy_head_layers", "critic_head_layers", "shared_layers", "state_memory_size"]],
     ]
@@ -357,6 +358,15 @@ def hyperparameter_suggestions():
             value_suggestion=("int", {"low": 1, "high": 4}),
             hyperparameter_localizations=[
                 [*agents_input, "state_memory_size"]
+            ]
+        ),
+
+        # DISCOUNT FACTOR
+        SingleHyperparameterSuggestion(
+            name="discount_factor",
+            value_suggestion=("float", {"low": 0.95, "high": 0.999, "log" : True}),
+            hyperparameter_localizations=[
+                [*rl_trainer_input, "discount_factor"]
             ]
         ),
 
@@ -529,7 +539,7 @@ def hyperparameter_suggestions():
                             ]),
                             "input_for_fun_max_value":
                             ('relative',[
-                                        ("__get_by_type__", {"type": PPOLearnerOnlyCritic}),
+                                        ("__get_by_type__", {"type": PPOLearnerNoCritic}),
                                         ("__get_exposed_value__", {
                                             "value_localization": ["optimizations_to_do"]
                                         })
@@ -625,7 +635,7 @@ def hyperparameter_suggestions():
             ],
             hyperparameter_suggestion_for_list=
                 SingleHyperparameterSuggestion(
-                    value_suggestion=("cat",{"choices":[128,256,512]})
+                    value_suggestion=("cat",{"choices":[64, 128,256,512]})
                 )
         ),
 

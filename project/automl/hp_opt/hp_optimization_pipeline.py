@@ -152,6 +152,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
         self.start_with_given_values = self.get_input_value("start_with_given_values")
         self.study_name=self.get_input_value("database_study_name")
         self.n_steps = self.get_input_value("steps")
+        self.max_steps = self.n_steps
         
         self.n_trials = self.get_input_value("n_trials")
         self.evaluator_component : EvaluatorComponent = self.get_input_value("evaluator_component", look_in_attribute_with_name="evaluator_component")
@@ -350,7 +351,7 @@ class HyperparameterOptimizationPipeline(ExecComponent, ComponentWithLogging, Co
 
     def _setup_component_to_optimize_after_creation(self, trial : optuna.Trial, component_to_test : Component_to_opt_type):
 
-        component_to_test.pass_input({"times_to_run" :  self.n_steps }) # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
+        component_to_test.pass_input({"times_to_run" :  self.max_steps }) # it is responsibility of the component being optimized to deal with any cut in computation it should made from times_to_run
         
     
     def _create_component_to_optimize(self, trial : optuna.Trial) -> Component_to_opt_type:

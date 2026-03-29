@@ -4,9 +4,22 @@ from automl.rl.environment.environment_components import EnvironmentComponent
 from automl.component import requires_input_process
 import gymnasium
 from automl.utils.shapes_util import clone_shape
+from automl.core.input_management import ParameterSignature
 
 
 class PettingZooWrapper(EnvironmentComponent):
+
+    parameters_signature = { 
+        "environment_input": ParameterSignature(mandatory=False)
+
+    }
+
+    def _process_input_internal(self):
+        super()._process_input_internal()
+
+        self.environment_input = self.get_input_value("environment_input")
+        if self.environment_input is None:
+            self.environment_input = {}
 
     @requires_input_process
     def get_current_whole_state(self):

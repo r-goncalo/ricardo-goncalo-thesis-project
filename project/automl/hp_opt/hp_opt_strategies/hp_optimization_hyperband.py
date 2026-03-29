@@ -37,8 +37,6 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         self.eta = self.get_input_value("hyperband_eta")
         self.min_steps = self.get_input_value("hyperband_min_steps")
 
-        self.max_steps = self.n_steps
-
         self.max_steps_to_do_in_hyperband = self.max_steps - self.min_steps
 
         self.lg.writeLine(f"Finished processing input related to hyperband execution")

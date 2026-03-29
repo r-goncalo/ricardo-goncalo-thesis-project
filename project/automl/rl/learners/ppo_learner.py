@@ -29,7 +29,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
     parameters_signature = {
                                
-                        "device" : ParameterSignature(ignore_at_serialization=True),
+                        "device" : ParameterSignature(ignore_at_serialization=True, get_from_parent=True),
                         
                         "critic_model" : ComponentParameterSignature(
                             default_component_definition=(FullyConnectedModelSchema, {"hidden_layers" : 1, "hidden_size" : 64, "output_shape" : 1})    
@@ -56,6 +56,8 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
                         
                         "lambda_gae" : ParameterSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
                                                      custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
+
+                        "discount_factor" : ParameterSignature(get_from_parent=True)
 
                         }    
     
@@ -84,6 +86,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         self.entropy_coef = get_value_of_type_or_component(self, "entropy_coef", float)
         self.value_loss_coef = self.get_input_value("value_loss_coef")
         self.lambda_gae = self.get_input_value("lambda_gae")
+        self.discount_factor = self.get_input_value("discount_factor")
         
         self.number_of_times_optimized = 0
 
@@ -201,15 +204,15 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
         return ppo.compute_values_estimates(self.critic, observation_batch, next_observation_batch, done_batch)
     
-    
-    def compute_error_and_advantage(self, discount_factor, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
+    @requires_input_process
+    def compute_error_and_advantage(self, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
 
         reward_batch = interpreted_trajectory["reward"]
         next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
 
-        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, discount_factor, self.lambda_gae)
+        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
     
 
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):

@@ -111,7 +111,7 @@ class DeepQLearnerSchema(QLearnerSchema):
                         "target_update_learn_interval" : ParameterSignature(default_value=1, description="How many optimization times before we update the target model",
                                                                         custom_dict={"hyperparameter_suggestion" : [ "int", {"low": 1, "high": 10 }]}),
                         
-                        "device" : ParameterSignature(ignore_at_serialization=True),
+                        "device" : ParameterSignature(ignore_at_serialization=True, get_from_parent=True),
                         
                         "optimizer" : ComponentParameterSignature(
                             default_component_definition=(

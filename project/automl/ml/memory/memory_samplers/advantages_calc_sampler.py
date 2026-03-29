@@ -25,8 +25,6 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         super()._process_input_internal()
 
         self.learner : PPOLearner = self.get_input_value("learner")
-        
-        self.discount_factor = self.learner.get_input_value("discount_factor")
 
 
     def prepare(self, memory : MemoryComponent = None):
@@ -50,10 +48,10 @@ class PPOAdvantagesCalcSampler(MemorySampler):
                 processed_memory["next_obs_old_critic_value"] = next_obs_critic_values
                 
             # we compute the advantages using the whole memory
-            critic_obs_pred_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, 
+            critic_obs_pred_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage( 
                                                                                                                              processed_memory,
-                                                                                                                             observation_critic_values,
-                                                                                                                             next_obs_critic_values)
+                                                                                                                             processed_memory["observation_old_critic_value"],
+                                                                                                                             processed_memory["next_obs_old_critic_value"])
     
             processed_memory["critic_obs_pred_error"] = critic_obs_pred_error
             processed_memory["non_normalized_advantages"] = non_normalized_advantages

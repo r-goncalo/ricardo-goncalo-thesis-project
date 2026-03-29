@@ -69,7 +69,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
                                                  action=action, 
                                                  next_state=observation,
                                                    reward=reward, 
-                                                   termination=termination, 
+                                                   done=termination, 
                                                    truncated=truncation)
 
             done = done and termination

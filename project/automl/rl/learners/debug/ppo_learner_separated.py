@@ -228,14 +228,12 @@ class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
 
     def compute_error_and_advantage(
         self,
-        discount_factor,
         interpreted_trajectory,
         observation_critic_values=None,
         next_obs_critic_values=None,
     ):
         critic_obs_pred_error, non_normalized_advantages, advantages, returns = \
             super().compute_error_and_advantage(
-                discount_factor,
                 interpreted_trajectory,
                 observation_critic_values,
                 next_obs_critic_values,
@@ -266,7 +264,7 @@ class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
 
             for i in range(len(critic_obs_pred_error)):
                 self.lg.writeLine(
-                    f"{i}: {critic_obs_pred_error[i]} = {reward_batch[i]} + {discount_factor} * "
+                    f"{i}: {critic_obs_pred_error[i]} = {reward_batch[i]} + {self.discount_factor} * "
                     f"{next_obs_critic_values[i]} - {observation_critic_values[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
@@ -284,7 +282,7 @@ class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
             for i in reversed(range(len(non_normalized_advantages))):
                 self.lg.writeLine(
                     f"{i}: {non_normalized_advantages[i]} = {critic_obs_pred_error[i]} + "
-                    f"{discount_factor} * {self.lambda_gae} * {prev_advantage} * (1 - {done_batch[i]}) "
+                    f"{self.discount_factor} * {self.lambda_gae} * {prev_advantage} * (1 - {done_batch[i]}) "
                     f"-> {advantages[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
@@ -355,7 +353,7 @@ class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
 
         return value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss
 
-    def _learn(self, trajectory, discount_factor):
+    def _learn(self, trajectory):
 
         if self._should_log():
             self.lg.writeLine(

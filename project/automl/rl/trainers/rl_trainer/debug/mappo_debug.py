@@ -22,14 +22,6 @@ class RLTrainerMAPPODebug(RLTrainerMAPPO, ComponentDebug):
 
         self.note_agent_memory_coordination = self.get_input_value("note_agent_memory_coordination")
 
-
-        if self.note_agent_memory_coordination:
-            self.lg.writeLine(
-                "episode,total_step,agent_name,reward,done,has_observation,has_action\n",
-                file="mappo_agent_coordination.txt",
-                use_time_stamp=False,
-            )
-
         self.lg.writeLine("Finished MAPPO debug trainer setup\n")
 
     def _push_shared_transition(
@@ -41,22 +33,23 @@ class RLTrainerMAPPODebug(RLTrainerMAPPO, ComponentDebug):
         observations,
         rewards,
         actions,
-        dones,
+        dones, truncations, 
+        agent_names
     ):
         if self.note_agent_memory_coordination:
             prev_obs = prev_whole_state.get("observation", None)
             next_obs = next_whole_state.get("observation", None)
 
             self.lg.writeLine(
-                f"{self.values['episodes_done']}, {self.values['episode_steps']}: {generate_str_fixed_chars(prev_obs)} -> {generate_str_fixed_chars(next_obs)}, {done} with {reward} reward\n",
+                f"{self.values['episodes_done']}, {self.values['episode_steps']}: {generate_str_fixed_chars(prev_obs, 50)} -> {generate_str_fixed_chars(next_obs, 50)}, {done} with {reward} reward\n",
                 file="mappo_shared_transitions.txt",
                 use_time_stamp=False,
             )
 
             for agent_name in rewards.keys():
                 self.lg.writeLine(
-                    f"        {agent_name}: {generate_str_fixed_chars(observations.get(agent_name, None))} + {actions.get(agent_name, None)} -> {generate_str_fixed_chars(observations.get(agent_name, None))}, {dones.get(agent_name, None)} with {rewards.get(agent_name, None)} reward",
-                    file="mappo_agent_coordination.txt",
+                    f"        {agent_name}: {generate_str_fixed_chars(observations.get(agent_name, None), 50)} + {actions.get(agent_name, None)} -> {generate_str_fixed_chars(observations.get(agent_name, None), 50)}, {dones.get(agent_name, None)} with {rewards.get(agent_name, None)} reward",
+                    file="mappo_shared_transitions.txt",
                     use_time_stamp=False,
                 )
 
@@ -68,5 +61,6 @@ class RLTrainerMAPPODebug(RLTrainerMAPPO, ComponentDebug):
             observations,
             rewards,
             actions,
-            dones,
+            dones, truncations,
+            agent_names
         )

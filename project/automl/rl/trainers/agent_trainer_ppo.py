@@ -93,7 +93,7 @@ class AgentTrainerPPO(AgentTrainer):
 
         return {"observation" : prev_state["observation"], 
                               "action" : action, 
-                              "next_observation" : next_state["observation"], 
+                              "next_observation" : next_state, 
                               "reward" : reward, 
                               "log_prob" : self.last_log_prob, 
                               "done" : done,

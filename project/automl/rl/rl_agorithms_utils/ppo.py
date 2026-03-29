@@ -32,6 +32,10 @@ def compute_critic_loss(observation_critic_values, returns, obs_old_critic_value
     Computes the loss for the critic clipped 
     '''
 
+    observation_critic_values = observation_critic_values.view(-1)
+    returns = returns.view(-1)
+    obs_old_critic_values = obs_old_critic_values.view(-1)
+
     value_loss_unclipped = (observation_critic_values - returns).pow(2)
     
     values_clipped = obs_old_critic_values + torch.clamp(
@@ -101,6 +105,11 @@ def compute_gae_and_returns(
         advantages,
         returns
     """
+
+    reward_batch = reward_batch.view(-1)
+    observation_critic_values = observation_critic_values.view(-1)
+    next_obs_critic_values = next_obs_critic_values.view(-1)
+    done_batch = done_batch.view(-1)
 
     critic_obs_pred_error = (
         reward_batch

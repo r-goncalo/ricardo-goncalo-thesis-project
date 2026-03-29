@@ -8,6 +8,8 @@ from automl.rl.learners.ppo_learner_separated import PPOLearnerNoCritic, PPOLear
 from automl.core.input_management import ParameterSignature
 from automl.rl.trainers.agent_trainer_ppo import AgentTrainerPPOCriticAware
 
+import torch
+
 class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
 
     '''
@@ -31,7 +33,8 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
                                                                 ),
 
                        "batch_size" : ParameterSignature(mandatory=False, custom_dict={"hyperparameter_suggestion" : [ "cat", {"choices": [8, 16, 32, 64, 128, 256]}]}),
-
+                       
+                        "discount_factor" : ParameterSignature(get_from_parent=True),
 
                        }
     
@@ -70,7 +73,7 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
     def _initialize_critic_learner(self):
 
         self.critic_learner : PPOLearnerOnlyCritic = self.get_input_value("critic_learner")
-        critic_model_input = self.get_input_value("critic_model_input")
+        critic_model_input = self.critic_learner.get_input_value("critic_model_input")
         critic_model_input = {} if critic_model_input is None else critic_model_input 
         critic_model_input = {**critic_model_input, "input_shape" : self.whole_observation_shape}
         self.critic_learner.pass_input({"critic_model_input" : critic_model_input})
@@ -98,18 +101,21 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
                                 })
 
         
-    def _push_shared_transition(self, prev_whole_state, next_whole_state, reward, done, observations, rewards, actions, dones, agent_names):
+    def _push_shared_transition(self, prev_whole_state, next_whole_state, reward, done, observations, rewards, actions, dones, truncations, agent_names):
 
-        observation_critic_value = self.critic_learner.critic_pred(prev_whole_state)
-        next_observation_critic_value = self.critic_learner.critic_pred(next_whole_state)
+        prev_whole_obs = torch.tensor(prev_whole_state["observation"], device=self.device)
+        next_whole_obs = torch.tensor(next_whole_state["observation"], device=self.device)
+
+        observation_critic_value = self.critic_learner.critic_pred(prev_whole_obs) # this is a hotfix, transformer should be used
+        next_observation_critic_value = self.critic_learner.critic_pred(next_whole_obs)
 
         transition = {
-            "observation": prev_whole_state["observation"],
-            "next_observation": next_whole_state["observation"],
+            "observation": prev_whole_obs,
+            "next_observation": next_whole_obs,
             "reward": reward, 
             "done": done,
-            "observation_old_critic_value" : observation_critic_value,
-            "next_obs_old_critic_value" : next_observation_critic_value
+            "observation_old_critic_value" : observation_critic_value.item(),
+            "next_obs_old_critic_value" : next_observation_critic_value.item()
         }
 
         self.memory.push(transition)
@@ -119,12 +125,13 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
             agent_trainer = self.agents_trainers[agent_name]
 
             agent_trainer.observe_transiction_to(
-                new_state=observations[agent_name],
+                new_state=torch.tensor(observations[agent_name]["observation"], device=self.device),
                 action=actions[agent_name],
                 reward=rewards[agent_name],
                 done=dones[agent_name],
-                prev_critic_val=observation_critic_value,
-                next_critic_val=next_observation_critic_value
+                prev_critic_val=observation_critic_value.item(),
+                next_critic_val=next_observation_critic_value.item(),
+                truncated= truncations[agent_name]
                 )
 
     def run_single_episode(self, i_episode):
@@ -148,7 +155,7 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
 
             reward = self._aggregated_reward(rewards)
 
-            self._push_shared_transition(prev_whole_state, next_whole_state, reward, done, observations, rewards, actions, terminations, agent_names)
+            self._push_shared_transition(prev_whole_state, next_whole_state, reward, done, observations, rewards, actions, terminations, truncations, agent_names)
 
             self.after_environment_step(reward)
 

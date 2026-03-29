@@ -378,6 +378,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         if not self._has_pending_transition:
             return
 
+        elif not self.values["is_saving_in_memory"]:
+            self._clear_pending_transition()
+            return
+
         next_state = self.agent.get_current_state_in_memory()
 
         self.do_after_training_step(
@@ -487,15 +491,17 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         if prev_state is None and new_state is None and self._pending_next_state is None and self._pending_prev_state is None:
             raise Exception(f"Either prev state must be defined or new_state must be defined")
 
-        # REMEMBER THAT THE NEW STATE DOES NOT NEED METADATA
+
         if new_state is not None: # if we received a new state
-            pass
+            new_state = self.agent.get_internal_agent_state_with_new(new_state).clone()
 
         elif self._pending_next_state is not None: # if we have a pending next state
             new_state = self._pending_next_state
 
         else:
             new_state = self.agent.get_current_state_in_memory()
+
+
 
         if prev_state is not None:
             pass
