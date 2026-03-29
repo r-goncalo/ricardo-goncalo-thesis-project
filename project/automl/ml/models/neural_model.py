@@ -23,11 +23,11 @@ class FullyConnectedModelSchema(TorchModelComponent):
     # The actual model architecture
     class Model_Class(nn.Module):
         
-        def __init__(self, hidden_layers : list[int], activation_function="relu"):
+        def __init__(self, passed_layers : list[int], activation_function="relu"):
             super().__init__()
             
-            self.input_size = hidden_layers[0]
-            self.output_size = hidden_layers[-1]
+            self.input_size = passed_layers[0]
+            self.output_size = passed_layers[-1]
 
 
             if activation_function == "relu":
@@ -38,15 +38,22 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
             layers = []
 
-            # for each layer except the last two, connect them with activation function
-            for i in range(len(hidden_layers) - 2):
-                layers.append(nn.Linear(hidden_layers[i], hidden_layers[i + 1]))
-                layers.append(activation_function())
+            if len(passed_layers) > 1:
+
+                # for each layer except the last two, connect them with activation function
+                for i in range(len(passed_layers) - 2):
+                    layers.append(nn.Linear(passed_layers[i], passed_layers[i + 1]))
+                    layers.append(activation_function())
+
+                # the last is just a linear, without activation function
+                layers.append(nn.Linear(passed_layers[-2], passed_layers[-1]))
             
-            # the last is just a linear, without activation function
-            layers.append(nn.Linear(hidden_layers[-2], hidden_layers[-1]))
+                self.network = nn.Sequential(*layers)
+
+            elif len(passed_layers) <= 1:
+                self.network = nn.Identity()
+
             
-            self.network = nn.Sequential(*layers)
 
         def forward(self, x : torch.Tensor):
 
@@ -126,14 +133,30 @@ class FullyConnectedModelSchema(TorchModelComponent):
 
         self._final_layers = [*self.layers]
 
-        if self.input_shape is not None:
+        if self.input_shape is not None and self.output_shape is not None:
+            input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
+            output_size = discrete_output_layer_size_of_space(self.output_shape)
+
+            self.lg.writeLine(f"Input / output shape was specified: {self.input_shape} -> {self.output_shape}")
+
+            if input_size == output_size and len(self._final_layers) == 0:
+                self.lg.writeLine(f"As there was no specification of hidden size and input size and output size are equal ({input_size}), the model will be identity")
+
+            else:
+                self._final_layers.insert(0, input_size)
+                self.lg.writeLine(f"First layer will have size of: {input_size}")
+
+                self._final_layers.append(output_size)
+                self.lg.writeLine(f"Last layer will have size of: {output_size}")
+
+        elif self.input_shape is not None:
             input_size: int =  discrete_input_layer_size_of_space(self.input_shape)
             self._final_layers.insert(0, input_size)
             self.lg.writeLine(f"Input shape was specified: {self.input_shape}")
             self.lg.writeLine(f"First layer will have size of: {input_size}")
 
 
-        if self.output_shape is not None:
+        elif self.output_shape is not None:
             output_size = discrete_output_layer_size_of_space(self.output_shape)
             self._final_layers.append(output_size)
             self.lg.writeLine(f"Output shape was specified: {self.output_shape}")
@@ -154,7 +177,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
         self._setup_values() # this needs the values from the input fully setup
 
         self.model : nn.Module = type(self).Model_Class(
-                hidden_layers=self._final_layers,
+                passed_layers=self._final_layers,
                 activation_function=self.activation_function
             )
 
@@ -165,7 +188,7 @@ class FullyConnectedModelSchema(TorchModelComponent):
         super()._initialize_model()
 
         self.model : nn.Module = type(self).Model_Class(
-                hidden_layers=self._final_layers,
+                passed_layers=self._final_layers,
                 activation_function=self.activation_function
             )
         

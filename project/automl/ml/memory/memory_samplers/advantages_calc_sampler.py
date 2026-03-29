@@ -19,18 +19,14 @@ class PPOAdvantagesCalcSampler(MemorySampler):
 
     parameters_signature = {
         "learner" : ComponentParameterSignature(),
-        "discount_factor" : ParameterSignature()
     }
 
     def _process_input_internal(self):
         super()._process_input_internal()
 
         self.learner : PPOLearner = self.get_input_value("learner")
-
-        if not isinstance(self.learner, PPOLearner):
-            raise Exception("Assumes PPO Learner")
         
-        self.discount_factor = self.get_input_value("discount_factor")
+        self.discount_factor = self.learner.get_input_value("discount_factor")
 
 
     def prepare(self, memory : MemoryComponent = None):
@@ -45,10 +41,13 @@ class PPOAdvantagesCalcSampler(MemorySampler):
         processed_memory =  self.learner.interpret_trajectory(self.memory.get_all())
 
         with torch.no_grad():
-            observation_critic_values, next_obs_critic_values = self.learner.compute_values_estimates(processed_memory)
+
+            if not "observation_old_critic_value" in processed_memory.keys():
+
+                observation_critic_values, next_obs_critic_values = self.learner.compute_values_estimates(processed_memory)
             
-            processed_memory["observation_old_critic_values"] = observation_critic_values
-            processed_memory["next_obs_old_critic_values"] = next_obs_critic_values
+                processed_memory["observation_old_critic_value"] = observation_critic_values
+                processed_memory["next_obs_old_critic_value"] = next_obs_critic_values
                 
             # we compute the advantages using the whole memory
             critic_obs_pred_error, non_normalized_advantages, advantages, returns = self.learner.compute_error_and_advantage(self.discount_factor, 

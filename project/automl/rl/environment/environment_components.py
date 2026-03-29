@@ -22,6 +22,28 @@ class EnvironmentComponent(Component):
 
     def __init__(self, input = None):
         super().__init__(input)
+
+
+    @requires_input_process
+    @abstractmethod
+    def get_whole_state_shape(self):
+        '''
+        Returns the shape/space of the centralized whole-environment state
+        used by a shared critic.
+        '''
+        pass
+
+    @requires_input_process
+    @abstractmethod
+    def get_current_whole_state(self):
+        '''
+        Returns the current centralized whole-environment state.
+        Framework contract:
+        {
+            "observation": <tensor/array>
+        }
+        '''
+        pass
     
     
     @requires_input_process

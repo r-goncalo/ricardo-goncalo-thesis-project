@@ -7,6 +7,7 @@ from automl.rl.environment.aec_environment import AECEnvironmentComponent
 from automl.rl.environment.gymnasium.aec_gymnasium_env import AECGymnasiumEnvironmentWrapper
 from automl.rl.environment.environment_components import normalize_observation
 from automl.utils.shapes_util import clone_shape
+from automl.rl.environment.pettingzoo.petting_zoo_wrapper_env import PettingZooWrapper
 import torch
 import gymnasium
 
@@ -14,7 +15,7 @@ from pettingzoo import ParallelEnv
 
 
 # TODO: This should probably extend Gymnasium
-class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
+class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper, PettingZooWrapper):
         
     # INITIALIZATION --------------------------------------------------------------------------
 
@@ -103,16 +104,6 @@ class AECPettingZooEnvironmentWrapper(AECGymnasiumEnvironmentWrapper):
         return {
             "observation": clone_shape(obs_space)
         }
-    
-    
-    @requires_input_process
-    def agents(self):
-        return self.env.possible_agents
-    
-    @requires_input_process    
-    def get_active_agents(self):
-        '''Returns all the active agents'''
-        return self.env.agents
     
     
     def last(self):

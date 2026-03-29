@@ -30,7 +30,8 @@ class AgentSchemaWithStateMemory(AgentSchema):
 
     def initialize_state_memory(self): #Note this overrides the super method
         
-            
+        super().initialize_state_memory()
+
         self.model_input_shape_no_memory = self.processed_state_shape["observation"]
 
         self.state_memory_size = self.get_input_value("state_memory_size")

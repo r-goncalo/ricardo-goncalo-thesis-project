@@ -1,8 +1,9 @@
 from automl.ml.memory.memory_samplers.advantages_calc_sampler import PPOAdvantagesCalcSampler
-from automl.rl.learners.q_learner import ComponentParameterSignature
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 
+from automl.rl.learners.ppo_learner import PPOLearner
+from automl.core.advanced_input_management import ComponentParameterSignature
 import torch
 
 class AgentTrainerPPO(AgentTrainer):
@@ -12,6 +13,11 @@ class AgentTrainerPPO(AgentTrainer):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
+
+                       "learner" : ComponentParameterSignature(
+                            default_component_definition=(PPOLearner, {})
+                        ),
+
                        "memory_transformer" : ComponentParameterSignature(default_component_definition=(PPOAdvantagesCalcSampler, {})),
 
                        }
@@ -57,7 +63,7 @@ class AgentTrainerPPO(AgentTrainer):
                 "discount_factor" : self.discount_factor
                 })
         else:
-            self.lg.writeLine(f"Note that PPO assumes advantage estimation rollot")
+            self.lg.writeLine(f"Note that PPO assumes advantage estimation rollot but no memory transformer was passed")
 
     def initialize_agent(self):
         
@@ -67,18 +73,15 @@ class AgentTrainerPPO(AgentTrainer):
             raise Exception("PPO trainer needs a stochastic policy")
         
         self.agent_policy : StochasticPolicy = self.agent_policy
-        
+
+
 
         
     
     # TRAINING_PROCESS ---------------------
-         
 
+    def _gen_to_push(self, prev_state, next_state, action, reward, done, truncated):
 
-    def _observe_transiction_to(self, prev_state, next_state, action, reward, done, truncated):
-        
-        '''Makes agent observe and remember a transiction from its (current) a state to another'''
-                
         prev_state_in_agent = {**prev_state}
         prev_state_in_agent.pop("observation")
 
@@ -88,9 +91,7 @@ class AgentTrainerPPO(AgentTrainer):
         
         action_val_to_store = self.last_action_val.squeeze(0) if torch.is_tensor(self.last_action_val) and self.last_action_val.dim() > 1 and self.last_action_val.shape[0] == 1 else self.last_action_val
 
-
-        #we can push in this way because the pushed tensors are actually cloned into memory
-        self.memory.push({"observation" : prev_state["observation"], 
+        return {"observation" : prev_state["observation"], 
                               "action" : action, 
                               "next_observation" : next_state["observation"], 
                               "reward" : reward, 
@@ -98,7 +99,17 @@ class AgentTrainerPPO(AgentTrainer):
                               "done" : done,
                               "action_val" : action_val_to_store,
                               **prev_state_in_agent
-                              })
+                              }
+
+
+    def _observe_transiction_to(self, prev_state, next_state, action, reward, done, truncated, **kwargs):
+        
+        '''Makes agent observe and remember a transiction from its (current) a state to another'''
+        
+        transition_to_push = self._gen_to_push(prev_state, next_state, action, reward, done, truncated, **kwargs)
+
+        #we can push in this way because the pushed tensors are actually cloned into memory
+        self.push_to_memory(transition_to_push)
                
         
     def select_action(self, state):
@@ -129,3 +140,34 @@ class AgentTrainerPPO(AgentTrainer):
         super().optimizeAgent()
         
         self.memory.clear() # in PPO the policy must be filled only with transitions the current agent did       
+
+
+class AgentTrainerPPOCriticAware(AgentTrainerPPO):
+
+    def initialize_memory(self):
+        super().initialize_memory()
+
+        self.memory_fields_shapes = [   *self.memory_fields_shapes, 
+                                        ("observation_old_critic_value", 1),
+                                        ("next_obs_old_critic_value", 1), 
+                                    ]
+            
+        self.memory.pass_input({
+                                    "transition_data" : self.memory_fields_shapes
+                                })
+        
+
+
+
+        
+    def _gen_to_push(self, prev_state, next_state, action, reward, done, truncated, prev_critic_val, next_critic_val):
+        
+        transition_to_push = super()._gen_to_push(prev_state, next_state, action, reward, done, truncated)
+
+        transition_to_push.update({
+            "observation_old_critic_value" : prev_critic_val,
+            "next_obs_old_critic_value" : next_critic_val
+        })
+
+        return transition_to_push
+               

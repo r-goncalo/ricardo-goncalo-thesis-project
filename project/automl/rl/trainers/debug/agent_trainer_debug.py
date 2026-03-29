@@ -68,12 +68,12 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
             return super().optimizeAgent()
 
 
-        def _optimize_policy_model(self):
+        def do_learning_with_memory_learner(self):
         
             if self.verify_model_difference_after_optimize:
                 self.__temporary_model.clone_other_model_into_this(self.model)
     
-            super()._optimize_policy_model()
+            super().do_learning_with_memory_learner()
     
             if self.verify_model_difference_after_optimize:
                 l2_distance, avg_distance, cosine_sim = model_parameter_distance(self.__temporary_model, self.model)

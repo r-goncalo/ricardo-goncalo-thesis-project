@@ -7,27 +7,26 @@ from automl.ml.memory.memory_utils import interpret_unit_values, interpret_value
 from automl.rl.agent.agent_components import AgentSchema
 import torch
 
-class LearnerSchema(Component):
-        
+
+class NoAgentLearner(Component):
+    '''
+    A learner that does not directly target an agent
+    '''
+
     parameters_signature = {
-        "agent" : ParameterSignature(),
         "optimizations_per_learn" : ParameterSignature(default_value=1,custom_dict={
                                     "hyperparameter_suggestion" : ("int", {"low" : 1, "high" : 32})
                                 }),
 
         "learning_acessories" : ComponentListParameterSignature(mandatory=False),
 
-        "agent_trainer" : ComponentParameterSignature(mandatory=False),
-
-
     }
+
         
     def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
         
         super()._process_input_internal()
         
-        self.agent : AgentSchema = self.get_input_value("agent")
-
         self.optimizations_per_learn : int = self.get_input_value("optimizations_per_learn")
 
         self.learning_acessories : list[AcessoryComponent] = self.get_input_value("learning_acessories")
@@ -39,16 +38,12 @@ class LearnerSchema(Component):
             for acessory in self.learning_acessories:
                 acessory.pass_input({"affected_component" : self})
 
-        self.agent_trainer = self.get_input_value("agent_trainer")
-
-
-
-    
-    def _learn(self, trajectory, discount_factor):
+    def _learn(self, trajectory):
         pass
-        
+
+
     @requires_input_process
-    def learn(self, trajectory, discount_factor) -> None:
+    def learn(self, trajectory) -> None:
         
         '''
             Learns the policy using the current policy and the trajectory it is supposed to learn
@@ -64,10 +59,34 @@ class LearnerSchema(Component):
             acessory.pre_fun()
         
         for _ in range(self.optimizations_per_learn):
-            values = self._learn(trajectory, discount_factor)
+            values = self._learn(trajectory)
 
         for acessory in self.learning_acessories:
             acessory.pos_fun(values)
+
+
+class LearnerSchema(NoAgentLearner):
+
+    '''
+    A learner that learns behavior of an Agent
+    '''
+        
+    parameters_signature = {
+        "agent" : ParameterSignature(),
+
+        "agent_trainer" : ComponentParameterSignature(mandatory=False),
+
+
+    }
+        
+    def _process_input_internal(self): #this is the best method to have initialization done right after, input is already defined
+        
+        super()._process_input_internal()
+        
+        self.agent : AgentSchema = self.get_input_value("agent")
+
+        self.agent_trainer = self.get_input_value("agent_trainer")
+
 
 
     @requires_input_process
@@ -75,25 +94,15 @@ class LearnerSchema(Component):
 
         interpreted_trajectory = {**trajectory}
         
-        interpreted_trajectory["observation"] = interpret_values(trajectory["observation"], self.device)
+        interpreted_trajectory["observation"] = interpret_values(trajectory["observation"], self.device).detach()
 
-        interpreted_trajectory["action"] = interpret_values(trajectory["action"], self.device)
+        interpreted_trajectory["action"] = interpret_values(trajectory["action"], self.device).detach()
 
-        interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device)
+        interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device).detach()
             
-        interpreted_trajectory["reward"] = interpret_unit_values(trajectory["reward"], self.device)
+        interpreted_trajectory["reward"] = interpret_unit_values(trajectory["reward"], self.device).detach()
 
-        interpreted_trajectory["done"]  = interpret_unit_values(trajectory["done"], self.device)
+        interpreted_trajectory["done"]  = interpret_unit_values(trajectory["done"], self.device).detach()
             
         return interpreted_trajectory
     
-    
-    def _non_final_states_mask(self, next_observation_batch):
-        
-        # Compute a mask of non-final states and concatenate the batch elements
-        # (a final state would've been the one after which simulation ended)
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                              next_observation_batch)), dtype=torch.bool)
-
-        
-        return non_final_mask

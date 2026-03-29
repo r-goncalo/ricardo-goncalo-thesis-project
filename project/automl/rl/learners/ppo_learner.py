@@ -12,6 +12,7 @@ from automl.rl.learners.learner_component import LearnerSchema
 from automl.rl.policy.stochastic_policy import StochasticPolicy
 from automl.ml.optimizers.optimizer_components import AdamOptimizer, OptimizerSchema
 from automl.ml.models.torch_model_components import TorchModelComponent
+from automl.rl.rl_agorithms_utils import ppo
 import torch
 
 from automl.utils.class_util import get_class_from
@@ -149,36 +150,6 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
             self.critic_optimizer.pass_input({"model" : self.critic})
     
     # EXPOSED METHODS --------------------------------------------------------------------------
-    
-    def _evaluate_actions(self, interpreted_trajectory):
-        """
-        Evaluate given actions under the current policy.
-        Computes log probabilities of actions and entropy of the policy distribution.
-        """
-
-        observation_batch = interpreted_trajectory["observation"]
-        action_vals_batch = interpreted_trajectory["action_val"]
-
-        state_batch = {"observation" : observation_batch}
-
-        for custom_data_key in self.custom_data_beyond_obs:
-            state_batch[custom_data_key] = interpreted_trajectory[custom_data_key]
-
-        
-        model_output = self.policy.predict_model_output(state_batch) #note we can call directly from the policy because we're using states as they were saved in the trajectory
-        action_distribution = self.policy.distribution_from_model_output(model_output, state_batch)
-                        
-        log_probs = self.policy.log_probability_of_action_val(action_distribution, action_vals_batch, state_batch) # representing probabilities of taking previous actions with current policy
-
-        entropy = action_distribution.entropy()
-        if entropy.dim() > 1:
-            entropy = entropy.sum(dim=-1)
-        
-        entropy = entropy.mean()        
-
-        interpreted_trajectory["model_output"] = model_output
-        interpreted_trajectory["new_log_probs"] = log_probs
-        interpreted_trajectory["entropy"] = entropy
         
 
 
@@ -194,6 +165,27 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
             interpreted_trajectory[key] = interpret_values(trajectory[key], self.device).detach()
 
         return interpreted_trajectory    
+    
+
+    def _evaluate_actions(self, interpreted_trajectory):
+        """
+        Evaluate given actions under the current policy.
+        Computes log probabilities of actions and entropy of the policy distribution.
+        """
+
+        observation_batch = interpreted_trajectory["observation"]
+        action_vals_batch = interpreted_trajectory["action_val"]
+
+        state_batch = {"observation" : observation_batch}
+
+        for custom_data_key in self.custom_data_beyond_obs:
+            state_batch[custom_data_key] = interpreted_trajectory[custom_data_key]
+
+        model_output, new_log_probs, entropy = ppo.evaluate_actions(self.policy, state_batch, action_vals_batch)
+         
+        interpreted_trajectory["model_output"] = model_output
+        interpreted_trajectory["new_log_probs"] = new_log_probs
+        interpreted_trajectory["entropy"] = entropy
 
 
     def compute_values_estimates(self, interpreted_trajectory):
@@ -207,14 +199,7 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         next_observation_batch = interpreted_trajectory["next_observation"]
         done_batch = interpreted_trajectory["done"]
 
-        observation_critic_values = self.critic.predict(observation_batch).squeeze(-1)
-
-        with torch.no_grad():
-            next_obs_critic_values = self.critic.predict(next_observation_batch).squeeze(-1)
-
-        next_obs_critic_values = next_obs_critic_values * (1 - done_batch)
-
-        return observation_critic_values, next_obs_critic_values
+        return ppo.compute_values_estimates(self.critic, observation_batch, next_observation_batch, done_batch)
     
     
     def compute_error_and_advantage(self, discount_factor, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
@@ -224,39 +209,12 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
 
-        # Compute advantages using Generalized Advantage Estimation (GAE)
-        critic_obs_pred_error = reward_batch + discount_factor * next_obs_critic_values - observation_critic_values 
-        non_normalized_advantages = torch.zeros_like(critic_obs_pred_error, device=self.device)
-        
-        # GAE computation in reverse, note this assumes seq data
-        running_advantage = 0
-        for t in reversed(range(len(critic_obs_pred_error))):
-            running_advantage = critic_obs_pred_error[t] + discount_factor * self.lambda_gae * running_advantage  * (1 - done_batch[t])
-            non_normalized_advantages[t] = running_advantage
-
-        returns = non_normalized_advantages + observation_critic_values.detach()
-
-        advantages = (non_normalized_advantages - non_normalized_advantages.mean()) / (non_normalized_advantages.std() + 1e-8)
-
-        return critic_obs_pred_error, non_normalized_advantages, advantages, returns
+        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, discount_factor, self.lambda_gae)
     
+
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):
-    
-        # Compute ratio (pi_theta / pi_theta_old)
-        log_ratio = new_log_probs - log_prob_batch
-        log_ratio = torch.clamp(log_ratio, -20, 20)
-        ratio = torch.exp(log_ratio)
 
-        # Compute surrogate loss
-        surrogate1 = ratio * advantages
-        surrogate2 = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantages
-        
-        policy_loss_batch = -torch.min(surrogate1, surrogate2)
-        mean_policy_loss = policy_loss_batch.mean()
-        policy_loss = mean_policy_loss - get_value_or_dynamic_value(self.entropy_coef) * entropy # entropy regulates the exploration
-
-        return ratio, surrogate1, surrogate2, policy_loss_batch, mean_policy_loss, policy_loss
-
+        return ppo.compute_policy_loss(new_log_probs, log_prob_batch, advantages, entropy, self.clip_epsilon, self.entropy_coef)
 
     def _compute_critic_loss(self, interpreted_trajectory):
 
@@ -266,25 +224,9 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
         observation_critic_values = interpreted_trajectory["observation_critic_values"]
         returns = interpreted_trajectory["returns"]
-        obs_old_critic_values =interpreted_trajectory["observation_old_critic_values"]
+        obs_old_critic_values =interpreted_trajectory["observation_old_critic_value"]
 
-        value_loss_unclipped = (observation_critic_values - returns).pow(2)
-    
-        values_clipped = obs_old_critic_values + torch.clamp(
-            observation_critic_values - obs_old_critic_values,
-            -self.clip_epsilon,
-            self.clip_epsilon
-        )
-    
-        value_loss_clipped = (values_clipped - returns).pow(2)
-    
-        value_loss_batch = torch.max(value_loss_unclipped, value_loss_clipped)
-    
-        value_loss_mean = value_loss_batch.mean()
-        value_loss = value_loss_mean * self.value_loss_coef
-
-        return value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss
-
+        return ppo.compute_critic_loss(observation_critic_values, returns, obs_old_critic_values, self.clip_epsilon, self.value_loss_coef)
 
     def _compute_losses(self, interpreted_trajectory):
 
@@ -336,9 +278,9 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
 
     
-    def _learn(self, trajectory : dict, discount_factor):
+    def _learn(self, trajectory : dict):
 
-        super()._learn(trajectory, discount_factor)
+        super()._learn(trajectory)
         
         self.number_of_times_optimized += 1
         

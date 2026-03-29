@@ -43,8 +43,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                        
                        "learning_start_ep_delay" : ParameterSignature(default_value=-1),
                         "learning_start_step_delay" : ParameterSignature(default_value=-1),
-
-                       "save_interval" : ParameterSignature(default_value=100),
                         
                        "device" : ParameterSignature(get_from_parent=True, ignore_at_serialization=True),
                             
@@ -58,17 +56,18 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                     
                        "discount_factor" : ParameterSignature(
                            default_value=0.95,
+                           get_from_parent=True,
                            custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.7, "high": 0.99999 }]}
                            ),
 
                        "memory" : ComponentParameterSignature(
-                            default_component_definition=(TorchMemoryComponent, {}),
+                            mandatory=False
                        ),
 
                        "memory_transformer" : ComponentParameterSignature(mandatory=False),
                        
                        "learner" : ComponentParameterSignature(
-                            default_component_definition=(DeepQLearnerSchema, {})
+                            mandatory=False
                         ),
 
                         "agent_trainer_acessories" : ComponentListParameterSignature(mandatory=False, description="Acessories used for when the agent is learning"),
@@ -77,6 +76,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                            default_value=-1,
                            description="Limits the steps in a single training session"
                           ),                         
+
+                    "is_saving_in_memory" : ParameterSignature(default_value=True)
 
                        }
     
@@ -88,7 +89,8 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                       "optimizations_done" : 0,
                       "average_optimization" : 0,
                       "external_end_requests" : None,
-                      "is_training" : False
+                      "is_training" : False,
+                       "is_saving_in_memory" : True
                       } #this means we'll have a dic "values" with this starting values
     
     STATIC_EVENTS = {
@@ -108,7 +110,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         
         self.optimization_interval = self.get_input_value("optimization_interval")
         self.device = self.get_input_value("device")
-        self.save_interval = self.get_input_value("save_interval")
     
         self.BATCH_SIZE = self.get_input_value("batch_size") #the number of transitions sampled from the replay buffer
         
@@ -123,7 +124,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         if self.limit_steps >= 0:
             self.lg.writeLine(f"Will limit the learning of this agent to {self.limit_steps} steps in this training session")    
         
-        self._initialize_delays()                  
+        self._initialize_delays()    
                                 
         self.initialize_agent()
         self.initialize_learner()
@@ -132,8 +133,6 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         self._initialize_acessories()
 
         self.values['is_training'] = False
-                                
-
         
 
     # INITIALIZATION ---------------------------------------------
@@ -259,6 +258,15 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
     
     # TRAINING_PROCESS ----------------------
 
+
+    def is_agent_saving_in_memory(self):
+        return self.values["is_saving_in_memory"]
+    
+    def make_agent_save_in_memory(self):
+        self.values["is_saving_in_memory"] = True
+
+    def make_agent_stop_saving_in_memory(self):
+        self.values["is_saving_in_memory"] = False
 
         
     def is_agent_training(self):
@@ -442,13 +450,15 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
         '''
 
         self.values["episode_score"] = self.values["episode_score"] + reward
+
+        if self.values["is_saving_in_memory"]:
                             
-        self.observe_transiction_to(prev_state=prev_state, 
-                                    new_state=next_state,
-                                    action=action,
-                                    reward=reward,
-                                    done=done,
-                                    truncated=truncated)
+            self.observe_transiction_to(prev_state=prev_state, 
+                                        new_state=next_state,
+                                        action=action,
+                                        reward=reward,
+                                        done=done,
+                                        truncated=truncated)
             
         self.values["episode_steps"] = self.values["episode_steps"] + 1
         self.values["total_steps"] = self.values["total_steps"] + 1 #we just did a step      ~
@@ -464,7 +474,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                 
         
 
-    def observe_transiction_to(self, prev_state=None, new_state=None, action=None, reward=None, done=None, truncated=None):
+    def observe_transiction_to(self, prev_state=None, new_state=None, action=None, reward=None, done=None, truncated=None, **kwargs):
         
         '''
         Makes agent observe and remember a transiction from its (current) a state to another
@@ -497,13 +507,14 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             prev_state = self.agent.get_current_state_in_memory()
         
                         
-        return self._observe_transiction_to(prev_state, new_state, action, reward, done, truncated)
+        return self._observe_transiction_to(prev_state, new_state, action, reward, done, truncated, **kwargs)
     
 
-    def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
-        raise NotImplementedError("This is not implemented in the base class")
+    def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated, **kwargs):
+        pass
     
-    
+    def push_to_memory(self, to_push):
+        self.memory.push(to_push) 
 
         
         
@@ -560,18 +571,19 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             self.memory_transformer.prepare(self.memory)
 
         for _ in range(self.times_to_learn):
-            self._optimize_policy_model() 
-            self.values["optimizations_done"] += 1
+            self.do_learning_with_memory_learner() 
+           
 
         if self.memory_transformer is not None:
             self.memory_transformer.let_go()
         
         
     def _optimize_policy_model_with_batch(self, batch):
-        self.learner.learn(batch, self.discount_factor)
+        self.learner.learn(batch)
 
         
-    def _optimize_policy_model(self):
+
+    def do_learning_with_memory_learner(self):
 
         sampler = self.memory if self.memory_transformer is None else self.memory_transformer
 
@@ -591,6 +603,9 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                 
         for b in batches:
             self._optimize_policy_model_with_batch(b)
+
+        if len(batches) > 0:
+             self.values["optimizations_done"] += 1
 
 
     # EXTERNAL ACESSORIES PROCESSING ----------------------------------------------

@@ -21,10 +21,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
                          "hyperband_min_steps": ParameterSignature(default_value=0),
 
-                         "initial_number_of_trials" : ParameterSignature(
-                             mandatory=False,
-                             description="Forces initial number of trials (of first sucessive halving bracket) to be this number"),
-                                                }
+
+                        }
     
     exposed_values = {"current_hyperband_bracket" : -1, "current_sucessive_halving_bracket" : -1} 
             
@@ -42,8 +40,6 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         self.max_steps = self.n_steps
 
         self.max_steps_to_do_in_hyperband = self.max_steps - self.min_steps
-
-        self.n_initial_hyperband_trials = self.get_input_value("initial_number_of_trials")
 
         self.lg.writeLine(f"Finished processing input related to hyperband execution")
 
@@ -176,6 +172,10 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
 
                 self.lg.writeLine(f"Trials: {[trial.number for trial in trials]}")
 
+                if i == number_of_runs: # this guarantees the last rung runs the trial until the end
+                    step_budget = self.max_steps - total_step_budget
+                    end_successive_halving = True
+
                 if step_budget + total_step_budget > self.max_steps:
 
                     step_budget = self.max_steps - total_step_budget
@@ -193,7 +193,12 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
                     break
 
                 else:
-                    n_trials_to_mantain = max(0, n_trials_to_mantain // configurations_to_study_decrease_rate) # the number of trials we expect to mantain (inclusive)
+                    # we always try to mantain at least one trial
+                    if len(completed_results) > 0:
+                        n_trials_to_mantain = max(1, n_trials_to_mantain // configurations_to_study_decrease_rate)
+                    else:
+                        n_trials_to_mantain = 0 
+
                     trials_and_results_to_mantain : list[tuple[optuna.Trial, int]] = self._reduce_trials_due_to_results(completed_results, n_trials_to_mantain)
                 
                 trials = [t for t, _ in trials_and_results_to_mantain]
@@ -286,7 +291,8 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         Does an hyperband bracket, running the minimum number of steps and then executing hyperband as normal
         '''
 
-        r = int(self.max_steps_to_do_in_hyperband * self.eta ** (-current_hyperband_bracket))
+        geometric_sum = (self.eta ** (current_hyperband_bracket + 1) - 1) / (self.eta - 1)
+        r = max(1, int(self.max_steps_to_do_in_hyperband / geometric_sum))
 
         with self.optuna_usage_sem:
             trials = [self.study.ask() for _ in range(n_trials)]
@@ -311,70 +317,147 @@ class HyperparameterOptimizationPipelineHyperband(HyperparameterOptimizationPipe
         else:
             self.lg.writeLine(f"There were no remaining trials to execute the sucessive halving algorithm")
 
+    def _get_s_max(self):
+        if self.max_steps_to_do_in_hyperband <= 0:
+            return 0
 
-    def _run_true_hyperband(self, s_max=None):
+        if self.max_steps_to_do_in_hyperband < self.eta:
+            return 0
 
-        '''
-        Runs an adapted version of hyperband
-        First runs all sampled trials the minimum steps
-        Only then does it start the hyperband configuration
-        '''
+        return int(math.log(self.max_steps_to_do_in_hyperband, self.eta))
+
+
+    def _get_hyperband_bracket_weights(self, s_max=None):
+        """
+        HyperBand-style bracket weights.
+
+        Standard HyperBand allocates initial configurations proportionally to:
+            eta^s / (s + 1)
+
+        We reuse that shape, but normalize it to exactly self.n_trials.
+        """
 
         if s_max is None:
-            s_max = int(math.log(self.max_steps_to_do_in_hyperband, self.eta))
+            s_max = self._get_s_max()
 
-        n_trials = self.n_initial_hyperband_trials
+        return {
+            s: (self.eta ** s) / (s + 1)
+            for s in range(s_max + 1)
+        }
 
-        if n_trials is not None:
-            self.lg.writeLine(f"Initial number of trials passed of: {n_trials}")
 
+    def _get_trials_per_hyperband_bracket(self, s_max=None):
+        """
+        Returns a dict {bracket_s: n_trials_to_start_in_that_bracket}
+        such that the sum across brackets is exactly self.n_trials.
+
+        This adapts HyperBand to:
+          - fixed total number of trials
+          - fixed max cumulative budget per trial
+        """
+
+        if s_max is None:
+            s_max = self._get_s_max()
+
+
+
+        weights = self._get_hyperband_bracket_weights(s_max)
+        total_weight = sum(weights.values())
+
+        raw_allocations = {
+            s: self.n_trials * weights[s] / total_weight
+            for s in range(s_max + 1)
+        }
+
+        integer_allocations = {
+            s: int(math.floor(raw_allocations[s]))
+            for s in range(s_max + 1)
+        }
+
+        assigned = sum(integer_allocations.values())
+        remaining = self.n_trials - assigned
+
+        if remaining > 0:
+            remainders = sorted(
+                [(s, raw_allocations[s] - integer_allocations[s]) for s in range(s_max + 1)],
+                key=lambda x: x[1],
+                reverse=True,
+            )
+
+            for i in range(remaining):
+                integer_allocations[remainders[i][0]] += 1
+
+        return integer_allocations
+
+    def _run_true_hyperband(self, s_max=None):
+    
+        '''
+        Runs an adapted version of hyperband
+        with:
+          - fixed total number of trials (self.n_trials)
+          - fixed max cumulative budget per trial (self.n_steps)
+    
+        First runs all sampled trials the minimum steps.
+        Only then does it start the hyperband configuration.
+        '''
+    
+        if s_max is None:
+            s_max = self._get_s_max()
+    
+        bracket_trials = self._get_trials_per_hyperband_bracket(s_max)
+    
+        self.lg.writeLine(f"Adapted HyperBand bracket allocation: {bracket_trials}")
+    
         n_trials_done = 0
-
+    
         for current_hyperband_bracket in reversed(range(s_max + 1)):
-
+        
             self.lg.writeLine(f"Executing hyperband bracket {current_hyperband_bracket}...\n")
-
+    
             self.values["current_hyperband_bracket"] = current_hyperband_bracket
-
-            end_early = False
-
-            if n_trials is None:
-                n_trials = int(math.ceil((s_max + 1) / (current_hyperband_bracket + 1) * self.eta ** current_hyperband_bracket))
-
+    
+            n_trials = bracket_trials[current_hyperband_bracket]
+    
+            if n_trials <= 0:
+                self.lg.writeLine(
+                    f"Skipping hyperband bracket {current_hyperband_bracket} because it received 0 trials"
+                )
+                self.values["current_hyperband_bracket"] = -1
+                continue
+            
             trials_missing = self.n_trials - self.values["trials_done_in_this_execution"]
-
-            if n_trials > trials_missing:
-                self.lg.writeLine(f"Trials to do in bracket ({n_trials}) is higher than trials that are yet to be done: {trials_missing}, adapting it")
-                n_trials = trials_missing
-                end_early = True
-
-            self._run_true_hyperband_bracket(current_hyperband_bracket, n_trials)
-
-            n_trials_done += n_trials
-
-            n_trials = None
-
-            if end_early:
+    
+            if trials_missing <= 0:
+                self.lg.writeLine("No missing trials left to execute")
                 break
-
+            
+            if n_trials > trials_missing:
+                self.lg.writeLine(
+                    f"Trials to do in bracket ({n_trials}) is higher than trials that are yet to be done: {trials_missing}, adapting it"
+                )
+                n_trials = trials_missing
+    
+            self._run_true_hyperband_bracket(current_hyperband_bracket, n_trials)
+    
+            n_trials_done += n_trials
+    
             self.lg.writeLine(f"Finished executing hyperband bracket {current_hyperband_bracket}\n")
-
+    
         self.values["current_hyperband_bracket"] = -1
-
+    
         return n_trials_done
 
     
 
   
     def _call_objective(self):
-
         self._run_true_hyperband()
 
-        while self.n_trials >  self.values["trials_done_in_this_execution"]:
-
-            self.lg.writeLine(f"Hyperband did not complete asked number of trials, only did {self.values['trials_done_in_this_execution']} of {self.n_trials}")
-
-            self._run_true_hyperband()
+        if self.values["trials_done_in_this_execution"] < self.n_trials:
+            self.lg.writeLine(
+                f"WARNING: HyperBand finished with "
+                f"{self.values['trials_done_in_this_execution']} / {self.n_trials} trials done"
+            )
 
 
 

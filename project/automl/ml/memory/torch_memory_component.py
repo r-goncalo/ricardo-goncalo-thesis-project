@@ -97,7 +97,29 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         if self.total_size < self.capacity:
              self.total_size += 1
         
-    
+    def _get_batch_from_indices(self, indices=None):
+
+        if indices is not None:
+
+            batch_data = {
+                field_name: self.transitions[field_name][indices]
+                for field_name in self.field_names
+            }        
+
+            for key in self.extra_columns:
+                batch_data[key] = self.extra_columns[key][indices]
+            
+        else:
+            batch_data = {
+                field_name: self.transitions[field_name][:self.total_size]
+                for field_name in self.field_names
+            }        
+
+            for key in self.extra_columns:
+                batch_data[key] = self.extra_columns[key][:self.total_size]
+        
+        return batch_data
+
 
     @requires_input_process
     def sample(self, batch_size):
@@ -109,10 +131,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         
         indices = torch.randint(0, self.total_size, (batch_size,), device=self.device)
                 
-        batch_data = {
-            field_name: self.transitions[field_name][indices]
-            for field_name in self.field_names
-        }        
+        batch_data = self._get_batch_from_indices(indices)
         
         return batch_data
     
@@ -137,10 +156,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         for i in range(0, total_to_sample, batch_size):
             batch_indices = indices[i:i + batch_size]
 
-            batch_data = {
-                field_name: self.transitions[field_name][batch_indices]
-                for field_name in self.field_names
-            }
+            batch_data = self._get_batch_from_indices(batch_indices)
 
             batches.append(batch_data)
 
@@ -151,10 +167,7 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
     def get_all(self):
         '''Returns the total memory'''
 
-        batch_data = {
-            field_name: self.transitions[field_name][:self.total_size]
-            for field_name in self.field_names
-        }
+        batch_data = self._get_batch_from_indices()
         
         return batch_data
 
@@ -188,6 +201,8 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
         
         '''Logicaly cleans the memory, without doing any deletion operation'''
         
+        super().clear()
+
         self.position = 0
         self.total_size = 0
         

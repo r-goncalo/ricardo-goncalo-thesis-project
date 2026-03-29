@@ -38,6 +38,7 @@ class MemoryComponent(StatefulComponent):
                 
         self.field_names = [data_name for (data_name, _, _) in self.fields_shapes]
         
+        self.extra_columns = {}
                           
 
     #save a transition
@@ -61,7 +62,7 @@ class MemoryComponent(StatefulComponent):
     
     @requires_input_process
     def clear(self):
-        raise NotImplementedError()
+        self.extra_columns.clear()
         
     @requires_input_process
     def get_all(self):
@@ -87,5 +88,8 @@ class MemoryComponent(StatefulComponent):
     def is_full(self):
         return len(self) == self.capacity
     
+    @requires_input_process
+    def add_extra_columns(self, extra_columns : dict):
+        '''Adds new temporary columns'''
 
-
+        self.extra_columns = {**self.extra_columns, **extra_columns}

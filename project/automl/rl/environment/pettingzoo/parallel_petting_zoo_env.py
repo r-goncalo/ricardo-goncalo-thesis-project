@@ -4,6 +4,7 @@ from automl.component import Component, ParameterSignature, requires_input_proce
 from automl.fundamentals.translator.translator import Translator
 from automl.rl.environment.parallel_environment import ParallelEnvironmentComponent
 from automl.rl.environment.environment_components import normalize_observation
+from automl.rl.environment.pettingzoo.petting_zoo_wrapper_env import PettingZooWrapper
 import torch
 from automl.utils.shapes_util import clone_shape
 
@@ -13,7 +14,7 @@ import gymnasium
 
 import numpy as np
 
-class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededComponent):
+class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededComponent, PettingZooWrapper):
 
     parameters_signature = { 
         "environment": ParameterSignature(default_value="cooperative_pong"),
@@ -28,8 +29,8 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         self.render_mode = self.get_input_value("render_mode")
         self.device = self.get_input_value("device")
 
-
         self._setup_environment()
+
 
     def _setup_environment(self):
         env_input = self.get_input_value("environment")
@@ -96,16 +97,6 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         }
 
 
-    @requires_input_process
-    def agents(self):
-        return self.env.possible_agents
-        
-    
-    @requires_input_process    
-    def get_active_agents(self):
-        '''Returns all the active agents'''
-        return self.env.agents
-
     def reset(self):
         """
         Returns:
@@ -115,7 +106,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         obs, info = self.env.reset()
         self._last_obs = self._normalize_parallel_observations(obs)  # store so .observe(agent) can work
         self.reset_info = info
-        return obs
+        return self._normalize_parallel_observations(obs)
     
     def total_reset(self):
         """
@@ -126,7 +117,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         obs, info = self.env.reset(seed=self.seed)
         self._last_obs = self._normalize_parallel_observations(obs)  # store so .observe(agent) can work
         self.reset_info = info
-        return obs
+        return self._normalize_parallel_observations(obs)
     
     def _process_action_of_agent(self, agent, action):
             
@@ -160,7 +151,7 @@ class PettingZooEnvironmentWrapperParallel(ParallelEnvironmentComponent, SeededC
         next_obs, rewards, terminations, truncations, infos = self.env.step(actions)
 
         self._last_obs = self._normalize_parallel_observations(next_obs)
-        return next_obs, rewards, terminations, truncations, infos
+        return self._normalize_parallel_observations(next_obs), rewards, terminations, truncations, infos
 
 
     # For debugging or compatibility

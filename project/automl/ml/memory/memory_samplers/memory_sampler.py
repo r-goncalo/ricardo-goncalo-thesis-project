@@ -54,5 +54,9 @@ class MemorySampler(Component):
         pass
 
     @requires_input_process
+    def add_extra_columns(self):
+        pass
+
+    @requires_input_process
     def __len__(self):
         return len(self.memory)

@@ -23,6 +23,8 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
     # INITIALIZATION --------------------------------------------------------------------------
 
     parameters_signature = {
+
+                "discount_factor" : ParameterSignature(get_from_parent=True)
                         }    
     
 
@@ -31,6 +33,7 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         
         super()._process_input_internal()
                 
+        self.discount_factor = self.get_input_value("discount_factor")
         
         
         
@@ -48,7 +51,7 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
         pass
     
 
-    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory):
 
         '''
         Returns the predicted values for the next state
@@ -65,9 +68,9 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
     def _optimize_with_predicted_model_values_and_correct_values(self, predicted_values, correct_values):
         pass
     
-    def _learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory) -> None:
         
-        super()._learn(trajectory, discount_factor)
+        super()._learn(trajectory)
 
         interpreted_trajectory = self.interpret_trajectory(trajectory)
 
@@ -79,9 +82,9 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
                     
         predicted_actions_values, state_action_values = self._apply_model_prediction_given_state_action_pairs(interpreted_trajectory) 
 
-        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(interpreted_trajectory, discount_factor)
+        next_state_q_values, next_state_v_values = self._apply_value_prediction_to_next_state(interpreted_trajectory)
 
-        correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, discount_factor, reward_batch)
+        correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, self.discount_factor, reward_batch)
                         
         self._optimize_with_predicted_model_values_and_correct_values(state_action_values.squeeze(-1), correct_q_values_for_chosen_action)  
         
@@ -237,7 +240,7 @@ class DeepQLearnerSchema(QLearnerSchema):
         return predicted_actions_values, predicted_values_for_actions
     
 
-    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory):
 
         '''
         Returns the predicted values for the next state
@@ -272,9 +275,9 @@ class DeepQLearnerSchema(QLearnerSchema):
         
         self.number_optimizations_done += 1
     
-    def _learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory) -> None:
         
-        super()._learn(trajectory, discount_factor)
+        super()._learn(trajectory)
 
         if self.number_optimizations_done % self.target_update_learn_interval == 0:
             self.update_target_model()
@@ -291,7 +294,7 @@ class DeepQLearnerSchema(QLearnerSchema):
 class DoubleDeepQLearnerSchema(DeepQLearnerSchema):
 
 
-    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory):
 
         next_state_batch = self._next_state_batch_from_interpreted_trajectory(interpreted_trajectory)
 

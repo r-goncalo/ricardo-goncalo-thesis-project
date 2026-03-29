@@ -65,13 +65,28 @@ class RLTrainerComponentParallel(RLTrainerComponent):
             termination = terminations[agent_name]
             truncation = truncations[agent_name]
 
-            agent_trainer.do_after_training_step(i_episode, action, observation, reward, termination, truncation)
+            agent_trainer.do_after_training_step(i_episode=i_episode, 
+                                                 action=action, 
+                                                 next_state=observation,
+                                                   reward=reward, 
+                                                   termination=termination, 
+                                                   truncated=truncation)
 
-            done = done and (termination or truncation)
+            done = done and termination
 
         return done
 
+    def _aggregated_reward(self, rewards):
+            
+        reward = rewards.values()
 
+        if self.use_average_reward:
+            reward = sum(reward) / len(reward)
+            
+        else:
+            reward = sum(reward)
+
+        return reward
     
     def run_single_episode(self, i_episode):
                         
@@ -79,7 +94,7 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
         while True: # this runs a step of the episode
 
-            agent_names = self.env.get_active_agents()
+            agent_names = [*self.env.get_active_agents()]
 
             if len(agent_names) == 0:
                 break
@@ -90,19 +105,9 @@ class RLTrainerComponentParallel(RLTrainerComponent):
 
             done = self.process_env_step_for_agents(i_episode, agent_names, actions, observations, rewards, terminations, truncations)
 
-            self.values["episode_steps"] = self.values["episode_steps"] + 1
-            self.values["total_steps"] = self.values["total_steps"] + 1
-            self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
+            reward = self._aggregated_reward(rewards)
 
-            reward = rewards.values()
-
-            if self.use_average_reward:
-                reward = sum(reward) / len(reward)
-            
-            else:
-                reward = sum(reward)
-
-            self.values["episode_score"] = self.values["episode_score"] + reward
+            self.after_environment_step(reward)
 
             if done or self._check_if_to_end_episode():
                 break

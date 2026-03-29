@@ -4,6 +4,7 @@ from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.rl.exploration.exploration_strategy import ExplorationStrategySchema
 from automl.rl.trainers.agent_trainer_component import AgentTrainer
 
+from automl.rl.learners.q_learner import DeepQLearnerSchema
 import torch
 
 from automl.utils.shapes_util import reduce_space_dimension
@@ -15,6 +16,12 @@ class AgentTrainerDQN(AgentTrainer):
     TRAIN_LOG = 'train.txt'
     
     parameters_signature = {
+
+                       
+                       "learner" : ComponentParameterSignature(
+                            default_component_definition=(DeepQLearnerSchema, {})
+                        ),
+
         
                         "exploration_strategy" : ComponentParameterSignature(mandatory=False
                                                         ),
@@ -99,7 +106,7 @@ class AgentTrainerDQN(AgentTrainer):
                 processed_next_state_in_agent[f"next_{k}"] = torch.tensor(v, dtype=torch.float32, device=self.device)
 
                 
-        self.memory.push({"observation" : prev_state["observation"], 
+        self.push_to_memory({"observation" : prev_state["observation"], 
                           "action" : action, 
                           "next_observation" : new_state["observation"], 
                           "reward" : reward, 

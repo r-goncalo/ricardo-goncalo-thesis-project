@@ -48,7 +48,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         return predicted_actions_values, predicted_values_for_actions
 
 
-    def _apply_value_prediction_to_next_state(self, interpreted_trajectory, discount_factor):
+    def _apply_value_prediction_to_next_state(self, interpreted_trajectory):
 
         '''
         Returns the predicted values for the next state
@@ -59,7 +59,7 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
 
         done_batch = interpreted_trajectory["done"]
 
-        next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(interpreted_trajectory, discount_factor)
+        next_state_q_values, next_state_v_values = super()._apply_value_prediction_to_next_state(interpreted_trajectory)
 
         if self.__path_to_write is not None:
             self.lg.writeLine(f"\nComputed done, next_state_values computed by target and q value of action chosen:\n", file=self.__path_to_write, use_time_stamp=False)
@@ -98,15 +98,15 @@ class QLearnerDebug(LearnerDebug, QLearnerSchema):
         super()._optimize_with_predicted_model_values_and_correct_values(predicted_values, correct_values)
 
 
-    def _learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory) -> None:
 
         if self.interval_beetwenn_computation_writes % self.__current_interval_computation_count == 0:
             self.__path_to_write = self.lg.new_relative_path_if_exists("computation.txt", dir="learning")
         
         else:
             self.__path_to_write = None
-        
-        to_return = super()._learn(trajectory, discount_factor)
+
+        to_return = super()._learn(trajectory)
 
         self.__current_interval_computation_count += 1
 
@@ -141,7 +141,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
             self.lg.writeLine(f"Will compare old and new target params")
             self.__temporary_target_model_v2 = self.target_net.clone(input_for_clone={"base_directory" : self, "artifact_relative_directory" : "__temp_comp_params"}, is_deep_clone=True)
     
-    def _learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory) -> None:
 
         if self.compare_old_and_new_target_predictions:
 
@@ -149,7 +149,7 @@ class DQNLearnerDebug(QLearnerDebug, DeepQLearnerSchema):
 
             observation_batch, action_batch, next_observation_batch, reward_batch, done_batch, *_ = self.interpret_trajectory(trajectory)
 
-        super()._learn(trajectory, discount_factor)
+        super()._learn(trajectory)
 
         if self.compare_old_and_new_target_predictions and self.number_optimizations_done % self.target_update_learn_interval == 0:
 

@@ -35,22 +35,22 @@ class LearnerDebug(LearnerSchema, ComponentDebug):
             self.lg.writeLine(f"Will not compare old and new model predictions")
 
 
-    def learn(self, trajectory, discount_factor) -> None:
+    def learn(self, trajectory) -> None:
         
         self.lg.writeLine(f"Learning {self.optimizations_per_learn} timess...")
 
-        super().learn(trajectory, discount_factor)
+        super().learn(trajectory)
         
         self.lg.writeLine(f"Ended learning")
 
-    def _learn(self, trajectory, discount_factor) -> None:
+    def _learn(self, trajectory) -> None:
 
         if self.compare_old_and_new_model_predictions:
             self.__temporary_model.clone_other_model_into_this(self.__agent_model)
 
             interpreted_trajectory = self.interpret_trajectory(trajectory)
 
-        to_return = super()._learn(trajectory, discount_factor)
+        to_return = super()._learn(trajectory)
 
         self.lg.writeLine("\naction, reward, done, old_model_predictions, new_model_predictions\n", file="batch_comparison.txt", use_time_stamp=False)
 

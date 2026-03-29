@@ -58,11 +58,8 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
         self.lg.writeLine(f"Setting up RL trainer with initial values: {self.values}")
         
         self.device = self.get_input_value("device")
-    
         self.limit_steps = self.get_input_value("limit_steps")
-
         self.agents_trainers_input = self.get_input_value("agents_trainers_input")
-
         self.default_trainer_class = self.get_input_value("default_trainer_class")
         
         self._initialize_limit_numbers()
@@ -376,21 +373,24 @@ class RLTrainerComponent(ComponentWithLogging, ComponentWithResults, ExecCompone
             agent_in_training.setup_episode(self.env) 
 
     
+    def after_environment_step(self, reward):
+
+        '''Processes the end of an environment step, storing any relevant results'''
+
+        self.values["episode_steps"] = self.values["episode_steps"] + 1
+        self.values["total_steps"] = self.values["total_steps"] + 1
+        self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
+
+        self.values["episode_score"] = self.values["episode_score"] + reward
+
+    
     def run_episode_step_for_agent_name(self, i_episode, agent_name):
 
         agent_in_training = self.agents_trainers[agent_name] #gets the agent trainer for the current agent
             
         reward, done, truncated = agent_in_training.do_training_step(i_episode, self.env)
-                        
-        #for other_agent_name in self.env.get_active_agents(): #make the other agents observe the transition without puting it in memory (as it is not theirs)
-        #    if other_agent_name != agent_name:
-        #            self.agents_trainers[other_agent_name].observe_new_state(self.env)
                     
-        self.values["episode_steps"] = self.values["episode_steps"] + 1
-        self.values["total_steps"] = self.values["total_steps"] + 1
-        self.values["steps_done_in_session"] = self.values["steps_done_in_session"] + 1
-            
-        self.values["episode_score"] = self.values["episode_score"] + reward
+        self.after_environment_step(reward)
 
         return done, truncated
             
