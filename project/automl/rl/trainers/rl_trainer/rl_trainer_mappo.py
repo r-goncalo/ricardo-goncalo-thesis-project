@@ -189,8 +189,8 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
                 action=actions[agent_name],
                 reward=rewards[agent_name],
                 done=dones[agent_name],
-                prev_critic_val=observation_critic_value[idx].item(),
-                next_critic_val=next_observation_critic_value[idx].item(),
+                prev_critic_val=observation_critic_value[idx],
+                next_critic_val=next_observation_critic_value[idx],
                 truncated=truncations[agent_name]
             )
 

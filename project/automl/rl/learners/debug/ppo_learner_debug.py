@@ -277,8 +277,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
             with torch.no_grad():
 
-                old_values = self.__old_critic_model.predict(interpreted_trajectory["observation"]).squeeze(-1)
-                new_values = self.critic.predict(interpreted_trajectory["observation"]).squeeze(-1)
+                old_values = self.__old_critic_model.predict(interpreted_trajectory["observation"])
+                new_values = self.critic.predict(interpreted_trajectory["observation"])
 
                 reward_batch = interpreted_trajectory["reward"]
                 action_batch = interpreted_trajectory["action"]

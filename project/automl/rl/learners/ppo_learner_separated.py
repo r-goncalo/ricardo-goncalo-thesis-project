@@ -3,7 +3,7 @@ from automl.component import ParameterSignature, requires_input_process
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.advanced_input_utils import get_value_of_type_or_component
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
+from automl.ml.memory.memory_utils import interpret_values, interpret_values
 from automl.ml.optimizers.optimizer_components import AdamOptimizer, OptimizerSchema
 from automl.rl.learners.learner_component import LearnerSchema, NoAgentLearner
 from automl.rl.policy.stochastic_policy import StochasticPolicy
@@ -107,12 +107,12 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
     def interpret_trajectory(self, trajectory):
         interpreted_trajectory = super().interpret_trajectory(trajectory)
 
-        interpreted_trajectory["truncation"] = interpret_unit_values(
+        interpreted_trajectory["truncation"] = interpret_values(
             trajectory["truncation"], self.device
         ).detach()
 
 
-        interpreted_trajectory["log_prob"] = interpret_unit_values(
+        interpreted_trajectory["log_prob"] = interpret_values(
             trajectory["log_prob"], self.device
         ).detach()
 

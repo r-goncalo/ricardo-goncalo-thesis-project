@@ -3,7 +3,7 @@ from automl.component import Component, ParameterSignature, requires_input_proce
 
 from automl.core.advanced_input_management import ComponentParameterSignature, ComponentListParameterSignature
 from automl.fundamentals.acessories import AcessoryComponent
-from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
+from automl.ml.memory.memory_utils import interpret_values, interpret_values
 from automl.rl.agent.agent_components import AgentSchema
 import torch
 
@@ -100,9 +100,9 @@ class LearnerSchema(NoAgentLearner):
 
         interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device).detach()
             
-        interpreted_trajectory["reward"] = interpret_unit_values(trajectory["reward"], self.device).detach()
+        interpreted_trajectory["reward"] = interpret_values(trajectory["reward"], self.device).detach()
 
-        interpreted_trajectory["done"]  = interpret_unit_values(trajectory["done"], self.device).detach()
+        interpreted_trajectory["done"]  = interpret_values(trajectory["done"], self.device).detach()
             
         return interpreted_trajectory
     

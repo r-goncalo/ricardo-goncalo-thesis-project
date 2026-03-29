@@ -3,7 +3,7 @@
 import torch
 
 
-def interpret_unit_values(unit_values_collection, device = None, dtype = None):
+def interpret_values(unit_values_collection, device = None, dtype = None):
     
     if not isinstance(unit_values_collection, torch.Tensor):        
         return torch.stack(unit_values_collection, dim=0).to(device)  # Stack tensors along a new dimension (dimension 0)

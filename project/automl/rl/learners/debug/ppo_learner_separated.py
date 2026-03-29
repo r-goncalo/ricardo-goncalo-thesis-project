@@ -152,8 +152,9 @@ class PPOLearnerNoCriticDebug(LearnerDebug, PPOLearnerNoCritic):
         return to_return
 
 
-class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
+class PPOLearnerOnlyCriticDebug(PPOLearnerOnlyCritic):
     is_debug_schema = True
+    target_debug_class = PPOLearnerOnlyCritic
 
     parameters_signature = {
         "interval_between_debug_writes": ParameterSignature(default_value=50),
@@ -393,7 +394,7 @@ class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
         if should_compare_old_and_new_critic:
             self.__old_critic_model.clone_other_model_into_this(self.critic)
 
-        to_return = super()._learn(trajectory, discount_factor)
+        to_return = super()._learn(trajectory)
 
         if should_compare_old_and_new_critic:
 
@@ -401,8 +402,8 @@ class PPOLearnerOnlyCriticDebug(LearnerDebug, PPOLearnerOnlyCritic):
 
                 observations = interpreted_trajectory["observation"]
 
-                old_values = self.__old_critic_model.predict(observations).squeeze(-1)
-                new_values = self.critic.predict(observations).squeeze(-1)
+                old_values = self.__old_critic_model.predict(observations)
+                new_values = self.critic.predict(observations)
 
                 reward_batch = interpreted_trajectory["reward"]
                 done_batch = interpreted_trajectory["done"]

@@ -86,7 +86,7 @@ class QLearnerSchema(LearnerSchema, ComponentWithLogging):
 
         correct_q_values_for_chosen_action = self._calculate_chosen_actions_correct_q_values(next_state_v_values, self.discount_factor, reward_batch)
                         
-        self._optimize_with_predicted_model_values_and_correct_values(state_action_values.squeeze(-1), correct_q_values_for_chosen_action)  
+        self._optimize_with_predicted_model_values_and_correct_values(state_action_values, correct_q_values_for_chosen_action)  
         
 
         

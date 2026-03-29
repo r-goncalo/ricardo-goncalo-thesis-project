@@ -4,7 +4,7 @@ from automl.component import Component, ParameterSignature, requires_input_proce
 from automl.core.advanced_input_management import ComponentParameterSignature
 from automl.core.advanced_input_utils import get_value_of_type_or_component
 from automl.loggers.logger_component import ComponentWithLogging
-from automl.ml.memory.memory_utils import interpret_unit_values, interpret_values
+from automl.ml.memory.memory_utils import interpret_values, interpret_values
 from automl.ml.models.neural_model import FullyConnectedModelSchema
 from automl.ml.models.torch_model_utils import split_shared_params
 from automl.rl.learners.learner_component import LearnerSchema
@@ -160,9 +160,9 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         
         interpreted_trajectory = super().interpret_trajectory(trajectory)
 
-        interpreted_trajectory["log_prob"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
+        interpreted_trajectory["log_prob"] = interpret_values(trajectory["log_prob"], self.device).detach()
 
-        interpreted_trajectory["truncation"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
+        interpreted_trajectory["truncation"] = interpret_values(trajectory["log_prob"], self.device).detach()
 
         interpreted_trajectory["action_val"] = interpret_values(trajectory["action_val"], self.device).detach()
 

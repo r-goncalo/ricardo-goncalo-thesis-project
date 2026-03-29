@@ -30,6 +30,7 @@ class Schema(ABCMeta): # the meta class of all component classes, defines their 
             "fused_parameters_signature" : {},
             "exposed_values": {},
             "is_debug_schema" : False,
+            "target_debug_class" : None,
             "default_name" : None
         }
     

@@ -35,7 +35,8 @@ class Component(metaclass=Schema): # a component that receives and verifies inpu
     fused_parameters_signature : dict[str, ParameterSignature] = {} # this is not for users to change, as the schema saves here the fused parameter signatures without default values
 
     is_debug_schema = False # meant to be True if a class is to be used as debug, this means it will always be counted last in the mro
-    
+    target_debug_class = None
+
     default_name = None
 
     #A dictionary { "value_name" -> initial_value }

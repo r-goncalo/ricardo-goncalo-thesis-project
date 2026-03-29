@@ -80,8 +80,8 @@ class StochasticPolicy(Policy):
         and should be summed across the last dimension.
         """
         if log_prob.dim() > 1:
-            return log_prob.sum(dim=-1)
-        return log_prob
+            return log_prob.sum(dim=-1, keepdim=True)
+        return log_prob.unsqueeze(-1)
     
     
     @abstractmethod
@@ -155,7 +155,7 @@ class CategoricalStochasticPolicy(StochasticPolicy):
             action_val = action_val.long()
 
         if action_val.dim() > 0 and action_val.shape[-1] == 1:
-            action_val = action_val.squeeze(-1)
+            action_val = action_val
 
         if action_val.dim() > 1:
             raise ValueError(f"Categorical action_val must be scalar, [B], or [B,1], got shape {tuple(action_val.shape)}")

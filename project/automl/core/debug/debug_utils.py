@@ -8,6 +8,9 @@ def get_non_debug_schema_of_schema(schema : type[Component]):
     
     if not schema.is_debug_schema:
         return None
+
+    elif schema.target_debug_class is not None:
+        return schema.target_debug_class
     
     else:
 
