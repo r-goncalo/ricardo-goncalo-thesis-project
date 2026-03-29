@@ -29,7 +29,7 @@ class DEBUG_LEVEL(SmartEnum):
 IDENT_SPACE = '    '
 
 DEFAULT_LOGGER_LEVEL = DEBUG_LEVEL.DEBUG
-DEFAULT_WRITE_TO_FILE_WHEN = -1 
+DEFAULT_WRITE_TO_FILE_WHEN = 1000
 
 def change_default_logger_level(new_value):
 
