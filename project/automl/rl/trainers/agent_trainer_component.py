@@ -457,7 +457,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
 
         if self.values["is_saving_in_memory"]:
                             
-            self.observe_transiction_to(prev_state=prev_state, 
+            self.observe_transition_to(prev_state=prev_state, 
                                         new_state=next_state,
                                         action=action,
                                         reward=reward,
@@ -478,7 +478,7 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
                 
         
 
-    def observe_transiction_to(self, prev_state=None, new_state=None, action=None, reward=None, done=None, truncated=None, **kwargs):
+    def observe_transition_to(self, prev_state=None, new_state=None, action=None, reward=None, done=None, truncated=None, **kwargs):
         
         '''
         Makes agent observe and remember a transiction from its (current) a state to another
@@ -513,10 +513,10 @@ class AgentTrainer(ComponentWithLogging, ComponentWithResults, EventfulComponent
             prev_state = self.agent.get_current_state_in_memory()
         
                         
-        return self._observe_transiction_to(prev_state, new_state, action, reward, done, truncated, **kwargs)
+        return self._observe_transition_to(prev_state, new_state, action, reward, done, truncated, **kwargs)
     
 
-    def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated, **kwargs):
+    def _observe_transition_to(self, prev_state, new_state, action, reward, done, truncated, **kwargs):
         pass
     
     def push_to_memory(self, to_push):

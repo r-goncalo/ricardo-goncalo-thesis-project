@@ -104,7 +104,7 @@ class AgentTrainerPPO(AgentTrainer):
                               }
 
 
-    def _observe_transiction_to(self, prev_state, next_state, action, reward, done, truncated, **kwargs):
+    def _observe_transition_to(self, prev_state, next_state, action, reward, done, truncated, **kwargs):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
         

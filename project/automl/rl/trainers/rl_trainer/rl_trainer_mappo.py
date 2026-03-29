@@ -101,7 +101,7 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
 
         super().initialize_memory()
 
-        state_shape = self.env.get_whole_state_shape()
+        state_shape = {**self.env.get_whole_state_shape()}
         self.lg.writeLine(f"Whole state shape is {state_shape}")
 
         self.whole_observation_shape = state_shape.pop("observation")
@@ -180,7 +180,7 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
             idx = self.agent_to_idx[agent_name]
             agent_trainer = self.agents_trainers[agent_name]
 
-            agent_trainer.observe_transiction_to(
+            agent_trainer.observe_transition_to(
                 new_state=torch.tensor(
                     observations[agent_name]["observation"],
                     dtype=torch.float32,

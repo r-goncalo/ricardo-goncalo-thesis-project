@@ -83,10 +83,10 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
     
 
     
-        def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
+        def _observe_transition_to(self, prev_state, new_state, action, reward, done, truncated):
 
             if not self.note_observed_transitions:
-                super()._observe_transiction_to(prev_state, new_state, action, reward, done, truncated)
+                super()._observe_transition_to(prev_state, new_state, action, reward, done, truncated)
 
             else:
 
@@ -94,7 +94,7 @@ class AgentTrainerDebug(AgentTrainer, ComponentDebug):
                 _old_state_obs = prev_state["observation"].clone()
                 _new_state_obs = new_state["observation"].clone()
 
-                super()._observe_transiction_to(prev_state, new_state, action, reward, done, truncated)
+                super()._observe_transition_to(prev_state, new_state, action, reward, done, truncated)
 
 
                 old_state_str = str(_old_state_obs)

@@ -130,8 +130,8 @@ def config_dict():
                                         {
                                             "input_for_fun_key": "optimizations_done",
                                             "initial_value": 0.5,
-                                            "final_value": 0,
-                                            "input_component": ('relative', ("__get_by_name__", {"name_of_component": "CriticOptimizer"})),
+                                            "final_value": 1e-8,
+                                            "input_component": ('relative', [("__get_by_name__", {"name_of_component": "CriticOptimizer"})]),
 
                                             "input_for_fun_max_value":
                                             ('relative',
@@ -200,8 +200,8 @@ def config_dict():
                                     {
                                         "input_for_fun_key": "optimizations_done",
                                         "initial_value": 0.5,
-                                        "final_value": 0,
-                                        "input_component": ('relative', ("__get_by_name__", {"name_of_component": "AdamOptimizerComponent"})),
+                                        "final_value": 1e-8,
+                                        "input_component": ('relative', [("__get_by_name__", {"name_of_component": "AdamOptimizerComponent"})]),
 
                                         "input_for_fun_max_value":
                                         ('relative',
@@ -539,7 +539,7 @@ def hyperparameter_suggestions():
                             ]),
                             "input_for_fun_max_value":
                             ('relative',[
-                                        ("__get_by_type__", {"type": PPOLearnerNoCritic}),
+                                        ("__get_by_type__", {"type": AgentTrainer}),
                                         ("__get_exposed_value__", {
                                             "value_localization": ["optimizations_to_do"]
                                         })

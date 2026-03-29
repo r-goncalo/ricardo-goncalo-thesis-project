@@ -85,7 +85,7 @@ class AgentTrainerDQN(AgentTrainer):
             self.lg.writeLine(f"Exploration strategy values: \n{self.exploration_strategy.values}\n")
         
 
-    def _observe_transiction_to(self, prev_state, new_state, action, reward, done, truncated):
+    def _observe_transition_to(self, prev_state, new_state, action, reward, done, truncated):
         
         '''Makes agent observe and remember a transiction from its (current) a state to another'''
 
