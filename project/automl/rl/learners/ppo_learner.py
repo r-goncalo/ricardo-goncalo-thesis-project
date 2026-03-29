@@ -162,6 +162,8 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
 
         interpreted_trajectory["log_prob"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
 
+        interpreted_trajectory["truncation"] = interpret_unit_values(trajectory["log_prob"], self.device).detach()
+
         interpreted_trajectory["action_val"] = interpret_values(trajectory["action_val"], self.device).detach()
 
         for key in self.custom_data_beyond_obs:
@@ -211,8 +213,9 @@ class PPOLearner(LearnerSchema, ComponentWithLogging):
         next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
+        truncated_batch = interpreted_trajectory["truncation"]
 
-        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
+        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, truncated_batch, self.discount_factor, self.lambda_gae)
     
 
     def _compute_policy_loss(self, new_log_probs, log_prob_batch, advantages, entropy):

@@ -87,6 +87,7 @@ def compute_gae_and_returns(
     observation_critic_values,
     next_obs_critic_values,
     done_batch,
+    truncated_batch,
     discount_factor: float,
     lambda_gae: float,
     eps: float = 1e-8,
@@ -109,6 +110,8 @@ def compute_gae_and_returns(
         next_obs_critic_values = next_obs_critic_values.unsqueeze(-1)
     if done_batch.dim() == 1:
         done_batch = done_batch.unsqueeze(-1)
+    if truncated_batch.dim() == 1:
+        truncated_batch = truncated_batch.unsqueeze(-1)
 
     critic_obs_pred_error = (
         reward_batch
@@ -126,10 +129,12 @@ def compute_gae_and_returns(
         device=critic_obs_pred_error.device
     )
 
+    gae_continue_mask = 1.0 - torch.maximum(done_batch, truncated_batch)
+
     for t in reversed(range(len(critic_obs_pred_error))):
         running_advantage = (
             critic_obs_pred_error[t]
-            + discount_factor * lambda_gae * running_advantage * (1 - done_batch[t])
+            + discount_factor * lambda_gae * running_advantage * gae_continue_mask[t]
         )
         non_normalized_advantages[t] = running_advantage
 

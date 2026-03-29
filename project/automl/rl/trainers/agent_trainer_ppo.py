@@ -47,6 +47,7 @@ class AgentTrainerPPO(AgentTrainer):
                                         ("done", 1),
                                         ("log_prob", 1), #log probability of chosing the stored action
                                         ("action_val", self.agent_policy.get_action_val_shape()),
+                                        ("truncation", 1),
                                         *[(state_shape_key, state_shape_value) for state_shape_key, state_shape_value in state_shape.items()]
                                     ]
             
@@ -98,6 +99,7 @@ class AgentTrainerPPO(AgentTrainer):
                               "log_prob" : self.last_log_prob, 
                               "done" : done,
                               "action_val" : action_val_to_store,
+                              "truncation" : truncated,
                               **prev_state_in_agent
                               }
 

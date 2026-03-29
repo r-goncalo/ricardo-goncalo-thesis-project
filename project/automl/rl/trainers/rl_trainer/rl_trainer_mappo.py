@@ -50,7 +50,6 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
         self.learn_with_all_memory = self.get_input_value("learn_with_all_memory")
         self.times_to_learn = self.get_input_value("times_to_learn")
 
-        self._initialize_agent_indexing()
         self._initialize_critic_learner()
 
         self.memory_transformer.pass_input({"learner": self.critic_learner})
@@ -60,7 +59,12 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
         self.lg.writeLine("Finished processing mappo specific input\n")
 
     def _initialize_agent_indexing(self):
-        self.all_agents = list(self.env.agents())
+
+        self.all_agents = self.values.get("all_agents", None)
+        if self.all_agents is None:
+            self.all_agents = list(self.env.agents())
+            self.values["all_agents"] =self.all_agents
+
         self.num_agents = len(self.all_agents)
         self.agent_to_idx = {agent_name: i for i, agent_name in enumerate(self.all_agents)}
 
@@ -81,7 +85,11 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
 
         critic_model_input = self.critic_learner.get_input_value("critic_model_input")
         critic_model_input = {} if critic_model_input is None else critic_model_input
-        critic_model_input = {**critic_model_input, "input_shape": self.whole_observation_shape, "output_shape" : self.num_agents}
+        critic_model_input = {
+            **critic_model_input,
+            "input_shape": self.whole_observation_shape,
+            "output_shape": self.num_agents
+        }
 
         self.critic_learner.pass_input({
             "critic_model_input": critic_model_input,
@@ -89,6 +97,8 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
         })
 
     def initialize_memory(self):
+        self._initialize_agent_indexing()
+
         super().initialize_memory()
 
         state_shape = self.env.get_whole_state_shape()
@@ -102,9 +112,10 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
             ("next_observation", self.whole_observation_shape),
             ("reward", self.num_agents),
             ("done", self.num_agents),
+            ("truncation", self.num_agents),
             ("observation_old_critic_value", self.num_agents),
             ("next_obs_old_critic_value", self.num_agents),
-            ("alive_agents", self.num_agents) # We're missing the part of generating and saving this value
+            ("alive_agents", self.num_agents),
         ]
 
         self.memory.pass_input({
@@ -121,6 +132,15 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
 
         return vec
 
+    def _build_alive_agents_vector(self, active_agent_names):
+        alive_vec = torch.zeros((self.num_agents,), dtype=torch.float32, device=self.device)
+
+        for agent_name in active_agent_names:
+            idx = self.agent_to_idx[agent_name]
+            alive_vec[idx] = 1.0
+
+        return alive_vec
+
     def _push_shared_transition(
         self,
         prev_whole_state,
@@ -135,26 +155,28 @@ class RLTrainerMAPPO(RLTrainerOrquestrator, RLTrainerComponentParallel):
         prev_whole_obs = torch.tensor(prev_whole_state["observation"], dtype=torch.float32, device=self.device)
         next_whole_obs = torch.tensor(next_whole_state["observation"], dtype=torch.float32, device=self.device)
 
-        # shape: [num_agents]
-        observation_critic_value = self.critic_learner.critic_pred(prev_whole_obs)
-        next_observation_critic_value = self.critic_learner.critic_pred(next_whole_obs)
+        observation_critic_value = self.critic_learner.critic_pred(prev_whole_obs).reshape(-1)
+        next_observation_critic_value = self.critic_learner.critic_pred(next_whole_obs).reshape(-1)
 
         reward_vec = self._build_agent_vector(rewards, default_value=0.0, dtype=torch.float32)
         done_vec = self._build_agent_vector(dones, default_value=1.0, dtype=torch.float32)
+        trunc_vec = self._build_agent_vector(truncations, default_value=1.0, dtype=torch.float32)
+        alive_agents_vec = self._build_alive_agents_vector(agent_names)
 
         transition = {
             "observation": prev_whole_obs,
             "next_observation": next_whole_obs,
             "reward": reward_vec,
             "done": done_vec,
+            "truncation" : trunc_vec,
             "observation_old_critic_value": observation_critic_value.detach(),
             "next_obs_old_critic_value": next_observation_critic_value.detach(),
+            "alive_agents": alive_agents_vec.detach(),
         }
 
         self.memory.push(transition)
 
         for agent_name in agent_names:
-
             idx = self.agent_to_idx[agent_name]
             agent_trainer = self.agents_trainers[agent_name]
 

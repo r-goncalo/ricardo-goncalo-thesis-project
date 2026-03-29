@@ -83,19 +83,44 @@ class TorchMemoryComponent(MemoryComponent, ComponentWithLogging):
 
     @requires_input_process
     def push(self, transition):
-
-        '''Pushes a transition into the saved transitions, possibly substituting another'''
-        
+        """Pushes a transition into memory, coercing values to the slot shape when safe."""
         idx = self.position
-
+    
         for field_name in self.field_names:
-                        
-            self.transitions[field_name][idx].copy_(transition[field_name])
-
+            target = self.transitions[field_name][idx]
+            value = transition[field_name]
+    
+            if not isinstance(value, torch.Tensor):
+                value = torch.as_tensor(value, device=target.device, dtype=target.dtype)
+            else:
+                value = value.to(device=target.device, dtype=target.dtype)
+    
+            # Fast path
+            if value.shape != target.shape:
+                # Remove trivial singleton dimensions first, e.g. [1, 3] -> [3]
+                squeezed = value.squeeze()
+    
+                if squeezed.shape == target.shape:
+                    value = squeezed
+    
+                # If same number of elements, reshape safely
+                elif value.numel() == target.numel():
+                    value = value.reshape(target.shape)
+    
+                else:
+                    raise RuntimeError(
+                        f"Cannot store field '{field_name}': "
+                        f"memory slot shape={tuple(target.shape)}, "
+                        f"received shape={tuple(value.shape)}, "
+                        f"numel(slot)={target.numel()}, numel(value)={value.numel()}"
+                    )
+    
+            target.copy_(value)
+    
         self.position = (self.position + 1) % self.capacity
-        
+    
         if self.total_size < self.capacity:
-             self.total_size += 1
+            self.total_size += 1
         
     def _get_batch_from_indices(self, indices=None):
 

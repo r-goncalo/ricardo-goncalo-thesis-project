@@ -107,6 +107,11 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
     def interpret_trajectory(self, trajectory):
         interpreted_trajectory = super().interpret_trajectory(trajectory)
 
+        interpreted_trajectory["truncation"] = interpret_unit_values(
+            trajectory["truncation"], self.device
+        ).detach()
+
+
         interpreted_trajectory["log_prob"] = interpret_unit_values(
             trajectory["log_prob"], self.device
         ).detach()
@@ -163,8 +168,9 @@ class PPOLearnerNoCritic(LearnerSchema, ComponentWithLogging):
         next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
         observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
         done_batch = interpreted_trajectory["done"]
+        truncated_batch = interpreted_trajectory["truncation"]
 
-        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
+        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, truncated_batch, self.discount_factor, self.lambda_gae)
     
 
 
@@ -265,11 +271,13 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
             custom_dict={"hyperparameter_suggestion": ["float", {"low": 0.3, "high": 0.7}]},
         ),
 
-        "lambda_gae" : ParameterSignature(default_value=0.95, description="Controls trade-off between bias and variance, higher means more variance and less bias",
-                                     custom_dict={"hyperparameter_suggestion" : [ "float", {"low": 0.9, "high": 0.999 }]}),
+        "lambda_gae": ParameterSignature(
+            default_value=0.95,
+            description="Controls trade-off between bias and variance, higher means more variance and less bias",
+            custom_dict={"hyperparameter_suggestion": ["float", {"low": 0.9, "high": 0.999}]}
+        ),
 
-        "discount_factor" : ParameterSignature(get_from_parent=True),
-
+        "discount_factor": ParameterSignature(get_from_parent=True),
     }
 
     def _process_input_internal(self):
@@ -304,7 +312,6 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         critic_output_shape = self.critic.get_input_value("output_shape")
         if critic_output_shape is None:
             self.critic.pass_input({"output_shape": 1})
-        
         else:
             self.lg.writeLine(f"Critic model already has output shape defined: {critic_output_shape}")
 
@@ -318,49 +325,69 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
             self.critic_optimizer.pass_input({"name": "CriticOptimizer"})
 
     def interpret_trajectory(self, trajectory):
-
         interpreted_trajectory = {**trajectory}
-        
-        interpreted_trajectory["observation"] = interpret_values(trajectory["observation"], self.device).detach()
 
-        interpreted_trajectory["next_observation"] = interpret_values(trajectory["next_observation"], self.device).detach()
-            
-        interpreted_trajectory["reward"] = interpret_values(trajectory["reward"], self.device).detach()
+        interpreted_trajectory["observation"] = interpret_values(
+            trajectory["observation"], self.device
+        ).detach()
 
-        interpreted_trajectory["done"] = interpret_values(trajectory["done"], self.device).detach()
+        interpreted_trajectory["next_observation"] = interpret_values(
+            trajectory["next_observation"], self.device
+        ).detach()
 
+        interpreted_trajectory["reward"] = interpret_values(
+            trajectory["reward"], self.device
+        ).detach()
+
+        interpreted_trajectory["done"] = interpret_values(
+            trajectory["done"], self.device
+        ).detach()
+
+        interpreted_trajectory["truncation"] = interpret_values(
+            trajectory["truncation"], self.device
+        ).detach()
+
+        if "alive_agents" in trajectory:
+            interpreted_trajectory["alive_agents"] = interpret_values(
+                trajectory["alive_agents"], self.device
+            ).detach()
 
         if "observation_old_critic_value" in trajectory:
-            interpreted_trajectory["observation_old_critic_value"] = interpret_unit_values(
+            interpreted_trajectory["observation_old_critic_value"] = interpret_values(
                 trajectory["observation_old_critic_value"], self.device
             ).detach()
 
         if "next_obs_old_critic_value" in trajectory:
-            interpreted_trajectory["next_obs_old_critic_value"] = interpret_unit_values(
+            interpreted_trajectory["next_obs_old_critic_value"] = interpret_values(
                 trajectory["next_obs_old_critic_value"], self.device
             ).detach()
 
         if "returns" in trajectory:
-            interpreted_trajectory["returns"] = interpret_unit_values(
+            interpreted_trajectory["returns"] = interpret_values(
                 trajectory["returns"], self.device
             ).detach()
 
         if "advantages" in trajectory:
-            interpreted_trajectory["advantages"] = interpret_unit_values(
+            interpreted_trajectory["advantages"] = interpret_values(
                 trajectory["advantages"], self.device
             ).detach()
 
         if "critic_obs_pred_error" in trajectory:
-            interpreted_trajectory["critic_obs_pred_error"] = interpret_unit_values(
+            interpreted_trajectory["critic_obs_pred_error"] = interpret_values(
                 trajectory["critic_obs_pred_error"], self.device
             ).detach()
 
         if "non_normalized_advantages" in trajectory:
-            interpreted_trajectory["non_normalized_advantages"] = interpret_unit_values(
+            interpreted_trajectory["non_normalized_advantages"] = interpret_values(
                 trajectory["non_normalized_advantages"], self.device
             ).detach()
 
         return interpreted_trajectory
+
+    def _masked_mean(self, tensor, mask, eps=1e-8):
+        masked_tensor = tensor * mask
+        denom = mask.sum().clamp_min(eps)
+        return masked_tensor.sum() / denom
 
     def compute_values_estimates(self, interpreted_trajectory):
         '''
@@ -373,15 +400,20 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         next_observation_batch = interpreted_trajectory["next_observation"]
         done_batch = interpreted_trajectory["done"]
 
-        if "alive_agents" in interpreted_trajectory.keys():
-            # mask
-
-        return ppo.compute_values_estimates(
+        observation_critic_values, next_obs_critic_values = ppo.compute_values_estimates(
             self.critic,
             observation_batch,
             next_observation_batch,
             done_batch
         )
+
+        if "alive_agents" in interpreted_trajectory:
+            alive_agents = interpreted_trajectory["alive_agents"]
+
+            observation_critic_values = observation_critic_values * alive_agents
+            next_obs_critic_values = next_obs_critic_values * alive_agents
+
+        return observation_critic_values, next_obs_critic_values
 
     def _compute_critic_loss(self, interpreted_trajectory):
         '''
@@ -392,31 +424,77 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         returns = interpreted_trajectory["returns"]
         obs_old_critic_values = interpreted_trajectory["observation_old_critic_value"]
 
-        if "alive_agents" in interpreted_trajectory.keys():
-            # mask
-
-        return ppo.compute_critic_loss(
+        value_loss_unclipped, value_loss_clipped, value_loss_batch, _, _ = ppo.compute_critic_loss(
             observation_critic_values,
             returns,
             obs_old_critic_values,
             self.clip_epsilon,
             self.value_loss_coef
         )
-    
+
+        if "alive_agents" in interpreted_trajectory:
+            alive_agents = interpreted_trajectory["alive_agents"]
+
+            value_loss_mean = self._masked_mean(value_loss_batch, alive_agents)
+            value_loss = value_loss_mean * self.value_loss_coef
+
+            return (
+                value_loss_unclipped,
+                value_loss_clipped,
+                value_loss_batch,
+                value_loss_mean,
+                value_loss
+            )
+
+        value_loss_mean = value_loss_batch.mean()
+        value_loss = value_loss_mean * self.value_loss_coef
+
+        return (
+            value_loss_unclipped,
+            value_loss_clipped,
+            value_loss_batch,
+            value_loss_mean,
+            value_loss
+        )
+
     @requires_input_process
-    def compute_error_and_advantage(self, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
-
+    def compute_error_and_advantage(
+        self,
+        interpreted_trajectory,
+        observation_critic_values=None,
+        next_obs_critic_values=None
+    ):
         reward_batch = interpreted_trajectory["reward"]
-        next_obs_critic_values = interpreted_trajectory["next_obs_critic_values"] if next_obs_critic_values is None else next_obs_critic_values
-        observation_critic_values = interpreted_trajectory["observation_critic_values"] if observation_critic_values is None else observation_critic_values
+        next_obs_critic_values = (
+            interpreted_trajectory["next_obs_critic_values"]
+            if next_obs_critic_values is None else next_obs_critic_values
+        )
+        observation_critic_values = (
+            interpreted_trajectory["observation_critic_values"]
+            if observation_critic_values is None else observation_critic_values
+        )
         done_batch = interpreted_trajectory["done"]
+        truncated_batch = interpreted_trajectory["truncation"]
 
-        if "alive_agents" in interpreted_trajectory.keys():
-            # mask
+        if "alive_agents" in interpreted_trajectory:
+            alive_agents = interpreted_trajectory["alive_agents"]
 
+            reward_batch = reward_batch * alive_agents
+            observation_critic_values = observation_critic_values * alive_agents
+            next_obs_critic_values = next_obs_critic_values * alive_agents
 
-        return ppo.compute_gae_and_returns(reward_batch, observation_critic_values, next_obs_critic_values, done_batch, self.discount_factor, self.lambda_gae)
-    
+            # Dead agents should stop GAE recursion immediately
+            done_batch = torch.maximum(done_batch, 1.0 - alive_agents)
+
+        return ppo.compute_gae_and_returns(
+            reward_batch,
+            observation_critic_values,
+            next_obs_critic_values,
+            done_batch,
+            truncated_batch,
+            self.discount_factor,
+            self.lambda_gae
+        )
 
     def _compute_losses(self, interpreted_trajectory):
         observation_critic_values, next_obs_critic_values = self.compute_values_estimates(
@@ -448,11 +526,6 @@ class PPOLearnerOnlyCritic(NoAgentLearner, ComponentWithLogging):
         self.number_of_times_optimized += 1
 
         interpreted_trajectory = self.interpret_trajectory(trajectory)
-
-        # NOTE:
-        # This learner assumes the critic-side targets are already precomputed.
-        # In particular, trajectory["returns"] and
-        # trajectory["observation_old_critic_value"] must already exist.
 
         value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss = \
             self._compute_losses(interpreted_trajectory)
