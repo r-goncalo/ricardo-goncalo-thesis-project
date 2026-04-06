@@ -570,3 +570,262 @@ def print_intermidiate_values(trial_list : optuna.trial.FrozenTrial):
         # Format as: trial X: v1, v2, v3
         values_str = ", ".join(str(v) for v in values)
         print(f"trial {trial.number}: {values_str}")
+
+
+
+def plot_bayesian_optimization_for_param(
+    optuna_study,
+    trials_to_use,
+    hyperparam,
+    acquisition_function="ei",
+    xi=0.01,
+    n_points=300,
+    show_confidence=True,
+    use_log_x=False,
+):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import optuna
+
+    from scipy.stats import norm
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from sklearn.gaussian_process.kernels import Matern, WhiteKernel, ConstantKernel
+
+    if trials_to_use is None:
+        trials_to_use = optuna_study.trials
+
+    if trials_to_use is None or len(trials_to_use) == 0:
+        raise ValueError("trials_to_use must contain at least one trial.")
+
+    def expected_improvement(mu, sigma, best_y, minimize=True, xi=0.0):
+        sigma = np.maximum(sigma, 1e-12)
+
+        if minimize:
+            improvement = best_y - mu - xi
+        else:
+            improvement = mu - best_y - xi
+
+        z = improvement / sigma
+        ei = improvement * norm.cdf(z) + sigma * norm.pdf(z)
+        ei[sigma <= 1e-12] = 0.0
+        return ei
+
+    def upper_confidence_bound(mu, sigma, minimize=True, xi=2.0):
+        if minimize:
+            # maximize acquisition
+            return -(mu - xi * sigma)
+        else:
+            return mu + xi * sigma
+
+    # Filter trials actually used
+    filtered_trials = []
+    plot_x = []
+    plot_y = []
+    plot_trial_numbers = []
+
+    for t in trials_to_use:
+        if (
+            t.state == optuna.trial.TrialState.COMPLETE
+            and hyperparam in t.params
+            and t.value is not None
+        ):
+            try:
+                x_val = float(t.params[hyperparam])
+                y_val = float(t.value)
+
+                if use_log_x:
+                    if x_val <= 0:
+                        continue
+                    x_val = np.log10(x_val)
+
+                filtered_trials.append(t)
+                plot_x.append(x_val)
+                plot_y.append(y_val)
+                plot_trial_numbers.append(t.number)
+            except Exception:
+                pass
+
+    if len(plot_x) < 2:
+        raise ValueError(
+            f"Need at least 2 COMPLETE trials with param '{hyperparam}' in trials_to_use."
+        )
+
+    plot_x = np.array(plot_x, dtype=float)
+    plot_y = np.array(plot_y, dtype=float)
+    plot_trial_numbers = np.array(plot_trial_numbers, dtype=float)
+
+    # Sort by x for cleaner visualization
+    order = np.argsort(plot_x)
+    plot_x = plot_x[order]
+    plot_y = plot_y[order]
+    plot_trial_numbers = plot_trial_numbers[order]
+
+    # Alpha based on trial number among filtered trials
+    min_trial = plot_trial_numbers.min()
+    max_trial = plot_trial_numbers.max()
+    alphas = 0.15 + 0.85 * (
+        (plot_trial_numbers - min_trial) / (max_trial - min_trial + 1e-8)
+    )
+
+    # Domain from passed trials only
+    x_min = np.min(plot_x)
+    x_max = np.max(plot_x)
+
+    if x_min == x_max:
+        padding = 1.0 if x_min == 0 else abs(x_min) * 0.1
+        x_min -= padding
+        x_max += padding
+    else:
+        padding = 0.05 * (x_max - x_min)
+        x_min -= padding
+        x_max += padding
+
+    x_grid = np.linspace(x_min, x_max, n_points)
+
+    # Standardize X and y for GP stability
+    x_mean = plot_x.mean()
+    x_std = plot_x.std() + 1e-12
+    y_mean = plot_y.mean()
+    y_std = plot_y.std() + 1e-12
+
+    X_train = ((plot_x - x_mean) / x_std).reshape(-1, 1)
+    X_grid = ((x_grid - x_mean) / x_std).reshape(-1, 1)
+    y_train = (plot_y - y_mean) / y_std
+
+    kernel = (
+        ConstantKernel(1.0, (1e-2, 1e2))
+        * Matern(length_scale=1.0, length_scale_bounds=(1e-2, 1e2), nu=2.5)
+        + WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-8, 1e1))
+    )
+
+    gp = GaussianProcessRegressor(
+        kernel=kernel,
+        normalize_y=False,  # already standardized
+        n_restarts_optimizer=10,
+        random_state=0,
+    )
+    gp.fit(X_train, y_train)
+
+    mu_std, sigma_std = gp.predict(X_grid, return_std=True)
+
+    # Transform GP prediction back to original y scale
+    mu = mu_std * y_std + y_mean
+    sigma = sigma_std * y_std
+
+    minimize = optuna_study.direction == optuna.study.StudyDirection.MINIMIZE
+    best_y = np.min(plot_y) if minimize else np.max(plot_y)
+
+    acquisition_function = acquisition_function.lower()
+    if acquisition_function == "ei":
+        acq = expected_improvement(mu, sigma, best_y, minimize=minimize, xi=xi)
+        acq_label = "Expected Improvement"
+    elif acquisition_function == "ucb":
+        acq = upper_confidence_bound(mu, sigma, minimize=minimize, xi=max(xi, 1.0))
+        acq_label = "Confidence Bound"
+    else:
+        raise ValueError(
+            f"Unsupported acquisition_function '{acquisition_function}'. Use 'ei' or 'ucb'."
+        )
+
+    fig, ax1 = plt.subplots(figsize=(9, 6))
+
+    first = True
+    for x_i, y_i, a_i in zip(plot_x, plot_y, alphas):
+        ax1.scatter(
+            x_i,
+            y_i,
+            alpha=a_i,
+            color="red",
+            label=f"Trials used ({len(filtered_trials)})" if first else None,
+        )
+        first = False
+
+    ax1.plot(x_grid, mu, color="green", linewidth=2, label="GP mean")
+
+    if show_confidence:
+        ax1.fill_between(
+            x_grid,
+            mu - 1.96 * sigma,
+            mu + 1.96 * sigma,
+            color="green",
+            alpha=0.2,
+            label="GP 95% CI",
+        )
+
+    ax1.set_xlabel(f"log10({hyperparam})" if use_log_x else hyperparam)
+    ax1.set_ylabel("Objective")
+
+    ax2 = ax1.twinx()
+    ax2.plot(
+        x_grid,
+        acq,
+        color="orange",
+        linestyle="--",
+        linewidth=2,
+        label=acq_label,
+    )
+    ax2.set_ylabel("Acquisition")
+
+    best_acq_idx = int(np.argmax(acq))
+    ax2.scatter(
+        [x_grid[best_acq_idx]],
+        [acq[best_acq_idx]],
+        color="purple",
+        s=80,
+        label="Best acquisition point",
+    )
+
+    ax1.set_title(f"{hyperparam} vs Objective with GP + {acq_label}")
+    ax1.grid(True)
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="best")
+
+    plt.tight_layout()
+    plt.show()
+
+    print("Learned kernel:", gp.kernel_)
+
+def plot_bayesian_optimization_for_params(
+    optuna_study,
+    trials_to_use=None,
+    params=None,
+    acquisition_function="ei",
+    use_log_x=False,
+    acquisition_points=300
+):
+    
+    if trials_to_use is None:
+        trials_to_use = optuna_study.trials
+
+    if trials_to_use is None or len(trials_to_use) == 0:
+        raise ValueError("trials_to_use must contain at least one trial.")
+
+    if params is None:
+        params = sorted({
+            param_name
+            for t in trials_to_use
+            if t.state == optuna.trial.TrialState.COMPLETE
+            for param_name in t.params.keys()
+        })
+
+    if isinstance(params, list):
+        for param in params:
+            plot_bayesian_optimization_for_param(
+                optuna_study=optuna_study,
+                trials_to_use=trials_to_use,
+                hyperparam=param,
+                acquisition_function=acquisition_function,
+                use_log_x=use_log_x,
+                n_points=acquisition_points
+            )
+    else:
+        plot_bayesian_optimization_for_param(
+            optuna_study=optuna_study,
+            trials_to_use=trials_to_use,
+            hyperparam=params,
+            acquisition_function=acquisition_function,
+            use_log_x=use_log_x,
+            n_points=acquisition_points
+        )

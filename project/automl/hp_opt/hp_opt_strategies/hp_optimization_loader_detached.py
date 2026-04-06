@@ -730,7 +730,6 @@ class HyperparameterOptimizationPipelineLoaderDetached(HyperparameterOptimizatio
             if exception is not None:
 
                 if isinstance(exception, optuna.TrialPruned):
-                    self.values["trials_done_in_this_execution"] += 1
                     self.mark_trial_as_pruned(trial)
 
                 elif isinstance(exception, StopExperiment):
