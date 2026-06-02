@@ -1,10 +1,10 @@
-from automl.fundamentals.translator.tensor_translator import ToTorchTranslator
-from automl.fundamentals.translator.torch_image_state_translator import ImageNormalizer, ImageReverter, ImageReverterToSingleChannel, ImageSingleChannel
-from automl.fundamentals.translator.translator import TranslatorSequence
+from automarl.components.fundamentals.translator.tensor_translator import ToTorchTranslator
+from automarl.components.fundamentals.translator.torch_image_state_translator import ImageNormalizer, ImageReverter, ImageReverterToSingleChannel, ImageSingleChannel
+from automarl.components.fundamentals.translator.translator import TranslatorSequence
 import numpy as np
 import torch
-from automl.basic_components import loop_components
-from automl.component import Component, ParameterSignature
+from automarl.components.basic_components import loop_components
+from automarl.component import Component, ParameterSignature
 import unittest
               
     

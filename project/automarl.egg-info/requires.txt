@@ -1,0 +1,12 @@
+numpy
+optuna
+matplotlib
+torch
+gymnasium
+pandas
+wandb
+pettingzoo
+pygame
+scikit-learn
+plotly
+nbformat

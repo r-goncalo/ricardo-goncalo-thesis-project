@@ -1,4 +1,4 @@
-from automl.component import Component, ParameterSignature
+from automarl.component import Component, ParameterSignature
 import unittest
 
 

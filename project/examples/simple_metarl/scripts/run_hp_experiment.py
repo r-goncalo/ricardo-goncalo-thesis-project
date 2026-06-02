@@ -1,12 +1,12 @@
 
 import os
-from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline
-from automl.utils.json_utils.json_component_utils import gen_component_from_path
-from automl.loggers.logger_component import DEBUG_LEVEL, change_default_logger_level
-from automl.basic_components.state_management import save_state
-from automl.loggers.global_logger import activate_global_logger, get_global_level_artifact_directory
+from automarl.components.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline
+from automarl.utils.json_utils.json_component_utils import gen_component_from_path
+from automarl.components.loggers.logger_component import DEBUG_LEVEL, change_default_logger_level
+from automarl.components.basic_components.state_management import save_state
+from automarl.components.loggers.global_logger import activate_global_logger, get_global_level_artifact_directory
 
-from automl.loggers.logger_component import LoggerSchema
+from automarl.components.loggers.logger_component import LoggerSchema
 
 def gen_default_hp_config_path(path_to_store_experiment, experiment_relative_path):
 

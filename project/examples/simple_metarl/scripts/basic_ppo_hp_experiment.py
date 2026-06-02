@@ -1,7 +1,7 @@
-from automl.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
-from automl.base_configurations.base_configurations import load_configuration_dict
+from automarl.components.hp_opt.hyperparameter_suggestion import HyperparameterSuggestion
+from automarl.base_configurations.base_configurations import load_configuration_dict
 import optuna
-from automl.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline
+from automarl.components.hp_opt.hp_optimization_pipeline import HyperparameterOptimizationPipeline
 
 
 RL_PIPELINE = ([])
@@ -122,7 +122,7 @@ def gen_hp_optimization_input(hyperparameters_to_change, configuration_dict=None
     
     if mockup:
         raise NotImplementedError()
-        from automl.basic_components.mock_components.mock_evaluators import RandomMockEvaluator
+        from automarl.components.basic_components.mock_components.mock_evaluators import RandomMockEvaluator
         hp_opt_input["evaluator_component"] = (RandomMockEvaluator, {})
     
     return hp_opt_input

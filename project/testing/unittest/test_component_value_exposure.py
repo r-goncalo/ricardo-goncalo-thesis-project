@@ -1,5 +1,5 @@
-from automl.basic_components import loop_components
-from automl.component import Component, ParameterSignature
+from automarl.components.basic_components import loop_components
+from automarl.component import Component, ParameterSignature
 import unittest
               
         

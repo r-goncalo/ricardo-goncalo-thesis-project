@@ -1,5 +1,5 @@
-from automl.basic_components.artifact_management import ParameterSignature
-from automl.component import Component
+from automarl.components.basic_components.artifact_management import ParameterSignature
+from automarl.component import Component
 import unittest
 
 

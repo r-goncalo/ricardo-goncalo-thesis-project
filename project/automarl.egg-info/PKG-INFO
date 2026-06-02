@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: automarl
+Version: 0.1.dev3+g66cb83c84
+Summary: An AutoMARL library
+Author: Ricardo Gonçalo
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+Requires-Dist: optuna
+Requires-Dist: matplotlib
+Requires-Dist: torch
+Requires-Dist: gymnasium
+Requires-Dist: pandas
+Requires-Dist: wandb
+Requires-Dist: pettingzoo
+Requires-Dist: pygame
+Requires-Dist: scikit-learn
+Requires-Dist: plotly
+Requires-Dist: nbformat
+
+
+This directory is meant to store the actual automarl project

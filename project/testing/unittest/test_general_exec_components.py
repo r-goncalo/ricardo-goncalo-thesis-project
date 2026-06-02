@@ -1,7 +1,7 @@
-from automl.basic_components import loop_components
+from automarl.components.basic_components import loop_components
 import unittest
 
-from automl.basic_components.exec_component import ExecComponent
+from automarl.components.basic_components.exec_component import ExecComponent
 
 
 class TestExecComponent(unittest.TestCase):
