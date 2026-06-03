@@ -105,8 +105,8 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         if self._should_log():
 
             reward_batch = interpreted_trajectory["reward"]
-            next_values = interpreted_trajectory["values"]
-            values = interpreted_trajectory["old_values"]
+            next_values = interpreted_trajectory["next_obs_critic_values"]
+            values = interpreted_trajectory["observation_critic_values"]
             done_batch = interpreted_trajectory["done"]
 
             self.lg.writeLine(f"\nValue error calculation: (reward + discount_factor * next_values - values)",
