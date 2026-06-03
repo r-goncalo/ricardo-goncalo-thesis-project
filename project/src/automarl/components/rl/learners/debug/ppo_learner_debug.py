@@ -75,7 +75,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
         if self._should_log():
 
-            action_batch = interpreted_trajectory.get("action", None)
+            action_batch = interpreted_trajectory.get("action_val", None)
             done_batch = interpreted_trajectory["done"]
 
 
@@ -155,7 +155,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
             for i in range(len(values)):
                 
                 self.lg.writeLine(
-                    f"{i}: {critic_obs_pred_error[i]} = {reward_batch[i]} + {discount_factor} * {next_values[i]} - {values[i]}",
+                    f"{i}: {critic_obs_pred_error[i]} = {reward_batch[i]} + {self.discount_factor} * {next_values[i]} - {values[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )
@@ -181,7 +181,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         if self._should_log():
 
             model_output = interpreted_trajectory["model_output"]
-            actions = interpreted_trajectory["action"]
+            actions = interpreted_trajectory["action_val"]
             new_log_probs = interpreted_trajectory["new_log_probs"]
 
             self.lg.writeLine(
@@ -231,14 +231,17 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
     def _compute_critic_loss(self, interpreted_trajectory):
 
         value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss = super()._compute_critic_loss(interpreted_trajectory)
-        
+
+        observation_critic_values = interpreted_trajectory["observation_critic_values"]
+        returns = interpreted_trajectory["returns"]
+
         if self._should_log():
         
             self.lg.writeLine(f"\nCritic loss calculation:\nMin(error (critic_predicted, return) , Clipped values)", file=self.__debug_path, use_time_stamp=False)
 
             for i in range(len(value_loss_unclipped)):
                 self.lg.writeLine(
-                    f"    {i}: Min( ( {values[i]} - {returns[i]} )^2 = {value_loss_unclipped[i]}, {value_loss_clipped[i]}) -> {value_loss_batch[i]}",
+                    f"    {i}: Min( ( {observation_critic_values[i]} - {returns[i]} )^2 = {value_loss_unclipped[i]}, {value_loss_clipped[i]}) -> {value_loss_batch[i]}",
                     file=self.__debug_path,
                     use_time_stamp=False,
                 )
@@ -248,7 +251,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         return value_loss_unclipped, value_loss_clipped, value_loss_batch, value_loss_mean, value_loss
 
 
-    def _learn(self, trajectory, discount_factor):
+    def _learn(self, trajectory):
 
         if self._should_log():
             self.lg.writeLine(f"Interpreting trajectory with keys: {trajectory.keys()}", file=self.__debug_path,
@@ -273,7 +276,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
         if should_compare_old_and_new_critic:
             self.__old_critic_model.clone_other_model_into_this(self.critic)
 
-        to_return = super()._learn(trajectory, discount_factor)
+        to_return = super()._learn(trajectory)
             
         if should_compare_old_and_new_critic:
 
@@ -283,7 +286,7 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
                 new_values = self.critic.predict(interpreted_trajectory["observation"])
 
                 reward_batch = interpreted_trajectory["reward"]
-                action_batch = interpreted_trajectory["action"]
+                action_batch = interpreted_trajectory["action_val"]
                 done_batch = interpreted_trajectory["done"]
 
                 self.lg.writeLine(
