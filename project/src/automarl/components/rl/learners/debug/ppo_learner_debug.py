@@ -95,9 +95,11 @@ class PPOLearnerDebug(LearnerDebug, PPOLearner):
 
         return values, next_values
     
-    def compute_error_and_advantage(self, interpreted_trajectory):
+    def compute_error_and_advantage(self, interpreted_trajectory, observation_critic_values = None, next_obs_critic_values = None):
         critic_obs_pred_error, non_normalized_advantages, advantages, returns = super().compute_error_and_advantage(
-            interpreted_trajectory
+            interpreted_trajectory,
+            observation_critic_values,
+            next_obs_critic_values
         )
 
         if self._should_log():
